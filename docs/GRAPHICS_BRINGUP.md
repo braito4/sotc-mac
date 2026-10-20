@@ -208,8 +208,8 @@ presentation and asset/pointer compatibility remain unverified.
 The real combined Terminal run now passes color/capability operations, starts RenderFlip and
 Game Render, passes original gesture initialization and opens the keyboard-backed
 controller. Save/trophy task threads then start, and a thread key is created and set twice
-and UUID generation passes. The latest real run then fails in audio setup after NGS2
-loading is rejected.
+and UUID generation passes. The original NGS2 load now succeeds and a sound-loader thread
+starts before the next stop at `sceAudioOutInit`.
 The controller has not been sampled yet. Graphics mode connects a keyboard-backed logical controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
 key names are checked on the main thread before guest startup. Headless mode retains its
 existing unresolved input boundary.
@@ -283,7 +283,25 @@ reference lifecycle, premature load, missing/wrong-scope/data/non-executable bin
 inconsistent module ownership and initialization failure in JIT/interpreter. The headless
 command remains unchanged. Real NGS2 system creation, AJM decoding and AudioOut playback
 remain unverified; missing downstream services still stop explicitly. The combined Terminal
-run must verify progress beyond the failed audio-object setup. No game frame is established.
+run now confirms progress beyond that failed audio-object setup: NGS2 loads and a sound-loader
+thread starts before the unresolved AudioOut initialization call. No game frame is established.
+
+## AudioOut device-stream lifecycle
+
+The next adapter connects only three scoped AudioOut calls: Init, Open and Close. SDL audio
+subsystem setup stays on the renderer main thread; only a ready CoreAudio backend is accepted.
+The guest service has checked one-time initialization, local-user main/BGM port validation,
+48 kHz formats and bounded stream capacity. Open must create/resume an actual SDL playback
+stream before returning a positive opaque handle; failure releases partial resources. Close
+owns stream destruction, and handles are not reused. There is no timer-only or dummy-device
+success path. The default headless diagnostic still leaves these imports unresolved.
+
+Guest tests verify lifecycle, format/argument ABI, failures, capacity and ownership in both
+CPU modes; the synthetic linked fixture also calls the real Init adapter. Native SDL audio
+setup selects CoreAudio in this tool process, but a stream open fails because no default
+playback device is visible there. The next Terminal run must verify real stream access.
+PCM submission, volume/state queries and downstream AJM services are still unresolved; no
+samples are submitted, recorded or replaced with fabricated silence by this adapter.
 
 ## Verified CPU-side display contracts
 
@@ -312,9 +330,9 @@ The pinned library and its renderer-only initialization are verified. The option
 connection now implements scoped import routing, shared queue ownership, a main-thread event
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization and keyboard pad open, then stops at
-audio setup after UUID generation and thread-key use. NGS2 module rejection leaves an
-audio object null. The original NGS2 module now initializes and is published through the
-checked provider lifecycle in both CPU modes; combined use awaits the next Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
+`sceAudioOutInit` after UUID generation, thread-key use and original NGS2 loading. The
+previous null audio-object fault is no longer observed. The new CoreAudio stream lifecycle
+adapter is ready for the next Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 

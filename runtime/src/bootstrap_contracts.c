@@ -6,6 +6,7 @@
  */
 #include "bootstrap_contracts.h"
 #include "bootstrap_pad.h"
+#include "bootstrap_audio.h"
 #include "bbcpu.h"
 #include "platform.h"
 #include "runtime.h"
@@ -294,6 +295,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (bootstrap_graphics_owns(name)) return bootstrap_graphics_resolve(name);
     const uintptr_t pad = bootstrap_pad_resolve(name);
     if (pad) return pad;
+    const uintptr_t audio = bootstrap_audio_resolve(name);
+    if (audio) return audio;
     const uintptr_t clock = bootstrap_clocks_resolve(name);
     if (clock) return clock;
     const uintptr_t fiber = bootstrap_fibers_resolve(name);
@@ -397,6 +400,7 @@ void bootstrap_report(void) {
     bootstrap_system_report();
     bootstrap_video_report();
     bootstrap_pad_report();
+    bootstrap_audio_report();
     bootstrap_keys_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),

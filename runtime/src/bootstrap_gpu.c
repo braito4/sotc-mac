@@ -6,6 +6,7 @@
  */
 #include "bootstrap_contracts.h"
 #include "bootstrap_pad.h"
+#include "bootstrap_audio.h"
 #include "../upstream/gpu/bbgpu.h"
 #include <dlfcn.h>
 #include <stdio.h>
@@ -85,6 +86,21 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
         }
         alarm(60);
         if (initialize == 2) {
+            /* SDL subsystem initialization stays on the window's main thread.
+             * A missing audio backend is an AudioOut error, not a fake port. */
+            bool (*init_subsystem)(uint32_t)=(void *)dlsym(library,"SDL_InitSubSystem");
+            const char *(*audio_driver)(void)=(void *)dlsym(library,"SDL_GetCurrentAudioDriver");
+            BootstrapAudioBackend audio={
+                .open=(void *)dlsym(library,"SDL_OpenAudioDeviceStream"),
+                .resume=(void *)dlsym(library,"SDL_ResumeAudioStreamDevice"),
+                .destroy=(void *)dlsym(library,"SDL_DestroyAudioStream"),
+            };
+            if(init_subsystem && init_subsystem(0x10)) {
+                audio.initialized_subsystems=0x10;
+                audio.driver=audio_driver ? audio_driver() : NULL;
+            }
+            if(bootstrap_audio_bind(&audio))
+                fputs("AudioOut: SDL playback backend unavailable; initialization will report an error\n",stderr);
             void (*register_kernel)(void) = (void *)dlsym(library, "bbgpu_register_kernel");
             game_gpu_library = library;
             game_gpu_fault = (void *)dlsym(library, "bbgpu_handle_fault");

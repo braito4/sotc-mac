@@ -57,6 +57,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_gpu.c"
         "$trial_root/runtime/src/bootstrap_graphics_routes.c"
         "$trial_root/runtime/src/bootstrap_pad.c"
+        "$trial_root/runtime/src/bootstrap_audio.c"
         "$trial_root/runtime/src/bootstrap_keys.c"
         "$trial_root/runtime/src/bootstrap_system.c"
         "$trial_root/runtime/src/bootstrap_video.c"
@@ -120,6 +121,7 @@ contracts() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_routes.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_routes"
     "$trial_root/work/test_graphics_routes"
     clang "${trial_flags[@]}" "$trial_root/tests/test_pad.c" "${trial_sources[@]}" -o "$trial_root/work/test_pad"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_audio.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_color.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_color"
     for trial_color_case in unequal reserved size; do
         trial_log="$trial_prefix-color-$trial_color_case.log"
@@ -134,6 +136,10 @@ contracts() {
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio"
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio" --unavailable
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio" --not-ready
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio" --missing-callback
         trial_log="$trial_prefix-key-exit-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_threads" --recursive-key-exit-check > "$trial_log" 2>&1; then
             fail 'Expected explicit rejection of recursive thread exit from a key destructor'

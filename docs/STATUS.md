@@ -38,10 +38,11 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; combined audio setup and sound output unverified |
+| AudioOut stream lifecycle | Three scoped init/open/close APIs use initialized SDL CoreAudio and real device streams; guest ABI, provider failures, formats and capacity pass in both modes; native tool sees no default playback device; combined use pending |
+| Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; latest failure writes through a null audio object after rejected NGS2 load; original NGS2 provider awaits combined verification |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load now passes and sndx_loader_thread starts before sceAudioOutInit; new AudioOut stream adapter awaits combined verification |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -71,11 +72,10 @@ encoding with zero game draws/dispatches. The optional graphics/game connection 
 and checked with original synthetic fixtures. A real combined Terminal run now passes color/capability operations, starts RenderFlip and
 Game Render, passes original touch-recognizer initialization and opens the keyboard-backed
 controller. Save and trophy task threads then start; one thread key is created and set
-twice, and UUID generation now passes. The latest real combined run then rejects NGS2
-module loading and faults while writing through a null audio configuration object. The
-original NGS2 module is now linked for the next run, with availability published only after
-its actual initializer returns zero. This is an audio-startup dependency failure; no CPU
-translator defect has been established by that fault.
+twice, and UUID generation now passes. The latest real combined run loads the original
+NGS2 module and creates its sound-loader thread; the earlier null audio-object fault is
+no longer observed. The new boundary is `sceAudioOutInit`. A checked SDL CoreAudio service
+and actual stream open/close adapter now cover this stage, with combined use still pending.
 Starting a save/trophy task does not establish save access or trophy support. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
@@ -161,6 +161,30 @@ event consumption and repeated queries with separate errno values. Full contract
 both modes. Normal Terminal confirms one successful initialization with priority 700 in
 each mode; no user queries or login-event consumption have occurred yet.
 
+AudioOut is configured only in the optional graphics mode. The renderer main thread calls
+SDL audio subsystem initialization and captures its driver/functions before guest startup.
+Only the CoreAudio driver is accepted; dummy/disk sinks do not satisfy readiness. The scoped
+no-argument Init call succeeds once only with that backend and returns ALREADY_INIT on a
+second call. A missing backend reports the diagnostic's internal-init error without claiming
+initialized state. Open/Close accept the local-user main/BGM profile at index zero, 48 kHz,
+256-frame multiples through 2048 and eight known PCM format codes. Unsupported users/types,
+indices or format flags fail explicitly. Main capacity is eight streams and BGM capacity one.
+
+Open creates an actual SDL default-playback device stream and resumes it before publishing
+a positive, non-reused opaque handle. Failure returns an error and releases any partial
+stream. Close releases exactly the owned stream; unknown/stale handles are rejected. No
+volume/output/state APIs, PCM queueing, silent fallback, recording or fabricated playback
+progress is introduced. Buffered output remains an unresolved import. Native SDL audio
+initialization selects CoreAudio in the tool process, but opening a real stream fails there
+with no default playback device; real device access must be checked in Terminal.
+
+Synthetic guest tests in both modes cover no-argument initialization, six-argument open and
+32-bit widths, duplicate initialization, unavailable/uninitialized/missing callback backends,
+format negotiation, user/index/size/frequency errors, native open/resume failures, capacity,
+stream destruction, stale handles and errno. The linked-loader fixture calls the audio Init
+adapter and confirms that SDL setup runs on the main thread. These are provider-contract
+tests, not a sound-output test.
+
 The optional graphics image now also links the supplied original `libSceNgs2.sprx`.
 Its initializer returns zero in JIT and interpreter with the existing original libc. It
 is a static resident provider for module ID 0x000B: load/is-loaded/unload maintain references,
@@ -171,8 +195,8 @@ binding cannot enable it; missing or wrongly scoped bindings leave it unavailabl
 inconsistent modules or failed initialization abort before game entry. Synthetic loader tests
 cover those cases in both modes and verify reference lifecycle and rejection during initialization.
 The default headless test still has no NGS2 provider. No silent system/rack/voice stand-ins,
-NGS2 event fabrication, audio output device or sound playback is introduced. AJM/AudioOut
-services remain unresolved until implemented. Fatal fault diagnostics now print the signal
+NGS2 event fabrication, audio samples or sound playback is introduced by the NGS2 provider itself. AJM services
+and downstream AudioOut submission remain unresolved until implemented. Fatal fault diagnostics now print the signal
 and fault address before the CPU registers; recovered tracking/speculative faults stay silent.
 
 UUID creation uses macOS `uuid_generate_random`, then converts the RFC byte order to the
@@ -327,10 +351,10 @@ It retains read-only content, private diagnostics and explicit unknown-import st
 The latest real combined run passes the color/capability adapters and starts the render
 threads, passes original gesture initialization and opens the keyboard-backed controller,
 then starts save/trophy tasks, creates/uses a thread key and passes UUID generation. The
-latest run faults in an audio configuration write after NGS2 load is rejected. The new
-original NGS2 provider passes initialization and strict loader lifecycle tests in both
-modes; its use together with real game entry/rendering awaits the next Terminal run. No
-keyboard sample or sound output has been verified. The separate private graphics image preserves original executable bytes;
+latest run loads NGS2 and starts the sound-loader thread, then stops at `sceAudioOutInit`.
+The earlier null audio-object fault is no longer observed. SDL CoreAudio Init/Open/Close
+contracts now pass in both modes; the next Terminal run must verify them with a real audio
+device and the renderer. No keyboard sample or sound output has been verified. The separate private graphics image preserves original executable bytes;
 unsupported sensors, vibration and physical gamepads remain unresolved.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,

@@ -145,8 +145,8 @@ The existing CPU-only `--linked-test` stays headless and still passes its paired
 
 The latest combined Terminal run passes original gesture initialization and opens the
 keyboard-backed controller after display setup. Save/trophy task threads then start before
-a thread key is created/used and UUID generation passes. The latest run then faults in
-audio configuration after NGS2 loading fails.
+a thread key is created/used and UUID generation passes. The latest run then stops at
+`sceAudioOutInit` after the original NGS2 load succeeds and its sound-loader thread starts.
 Graphics mode now connects a checked keyboard-backed logical controller to initialized SDL;
 headless mode retains its input import stop. For fixed controls and the supported API scope,
 see [Keyboard input](../GRAPHICS_BRINGUP.md#keyboard-backed-input). Physical gamepads,
@@ -158,5 +158,7 @@ destructors now also pass both modes; key creation and setting are confirmed in 
 combined run. UUID generation also passes. The command now additionally links the supplied
 original `libSceNgs2.sprx` from that same system-module directory. Its availability is
 published only after checked native bindings and successful original initialization. The
-next combined run must verify progress beyond audio setup; sound remains unverified. No save/trophy
+next combined run must verify the newly connected SDL CoreAudio Init/Open/Close calls.
+The adapter requires an actual stream for a successful open and has no silent fallback.
+Downstream PCM submission is still unresolved; sound remains unverified. No save/trophy
 operation or keyboard sample has been verified by merely starting those task threads.

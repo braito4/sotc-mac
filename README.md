@@ -100,10 +100,10 @@ kernel queue ownership, and moves game entry to a worker while the main thread p
 window. Synthetic tests pass in both CPU modes. The real combined game/renderer run passes display setup, starts its render threads and
 passes the original gesture initialization and opens the keyboard-backed controller. Save
 and trophy task threads start; a thread-specific key is created and set before the next
-UUID generation. The next real run fails while configuring an uninitialized audio object
-after NGS2 module loading is rejected. The graphics diagnostic now links the supplied original
-NGS2 module and publishes its provider only after successful initialization; combined use
-awaits the next Terminal run. No game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+UUID generation. The original NGS2 module now loads, the earlier null audio-object fault is
+no longer observed, and a sound-loader thread starts before `sceAudioOutInit`. Checked SDL
+CoreAudio initialization and stream open/close are implemented for the next Terminal run.
+PCM submission and sound playback remain unverified. No game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
