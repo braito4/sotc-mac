@@ -36,7 +36,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run pending |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run reaches color adjustment after opening a display; new typed adapters await Terminal verification |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -63,8 +63,9 @@ paths. All five installed FFmpeg shared libraries passed native loading/version 
 sixteen offline builder tests pass. The GPU library targets macOS 15 or later.
 The user has now confirmed renderer initialization in Terminal, including Metal command-buffer
 encoding with zero game draws/dispatches. The optional graphics/game connection is implemented
-and checked with original synthetic fixtures, but has not yet run with the real game and
-renderer together. No game frame is verified.
+and checked with original synthetic fixtures. A real combined Terminal run now reaches color
+adjustment with a valid VideoOut handle. New color/capability ABI adapters are tested and ready
+for another combined run. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -270,15 +271,18 @@ Renderer-only initialization has passed in native Terminal after selecting the b
 MoltenVK driver. Next run `bash packaging/test-arm64.sh --graphics-game-test` there to
 exercise the optional combined path. This mode keeps the window on the host main thread,
 executes linked modules/game entry on a worker and routes reviewed graphics/queue imports.
-It retains read-only content, private diagnostics and explicit unknown-import stops. Incompatible
-retail color/capability operations remain unresolved until adapted.
+It retains read-only content, private diagnostics and explicit unknown-import stops.
+The first real combined run stopped at color adjustment after opening a display. Typed
+adapters now forward uniform RGB gamma to the real renderer and query actual eight-byte
+capability flags, preserving size widths, backend errors and display lifecycle. Unsupported
+color profiles stop explicitly rather than being approximated.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,
 scoped VideoOut routing, main/worker thread separation and speculative-read fault recovery.
 Queue-ownership tests and the full default headless contracts pass; the paired real-game
 headless test still stops at the same `scePadInit` call. The tool process's graphics/game
-attempt stops at its Metal prerequisite (exit 24). No combined game presentation or game
-frame has been verified.
+attempt stops at its Metal prerequisite (exit 24). Combined game execution is confirmed through the color-adjustment boundary; no game
+presentation or game frame has been verified.
 
 Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
 in the tool environment, or use the default backend in a normal native Terminal. Compare both

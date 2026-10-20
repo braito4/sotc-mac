@@ -179,9 +179,14 @@ all supported kernel event-queue creation, waits, user events and graphics notif
 Activation rejects existing CPU queue handles or an incomplete provider. Unknown scopes and
 missing selected symbols cannot fall back to a second queue registry. The checked gamma,
 buffer-attribute and mode-data helpers remain local. Retail resource registration keeps its
-checked failure path. Color adjustment and device-capability operations stop unresolved in
-graphics mode because their retail ABI differs from the upstream HLE; they still need explicit
-adapters. Additional GNM operations remain unresolved until reviewed.
+checked failure path. Color adjustment and device-capability operations use explicit retail-to-HLE adapters.
+The supported color profile has equal RGB gamma in 12 or 16 bytes (zero reserved word).
+It is converted to the renderer's scalar gamma and applied through the real backend. Other
+color sizes, unequal channels or nonzero reserved data stop with `STOP_GRAPHICS_COLOR` (29).
+Capability queries accept an exact eight-byte output with a full-width size, and return the
+backend's actual flags. Output is staged so native failures preserve the caller's buffer.
+Successful native open/close operations determine live display ownership, and invalid or
+closed handles are rejected before accessing caller buffers. Additional GNM operations remain unresolved until reviewed.
 
 Guest TLS templates are published before the GPU creates workers. GPU page-tracking faults
 and speculative-read recovery are connected before renderer initialization. No Bloodborne
@@ -192,10 +197,12 @@ the next unknown-import stop. A separate contract test checks provider activatio
 scopes, ABI exclusions and queue ownership. The default paired game test still reaches the
 same `scePadInit` boundary in both modes.
 
-The optional graphics/game path has not yet run with the real renderer and game together.
-Its attempt from the tool process stops at the Metal device prerequisite. Renderer-only
-initialization is confirmed; actual game command processing, presentation and asset/pointer
-compatibility remain to be verified in Terminal.
+The user ran the combined graphics/game path in Terminal. It reached a real VideoOut handle
+and then stopped at the formerly blocked color-adjustment import. The color and capability
+adapters now pass synthetic guest ABI checks in both CPU modes, including backend failures,
+unaligned/bounded buffers, 32/64-bit size handling and live display lifecycle. Their first real
+combined run remains pending. Tool execution still stops at the Metal prerequisite; game
+presentation and asset/pointer compatibility remain unverified.
 
 ## Verified CPU-side display contracts
 

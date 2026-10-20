@@ -139,5 +139,6 @@ It prepares the linked diagnostic, keeps the window on the main thread, runs the
 worker and selects one GPU provider for reviewed graphics and kernel queue imports. Use
 `BB_JIT=0` for the interpreter. Unknown and incompatible imports stop explicitly; the normal
 bounded game watchdog remains active. Logs and configuration stay private under the repository.
-This mode's real combined run is pending; synthetic loader/routing tests pass in both modes.
+A real combined run reached color adjustment after opening a display. Typed color/capability
+adapters now cover that boundary; synthetic loader/routing/ABI tests pass in both modes.
 The existing CPU-only `--linked-test` stays headless and still passes its paired comparison.

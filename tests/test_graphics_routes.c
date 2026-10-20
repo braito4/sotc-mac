@@ -28,7 +28,7 @@ int main(void) {
     assert(bootstrap_graphics_bind(resolver) == 0);
     assert(bootstrap_graphics_bind(resolver) == -1);
     const char *owned[] = {"D0OdFMjp46I#0#F", "fzyMKs9kim0#0#F", "HXzjK9yI30k#G#H",
-                           "Up36PTk687E#G#H", "29oKvKXzEZo#A#B", "zwY0YV91TTI#A#B"};
+                           "29oKvKXzEZo#A#B", "zwY0YV91TTI#A#B"};
     for (size_t i = 0; i < sizeof(owned)/sizeof(*owned); ++i) {
         assert(bootstrap_graphics_owns(owned[i]));
         assert(bootstrap_resolve(owned[i], 0) == (uintptr_t)marker);
@@ -45,8 +45,8 @@ int main(void) {
     assert(calls == previous_calls);
     assert(bootstrap_graphics_owns("pv9CI5VC+R0#G#H"));
     assert(bootstrap_graphics_owns("kGVLc3htQE8#G#H"));
-    assert(!bootstrap_resolve("pv9CI5VC+R0#G#H", 0));
-    assert(!bootstrap_resolve("kGVLc3htQE8#G#H", 0));
+    assert(bootstrap_resolve("pv9CI5VC+R0#G#H", 0) != (uintptr_t)marker);
+    assert(bootstrap_resolve("kGVLc3htQE8#G#H", 0) != (uintptr_t)marker);
     missing_wait = 1;
     assert(!bootstrap_resolve("fzyMKs9kim0#0#F", 0)); /* Never fall back to CPU queues. */
     puts("PASS: atomic graphics provider activation, strict scopes, queue ownership, ABI exclusions and no headless fallback");

@@ -113,9 +113,21 @@ contracts() {
     done
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_routes.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_routes"
     "$trial_root/work/test_graphics_routes"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_color.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_color"
+    for trial_color_case in unequal reserved size; do
+        trial_log="$trial_prefix-color-$trial_color_case.log"
+        if "$trial_root/work/test_graphics_color" "--$trial_color_case" > "$trial_log" 2>&1; then
+            fail "Expected unsupported color rejection for $trial_color_case"
+        else
+            trial_status=$?
+            [[ "$trial_status" == 29 ]] || fail "Unexpected unsupported color exit: $trial_status"
+        fi
+        cat "$trial_log"
+    done
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
+        BB_JIT="$trial_jit" "$trial_root/work/test_graphics_color"
         trial_log="$trial_prefix-cpu-strings-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_cpu_strings" > "$trial_log" 2>&1; then
             cat "$trial_log"
