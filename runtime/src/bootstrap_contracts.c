@@ -255,6 +255,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (dialog) return dialog;
     const uintptr_t network = bootstrap_network_resolve(name);
     if (network) return network;
+    const uintptr_t gnm = bootstrap_gnm_resolve(name);
+    if (gnm) return gnm;
     const uintptr_t share = bootstrap_share_resolve(name);
     if (share) return share;
     const uintptr_t users = bootstrap_users_resolve(name);
@@ -332,6 +334,7 @@ void bootstrap_report(void) {
     bootstrap_network_report();
     bootstrap_users_report();
     bootstrap_share_report();
+    bootstrap_gnm_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),
            atomic_load_explicit(&console_bytes, memory_order_relaxed));

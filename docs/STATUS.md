@@ -13,9 +13,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; normal Terminal confirms 17 content opens and 35 reads totaling 50,603,221 bytes, without writes, in both modes |
+| Content API | Fixture ABI/error tests; normal Terminal confirms 17 content opens and 37 reads totaling 80,002,009 bytes, without writes, in both modes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with no direct switches observed |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with two direct switches observed |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
@@ -23,15 +23,17 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 | Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
+| GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
-The latest paired normal Terminal baseline passes the string-mask instruction and enters
-the game's job initialization in both modes. It creates three Fios2 workers and four game job workers,
-14 event flags and 160 fibers. The counters record four event waits and 164 fiber runs, with
-no direct fiber switches or event sets. There are 17 content opens and 35 reads totaling
-50,603,221 bytes, without writes. Both modes pass the CommonDialog and network unavailability
-responses and initialize the local user service with priority 700, then stop at the same ShareUtility Ex2 call on main. One CommonDialog
-request, no message-dialog request and one network initialization request are recorded in each mode.
+The latest paired normal Terminal baseline creates three Fios2 workers, four game job
+workers and one resource-loading worker in both modes. There are 19 event flags and 160
+fibers, with 11 event waits, ten event sets, 164 fiber runs and two direct fiber switches.
+The counters record 17 content opens and 37 reads totaling 80,002,009 bytes without writes;
+the game reports its resource dependency file loaded. Both modes pass the CommonDialog,
+network and ShareUtility failures, initialize the local user service with priority 700,
+and stop at the same GNM owner-registration call. One CommonDialog request, no message-dialog
+request, one network request and one share initialization request are recorded per mode.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -55,7 +57,8 @@ Dynamic module TLS and DTV tables are isolated per thread; module TLS allocation
 when a worker finishes. Synthetic guest workers test this concurrently, including two callers
 competing to join one worker. Original libc/Fios2 initializers still return zero in both modes.
 The normal Terminal baseline confirms Fios2 and game-worker creation and initial event waits;
-subsequent scheduling, completion and resource churn remain unverified. Tool execution still
+the latest run also confirms a resource-loading worker and initial event signals/direct
+fiber switches. Subsequent completion and resource churn remain unverified. Tool execution still
 rejects shared-memory backing with EPERM.
 
 The internal loader now preserves full-width module IDs and validates its reserved argument.
@@ -78,7 +81,8 @@ matching waiters complete. Cancellation and deletion wake blocked waits with dis
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
 named open/close remain unresolved. Normal Terminal confirms creation and blocking waits;
-game-level signal, cancellation, timeout and deletion paths remain unverified.
+the latest baseline records ten game-level event sets. Cancellation, timeout and deletion
+paths in the game remain unverified.
 
 CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic has no dialog
 provider: CommonDialog returns NOT_SUPPORTED and message initialization returns
@@ -124,12 +128,20 @@ initialized state or exposes the share menu. Synthetic guest calls check boundar
 high-bit values, repeated errors, untouched buffers/errno and scoped capability handling.
 The supplied original module also matches 75 early validation/resource-error cases per
 CPU mode with an injected failed mapping dependency; that isolated check does not start
-the original service. Subsequent sharing behavior remains unimplemented.
+the original service. Normal Terminal confirms progress past this failure in both modes. Subsequent sharing
+behavior remains unimplemented.
+
+The retail GNM module returns the same fixed failure for owner and resource registration,
+without reading arguments or modifying output handles. The adapter reproduces that narrow
+behavior and counts requests. It creates no registry or graphics state. Synthetic guest
+checks cover capability/scopes, repeated calls, invalid pointers, unchanged buffers/errno
+and resource calls with a seventh stack argument. Original-module checks pass the same
+cases in both CPU modes. This is not graphics submission or rendering support.
 
 ## Next verification
 
 Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
-stops, original module initialization, memory accounting, local user state and actual file
+stops, original module initialization, memory accounting, GNM registration requests and actual file
 counters. Content reads do not establish successful archive/asset decoding or gameplay.
 
 ## Remaining work

@@ -14,6 +14,8 @@ uintptr_t bootstrap_dialogs_resolve(const char *name);
 void bootstrap_dialogs_report(void);
 uintptr_t bootstrap_network_resolve(const char *name);
 void bootstrap_network_report(void);
+uintptr_t bootstrap_gnm_resolve(const char *name);
+void bootstrap_gnm_report(void);
 uintptr_t bootstrap_share_resolve(const char *name);
 void bootstrap_share_report(void);
 uintptr_t bootstrap_users_resolve(const char *name);

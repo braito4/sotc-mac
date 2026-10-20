@@ -23,6 +23,47 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static uintptr_t guest_stack_argument(uintptr_t host, uint32_t seventh) {
+    unsigned char *p = runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(p);
+    /* push imm32; movabs host,%rax; call *%rax; add $8,%rsp; ret.
+     * Six register arguments pass through, with the seventh on the guest
+     * stack and SysV call alignment preserved. No host stack forwarding is
+     * required for an argument-independent error provider. */
+    const unsigned char code[] = {0x68,0,0,0,0, 0x48,0xb8,0,0,0,0,0,0,0,0,
+                                  0xff,0xd0, 0x48,0x83,0xc4,0x08, 0xc3};
+    memcpy(p, code, sizeof(code)); memcpy(p + 1, &seventh, 4); memcpy(p + 7, &host, 8);
+    bbcpu_add_guest_code((uintptr_t)p, sizeof(code)); return (uintptr_t)p;
+}
+static void check_gnm_failure(uintptr_t owner, uintptr_t resource) {
+    const uintptr_t entries[] = {guest_bridge(owner), guest_stack_argument(resource, 0x76543210),
+                                guest_stack_argument(resource, UINT32_MAX)};
+    uint64_t buffer[] = {UINT64_C(0x123456789abcdef0), UINT64_MAX};
+    const uint64_t initial[] = {buffer[0], buffer[1]};
+    const uint64_t pointers[] = {0, 1, UINT64_MAX, (uintptr_t)buffer};
+    *runtime_errno() = 17;
+    for (unsigned repeat = 0; repeat < 2; ++repeat)
+        for (unsigned e = 0; e < 3; ++e)
+            for (unsigned p = 0; p < 4; ++p) {
+                const uint64_t args[] = {pointers[p], pointers[p], pointers[p],
+                                        UINT64_MAX, pointers[p], UINT64_MAX};
+                assert((uint32_t)bbcpu_call(entries[e], 6, args) == 0x8eee00ff);
+                assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
+            }
+}
+static void test_unavailable_gnm(void) {
+    const char *names[] = {"ZFqKFl23aMc#A#B", "nvEwfYAImTs#A#B"};
+    bootstrap_initialize(0);
+    for (unsigned i = 0; i < 2; ++i) assert(!bootstrap_resolve(names[i], 0));
+    bootstrap_initialize(1);
+    for (unsigned i = 0; i < 2; ++i) assert(bootstrap_resolve(names[i], 0) && !bootstrap_resolve(names[i], 1));
+    assert(!bootstrap_resolve("ZFqKFl23aMc#B#B", 0));
+    assert(!bootstrap_resolve("ZFqKFl23aMc#A#A", 0));
+    assert(!bootstrap_resolve("nvEwfYAImTs#B#B", 0));
+    assert(!bootstrap_resolve("nvEwfYAImTs#A#A", 0));
+    assert(!bootstrap_resolve("unknown#A#B", 0));
+    check_gnm_failure(bootstrap_resolve(names[0], 0), bootstrap_resolve(names[1], 0));
+    puts("PASS: retail GNM owner/resource registration errors, scoped capability, ignored register/seventh stack arguments, untouched outputs/errno and repeated calls");
+}
 static void test_unavailable_share(void) {
     const char *name = "j7DlalBzHh8#o#o";
     bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
@@ -152,6 +193,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_unavailable_gnm();
     test_unavailable_share();
     test_unavailable_network();
     test_unavailable_dialogs();

@@ -120,6 +120,11 @@ heap size, then reports a service resource failure before examining thread attri
 This matches the original module's early failure path with an unavailable allocation;
 it does not initialize sharing, capture media, create a UI or resolve the share-menu API.
 
+GNM owner/resource registration uses the retail module's fixed-error profile. Both calls
+leave output handles untouched and do not examine names or resource descriptors. The
+resource call's seventh stack argument is not forwarded because this error-only provider
+uses no arguments. No registry, command submission or renderer is initialized.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.
