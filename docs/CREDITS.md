@@ -10,7 +10,7 @@ This project is built on the work of:
 - [shadPS4](https://github.com/shadps4-emu/shadPS4): PS4 runtime foundations and API reference,
   including the fiber HLE on which the SotC reference is based, the internal module-loader
   ABI, DiscMap query/error definitions, event-flag contracts, and dialog and network ABI/error
-  definitions, UserService error definitions, and GNM ABI/error definitions. Unavailable-service error policies
+  definitions, UserService error definitions, GNM ABI/error definitions, and SystemService safe-area layouts/errors. Unavailable-service error policies
   are specific to this diagnostic.
 - [AjncSystem/ShadowOfTheColossus-PC](https://github.com/AjncSystem/ShadowOfTheColossus-PC):
   SotC input preparation, module linking and runtime reference, including fiber API layouts

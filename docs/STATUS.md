@@ -13,9 +13,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; normal Terminal confirms 17 content opens and 37 reads totaling 80,002,009 bytes, without writes, in both modes |
+| Content API | Fixture ABI/error tests; normal Terminal confirms 17 content opens and 38 reads totaling 80,007,246 bytes, without writes, in both modes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with two direct switches observed |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 12 direct switches observed |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
@@ -25,16 +25,17 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
+| Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired normal Terminal baseline creates three Fios2 workers, four game job
 workers and one resource-loading worker in both modes. There are 19 event flags and 160
-fibers, with 9/11 event waits, 9/10 event sets, 164 fiber runs and 1/2 direct fiber switches
-(interpreter/JIT). These concurrent counters need not match at the stop.
-The counters record 17 content opens and 37 reads totaling 80,002,009 bytes without writes;
-the game reports its resource dependency file loaded. Both modes pass the CommonDialog,
-network and ShareUtility failures, initialize the local user service with priority 700,
-pass three GNM owner-registration failures and stop at the same compute-queue mapping call. One CommonDialog request, no message-dialog
+fibers, with 11 event waits, 407 event sets, 164 fiber runs and 12 direct fiber switches
+in both modes. The counters record 17 content opens and 38 reads totaling 80,007,246 bytes
+without writes; the game reports its resource dependency file loaded. Both modes pass the
+CommonDialog, network and ShareUtility failures, initialize the local user service with
+priority 700, and pass three GNM owner-registration failures and seven compute-queue failures.
+They stop at the same display-safe-area query. One CommonDialog request, no message-dialog
 request, one network request and one share initialization request are recorded per mode.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -83,7 +84,7 @@ matching waiters complete. Cancellation and deletion wake blocked waits with dis
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
 named open/close remain unresolved. Normal Terminal confirms creation and blocking waits;
-the latest baseline records ten game-level event sets. Cancellation, timeout and deletion
+the latest baseline records 407 game-level event sets. Cancellation, timeout and deletion
 paths in the game remain unverified.
 
 CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic has no dialog
@@ -150,12 +151,23 @@ there is no GPU backend. No queue ID is invented, and neither address is derefer
 modified. Synthetic guest tests cover 2,800 combinations, repeated calls, high bits,
 validation precedence, null/aligned/unaligned addresses and errno preservation per mode.
 The same 2,800 cases pass against the supplied original module with an injected failed
-GPU ioctl in both modes. Game behavior after this error needs a normal Terminal run.
+GPU ioctl in both modes. Normal Terminal confirms seven compute-queue requests in both modes and subsequent
+progress to the display-safe-area query; no operational queue is implied.
+
+The display-safe-area query now exposes a fixed logical-viewport profile: ratio 1.0.
+The 132-byte guest structure contains a four-byte float followed by 128 reserved bytes;
+only the float is written. A null pointer returns the system-service parameter error.
+This does not query a host display, create a window or initialize rendering. Synthetic
+guest checks cover scope/capability, repeated and unaligned outputs, guards around the
+whole structure, reserved fields on a protected page and errno preservation. The same
+checks pass against the supplied original export with an injected full-area setting
+provider in both modes. Other SystemService APIs remain unresolved. The effect on the
+game startup path still needs a normal Terminal run.
 
 ## Next verification
 
 Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
-stops, original module initialization, memory accounting, GNM registration/compute-queue requests and actual file
+stops, original module initialization, memory accounting, GNM requests, logical safe-area queries and actual file
 counters. Content reads do not establish successful archive/asset decoding or gameplay.
 
 ## Remaining work

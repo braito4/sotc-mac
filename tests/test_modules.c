@@ -23,6 +23,47 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void check_display_safe_area(uintptr_t entry) {
+    unsigned char buffer[148], expected[148];
+    const float ratio = 1.0f;
+    *runtime_errno() = 17;
+    for (unsigned offset = 0; offset < 4; ++offset) {
+        memset(buffer, 0xa5, sizeof(buffer)); memcpy(expected, buffer, sizeof(buffer));
+        memcpy(expected + 8 + offset, &ratio, sizeof(ratio));
+        const uint64_t args[] = {(uintptr_t)(buffer + 8 + offset), 1, UINT64_MAX, 3, 5, 7};
+        for (unsigned repeat = 0; repeat < 2; ++repeat) {
+            assert((uint32_t)bbcpu_call(entry, 6, args) == 0);
+            assert(!memcmp(buffer, expected, sizeof(buffer)) && *runtime_errno() == 17);
+        }
+    }
+    const uint64_t null_args[] = {0, (uintptr_t)buffer, UINT64_MAX, 3, 5, 7};
+    assert((uint32_t)bbcpu_call(entry, 6, null_args) == 0x80a10003);
+    assert(!memcmp(buffer, expected, sizeof(buffer)) && *runtime_errno() == 17);
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *guarded = mmap(NULL, page * 2, PROT_READ | PROT_WRITE,
+                                 MAP_PRIVATE | MAP_ANON, -1, 0);
+    assert(guarded != MAP_FAILED);
+    memset(guarded, 0xa5, page);
+    assert(mprotect(guarded + page, page, PROT_NONE) == 0);
+    /* Place just the defined ratio before a protected page. This detects
+     * both reads and writes of reserved fields, not only buffer overruns. */
+    const uint64_t args[] = {(uintptr_t)(guarded + page - sizeof(ratio))};
+    assert((uint32_t)bbcpu_call(entry, 1, args) == 0);
+    assert(!memcmp(guarded + page - sizeof(ratio), &ratio, sizeof(ratio)));
+    for (size_t i = 0; i < page - sizeof(ratio); ++i) assert(guarded[i] == 0xa5);
+    assert(munmap(guarded, page * 2) == 0 && *runtime_errno() == 17);
+}
+static void test_display_safe_area(void) {
+    const char *name = "1n37q1Bvc5Y#a#a";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);
+    assert(!bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("1n37q1Bvc5Y#A#a", 0));
+    assert(!bootstrap_resolve("1n37q1Bvc5Y#a#A", 0));
+    check_display_safe_area(guest_bridge(fn));
+    puts("PASS: logical safe-area guest ABI, float ratio, untouched reserved bytes, unaligned/protected-page outputs, null error, repeated calls, scopes and errno");
+}
 static uintptr_t guest_stack_argument(uintptr_t host, uint32_t seventh) {
     unsigned char *p = runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(p);
     /* push imm32; movabs host,%rax; call *%rax; add $8,%rsp; ret.
@@ -230,6 +271,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_display_safe_area();
     test_unavailable_gnm();
     test_unavailable_compute_queue();
     test_unavailable_share();

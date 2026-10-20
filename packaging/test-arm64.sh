@@ -43,6 +43,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_users.c"
         "$trial_root/runtime/src/bootstrap_share.c"
         "$trial_root/runtime/src/bootstrap_gnm.c"
+        "$trial_root/runtime/src/bootstrap_system.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
         "$trial_root/runtime/src/bootstrap_tls.c" "$trial_root/runtime/src/bootstrap_threads.c"
         "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"

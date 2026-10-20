@@ -77,10 +77,11 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental, not playable.** In the latest paired normal Terminal run, JIT and interpreter
 both complete the original module initializers, create Fios2's three workers, four game job
 workers and a resource-loading worker. Both modes create 19 event flags and 160 fibers,
-record 164 fiber runs, one or two direct fiber switches and nine or ten event sets. The file counters
-record 17 opens and 37 reads totaling 80,002,009 bytes, without writes. The game reports
+record 164 fiber runs, 12 direct fiber switches and 407 event sets. The file counters
+record 17 opens and 38 reads totaling 80,007,246 bytes, without writes. The game reports
 its resource dependency file loaded. Both modes pass the ShareUtility error response and
-pass three retail GNM owner-registration failures and reach the same unresolved compute-queue mapping call. This is not a rendered frame or
+pass three retail GNM owner-registration failures and seven compute-queue failures, then
+reach the same unresolved display-safe-area query. This is not a rendered frame or
 successful archive/asset-decoding result.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
@@ -96,7 +97,7 @@ with blocked waiters. The new PCMPISTRM/VPCMPISTRM CPU extension passes 61,440 s
 cases per mode and native JIT fault checks. The diagnostic now reports explicit unavailable
 dialog errors: CommonDialog is unsupported, so message-dialog initialization lacks its system
 dependency. Normal Terminal confirms one CommonDialog request and no message-dialog request
-before compute-queue mapping. Network initialization returns the explicit libSceNet
+before the display-safe-area query. Network initialization returns the explicit libSceNet
 EOPNOTSUPP error; no network backend is initialized. Normal Terminal confirms subsequent
 content reads in both modes. A process-local UserService profile now provides initialization,
 termination, user queries and one-shot login events, with synthetic guest ABI and concurrency
@@ -106,7 +107,9 @@ a sharing service; normal Terminal confirms progress past it in both modes.
 GNM owner/resource registration now reproduces the retail fixed-error behavior, without
 creating graphics state. Both modes now pass three owner-registration requests.
 Compute-queue mapping validates the retail argument contract and reports an explicit
-backend failure; its effect on the game path needs a normal Terminal run.
+backend failure; normal Terminal confirms seven such requests in each mode. A fixed
+logical safe-area query now writes ratio 1.0 while preserving reserved bytes. Its effect
+on the game path needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

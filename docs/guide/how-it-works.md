@@ -130,6 +130,11 @@ address alignment, then reports COMPUTEQUEUE_INTERNAL. There is no GPU backend, 
 adapter creates no queue and leaves the ring and read pointer untouched. Validating this
 failure path does not implement asynchronous GPU compute or command submission.
 
+The SystemService safe-area query reports a fixed full logical viewport (ratio 1.0).
+It writes only the four-byte ratio and preserves the structure's reserved bytes. Null
+outputs return the parameter error. This metadata profile does not query a host monitor
+or create a rendering surface; other SystemService calls stay unresolved.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.
