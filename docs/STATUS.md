@@ -34,6 +34,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Metal prerequisite | User reports PASS on Apple M1 in native Terminal: shader compilation, render pipeline, triangle draw and pixel readback; tool process still exposes zero Metal devices |
 | GPU library build | Pinned renderer and dependencies compiled and linked as ARM64; loader exports verified; five FFmpeg libraries load natively; sixteen offline build tests pass, including spaced paths and CMake cache recovery; no renderer launch or game frame |
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
+| Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer entry diagnostic | Opt-in main-thread initialization/event loop with private state and 60-second budget; seven native fixture tests pass; real run stops at tool-process Metal prerequisite (exit 24) |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
@@ -261,6 +262,12 @@ permissions, unlinked lifetime and close-on-exec tests, plus real direct/flexibl
 checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
+
+The Terminal renderer attempt reached SDL display selection but rejected window creation
+because `VK_KHR_surface` was unavailable. The diagnostic now selects the bundled MoltenVK
+manifest and Vulkan loader before initialization. Real enumeration changes from four
+loader-only extensions to 19 including the required surfaces; no renderer/game frame claim
+follows from that extension check.
 
 The Mac workspace is available again. Native loading of the actual library now passes after
 adding the missing host contracts and configuring private cache state before its static

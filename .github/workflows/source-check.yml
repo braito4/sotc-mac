@@ -18,3 +18,5 @@ jobs:
         run: python3 -m compileall -q tools
       - name: Check GPU host symbol inventory with native fixtures
         run: python3 -m unittest discover -s tests -p test_gpu_link.py
+      - name: Check Vulkan surface requirements
+        run: python3 -m unittest discover -s tests -p test_vulkan.py

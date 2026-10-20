@@ -119,3 +119,9 @@ Use `bash packaging/test-arm64.sh --renderer-check` in native Terminal to attemp
 initialization and open its diagnostic window. The latter first checks Metal device access;
 it uses isolated cache/configuration directories and a 60-second budget. It does not run
 the game or verify a game frame. See [Graphics bring-up](../GRAPHICS_BRINGUP.md#load-and-initialize-in-separate-stages).
+
+The renderer command selects the bundled MoltenVK ICD and Vulkan loader for SDL explicitly.
+The Metal backend still needs Vulkan surface extensions during initialization. If SDL reports
+that `VK_KHR_surface` is missing, use the updated command and run
+`bash packaging/test-arm64.sh --vulkan-check` to verify extension discovery separately.
+This check now passes with 19 extensions and needs no window or game input.

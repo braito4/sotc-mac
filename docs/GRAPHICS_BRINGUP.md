@@ -123,7 +123,25 @@ before loading. A direct invocation without an existing writable absolute direct
 with code 28. This avoids falling back to the user's ordinary shadPS4 configuration. Load,
 missing-export and missing-host-hook failures also return 28. Generated directories stay private.
 
-The second command first checks real Metal shader/draw/readback access, then initializes the
+The renderer command first selects the bundled Vulkan loader for SDL and sets both
+`VK_DRIVER_FILES` and the legacy `VK_ICD_FILENAMES` to the bundled MoltenVK manifest.
+This Metal backend still uses Vulkan for its surface and initialization layer. Selecting
+Metal does not remove that prerequisite. The standalone loader, without its driver manifest,
+was observed to advertise only four extensions and no `VK_KHR_surface`, causing SDL window
+creation to abort. With the manifest selected it advertises 19 extensions, including
+`VK_KHR_surface` and `VK_EXT_metal_surface`. No upstream source changes are required.
+
+Check that prerequisite separately, without creating an instance, device or window:
+
+```sh
+bash packaging/test-arm64.sh --vulkan-check
+```
+
+The native regression test reproduces rejection with a missing driver manifest, verifies
+the real loader with the bundled manifest, and checks that the shell command replaces
+inherited incorrect loader/driver paths. Five surface-contract tests pass on the Mac.
+
+The renderer command then checks real Metal shader/draw/readback access and initializes the
 renderer and pumps its window on the macOS main thread. It selects Metal, disables game-specific
 profiles and the launcher settings channel, and keeps configuration in the isolated directory.
 No boot image is read, no kernel queue provider is registered, no image patches are applied

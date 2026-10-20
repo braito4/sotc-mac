@@ -13,6 +13,17 @@ need() { command -v "$1" >/dev/null 2>&1 || fail "Missing tool: $1"; }
 require_arm64() {
     [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 ]] || fail 'Run in a native ARM64 macOS Terminal.'
 }
+configure_gpu_driver() {
+    # The pinned Metal layer still needs Vulkan's WSI setup. Without this ICD
+    # the standalone loader advertises only its own non-surface extensions.
+    trial_gpu_prefix="$trial_root/work/gpu-source/deps/macos-arm64"
+    [[ -f "$trial_gpu_prefix/lib/libvulkan.1.dylib" && -f "$trial_gpu_prefix/lib/libMoltenVK.dylib" &&
+       -f "$trial_gpu_prefix/share/vulkan/icd.d/MoltenVK_icd.json" ]] || fail 'Build the isolated GPU dependencies first.'
+    export VK_DRIVER_FILES="$trial_gpu_prefix/share/vulkan/icd.d/MoltenVK_icd.json"
+    export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
+    export SDL_VULKAN_LIBRARY="$trial_gpu_prefix/lib/libvulkan.1.dylib"
+    python3 "$trial_root/tools/check_vulkan.py" --library "$SDL_VULKAN_LIBRARY"
+}
 test_emitter() {
     [[ -f "$cpu_repo/tests/test_a64.c" ]] || fail 'Initialize the recomp submodule first.'
     mkdir -p "$cpu_repo/out"
@@ -65,6 +76,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_vulkan.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
         "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
     "$trial_root/work/test_memory_backing"
@@ -189,9 +201,14 @@ case "$trial_mode" in
             "$trial_root/tools/check_graphics.m" -o "$trial_root/work/check_graphics"
         "$trial_root/work/check_graphics"
         ;;
+    --vulkan-check)
+        need python3
+        configure_gpu_driver
+        ;;
     --gpu-load-check|--renderer-check)
         need clang; need python3
         if [[ "$trial_mode" == --renderer-check ]]; then
+            configure_gpu_driver
             bash "$trial_root/packaging/test-arm64.sh" --graphics-check
         fi
         build_diagnostic
