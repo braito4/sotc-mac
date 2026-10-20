@@ -207,7 +207,8 @@ presentation and asset/pointer compatibility remain unverified.
 
 The real combined Terminal run now passes color/capability operations, starts RenderFlip and
 Game Render, passes original gesture initialization and opens the keyboard-backed
-controller. Save/trophy task threads then start, and `pthread_key_create` is the next stop.
+controller. Save/trophy task threads then start, and a thread key is created and set twice
+before the next stop at `sceKernelUuidCreate`.
 The controller has not been sampled yet. Graphics mode connects a keyboard-backed logical controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
 key names are checked on the main thread before guest startup. Headless mode retains its
 existing unresolved input boundary.
@@ -262,7 +263,7 @@ module initializers return zero; the gesture service rejects open before initial
 accepts repeated initialization, opens/closes a valid service and permits repeated finalization.
 These checks do not run game entry or establish touch recognition. The real combined Terminal
 run now confirms progress through original gesture initialization and keyboard pad open. It
-starts save/trophy tasks before stopping at a thread-key API. This does not establish touch
+starts save/trophy tasks and uses a thread key before stopping at UUID generation. This does not establish touch
 recognition, save support or trophy support.
 
 ## Verified CPU-side display contracts
@@ -292,8 +293,10 @@ The pinned library and its renderer-only initialization are verified. The option
 connection now implements scoped import routing, shared queue ownership, a main-thread event
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization and keyboard pad open, then stops at
-`pthread_key_create`. Thread-specific key contracts and guest destructors now pass lifecycle
-and ABI tests in both CPU modes and await the next combined Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
+`sceKernelUuidCreate`, after creating and using a thread key. The UUID adapter now uses
+macOS random v4 generation with the native 16-byte uuidgen field layout. Guest ABI, guarded
+buffers, errors and concurrent generation pass in both modes; combined use awaits the next
+Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 

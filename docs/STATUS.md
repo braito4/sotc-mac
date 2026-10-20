@@ -18,7 +18,8 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 1,109/1,073 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
-| Thread-specific keys | 255 process-wide keys with per-thread generation-tagged values; scoped POSIX/kernel APIs, deletion/reuse, errors and four-pass guest destructors tested in both modes; combined use pending |
+| UUID generation | Scoped sceKernelUuidCreate uses macOS random v4 UUIDs in the native 16-byte uuidgen field layout; guest guards, errors, errno and concurrent non-repeating samples tested in both modes; combined use pending |
+| Thread-specific keys | 255 process-wide keys with per-thread generation-tagged values; scoped POSIX/kernel APIs, deletion/reuse, errors and four-pass guest destructors tested in both modes; real combined run confirms one key created and two sets |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | User-event queues | Native lifecycle, level/edge triggers, coalescing, batching, getters, polling, const microsecond timeouts, blocked deletion and errno pass through the guest ABI in both modes; no graphics/timer filters |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
@@ -39,7 +40,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy task threads start before pthread_key_create; new key contracts await the next run |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks start and thread keys are used before sceKernelUuidCreate; new UUID adapter awaits the next run |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -68,9 +69,9 @@ The user has now confirmed renderer initialization in Terminal, including Metal 
 encoding with zero game draws/dispatches. The optional graphics/game connection is implemented
 and checked with original synthetic fixtures. A real combined Terminal run now passes color/capability operations, starts RenderFlip and
 Game Render, passes original touch-recognizer initialization and opens the keyboard-backed
-controller. Save and trophy task threads then start, and the next stop is `pthread_key_create`.
-The new thread-key profile passes synthetic guest ABI, generation/isolation and destructor
-lifecycle checks in both CPU modes; its combined game use awaits Terminal verification.
+controller. Save and trophy task threads then start; one thread key is created and set
+twice before the next stop at `sceKernelUuidCreate`. A host-backed UUID adapter is now
+implemented for the next combined Terminal run.
 Starting a save/trophy task does not establish save access or trophy support. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
@@ -155,6 +156,15 @@ buffer sizes. Eight concurrent guest callers test single-owner initialization, e
 event consumption and repeated queries with separate errno values. Full contracts pass in
 both modes. Normal Terminal confirms one successful initialization with priority 700 in
 each mode; no user queries or login-event consumption have occurred yet.
+
+UUID creation uses macOS `uuid_generate_random`, then converts the RFC byte order to the
+native little-endian 32/16/16-bit uuidgen fields. The remaining eight bytes retain their
+order. This diagnostic uses random version-4/standard-variant IDs; it does not reproduce
+the console's UUID generation policy or expose a hardware identifier. The supplied
+original wrapper confirms a single UUID output and EINVAL for null. Synthetic guest tests
+cover an exact 16-byte output, unaligned/guarded buffers, native version/variant fields,
+null and scope errors, unchanged guest errno and 1,024 concurrent non-repeating samples per
+CPU mode. Sample non-repetition is a regression check, not a proof of global uniqueness.
 
 Thread-specific keys now implement scoped POSIX and kernel create/delete/set/get APIs.
 The profile has 255 live key slots with 32-bit IDs and full-width per-thread pointer values.
@@ -298,9 +308,10 @@ executes linked modules/game entry on a worker and routes reviewed graphics/queu
 It retains read-only content, private diagnostics and explicit unknown-import stops.
 The latest real combined run passes the color/capability adapters and starts the render
 threads, passes original gesture initialization and opens the keyboard-backed controller,
-then starts save/trophy tasks and stops at `pthread_key_create`. No keyboard sample has been
-read yet. Thread-key APIs and guest destructors are now implemented and tested for the next
-combined run. The separate private graphics image preserves original executable bytes;
+then starts save/trophy tasks, creates/uses a thread key and stops at `sceKernelUuidCreate`.
+No keyboard sample has been read yet. The new UUID adapter generates host-random v4 IDs,
+with the exact 16-byte native field representation and explicit null-pointer errors. Its
+guest ABI/concurrency tests pass in both modes; combined use remains to be verified. The separate private graphics image preserves original executable bytes;
 unsupported sensors, vibration and physical gamepads remain unresolved.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,
@@ -319,8 +330,8 @@ counters. Content reads do not establish successful archive/asset decoding or ga
 
 - Resolve the game's packed static-image pointer/address requirements.
 - Implement additional required system services with checked ABI and error behavior.
-- Validate further Fios2 worker behavior and subsequent game threading; add missing thread-key contracts
-  and complete lifecycle/resource reclamation where needed.
+- Validate further Fios2 worker behavior and subsequent game threading, host-owned key teardown
+  and lifecycle/resource reclamation where needed.
 - Validate archive/asset decoding and subsequent content-loading behavior.
 - Integrate and validate graphics, audio, input and a SotC launcher.
 - Add save support with a separate tested workflow when gameplay is possible.

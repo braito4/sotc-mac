@@ -99,9 +99,9 @@ An optional `--graphics-game-test` now connects a reviewed subset of graphics im
 kernel queue ownership, and moves game entry to a worker while the main thread pumps the
 window. Synthetic tests pass in both CPU modes. The real combined game/renderer run passes display setup, starts its render threads and
 passes the original gesture initialization and opens the keyboard-backed controller. Save
-and trophy task threads start before the next unresolved thread-key call. Thread-specific
-keys now pass guest ABI and destructor tests in both CPU modes; the next combined Terminal
-run remains pending. No game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+and trophy task threads start; a thread-specific key is created and set before the next
+unresolved UUID-generation call. A host-backed UUID adapter is now ready for the next
+combined Terminal run. No game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless

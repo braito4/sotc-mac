@@ -16,6 +16,7 @@ void bootstrap_test_files(void);
 void bootstrap_test_rwlocks(void);
 void bootstrap_test_event_flags(void);
 void bootstrap_test_equeues(void);
+void bootstrap_test_uuid(void);
 static int sequence[8], count;
 static void note(void *arg) { sequence[count++] = *(int *)arg; }
 static void plain(void) { sequence[count++] = 9; }
@@ -310,6 +311,7 @@ int main(int argc, char **argv) {
     test_wait_reporting();
     test_host_callbacks();
     test_compiled_sdk();
+    bootstrap_test_uuid();
     test_console();
     bootstrap_test_rwlocks();
     bootstrap_test_event_flags();

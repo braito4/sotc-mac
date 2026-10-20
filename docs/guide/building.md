@@ -145,7 +145,7 @@ The existing CPU-only `--linked-test` stays headless and still passes its paired
 
 The latest combined Terminal run passes original gesture initialization and opens the
 keyboard-backed controller after display setup. Save/trophy task threads then start before
-the unresolved `pthread_key_create` call.
+a thread key is created/used and execution reaches `sceKernelUuidCreate`.
 Graphics mode now connects a checked keyboard-backed logical controller to initialized SDL;
 headless mode retains its input import stop. For fixed controls and the supported API scope,
 see [Keyboard input](../GRAPHICS_BRINGUP.md#keyboard-backed-input). Physical gamepads,
@@ -153,5 +153,7 @@ remapping and motion/vibration APIs remain unsupported. The command now privatel
 sibling `sys_modules` directory; set `SOTC_SYSTEM_MODULE_ROOT` if it lives elsewhere. It uses
 a separate image under `work/sotc-graphics-arm64`, preserving the headless diagnostic. Original
 gesture lifecycle checks pass in both CPU modes. Thread-specific keys and their guest
-destructors now also pass both modes; the next combined run is pending. No save/trophy
+destructors now also pass both modes; key creation and setting are confirmed in the real
+combined run. A host-random UUID adapter now covers its next stop, with guest ABI/error and
+concurrency checks in both modes. The next combined run is pending. No save/trophy
 operation or keyboard sample has been verified by merely starting those task threads.

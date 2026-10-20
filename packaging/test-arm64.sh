@@ -104,6 +104,7 @@ contracts() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_bootstrap.c" \
         "$trial_root/tests/test_clocks.c" "$trial_root/tests/test_files.c" "$trial_root/tests/test_rwlocks.c" \
         "$trial_root/tests/test_event_flags.c" "$trial_root/tests/test_equeues.c" \
+        "$trial_root/tests/test_uuid.c" \
         "${trial_sources[@]}" -o "$trial_root/work/test_bootstrap"
     for trial_failure in restart callback-null callback-count; do
         trial_log="$trial_prefix-$trial_failure.log"
