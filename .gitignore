@@ -1,0 +1,12 @@
+# Private game inputs, generated images, local diagnostics, and build dependencies.
+game/
+work/
+logs/
+*.zip
+# Local source snapshots used before this repository was organized.
+bloodborne-mac/
+sotc-reference/
+estado_prueba.json
+.DS_Store
+__pycache__/
+*.pyc
