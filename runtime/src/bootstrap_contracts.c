@@ -249,6 +249,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (fiber) return fiber;
     const uintptr_t module = bootstrap_modules_resolve(name);
     if (module) return module;
+    const uintptr_t discmap = bootstrap_discmap_resolve(name);
+    if (discmap) return discmap;
     if (!strcmp(name, "bzQExy189ZI#1#u")) return (uintptr_t)init_env;
     if (!strcmp(name, "8G2LB+A3rzg#1#u")) return (uintptr_t)guest_atexit;
     if (!strcmp(name, "tsvEmnenz48#1#u")) return (uintptr_t)guest_cxa_atexit;

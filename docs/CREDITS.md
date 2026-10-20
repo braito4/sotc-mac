@@ -8,7 +8,8 @@ This project is built on the work of:
 - [bbport / bloodborne_pc](https://github.com/deadinside28/bloodborne_pc) by **deadinside28**:
   foundational native PS4 game runtime and porting work.
 - [shadPS4](https://github.com/shadps4-emu/shadPS4): PS4 runtime foundations and API reference,
-  including the fiber HLE on which the SotC reference is based.
+  including the fiber HLE on which the SotC reference is based, the internal module-loader
+  ABI and DiscMap query/error definitions.
 - [AjncSystem/ShadowOfTheColossus-PC](https://github.com/AjncSystem/ShadowOfTheColossus-PC):
   SotC input preparation, module linking and runtime reference, including fiber API layouts
   and behavior and direct-memory availability handling.

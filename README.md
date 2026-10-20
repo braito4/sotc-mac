@@ -45,6 +45,8 @@
   Synthetic checks also cover resuming on another host thread.
 - **Guest threads:** native pthread workers with separate guest stacks, static/module TLS,
   DTV tables and errno. Synthetic checks cover return, exit, join, detach and condition waits.
+- **Local-content DiscMap profile:** optical bitmap queries report missing metadata without
+  inventing disc locations. Internal module loading has checked argument and reference handling.
 - **Local diagnostics:** generated game-derived images and execution logs remain outside Git.
 
 ## Getting started
@@ -66,17 +68,17 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 **Experimental, not playable.** Normal Terminal runs have completed both original module
-initializers and the game's early memory setup. After the module-registry addition, JIT and
-interpreter both enter Fios2 startup. The latest normal Terminal run uses its read/write locks
-and condition variables, then reaches the same unresolved thread-creation call. No game content
-was opened and no game fibers or worker threads were created in that baseline run.
+initializers and the game's early memory setup. In the latest run, JIT and interpreter both
+create Fios2's callback and I/O workers, then reach the same unresolved internal module-load
+call requesting DiscMap. No game content was opened and no game fibers were created.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
 restart and host-thread migration. Non-timed kernel read/write locks pass synthetic lifecycle,
 ownership and concurrency tests in both modes. Checked thread creation and lifecycle operations
 now pass synthetic tests with isolated per-thread TLS and concurrent read-only fixture I/O.
-Linked game progress after the thread addition still needs a normal Terminal run.
+The new DiscMap profile and five-argument internal loader pass synthetic guest ABI and error
+tests in both modes. Linked game progress after this addition still needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

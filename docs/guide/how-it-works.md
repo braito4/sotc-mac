@@ -56,8 +56,18 @@ errors follow the reference API. Yielding through a nested host-to-guest callbac
 those live host frames cannot be suspended by this guest-only dispatcher. Active trap-handler
 and ahead-of-time recompiled-function paths are also outside this diagnostic's fiber scope.
 
-The module registry advertises only the implemented fiber library. Missing modules return
-an unavailable result; no trophy or share service is fabricated.
+## System modules and DiscMap
+
+The module registry tracks references to the implemented fiber library and, when read-only
+content is mounted, the local-content DiscMap provider. Its internal loader preserves 32-bit
+module IDs. The five-argument loader checks the reserved field, accepts only empty initialization
+arguments, and writes the initializer result only after a successful load. Missing modules
+return an unavailable result.
+
+Local content has no PS4 optical bitmap metadata. The supported DiscMap queries return the
+no-bitmap error without changing output buffers or claiming a physical location. An opaque
+query whose contract is not established remains unresolved. Synthetic x86 calls verify the
+loader ABI, reference counts, unavailable cases and unchanged DiscMap outputs in both modes.
 
 ## Limits
 

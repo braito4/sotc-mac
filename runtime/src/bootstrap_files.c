@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 
 static int mounted;
+int bootstrap_files_mounted(void) { return mounted; }
 /* Serialize the native descriptor table's complete operations, including
  * close versus read and its diagnostic counters. These CPU-only probes use
  * regular read-only content; parallel asynchronous I/O is not claimed. */
