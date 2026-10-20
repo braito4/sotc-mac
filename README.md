@@ -77,11 +77,12 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental, not playable.** In the latest paired normal Terminal run, JIT and interpreter
 both complete the original module initializers, create Fios2's three workers, four game job
 workers and a resource-loading worker. Both modes create 19 event flags and 160 fibers,
-record 164 fiber runs. The interpreter records 198 direct fiber switches and 86 reads
-(80,193,830 bytes); JIT records 401 switches and 183 reads (80,698,436 bytes). Both open
+record 164 fiber runs. The interpreter records 196 direct fiber switches and 86 reads
+(80,193,830 bytes); JIT records 445 switches and 198 reads (80,742,980 bytes). Both open
 17 content files without writes, pass three owner-registration and seven compute-queue
 failures, and query the logical safe area once. Both then reach the same unresolved
-VideoOut gamma-preparation call after one failed VideoOut open per mode. The concurrent worker counters differ at the stop. No rendered frame
+VideoOut color-application call after one failed VideoOut open and one gamma preparation
+per mode. The concurrent worker counters differ at the stop. No rendered frame
 or successful archive/asset-decoding result is established.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
@@ -113,7 +114,9 @@ confirms one query per mode. VideoOut open now reports an explicit no-device fai
 for the main output; normal Terminal confirms progress past it in both modes. This policy
 creates no display port or window. The retail gamma helper now prepares three channels in
 12/16-byte structures with its explicit size argument and original range behavior. Guest ABI
-and original-module checks pass in both modes; its effect on startup needs a normal Terminal run.
+and original-module checks pass in both modes; normal Terminal confirms progress to color
+application. That call now rejects the invalid display handle before reading settings.
+Its effect on the game path needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

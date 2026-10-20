@@ -145,6 +145,10 @@ a 32-bit structure size and a scalar float; the original ABI accepts 12 or 16 by
 zeros that extent and writes three equal gamma channels, leaving memory outside the
 structure untouched. Preparing this data does not apply color settings or enable rendering.
 
+The suffixed color-application call includes a structure size. In this profile no output
+handle was opened, so the call returns INVALID_HANDLE before accessing settings or size.
+This preserves the original invalid-handle path without claiming a display update.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.

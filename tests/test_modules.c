@@ -12,16 +12,51 @@
 
 static uintptr_t guest_bridge(uintptr_t host) {
     static unsigned char *page; static size_t used;
-    if (!page) { page = runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(page); }
+    if (!page) {
+        page = runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(page);
+        /* All original synthetic trampolines share one guest-code page;
+         * registering each stub separately exhausts the CPU range table. */
+        bbcpu_add_guest_code((uintptr_t)page, 16384);
+    }
+    assert(used + 16 <= 16384);
     unsigned char *p = page + used; used += 16;
     p[0] = 0x48; p[1] = 0xb8; memcpy(p + 2, &host, 8); p[10] = 0xff; p[11] = 0xe0;
-    bbcpu_add_guest_code((uintptr_t)p, 12);
     return (uintptr_t)p;
 }
 static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *arguments,
                       uint64_t reserved, int32_t *initializer_result) {
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
+}
+static void check_video_adjust_color(uintptr_t entry) {
+    const uint64_t handles[] = {0, 1, 2, 3, 4, UINT32_MAX, UINT64_MAX,
+        UINT32_C(0x80290018), UINT64_C(0xffffffff80290018), UINT64_C(0x100000001)};
+    const uint64_t sizes[] = {0, 11, 12, 16, 17, UINT32_MAX, UINT64_MAX};
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *unreadable = mmap(NULL, page, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    assert(unreadable != MAP_FAILED);
+    uint64_t buffer[] = {UINT64_C(0x123456789abcdef0), UINT64_MAX};
+    const uint64_t initial[] = {buffer[0], buffer[1]};
+    const uint64_t pointers[] = {0, 1, (uintptr_t)buffer, (uintptr_t)unreadable};
+    *runtime_errno() = 17;
+    for (unsigned repeat = 0; repeat < 2; ++repeat)
+        for (unsigned h = 0; h < 10; ++h) for (unsigned z = 0; z < 7; ++z)
+            for (unsigned p = 0; p < 4; ++p) {
+                const uint64_t args[] = {handles[h], pointers[p], sizes[z], 3, 5, 7};
+                assert((uint32_t)bbcpu_call(entry, 6, args) == 0x8029000b);
+                assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
+            }
+    assert(munmap(unreadable, page) == 0 && *runtime_errno() == 17);
+}
+static void test_video_adjust_color(void) {
+    const char *name = "pv9CI5VC+R0#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("pv9CI5VC+R0#H#H", 0));
+    assert(!bootstrap_resolve("pv9CI5VC+R0#G#G", 0));
+    check_video_adjust_color(guest_bridge(fn));
+    puts("PASS: headless color-adjust guest ABI, invalid-handle precedence including failed opens, 32-bit handle/size, untouched null/guarded settings, repeated errors, scopes and errno");
 }
 static uint32_t gamma_call(uintptr_t entry, void *output, uint64_t size, uint32_t bits) {
     uint64_t gpr[6] = {(uintptr_t)output, size, UINT64_MAX, 3, 5, 7}, result[2];
@@ -369,6 +404,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_video_adjust_color();
     test_video_gamma();
     test_unavailable_video();
     test_display_safe_area();
