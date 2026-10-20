@@ -12,18 +12,19 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Read-only fixture reads, seek/pread/EOF, stat layout, error and write-rejection tests |
+| Content API | Fixture ABI/error tests; normal Terminal confirms four initial game-file reads totaling 1,788 bytes in both modes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
 | Fibers | Synthetic initialize ABI, yield/resume/switch, stack/register/FPU state, restart, attach-context, lifecycle errors and host-thread migration in both modes |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
+| Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 
 The latest normal Terminal game baseline completed early memory setup and entered Fios2 startup.
 Both modes loaded the DiscMap provider and created Fios2's callback, I/O and decompression
-workers. They used three read/write locks and seven condition variables, then stopped at the
-same DiscMap request-location query. Three guest workers were created; file and game-fiber
-counters remained zero.
+workers. Both modes passed the DiscMap queries, opened four game-content files and read
+1,788 bytes without writes. The game printed its build version and reached the same event-flag
+creation call. Three guest workers were created; the game-fiber counter remained zero.
 
 Non-timed kernel read/write-lock calls now reuse the upstream backend, with synthetic guest
 lifecycle, shared-reader, exclusive-writer, ownership and busy-destroy checks. The kernel
@@ -49,7 +50,15 @@ entry. A missing mapping entry does not mean the ordinary content file is absent
 The request-query cases were also run against the supplied original DiscMap function with
 empty mapping tables in both CPU modes. This isolated check does not initialize the original
 module or run the game. Full synthetic checks pass; both original libc/Fios2 initializers still
-return zero. The updated game path past this query requires a normal Terminal run.
+return zero. Normal Terminal now confirms progress past this query into initial content reads.
+
+FIFO event flags are implemented with native mutex/condition waits and a protected registry.
+Waiters receive the full pattern before clear operations; FIFO consumption determines which
+matching waiters complete. Cancellation and deletion wake blocked waits with distinct errors.
+Opaque handles are never reused; deleted objects are released after their last active waiter.
+Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
+named open/close remain unresolved. The game path after this addition needs normal Terminal
+verification.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
@@ -58,8 +67,8 @@ upstream process-lifetime allocation policy; long-running thread churn is not va
 ## Next verification
 
 Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
-stops, original module initialization, memory accounting and actual file counters. Do not
-infer content loading merely from linking Fios2 successfully.
+stops, original module initialization, memory accounting and actual file counters. Initial
+small-file reads do not establish archive/asset loading or gameplay.
 
 ## Remaining work
 
@@ -67,7 +76,7 @@ infer content loading merely from linking Fios2 successfully.
 - Implement additional required system services with checked ABI and error behavior.
 - Validate further Fios2 worker behavior and subsequent game threading; add missing thread-key contracts
   and complete lifecycle/resource reclamation where needed.
-- Validate actual game content loading, not only synthetic filesystem fixtures.
+- Validate archive/asset loading beyond the first small game-content reads.
 - Integrate and validate graphics, audio, input and a SotC launcher.
 - Add save support with a separate tested workflow when gameplay is possible.
 

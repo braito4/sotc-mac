@@ -40,6 +40,8 @@
 - **Original system modules:** libc and Fios2 are linked from the user's own game dump.
 - **Initial runtime support:** mutexes, read/write locks, destructor callbacks, clocks, timezone conversion,
   console output and direct/flexible memory queries.
+- **Event flags:** native FIFO synchronization with AND/OR conditions, clear modes,
+  cancellation, deletion and relative timeouts; tested through the guest ABI in both modes.
 - **Read-only content access:** a narrow file API tested with synthetic fixtures; no save mount.
 - **Guest fibers:** suspension, resumption and switching preserve guest CPU state and stacks.
   Synthetic checks also cover resuming on another host thread.
@@ -70,9 +72,9 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 **Experimental, not playable.** Normal Terminal runs have completed both original module
 initializers and the game's early memory setup. In the latest run, JIT and interpreter both
-create Fios2's callback, I/O and decompression workers. DiscMap loads, then both modes reach
-the same unresolved request-location query. No game content was opened and no game fibers
-were created.
+create Fios2's callback, I/O and decompression workers. Both modes pass the DiscMap queries,
+read four content files totaling 1,788 bytes, and print the game build version. They then
+reach the same unresolved event-flag creation call. No game fibers were created.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
@@ -81,12 +83,15 @@ ownership and concurrency tests in both modes. Checked thread creation and lifec
 now pass synthetic tests with isolated per-thread TLS and concurrent read-only fixture I/O.
 The DiscMap profile and five-argument internal loader pass synthetic guest ABI and error
 tests in both modes. The new request-location errors and 64-bit failure outputs were also
-checked against the supplied original DiscMap module with empty mapping tables. Linked game
-progress after the query addition still needs a normal Terminal run.
+checked against the supplied original DiscMap module with empty mapping tables. FIFO event
+flags now pass synthetic lifecycle and contention tests, including cancellation and deletion
+with blocked waiters. Linked game progress after the event-flag addition still needs a normal
+Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,
-additional system services, content loading and graphics integration still need validation.
+additional system services, content loading beyond the initial files and graphics integration
+still need validation.
 
 See [Development status](docs/STATUS.md) for the measured scope and next checks.
 

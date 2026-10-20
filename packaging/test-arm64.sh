@@ -35,6 +35,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_cpu_context.c" "$trial_root/runtime/src/bootstrap_fibers.c"
         "$trial_root/runtime/src/bootstrap_modules.c" "$trial_root/runtime/src/bootstrap_files.c"
         "$trial_root/runtime/src/bootstrap_discmap.c"
+        "$trial_root/runtime/src/bootstrap_event_flags.c"
         "$trial_root/runtime/src/bootstrap_tls.c" "$trial_root/runtime/src/bootstrap_threads.c"
         "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"
         "$trial_root/work/runtime_mutex_diagnostic.c" "$runtime_repo/src/runtime_rwlock.c")
@@ -60,6 +61,7 @@ contracts() {
     BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB=512 "$trial_root/work/test_memory_query"
     clang "${trial_flags[@]}" "$trial_root/tests/test_bootstrap.c" \
         "$trial_root/tests/test_clocks.c" "$trial_root/tests/test_files.c" "$trial_root/tests/test_rwlocks.c" \
+        "$trial_root/tests/test_event_flags.c" \
         "${trial_sources[@]}" -o "$trial_root/work/test_bootstrap"
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)

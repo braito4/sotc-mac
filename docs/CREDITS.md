@@ -9,10 +9,10 @@ This project is built on the work of:
   foundational native PS4 game runtime and porting work.
 - [shadPS4](https://github.com/shadps4-emu/shadPS4): PS4 runtime foundations and API reference,
   including the fiber HLE on which the SotC reference is based, the internal module-loader
-  ABI and DiscMap query/error definitions.
+  ABI, DiscMap query/error definitions and event-flag contracts.
 - [AjncSystem/ShadowOfTheColossus-PC](https://github.com/AjncSystem/ShadowOfTheColossus-PC):
   SotC input preparation, module linking and runtime reference, including fiber API layouts
-  and behavior and direct-memory availability handling.
+  and behavior, direct-memory availability handling and the C event-flag reference.
 - [Zydis](https://github.com/zyantific/zydis) and [Zycore](https://github.com/zyantific/zycore-c):
   instruction decoding dependencies, under their upstream MIT licenses.
 

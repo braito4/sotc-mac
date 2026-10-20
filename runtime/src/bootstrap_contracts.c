@@ -251,6 +251,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (module) return module;
     const uintptr_t discmap = bootstrap_discmap_resolve(name);
     if (discmap) return discmap;
+    const uintptr_t event_flag = bootstrap_event_flags_resolve(name);
+    if (event_flag) return event_flag;
     if (!strcmp(name, "bzQExy189ZI#1#u")) return (uintptr_t)init_env;
     if (!strcmp(name, "8G2LB+A3rzg#1#u")) return (uintptr_t)guest_atexit;
     if (!strcmp(name, "tsvEmnenz48#1#u")) return (uintptr_t)guest_cxa_atexit;
@@ -313,6 +315,7 @@ void bootstrap_report(void) {
     printf("Bootstrap: allocations=%zu (upstream arm64 heap below 1 TiB)\n", allocation_calls);
     runtime_mutex_report();
     runtime_rwlock_report();
+    bootstrap_event_flags_report();
     runtime_thread_report();
     runtime_memory_report();
     bootstrap_files_report();

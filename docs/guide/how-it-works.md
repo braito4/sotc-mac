@@ -27,6 +27,18 @@ The non-timed kernel read/write-lock family reuses the upstream ownership-aware 
 Tests call it through synthetic x86 bridges from several host threads. Kernel relative-timeout
 calls remain unresolved until their distinct timeout ABI has a dedicated adapter.
 
+FIFO event flags use native mutexes and condition variables. A protected registry validates
+opaque handles without dereferencing guest-supplied values. AND/OR tests use all 64 bits;
+successful waits report the pattern before applying their selected clear mode. Explicit clear
+takes a keep-mask. Queued waiters consume matching bits in FIFO order, while unmatched earlier
+waiters do not prevent later matches.
+
+Cancel and delete remove pending waits under the same lock, preserving an already completed
+wait's result. Deletion removes the handle immediately and releases the object after all active
+waiters return. Handles are not reused. Relative microsecond waits use the upstream platform's
+monotonic condition-variable helper and update the remaining duration after blocking. Priority
+queues return ENOTSUP; named open/close remain unresolved.
+
 Worker completion releases module TLS/DTV storage. Explicit exit resets abandoned CPU call depth
 before cleanup. Exit through a live fiber or trap frame stops rather than discarding those
 frames silently. Stacks, TCBs and diagnostic CPU records retain upstream process lifetime.
