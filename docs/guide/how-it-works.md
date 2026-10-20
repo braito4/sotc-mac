@@ -107,6 +107,14 @@ backend, sceNetInit returns the encoded libSceNet EOPNOTSUPP error without chang
 errno. Repeated calls do not create initialized state, sockets or pools. Other network APIs
 remain unresolved. This is an explicit diagnostic unavailability policy, not networking support.
 
+A separate UserService adapter maintains an ephemeral local console session. Successful
+initialization makes user 1 ("Wander") available and queues one login event; a second
+initialization returns an error. The priority parameter is validated and recorded without
+creating a background worker. ID/list/name queries and event consumption share a mutex with
+initialization and termination. Only a successful event query consumes the pending login.
+Termination clears session state. The profile has no host-account, PSN or storage connection,
+and the other UserService functions remain unresolved.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.

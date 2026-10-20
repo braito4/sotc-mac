@@ -13,7 +13,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; normal Terminal confirms four initial game-file reads totaling 1,788 bytes in both modes |
+| Content API | Fixture ABI/error tests; normal Terminal confirms 17 content opens and 35 reads totaling 50,603,221 bytes, without writes, in both modes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
 | Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with no direct switches observed |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
@@ -22,14 +22,15 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 | Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
+| Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired normal Terminal baseline passes the string-mask instruction and enters
 the game's job initialization in both modes. It creates three Fios2 workers and four game job workers,
-12 event flags and 160 fibers. The counters record four event waits and 164 fiber runs, with
-no direct fiber switches or event sets. Four initial content files totaling 1,788 bytes are
-read without writes. Both modes pass the CommonDialog unavailability response and stop at
-the same network initialization call on main. One CommonDialog request and no message-dialog
-request are recorded in each mode.
+14 event flags and 160 fibers. The counters record four event waits and 164 fiber runs, with
+no direct fiber switches or event sets. There are 17 content opens and 35 reads totaling
+50,603,221 bytes, without writes. Both modes pass the CommonDialog and network unavailability
+responses and stop at the same UserService initialization call on main. One CommonDialog
+request, no message-dialog request and one network initialization request are recorded in each mode.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -91,7 +92,23 @@ libSceNet EOPNOTSUPP error, not a successful initialization or a reported connec
 Repeated calls remain unsupported, ignore stale argument registers and preserve kernel/libc
 errno and buffers. Other network APIs remain unresolved; no sockets, pools, module references
 or initialized state are created. Synthetic guest ABI and scope checks pass in both modes.
-The game path after this error response needs a normal Terminal run.
+Normal Terminal confirms progress past this error into additional content reads and UserService
+initialization. This does not establish networking support.
+
+The new UserService adapter implements a process-local console profile: user ID 1, name
+"Wander", and one pending login event after each successful initialization. It uses no host
+account, PSN identity, user directory or save storage. Initialization validates the single
+32-bit priority field, accepts a default parameter, rejects duplicate initialization and
+records the priority without creating a service worker. Termination clears the session and
+pending event. Queries before initialization, unknown users, short buffers and empty event
+queues report distinct errors while preserving outputs. A mutex protects lifecycle, queries
+and event consumption. The remaining UserService APIs stay unresolved.
+
+Synthetic x86 calls cover the four-byte parameter at a protected page boundary, priority
+bounds, reinitialization, exact ID/list/event output widths, NUL-terminated names and 64-bit
+buffer sizes. Eight concurrent guest callers test single-owner initialization, exactly-once
+event consumption and repeated queries with separate errno values. Full contracts pass in
+both modes. The updated UserService game path needs a normal Terminal run.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
@@ -100,8 +117,8 @@ upstream process-lifetime allocation policy; long-running thread churn is not va
 ## Next verification
 
 Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
-stops, original module initialization, memory accounting and actual file counters. Initial
-small-file reads do not establish archive/asset loading or gameplay.
+stops, original module initialization, memory accounting, local user state and actual file
+counters. Content reads do not establish successful archive/asset decoding or gameplay.
 
 ## Remaining work
 
@@ -109,7 +126,7 @@ small-file reads do not establish archive/asset loading or gameplay.
 - Implement additional required system services with checked ABI and error behavior.
 - Validate further Fios2 worker behavior and subsequent game threading; add missing thread-key contracts
   and complete lifecycle/resource reclamation where needed.
-- Validate archive/asset loading beyond the first small game-content reads.
+- Validate archive/asset decoding and subsequent content-loading behavior.
 - Integrate and validate graphics, audio, input and a SotC launcher.
 - Add save support with a separate tested workflow when gameplay is possible.
 

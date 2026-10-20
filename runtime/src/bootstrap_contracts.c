@@ -255,6 +255,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (dialog) return dialog;
     const uintptr_t network = bootstrap_network_resolve(name);
     if (network) return network;
+    const uintptr_t users = bootstrap_users_resolve(name);
+    if (users) return users;
     const uintptr_t event_flag = bootstrap_event_flags_resolve(name);
     if (event_flag) return event_flag;
     if (!strcmp(name, "bzQExy189ZI#1#u")) return (uintptr_t)init_env;
@@ -326,6 +328,7 @@ void bootstrap_report(void) {
     bootstrap_fibers_report();
     bootstrap_dialogs_report();
     bootstrap_network_report();
+    bootstrap_users_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),
            atomic_load_explicit(&console_bytes, memory_order_relaxed));

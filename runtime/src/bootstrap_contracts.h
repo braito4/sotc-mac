@@ -14,6 +14,8 @@ uintptr_t bootstrap_dialogs_resolve(const char *name);
 void bootstrap_dialogs_report(void);
 uintptr_t bootstrap_network_resolve(const char *name);
 void bootstrap_network_report(void);
+uintptr_t bootstrap_users_resolve(const char *name);
+void bootstrap_users_report(void);
 uintptr_t bootstrap_event_flags_resolve(const char *name);
 void bootstrap_event_flags_report(void);
 unsigned bootstrap_event_flag_waiters(uintptr_t handle);

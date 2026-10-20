@@ -49,6 +49,8 @@
   Synthetic checks also cover resuming on another host thread.
 - **Guest threads:** native pthread workers with separate guest stacks, static/module TLS,
   DTV tables and errno. Synthetic checks cover return, exit, join, detach and condition waits.
+- **Local user profile:** an ephemeral console user with checked initialization, termination,
+  ID/list/name queries and a single login event; no account or user storage is accessed.
 - **Local-content DiscMap profile:** unloaded mapping tables produce explicit errors without
   inventing disc locations. Request queries validate ranges and preserve the 64-bit output ABI.
   Internal module loading has checked argument and reference handling.
@@ -75,9 +77,10 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental, not playable.** Normal Terminal runs have completed both original module
 initializers and the game's early memory setup. In the latest paired run, JIT and interpreter both
 create Fios2's three workers and four game job workers. Both modes pass the string-mask
-instruction, create 12 event flags and 160 fibers, and record 164 fiber runs. Four initial
-content files totaling 1,788 bytes are read. Both modes pass the explicit CommonDialog
-unavailability response and then reach the same unresolved network initialization call.
+instruction, create 14 event flags and 160 fibers, and record 164 fiber runs. The file counters
+record 17 content opens and 35 reads totaling 50,603,221 bytes, without writes. Both modes pass
+the explicit CommonDialog and network unavailability responses, then reach the same unresolved
+UserService initialization call.
 No direct fiber-to-fiber switches were observed.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
@@ -93,13 +96,15 @@ with blocked waiters. The new PCMPISTRM/VPCMPISTRM CPU extension passes 61,440 s
 cases per mode and native JIT fault checks. The diagnostic now reports explicit unavailable
 dialog errors: CommonDialog is unsupported, so message-dialog initialization lacks its system
 dependency. Normal Terminal confirms one CommonDialog request and no message-dialog request
-before the network stop. Network initialization now returns the explicit libSceNet
-EOPNOTSUPP error; no network backend is initialized. Synthetic guest checks pass in both
-modes. The effect of this network error on the game path needs a normal Terminal run.
+before the UserService stop. Network initialization returns the explicit libSceNet
+EOPNOTSUPP error; no network backend is initialized. Normal Terminal confirms subsequent
+content reads in both modes. A process-local UserService profile now provides initialization,
+termination, user queries and one-shot login events, with synthetic guest ABI and concurrency
+checks in both modes. Its effect on the game path needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,
-additional system services, content loading beyond the initial files and graphics integration
+additional system services, archive/asset decoding and graphics integration
 still need validation.
 
 See [Development status](docs/STATUS.md) for the measured scope and next checks.

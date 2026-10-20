@@ -40,6 +40,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_discmap.c"
         "$trial_root/runtime/src/bootstrap_dialogs.c"
         "$trial_root/runtime/src/bootstrap_network.c"
+        "$trial_root/runtime/src/bootstrap_users.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
         "$trial_root/runtime/src/bootstrap_tls.c" "$trial_root/runtime/src/bootstrap_threads.c"
         "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"
@@ -64,6 +65,7 @@ contracts() {
         "$trial_root/work/thread_fixture_code.h" thread_fixture_code
     clang "${trial_flags[@]}" "$trial_root/tests/test_threads.c" "${trial_sources[@]}" -o "$trial_root/work/test_threads"
     clang "${trial_flags[@]}" "$trial_root/tests/test_modules.c" "${trial_sources[@]}" -o "$trial_root/work/test_modules"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_users.c" "${trial_sources[@]}" -o "$trial_root/work/test_users"
     build_cpu_strings
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_query.c" \
         "${trial_support[@]}" "${trial_libraries[@]}" -o "$trial_root/work/test_memory_query"
@@ -89,6 +91,12 @@ contracts() {
         fi
         trial_log="$trial_prefix-modules-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_modules" > "$trial_log" 2>&1; then
+            cat "$trial_log"
+        else
+            trial_status=$?; cat "$trial_log"; exit "$trial_status"
+        fi
+        trial_log="$trial_prefix-users-jit$trial_jit.log"
+        if BB_JIT="$trial_jit" "$trial_root/work/test_users" > "$trial_log" 2>&1; then
             cat "$trial_log"
         else
             trial_status=$?; cat "$trial_log"; exit "$trial_status"
