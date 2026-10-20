@@ -58,18 +58,23 @@ bash packaging/build-gpu-arm64.sh --check  # Read-only inventory; exit 2 if inco
 bash packaging/build-gpu-arm64.sh --fetch  # Source/submodules only
 ```
 
-Twelve offline tests cover recipe integrity and shell syntax, bounded parallelism,
+Sixteen offline tests cover recipe integrity and shell syntax, bounded parallelism,
 preservation of foreign/redirected paths, cleanup after failed fetches, gitlink validation,
-command-failure reporting and a real CMake/Ninja compilation with spaces in the dependency
-prefix. The Zydis include flag retains literal quotes for CMake's compiler-flag parser;
-shell quoting alone had split the prefix into separate Clang arguments.
+command-failure reporting and real native builds under dependency prefixes containing spaces.
+The Zydis include flag retains literal quotes for CMake's compiler-flag parser. FFmpeg's
+generated shell configuration and Darwin install-name flags receive separate quoting fixes;
+installed pkg-config metadata also escapes absolute directory values. The builder clears
+only dependency pkg-config cache entries when reconfiguring CMake, so an earlier broken
+configuration can recover without discarding completed dependencies. Tests build and load a
+synthetic library through Make/Clang and a real CMake/pkg-config consumer after cache recovery.
 
-The user completed the source fetch and initial dependencies from Terminal. After correcting
-the quoting, the actual cached Zydis was configured, built and installed as ARM64 under the
-existing path with spaces. A builder retry skips that completed package and reaches xxHash,
-whose download still fails on GitHub DNS in the tool process. Re-run the same build command
-in Terminal to resume pending dependencies. The complete GPU library build remains unverified;
-a built library will still require the loader integration below before game video.
+On 2026-10-20 all dependencies were installed and the actual isolated GPU library compiled
+and linked successfully as ARM64. All five FFmpeg shared libraries were checked for ARM64
+architecture, native loading and expected version majors. The GPU builder verified its
+required loader exports and recorded unresolved runtime/CPU symbols for integration.
+An incremental rerun uses completed packages. The GPU library targets macOS 15 or later,
+matching the pinned runtime's documented minimum and its C++ library requirements.
+No renderer was launched and no game frame was verified.
 
 ## Verified CPU-side display contracts
 
@@ -95,15 +100,12 @@ is generated because no output port or rendering submission has succeeded.
 ## Remaining integration
 
 The pinned bloodborne-runtime contains a shadPS4-derived GPU library with Vulkan/MoltenVK and
-an experimental Metal backend. The new isolated builder prepares that library, but it has not yet completed a build or
-linked the renderer to this diagnostic. Its presence as source does not provide a renderer
-to the diagnostic automatically. An initial
-CMake configuration cannot find an installed Vulkan SDK. Explicit use of the existing local
-Vulkan headers/loader passes that step and stops at a missing fmt package configuration;
-other dependencies have not yet been resolved and no GPU library has been built.
+an experimental Metal backend. Its dependencies and isolated ARM64 library now build, but
+the library is not linked into this diagnostic. Compilation and export checks do not
+establish successful renderer initialization or command execution.
 
-A first game frame requires building its dependencies and integrating its initialization,
-scoped import resolution, guest memory/fault tracking and command submission with this loader.
+A first game frame requires integrating initialization, scoped import resolution,
+guest memory/fault tracking and command submission with this loader.
 macOS window creation/event pumping belongs on the host main thread; game execution must leave
 that thread available. Kernel event queues must have one consistent owner across VideoOut,
 GNM and the kernel adapter. The existing CPU-only queue cannot independently validate or signal

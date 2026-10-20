@@ -1,7 +1,7 @@
 """Build the pinned GPU library in private work output, without game input.
 
-Uses bloodborne-native/bloodborne-runtime's unchanged renderer and dependency
-recipes (bbport and shadPS4 foundations; GPL-2.0-or-later). The prepared recipe
+Uses bloodborne-native/bloodborne-runtime's unchanged renderer and a checked
+adaptation of its dependency recipes (bbport and shadPS4; GPL-2.0-or-later). The prepared recipe
 omits app-bundle Bash/Python and x86-only assembler prerequisites on ARM64.
 It does not launch the renderer or claim a game frame.
 """
@@ -30,6 +30,9 @@ REQUIRED_FILES = (
 )
 REQUIRED_EXPORTS = ('bbgpu_init', 'bbgpu_register_kernel', 'bbgpu_resolve',
                     'bbgpu_window_loop', 'bbgpu_handle_fault', 'bbgpu_symbol_count')
+PKGCONFIG_CACHE_CLEAR = tuple(
+    item for name in ('FFMPEG', 'SDL3', 'XXHASH') for item in ('-U', '*' + name + '*')
+)
 TOOLS = ('git', 'clang', 'clang++', 'cmake', 'ninja', 'pkg-config', 'curl', 'make', 'lipo', 'nm')
 
 
@@ -48,6 +51,9 @@ def prepare_recipe(data):
     replacements = {
         'cd -- "$(dirname -- "$0")/../.."': 'cd -- "$SOTC_GPU_SOURCE"',
         'jobs=$(sysctl -n hw.ncpu)': 'jobs=$SOTC_GPU_JOBS',
+        '        make -j "$jobs" >/dev/null && make install >/dev/null)':
+            '        python3 "$SOTC_GPU_BUILDER" --repair-ffmpeg "$PWD" "$prefix" &&\n'
+            '        make -j "$jobs" >/dev/null && make install >/dev/null)',
         # CMake parses compiler flags again after shell argument expansion.
         '-DCMAKE_C_FLAGS="-I$prefix/include"':
             '-DCMAKE_C_FLAGS="-I\\"$prefix/include\\""',
@@ -61,6 +67,70 @@ def prepare_recipe(data):
     return ('#!/bin/bash\n# Prepared from the pinned upstream dependency recipe.\n'
             '# ARM64 renderer dependencies only; no app bundle runtimes.\n' + body +
             '\necho "GPU dependencies are in $prefix"\n')
+
+
+def repair_ffmpeg_paths(build_dir, prefix):
+    """Repair generated FFmpeg metadata, not FFmpeg's source or configure."""
+    build_dir, prefix = Path(build_dir).resolve(), str(Path(prefix).absolute())
+    shell = build_dir / 'ffbuild/config.sh'
+    make = build_dir / 'ffbuild/config.mak'
+    for path in (shell, make):
+        if path.is_symlink() or not path.resolve().is_relative_to(build_dir):
+            raise BuildError('Refusing redirected FFmpeg configuration: ' + str(path))
+    shell_data, make_data = shell.read_text(), make.read_text()
+    raw = 'prefix=' + prefix
+    quoted = 'prefix=' + shlex.quote(prefix)
+    lines = shell_data.splitlines(keepends=True)
+    matches = [i for i, line in enumerate(lines) if line.startswith('prefix=')]
+    if len(matches) != 1 or lines[matches[0]].rstrip('\n') not in (raw, quoted):
+        raise BuildError('Unexpected FFmpeg shell prefix; configuration left unchanged.')
+    lines[matches[0]] = quoted + '\n'
+    repaired_shell = ''.join(lines)
+    if make_data.splitlines().count(raw) != 1:
+        raise BuildError('Unexpected FFmpeg make prefix; configuration left unchanged.')
+    token = '-Wl,-install_name,$(INSTALL_NAME_DIR)/$(SLIBNAME_WITH_MAJOR),'
+    fixed = '-Wl,-install_name,"$(INSTALL_NAME_DIR)/$(SLIBNAME_WITH_MAJOR)",'
+    if make_data.count(token) == 1 and not make_data.count(fixed):
+        repaired_make = make_data.replace(token, fixed)
+    elif make_data.count(fixed) == 1 and not make_data.count(token):
+        repaired_make = make_data
+    else:
+        raise BuildError('Unexpected FFmpeg install-name linker flags; configuration left unchanged.')
+    changed = 0
+    for path, before, after in ((shell, shell_data, repaired_shell), (make, make_data, repaired_make)):
+        if before != after:
+            path.write_text(after)
+            changed += 1
+    return changed
+
+
+def normalize_pkgconfig_paths(prefix):
+    """Escape the installation prefix for pkg-config's separate flag parser."""
+    prefix = Path(prefix).absolute()
+    raw = str(prefix)
+    escaped = raw.replace('\\', '\\\\').replace(' ', '\\ ').replace('\t', '\\\t')
+    changes = []
+    for directory in (prefix / 'lib/pkgconfig', prefix / 'share/pkgconfig'):
+        if directory.is_symlink():
+            raise BuildError('Refusing redirected pkg-config directory.')
+        for path in sorted(directory.glob('*.pc')):
+            if path.is_symlink() or not path.resolve().is_relative_to(prefix.resolve()):
+                raise BuildError('Refusing redirected pkg-config metadata.')
+            data = path.read_text()
+            lines = data.splitlines(keepends=True)
+            matches = [i for i, line in enumerate(lines) if line.startswith('prefix=')]
+            if len(matches) != 1 or lines[matches[0]].rstrip('\n') not in ('prefix=' + raw, 'prefix=' + escaped):
+                raise BuildError('Unexpected installed pkg-config prefix: ' + path.name)
+            lines[matches[0]] = 'prefix=' + escaped + '\n'
+            for i, line in enumerate(lines):
+                if line.partition('=')[0] in ('exec_prefix', 'libdir', 'includedir'):
+                    lines[i] = line.replace(raw, escaped)
+            updated = ''.join(lines)
+            if updated != data:
+                changes.append((path, updated))
+    for path, data in changes:
+        path.write_text(data)
+    return len(changes)
 
 
 def parse_jobs(value):
@@ -182,17 +252,20 @@ def build(root, runner, jobs, compiler):
         raise BuildError('Preserving an unexpected existing glslang tool.')
     else:
         alias.symlink_to(compiler)
-    env = dict(os.environ, BB_ARCH='arm64', SOTC_GPU_SOURCE=str(source), SOTC_GPU_JOBS=str(jobs))
+    env = dict(os.environ, BB_ARCH='arm64', SOTC_GPU_SOURCE=str(source), SOTC_GPU_JOBS=str(jobs),
+               SOTC_GPU_BUILDER=str(Path(__file__).resolve()))
     env.pop('BB_DEPS_REBUILD', None)  # Rebuild requests belong to the dependency maintainer.
     env['PATH'] = str(tool_dir) + os.pathsep + env.get('PATH', '')
     runner.run(['/bin/bash', generated], env=env)
     prefix = source / 'deps/macos-arm64'
+    repaired = normalize_pkgconfig_paths(prefix)
+    print(f'Normalized spaced pkg-config prefixes in {repaired} installed metadata files.', flush=True)
     env['PKG_CONFIG_LIBDIR'] = str(prefix / 'lib/pkgconfig') + os.pathsep + str(prefix / 'share/pkgconfig')
     env['PKG_CONFIG_PATH'] = ''
     env['PATH'] = str(prefix / 'bin') + os.pathsep + env['PATH']
     output = private_path(work, 'gpu-build')
-    runner.run(['cmake', '-S', source / 'gpu', '-B', output, '-G', 'Ninja',
-                '-DCMAKE_OSX_ARCHITECTURES=arm64', '-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0',
+    runner.run(['cmake', *PKGCONFIG_CACHE_CLEAR, '-S', source / 'gpu', '-B', output, '-G', 'Ninja',
+                '-DCMAKE_OSX_ARCHITECTURES=arm64', '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                 '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBB_LTO=OFF', '-DBB_PGO=off',
                 '-DCMAKE_PREFIX_PATH=' + str(prefix), '-DGLSLANG_COMPILER=' + str(compiler)], env=env)
     runner.run(['cmake', '--build', output, '--target', 'bbgpu', '--parallel', str(jobs)], env=env)
@@ -210,6 +283,7 @@ def build(root, runner, jobs, compiler):
                               and line.split()[-1].startswith(('_runtime_', '_bbcpu_', '_bb_image_base'))})
     report = dict(upstream=REPOSITORY, revision=REVISION, architecture=architecture,
                   library=str(library), dependencies=str(prefix), jobs=jobs, runtime_symbols=runtime_symbols,
+                  macos_minimum='15.0',
                   dependency_recipe_sha256=DEPS_SHA256,
                   renderer_launched=False, game_frame_verified=False)
     private_path(work, 'gpu-build.json').write_text(json.dumps(report, indent=2) + '\n')
@@ -220,7 +294,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='Read-only inventory; no network, downloads or builds.')
     parser.add_argument('--fetch', action='store_true', help='Fetch the exact GPU source and submodules only.')
+    parser.add_argument('--repair-ffmpeg', nargs=2, metavar=('BUILD', 'PREFIX'),
+                        help='Repair generated FFmpeg shell/linker metadata before make.')
     args = parser.parse_args()
+    if args.repair_ffmpeg:
+        if args.check or args.fetch:
+            parser.error('FFmpeg metadata repair is a separate stage.')
+        count = repair_ffmpeg_paths(*args.repair_ffmpeg)
+        print(f'Repaired generated FFmpeg paths in {count} configuration files.')
+        return 0
     if args.check and args.fetch:
         parser.error('Choose --check or --fetch, not both.')
     work = ROOT / 'work'

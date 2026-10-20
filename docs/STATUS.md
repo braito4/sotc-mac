@@ -32,7 +32,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Gamma preparation | Retail suffixed export: explicit 32-bit size plus float gamma, 12/16-byte layouts, three channels, pure data preparation |
 | Display data preparation | Exact 40-byte buffer attributes with seventh stack argument; mode fill/size helper; isolated original-module comparisons and guest tests pass in both modes |
 | Metal prerequisite | User reports PASS on Apple M1 in native Terminal: shader compilation, render pipeline, triangle draw and pixel readback; tool process still exposes zero Metal devices |
-| GPU build orchestration | Isolated pinned source/submodule fetch and ARM64-only build recipe with ABI export inventory; twelve offline tests pass, including a real CMake compile under a spaced prefix; cached ARM64 Zydis rebuilt; remaining xxHash download blocked by tool-process GitHub DNS |
+| GPU library build | Pinned renderer and dependencies compiled and linked as ARM64; loader exports verified; five FFmpeg libraries load natively; sixteen offline build tests pass, including spaced paths and CMake cache recovery; no renderer launch or game frame |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -51,15 +51,14 @@ preparation each run once; no output device or renderer exists.
 
 The user reports that the Metal prerequisite check passes on Apple M1 in native Terminal,
 including GPU draw/readback. This tool process still reports no default device and zero
-enumerated devices. The upstream GPU library is not linked into this diagnostic. The new
-isolated builder fetches its pinned submodules and prepares ARM64 dependencies/build output,
-with offline orchestration tests. The user completed the source fetch and initial packages.
-A quoted-include fix now builds the cached ARM64 Zydis under the existing spaced path; a
-retry reaches xxHash, whose download still fails on GitHub DNS here.
-The earlier direct configuration first required a Vulkan SDK;
-pointing it at the existing local Vulkan headers/loader advances to a missing fmt package
-configuration. No GPU library was built. See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the
-verified display contracts and remaining renderer integration.
+enumerated devices. The isolated upstream GPU library has now compiled and linked as ARM64,
+with its required loader exports checked and unresolved runtime/CPU symbols inventoried.
+Zydis compiler flags, FFmpeg generated shell/linker metadata and installed pkg-config paths
+now preserve spaces in the project path. CMake can recover previously cached broken dependency
+paths. All five installed FFmpeg shared libraries passed native loading/version checks;
+sixteen offline builder tests pass. The GPU library targets macOS 15 or later.
+It is not linked into this diagnostic, and no renderer was launched or game frame verified.
+See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -260,9 +259,10 @@ checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
 
-The Metal prerequisite has passed on Apple M1 in Terminal. Next run
-`bash packaging/build-gpu-arm64.sh` there to fetch and build the isolated GPU library.
-GitHub DNS fails in the tool process. This build does not start the game or prove video.
+The Metal prerequisite has passed on Apple M1 in Terminal, and the isolated ARM64 GPU library
+has built successfully. Next integrate the library's runtime/CPU imports, memory hooks,
+main-thread window/event loop and consistent kernel queue ownership before attempting actual
+renderer initialization. The build alone does not prove game video.
 
 Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
 in the tool environment, or use the default backend in a normal native Terminal. Compare both

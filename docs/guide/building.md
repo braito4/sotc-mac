@@ -92,16 +92,18 @@ The initialization probe has a 30-second watchdog. `SOTC_DIAGNOSTIC_SECONDS` acc
 
 ## Isolated renderer build
 
-The Metal prerequisite has passed on Apple M1 in the user's native Terminal. To prepare the
-actual renderer dependencies and library:
+The Metal prerequisite has passed on Apple M1 in the user's native Terminal. The isolated
+ARM64 renderer library has also built successfully. To build or resume it (macOS 15 or later):
 
 ```sh
 bash packaging/build-gpu-arm64.sh
 ```
 
 This uses a separate pinned source checkout and build area under `work`, leaving the current
-CPU diagnostic and `runtime/upstream` unchanged. It needs network access; GitHub DNS is not
-available in the development tool process. The first build downloads and compiles dependencies.
+CPU diagnostic and `runtime/upstream` unchanged. The first build downloads and compiles
+dependencies and needs network access; GitHub DNS is unavailable in the development tool
+process. Completed dependencies are reused. Re-run the same command after an interrupted
+build; generated FFmpeg metadata and cached dependency paths are repaired for spaced prefixes.
 A successful build checks ARM64 architecture and API exports and records the host runtime
 symbols it needs. It does not launch the game. See [Graphics bring-up](../GRAPHICS_BRINGUP.md)
 for stages, prerequisites and remaining loader integration.

@@ -3,6 +3,8 @@ import importlib.util
 import io
 import os
 import shutil
+import platform
+import shlex
 from pathlib import Path
 import subprocess
 import tempfile
@@ -53,6 +55,88 @@ class GpuBuildTests(unittest.TestCase):
                          ['cmake', '--build', str(build)], [str(build / 'fixture')]):
                 checked = subprocess.run(args, capture_output=True, text=True)
                 self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+
+    @staticmethod
+    def ffmpeg_metadata(build, prefix):
+        (build / 'ffbuild').mkdir(parents=True)
+        (build / 'ffbuild/config.sh').write_text('prefix=' + str(prefix) + '\nlibdir=${prefix}/lib\n')
+        (build / 'ffbuild/config.mak').write_text(
+            'prefix=' + str(prefix) + '\nINSTALL_NAME_DIR=' + str(prefix / 'lib') + '\n'
+            'SLIBNAME_WITH_MAJOR=libfixture.1.dylib\nLIBVERSION=1.0.0\nLIBMAJOR=1\n'
+            'SHFLAGS=-dynamiclib -Wl,-install_name,$(INSTALL_NAME_DIR)/$(SLIBNAME_WITH_MAJOR),'
+            '-current_version,$(LIBVERSION),-compatibility_version,$(LIBMAJOR)\n')
+
+    def test_ffmpeg_metadata_repair_is_idempotent_and_shell_readable(self):
+        with tempfile.TemporaryDirectory(prefix='ffmpeg fixture ') as temporary:
+            root = Path(temporary); prefix = root / 'prefix with spaces'; prefix.mkdir()
+            build = root / 'build'; self.ffmpeg_metadata(build, prefix)
+            self.assertEqual(gpu.repair_ffmpeg_paths(build, prefix), 2)
+            self.assertEqual(gpu.repair_ffmpeg_paths(build, prefix), 0)
+            result = subprocess.run(['/bin/sh', '-c', '. ffbuild/config.sh; printf "%s" "$prefix"'],
+                                    cwd=build, capture_output=True, text=True, check=True)
+            self.assertEqual(result.stdout, str(prefix))
+
+    def test_unknown_ffmpeg_flags_leave_both_generated_files_unchanged(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); prefix = root / 'prefix with spaces'; prefix.mkdir()
+            build = root / 'build'; self.ffmpeg_metadata(build, prefix)
+            make = build / 'ffbuild/config.mak'; make.write_text(make.read_text().replace('SHFLAGS=', 'OTHER=').replace('-Wl,-install_name,', '-unexpected,'))
+            before = {p: p.read_bytes() for p in (build / 'ffbuild').iterdir()}
+            with self.assertRaises(gpu.BuildError):
+                gpu.repair_ffmpeg_paths(build, prefix)
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+
+    def test_foreign_pkgconfig_prefix_does_not_modify_other_metadata(self):
+        with tempfile.TemporaryDirectory(prefix='pkgconfig fixture ') as temporary:
+            prefix = Path(temporary); directory = prefix / 'lib/pkgconfig'; directory.mkdir(parents=True)
+            (directory / 'a.pc').write_text('prefix=' + str(prefix) + '\n')
+            (directory / 'z.pc').write_text('prefix=/foreign/prefix\n')
+            before = {p: p.read_bytes() for p in directory.iterdir()}
+            with self.assertRaises(gpu.BuildError):
+                gpu.normalize_pkgconfig_paths(prefix)
+            self.assertEqual(before, {p: p.read_bytes() for p in before})
+
+    @unittest.skipUnless(platform.system() == 'Darwin' and all(shutil.which(x) for x in ('clang', 'make', 'cmake', 'ninja', 'pkg-config', 'otool')), 'macOS build tools required')
+    def test_spaced_ffmpeg_style_library_install_and_pkgconfig_consumer(self):
+        with tempfile.TemporaryDirectory(prefix='ffmpeg link fixture ') as temporary:
+            root = Path(temporary); prefix = root / 'installed dependency with spaces'; prefix.mkdir()
+            build = root / 'build tree'; self.ffmpeg_metadata(build, prefix)
+            (build / 'fixture.c').write_text('int fixture_value(void) { return 42; }\n')
+            (build / 'Makefile').write_text('include ffbuild/config.mak\n'
+                'libfixture.1.dylib: fixture.c\n\tclang $(SHFLAGS) -o $@ $<\n'
+                'install: libfixture.1.dylib\n\tmkdir -p "$(prefix)/lib"\n\tcp $< "$(prefix)/lib/$<"\n')
+            gpu.repair_ffmpeg_paths(build, prefix)
+            result = subprocess.run(['make', 'install'], cwd=build, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            library = prefix / 'lib/libfixture.1.dylib'
+            identity = subprocess.check_output(['otool', '-D', library], text=True)
+            self.assertEqual(identity.splitlines()[1].strip(), str(library))
+            (prefix / 'lib/libfixture.dylib').symlink_to(library.name)
+            (prefix / 'include').mkdir()
+            (prefix / 'include/fixture.h').write_text('int fixture_value(void);\n')
+            metadata = prefix / 'lib/pkgconfig'; metadata.mkdir()
+            (metadata / 'fixture.pc').write_text('prefix=' + str(prefix) + '\n'
+                'libdir=' + str(prefix / 'lib') + '\nincludedir=' + str(prefix / 'include') + '\nName: fixture\nDescription: fixture\nVersion: 1\n'
+                'Libs: -L${libdir} -Wl,-rpath,${libdir} -lfixture\nCflags: -I${includedir}\n')
+            env = dict(os.environ, PKG_CONFIG_LIBDIR=str(metadata), PKG_CONFIG_PATH='')
+            source = root / 'consumer source'; source.mkdir()
+            (source / 'main.c').write_text('#include <fixture.h>\nint main(void) { return fixture_value() != 42; }\n')
+            (source / 'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.24)\nproject(consumer C)\n'
+                'find_package(PkgConfig REQUIRED)\npkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET fixture)\n'
+                'add_executable(consumer main.c)\ntarget_link_libraries(consumer PRIVATE PkgConfig::FFMPEG)\n')
+            output = root / 'consumer build'
+            failed = subprocess.run(['cmake', '-S', str(source), '-B', str(output), '-G', 'Ninja'],
+                                    env=env, capture_output=True, text=True)
+            self.assertNotEqual(failed.returncode, 0)  # Cache now contains the broken unescaped paths.
+            self.assertEqual(gpu.normalize_pkgconfig_paths(prefix), 1)
+            self.assertEqual(gpu.normalize_pkgconfig_paths(prefix), 0)
+            flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', 'fixture'], env=env, text=True)
+            self.assertIn('-I' + str(prefix / 'include'), shlex.split(flags))
+            self.assertIn('-L' + str(prefix / 'lib'), shlex.split(flags))
+            for args in (['cmake', *gpu.PKGCONFIG_CACHE_CLEAR, '-S', str(source), '-B', str(output), '-G', 'Ninja'],
+                         ['cmake', '--build', str(output)], [str(output / 'consumer')]):
+                result = subprocess.run(args, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_unknown_recipe_is_rejected(self):
         original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()

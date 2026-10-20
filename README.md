@@ -89,9 +89,11 @@ No rendered frame or gameplay is established.
 
 The new `--graphics-check` builds a real Metal prerequisite test. The development tool process
 currently sees zero GPU devices, but the user reports that this same check passes on Apple M1
-in Terminal. Host GPU access is established there. An isolated renderer builder is now available
-with `bash packaging/build-gpu-arm64.sh`; its downloads cannot run here because GitHub DNS
-fails. The renderer still needs a completed build and loader integration. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+in Terminal. Host GPU access is established there. The isolated renderer library has now
+compiled and linked as ARM64 with its required loader exports verified. The builder handles
+dependency paths containing spaces, including FFmpeg metadata and CMake cache recovery.
+The library still needs loader integration; no renderer has been launched or game frame
+verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
