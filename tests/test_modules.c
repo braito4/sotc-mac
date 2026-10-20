@@ -1,5 +1,5 @@
-/* Synthetic x86 calls to the module loader and absent optical metadata profile.
- * No game input and no assumed physical-disc placement. */
+/* Synthetic x86 calls to the module loader, absent optical metadata profile
+ * and unavailable services. No game input or physical-disc placement assumed. */
 #include "bootstrap_contracts.h"
 #include "bbcpu.h"
 #include "runtime.h"
@@ -22,6 +22,35 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
                       uint64_t reserved, int32_t *initializer_result) {
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
+}
+static void test_unavailable_network(void) {
+    const char *name = "Nlev7Lg8k3A#Bc#D";
+    bootstrap_initialize(0);
+    assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0);
+    assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("Nlev7Lg8k3A#E#F", 0));
+    assert(!bootstrap_resolve("Nlev7Lg8k3A#0#F", 0));
+    assert(!bootstrap_resolve("Nlev7Lg8k3A#Bc#G", 0));
+    /* A no-argument API must ignore stale registers, including invalid pointer
+     * values. Encoded network errors must not overwrite kernel/libc errno. */
+    uint64_t buffer[] = {UINT64_C(0x123456789abcdef0), UINT64_C(0x23456789abcdef01)};
+    const uint64_t original[] = {buffer[0], buffer[1]};
+    const uint64_t junk[] = {1, UINT64_MAX, (uintptr_t)buffer, 3, 5, 7};
+    const uintptr_t entry = guest_bridge(fn);
+    *runtime_errno() = 17;
+    for (unsigned i = 0; i < 3; ++i) {
+        assert((uint32_t)bbcpu_call(entry, 0, NULL) == UINT32_C(0x8041012d));
+        assert((uint32_t)bbcpu_call(entry, 6, junk) == UINT32_C(0x8041012d));
+    }
+    assert(!memcmp(buffer, original, sizeof(buffer)) && *runtime_errno() == 17);
+    /* No other network API, including an apparent successful termination or
+     * a guest-visible network errno slot, is exposed by this error provider. */
+    assert(!bootstrap_resolve("cTGkc6-TBlI#Bc#D", 0)); /* sceNetTerm */
+    assert(!bootstrap_resolve("HQOwnfMGipQ#Bc#D", 0)); /* sceNetErrnoLoc */
+    assert(!bootstrap_resolve("6MojQ8uFHEI#Bc#D", 0)); /* sceNetInitParam */
+    puts("PASS: no-argument network-init guest ABI, repeated unsupported errors, capability/scopes, unchanged buffers/errno and unresolved network services");
 }
 static void test_unavailable_dialogs(void) {
     const char *common = "uoUpLGNkygk#c#c", *message = "lDqxaY1UbEo#g#g";
@@ -91,6 +120,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_unavailable_network();
     test_unavailable_dialogs();
     bootstrap_initialize(1);
     const char *name = "hHrGoGoNf+s#F#G";

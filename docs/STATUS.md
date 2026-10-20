@@ -21,12 +21,15 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
+| Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
 
 The latest paired normal Terminal baseline passes the string-mask instruction and enters
 the game's job initialization in both modes. It creates three Fios2 workers and four game job workers,
 12 event flags and 160 fibers. The counters record four event waits and 164 fiber runs, with
 no direct fiber switches or event sets. Four initial content files totaling 1,788 bytes are
-read without writes. Both modes stop at the same CommonDialog initialization call on main.
+read without writes. Both modes pass the CommonDialog unavailability response and stop at
+the same network initialization call on main. One CommonDialog request and no message-dialog
+request are recorded in each mode.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -79,8 +82,16 @@ CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic h
 provider: CommonDialog returns NOT_SUPPORTED and message initialization returns
 NOT_SYSTEM_INITIALIZED. Repeated calls preserve that unavailable state and do not load either
 module. Other dialog APIs remain unresolved. Synthetic guest checks cover stale argument
-registers, preserved buffers/errno and module availability in both modes. This error profile's
-effect on subsequent game initialization needs a normal Terminal run.
+registers, preserved buffers/errno and module availability in both modes. Normal Terminal
+confirms progress past the CommonDialog error into network initialization; message initialization
+has not been called on this startup path.
+
+The diagnostic has no network backend. Its no-argument sceNetInit response is the encoded
+libSceNet EOPNOTSUPP error, not a successful initialization or a reported connection state.
+Repeated calls remain unsupported, ignore stale argument registers and preserve kernel/libc
+errno and buffers. Other network APIs remain unresolved; no sockets, pools, module references
+or initialized state are created. Synthetic guest ABI and scope checks pass in both modes.
+The game path after this error response needs a normal Terminal run.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the

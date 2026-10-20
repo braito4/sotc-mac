@@ -102,6 +102,11 @@ provider. MsgDialog initialization then reports its missing system dependency. B
 no-argument functions; register residue is not treated as a parameter pointer. Neither call
 activates a module or claims a dialog result. Other dialog APIs remain unresolved.
 
+Network initialization also has a no-argument ABI. Because this diagnostic has no network
+backend, sceNetInit returns the encoded libSceNet EOPNOTSUPP error without changing kernel/libc
+errno. Repeated calls do not create initialized state, sockets or pools. Other network APIs
+remain unresolved. This is an explicit diagnostic unavailability policy, not networking support.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.
