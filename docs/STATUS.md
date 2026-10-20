@@ -13,9 +13,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; latest paired tool run: 17 opens per mode; interpreter: 167 reads/80,621,768 bytes, JIT: 250 reads/80,875,624 bytes; no writes |
+| Content API | Fixture ABI/error tests; latest paired tool run: 17 opens per mode; interpreter: 429 reads/81,536,320 bytes, JIT: 426 reads/81,529,921 bytes; no writes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 360/553 direct switches observed (interpreter/JIT) |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 1,109/1,073 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
@@ -30,19 +30,30 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Archive/address audit | Six PSARC manifests, 130,238 members; nine synthetic archive/address tests; no full asset decoding or pointer-runtime replacement |
 | Color application availability | Suffixed three-argument ABI; empty-display profile rejects handles before reading settings/size |
 | Gamma preparation | Retail suffixed export: explicit 32-bit size plus float gamma, 12/16-byte layouts, three channels, pure data preparation |
+| Display data preparation | Exact 40-byte buffer attributes with seventh stack argument; mode fill/size helper; isolated original-module comparisons and guest tests pass in both modes |
+| Metal prerequisite | ARM64 offscreen draw/readback check compiles; current tool process exposes zero Metal devices and exits before shader creation; no successful GPU path verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired tool run uses explicit temporary-file backing and reaches the same
-`sceVideoOutSetBufferAttribute` call in JIT and interpreter. Each mode creates three Fios2
-workers, four game job workers, one resource-loading worker, 19 event flags, one event queue
-and 160 fibers, with 164 fiber runs. The interpreter records 360 direct switches and 167
-reads/80,621,768 bytes; JIT records 553 switches and 250 reads/80,875,624 bytes. Counters
-vary with scheduling. Both open 17 content files without writes. Both reject three owner
-registrations, 79 resource registrations, seven compute queues, one color update, one flip-rate
-change, one capability query and one flip-event registration. The logical safe-area query
-and gamma preparation each run once; no output device or renderer exists.
+`scePadInit` call in JIT and interpreter. Each mode creates three Fios2 workers, four job
+workers, one resource-loading worker, RenderFlip and Game Render (ten guest threads plus
+main), 19 event flags, one event queue and 160 fibers, with 164 fiber runs. A flip-event
+queue wait begins, without any fabricated notification. The interpreter records 1,109 direct
+switches and 429 reads/81,536,320 bytes; JIT records 1,073 switches and 426 reads/81,529,921
+bytes. Counters vary with scheduling. Both open 17 content files without writes. Both reject
+three owner registrations, 80 resource registrations, seven compute queues, one color update,
+two flip-rate changes, one capability query, one flip-event registration, one display-buffer
+registration and one mode configuration. Safe area, gamma, buffer attributes and mode-data
+preparation each run once; no output device or renderer exists.
+
+The Metal prerequisite check compiles but reports no default device and zero enumerated
+devices in this tool process. Its GPU draw/readback path remains unverified. The upstream GPU
+library is not linked into this diagnostic. Configuration first requires a Vulkan SDK;
+pointing it at the existing local Vulkan headers/loader advances to a missing fmt package
+configuration. No GPU library was built. See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the
+verified display contracts and remaining renderer integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -210,7 +221,7 @@ Flip-rate and the suffixed device-capability query now reject invalid display ha
 before validating rates or accessing output structures. Original retail exports with empty
 handle tables match the failure paths in both modes. No supported capabilities or frame
 rate are invented. Full linked tests pass with file backing and now proceed through real
-queue creation and explicit flip-event rejection to buffer-attribute preparation.
+queue creation and explicit flip-event rejection to buffer-attribute and mode preparation.
 
 User-event queues use a protected native registry and monotonic condition waits. Level
 notifications remain ready; edge notifications clear when returned. Repeated triggers
@@ -224,7 +235,8 @@ its comment describes a tighter terminator-inclusive bound, so retail boundary c
 remains unverified. Null output pointers receive explicit errors. Synthetic guest tests cover
 guarded layouts, invalid/stale handles, signed IDs, level/edge contention, deletion, getters,
 queue isolation and errno preservation in both modes. Actual startup creates one queue;
-its waits and triggers have not yet been exercised by the game. Timer, graphics, descriptor
+startup now also begins one blocking wait from RenderFlip; game-triggered notifications
+remain unverified. Timer, graphics, descriptor
 filters and POSIX kevent remain unresolved.
 
 VideoOut flip-event registration rejects invalid display handles before queue validation,
@@ -242,6 +254,9 @@ checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
 
+Run `bash packaging/test-arm64.sh --graphics-check` in a native Terminal. The tool process
+cannot currently access a Metal device. This prerequisite does not run the game.
+
 Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
 in the tool environment, or use the default backend in a normal native Terminal. Compare both
 stops, original module initialization, memory accounting, GNM requests, logical safe-area queries, VideoOut requests and actual file
@@ -257,5 +272,9 @@ counters. Content reads do not establish successful archive/asset decoding or ga
 - Integrate and validate graphics, audio, input and a SotC launcher.
 - Add save support with a separate tested workflow when gameplay is possible.
 
+The diagnostic watchdog defaults to 30 seconds, with optional `SOTC_DIAGNOSTIC_SECONDS=1..60`.
+Longer startup in the interpreter exhausted the earlier five- and fifteen-second limits;
+with 30 seconds both CPU modes reach controller initialization. The watchdog is never disabled.
+Malformed, zero and out-of-range settings are rejected before input is opened.
 The diagnostic budget is deliberately bounded. No release, gameplay compatibility or FPS
 claim is implied by initialization progress.

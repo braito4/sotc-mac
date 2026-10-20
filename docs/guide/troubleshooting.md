@@ -21,6 +21,15 @@ This mode uses local temporary filesystem space while the process is alive. It c
 neither mapping bounds nor permissions. Without the option the pinned shared-memory backend
 is unchanged. See [Reference review and follow-up](../REFERENCE_REVIEW.md) for verified scope.
 
+`STOP_HOST_GRAPHICS` means the standalone Metal prerequisite check could not access or verify
+the GPU. Zero enumerated devices describes this process, not necessarily the physical Mac.
+Run `--graphics-check` in a native Terminal; no synthetic game frame or fallback GPU is created.
+A successful check establishes only an offscreen synthetic draw. See
+[Graphics bring-up](../GRAPHICS_BRINGUP.md).
+
+`STOP_TIMEOUT` remains a failed diagnostic. The default watchdog is 30 seconds;
+`SOTC_DIAGNOSTIC_SECONDS=1..60` changes its bounded duration without disabling it.
+
 `STOP_MEMORY_LAYOUT` means a requested mapping could not be satisfied. Do not disable fixed-map
 bounds or overwrite host shared regions to continue. The temporary image mapping still leaves
 the packed-pointer problem unresolved.

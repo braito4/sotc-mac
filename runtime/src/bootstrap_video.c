@@ -2,14 +2,16 @@
  * Open ABI and error definitions: shadPS4 video_out.h/.cpp and
  * videoout_error.h (GPL-2.0-or-later). Foundations: shadPS4,
  * bloodborne-native, deadinside28/bbport and AjncSystem's SotC reference.
- * The suffixed gamma helper follows the supplied retail module ABI/layout.
+ * Data helpers and early error paths are checked against the supplied retail
+ * module ABI/layout, including its ConfigureOutputMode validation order.
  * This does not open a device, window, display port or rendering surface.
  */
 #include "bootstrap_contracts.h"
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
-static _Atomic size_t open_requests, gamma_requests, adjust_requests, rate_requests, capability_requests, flip_event_requests;
+static _Atomic size_t open_requests, gamma_requests, adjust_requests, rate_requests, capability_requests;
+static _Atomic size_t flip_event_requests, attribute_requests, register_requests, mode_requests, configure_requests;
 static int32_t video_open(int32_t user, int32_t bus, int32_t index, const void *params) {
     atomic_fetch_add_explicit(&open_requests, 1, memory_order_relaxed);
     /* Diagnostic policy: only the MAIN/index-zero profile is recognized.
@@ -73,7 +75,47 @@ static int32_t flip_event_unavailable(uintptr_t queue, int32_t handle, void *use
     (void)user_data;
     return (int32_t)UINT32_C(0x8029000b);
 }
+static void buffer_attribute(void *output, uint32_t format, uint32_t tiling,
+                             uint32_t aspect, uint32_t width, uint32_t height, uint32_t pitch) {
+    atomic_fetch_add_explicit(&attribute_requests, 1, memory_order_relaxed);
+    /* Pure data helper, not a registration or allocation. Seven integer
+     * arguments: pitch arrives through the guest stack. Copy preserves an
+     * unaligned output and writes exactly the 40-byte public structure. */
+    const uint32_t words[10] = {format, tiling, aspect, width, height, pitch, 0, 0, 0, 0};
+    memcpy(output, words, sizeof(words));
+}
+static int32_t register_buffers_unavailable(int32_t handle, int32_t start,
+                                            void *const *addresses, int32_t count, const void *attribute) {
+    atomic_fetch_add_explicit(&register_requests, 1, memory_order_relaxed);
+    /* Null required addresses are checked first; no port is open in this
+     * profile, so non-null arguments are never dereferenced or registered. */
+    (void)handle;
+    (void)start;
+    (void)count;
+    if (!addresses || !attribute) return (int32_t)UINT32_C(0x80290002);
+    return (int32_t)UINT32_C(0x8029000b);
+}
+static void mode_any(void *output, uint32_t size) {
+    atomic_fetch_add_explicit(&mode_requests, 1, memory_order_relaxed);
+    /* The retail helper fills the requested extent and writes a size field.
+     * Even short sizes still write that four-byte field. No display state. */
+    memset(output, 0xff, size);
+    memcpy(output, &size, sizeof(size));
+}
+static int32_t configure_unavailable(int32_t handle, uint32_t reserved, const void *mode,
+                                     const void *options, uint32_t mode_size, uint32_t options_size) {
+    atomic_fetch_add_explicit(&configure_requests, 1, memory_order_relaxed);
+    (void)handle; (void)options; (void)mode_size; (void)options_size;
+    /* Retail validates reserved and null mode before the empty port lookup;
+     * it does not dereference non-null mode/options for an invalid handle. */
+    if (reserved || !mode) return (int32_t)UINT32_C(0x80290001);
+    return (int32_t)UINT32_C(0x8029000b);
+}
 uintptr_t bootstrap_video_resolve(const char *name) {
+    if (!strcmp(name, "pjkDsgxli6c#G#H")) return (uintptr_t)mode_any;
+    if (!strcmp(name, "N1bEoJ4SRw4#G#H")) return (uintptr_t)configure_unavailable;
+    if (!strcmp(name, "w3BY+tAEiQY#G#H")) return (uintptr_t)register_buffers_unavailable;
+    if (!strcmp(name, "i6-sR91Wt-4#G#H")) return (uintptr_t)buffer_attribute;
     if (!strcmp(name, "HXzjK9yI30k#G#H")) return (uintptr_t)flip_event_unavailable;
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)video_open;
     if (!strcmp(name, "DYhhWbJSeRg#G#H")) return (uintptr_t)color_settings_gamma;
@@ -83,6 +125,13 @@ uintptr_t bootstrap_video_resolve(const char *name) {
     return 0;
 }
 void bootstrap_video_report(void) {
+    printf("Bootstrap: VideoOut mode preparations=%zu, rejected configurations=%zu (no valid display handle)\n",
+           atomic_load_explicit(&mode_requests, memory_order_relaxed),
+           atomic_load_explicit(&configure_requests, memory_order_relaxed));
+    printf("Bootstrap: rejected VideoOut buffer registrations=%zu (no valid display handle)\n",
+           atomic_load_explicit(&register_requests, memory_order_relaxed));
+    printf("Bootstrap: VideoOut buffer attributes prepared=%zu (no buffer registration)\n",
+           atomic_load_explicit(&attribute_requests, memory_order_relaxed));
     printf("Bootstrap: rejected VideoOut flip-event registrations=%zu (no valid display handle)\n",
            atomic_load_explicit(&flip_event_requests, memory_order_relaxed));
     printf("Bootstrap: unavailable VideoOut open requests=%zu (no device or display handle)\n",

@@ -212,11 +212,10 @@ static void test_unavailable_video(void) {
                 assert((uint32_t)bbcpu_call(entry, 6, args) == expected);
                 assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
             }
-    /* A failed open creates no port. Close, status, flips and registrations
-     * are deliberately not made available by this error-only provider. */
+    /* A failed open creates no port. Close, resolution and submit-flip
+     * remain unresolved; buffer registration has a checked error provider. */
     assert(!bootstrap_resolve("uquVH4-Du78#G#H", 0));
     assert(!bootstrap_resolve("6kPnj51T62Y#G#H", 0));
-    assert(!bootstrap_resolve("w3BY+tAEiQY#G#H", 0));
     assert(!bootstrap_resolve("U46NwOiJpys#G#H", 0));
     puts("PASS: headless VideoOut open guest ABI, 32-bit arguments, unsupported modes/index errors, repeated no-device responses, ignored options and unchanged buffers/errno");
 }
@@ -265,12 +264,118 @@ static uintptr_t guest_stack_argument(uintptr_t host, uint32_t seventh) {
     unsigned char *p = runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(p);
     /* push imm32; movabs host,%rax; call *%rax; add $8,%rsp; ret.
      * Six register arguments pass through, with the seventh on the guest
-     * stack and SysV call alignment preserved. No host stack forwarding is
-     * required for an argument-independent error provider. */
+     * stack and SysV call alignment preserved. The existing CPU host bridge
+     * forwards that slot as the seventh native integer argument. */
     const unsigned char code[] = {0x68,0,0,0,0, 0x48,0xb8,0,0,0,0,0,0,0,0,
                                   0xff,0xd0, 0x48,0x83,0xc4,0x08, 0xc3};
     memcpy(p, code, sizeof(code)); memcpy(p + 1, &seventh, 4); memcpy(p + 7, &host, 8);
     bbcpu_add_guest_code((uintptr_t)p, sizeof(code)); return (uintptr_t)p;
+}
+static void check_video_attribute(uintptr_t function) {
+    const uint32_t pitches[] = {0, 1, 1920, UINT32_MAX, 0x87654321};
+    const uint32_t fields[][5] = {
+        {0x80000000, 0, 0, 1920, 1080}, {0x80002200, 1, 0, 3840, 2160},
+        {0xc1060000, 0, 0, 1280, 720}, {0, 0, 0, 0, 0},
+        {UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX}
+    };
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *guarded = mmap(NULL, page * 2, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    assert(guarded != MAP_FAILED && mprotect(guarded + page, page, PROT_NONE) == 0);
+    *runtime_errno() = 17;
+    for (unsigned p = 0; p < 5; ++p) {
+        const uintptr_t entry = guest_stack_argument(function, pitches[p]);
+        for (unsigned f = 0; f < 5; ++f) for (unsigned offset = 0; offset < 2; ++offset) {
+            unsigned char bytes[56]; memset(bytes, 0xa5, sizeof(bytes));
+            uint64_t args[6] = {(uintptr_t)(bytes + 8 + offset), 0, 0, 0, 0, 0};
+            for (unsigned i = 0; i < 5; ++i) args[i + 1] = UINT64_C(0xdeadbeef00000000) | fields[f][i];
+            bbcpu_call(entry, 6, args);
+            unsigned char expected[56]; memset(expected, 0xa5, sizeof(expected));
+            uint32_t words[10] = {0}; memcpy(words, fields[f], sizeof(fields[f])); words[5] = pitches[p];
+            memcpy(expected + 8 + offset, words, sizeof(words));
+            assert(!memcmp(bytes, expected, sizeof(bytes)) && *runtime_errno() == 17);
+            args[0] = (uintptr_t)(guarded + page - sizeof(words));
+            bbcpu_call(entry, 6, args);
+            assert(!memcmp(guarded + page - sizeof(words), words, sizeof(words)));
+        }
+    }
+    assert(munmap(guarded, page * 2) == 0 && *runtime_errno() == 17);
+}
+static void check_video_buffers(uintptr_t entry) {
+    const uint64_t handles[] = {0, 1, 3, 4, UINT32_MAX, UINT64_MAX, 0x80290018};
+    const uint64_t counts[] = {0, 1, 2, 16, 17, UINT32_MAX, UINT64_MAX};
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    void *protected = mmap(NULL, page, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0); assert(protected != MAP_FAILED);
+    const uint64_t pointers[] = {0, 1, (uintptr_t)protected};
+    *runtime_errno() = 17;
+    for (unsigned h = 0; h < 7; ++h) for (unsigned c = 0; c < 7; ++c)
+        for (unsigned a = 0; a < 3; ++a) for (unsigned b = 0; b < 3; ++b) {
+            const uint64_t args[] = {handles[h], counts[c], pointers[a], counts[c], pointers[b]};
+            const uint32_t expected = !a || !b ? 0x80290002 : 0x8029000b;
+            assert((uint32_t)bbcpu_call(entry, 5, args) == expected && *runtime_errno() == 17);
+        }
+    assert(munmap(protected, page) == 0);
+}
+static void test_video_buffers(void) {
+    const char *name = "w3BY+tAEiQY#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("w3BY+tAEiQY#H#H", 0) && !bootstrap_resolve("w3BY+tAEiQY#G#G", 0));
+    check_video_buffers(guest_bridge(fn));
+    puts("PASS: headless VideoOut buffer registration guest ABI, null-address precedence, invalid handles/counts, protected pointers, scopes and errno");
+}
+static void check_video_mode(uintptr_t entry) {
+    const uint32_t sizes[] = {0, 1, 3, 4, 16, 32, 48, 64};
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *guarded = mmap(NULL, page * 2, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    assert(guarded != MAP_FAILED && mprotect(guarded + page, page, PROT_NONE) == 0);
+    *runtime_errno() = 17;
+    for (unsigned z = 0; z < sizeof(sizes) / sizeof(*sizes); ++z) for (unsigned offset = 0; offset < 2; ++offset) {
+        unsigned char data[80], expected[80]; memset(data, 0xa5, sizeof(data)); memset(expected, 0xa5, sizeof(expected));
+        memset(expected + 8 + offset, 0xff, sizes[z]); memcpy(expected + 8 + offset, &sizes[z], 4);
+        const uint64_t args[] = {(uintptr_t)(data + 8 + offset), UINT64_C(0xdeadbeef00000000) | sizes[z]};
+        bbcpu_call(entry, 2, args); assert(!memcmp(data, expected, sizeof(data)) && *runtime_errno() == 17);
+        const size_t extent = sizes[z] < 4 ? 4 : sizes[z];
+        const uint64_t guarded_args[] = {(uintptr_t)(guarded + page - extent), sizes[z]};
+        bbcpu_call(entry, 2, guarded_args);
+        assert(!memcmp(guarded + page - extent, expected + 8 + offset, extent));
+    }
+    assert(munmap(guarded, page * 2) == 0);
+}
+static void check_video_configure(uintptr_t entry) {
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    void *protected = mmap(NULL, page, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0); assert(protected != MAP_FAILED);
+    const uint64_t handles[] = {0, 1, 4, UINT32_MAX, 0x80290018};
+    const uint64_t pointers[] = {0, 1, (uintptr_t)protected};
+    const uint64_t sizes[] = {0, 1, 32, UINT32_MAX, UINT64_MAX};
+    const uint64_t reserved[] = {0, 1, UINT32_MAX, UINT64_C(0x100000000)};
+    *runtime_errno() = 17;
+    for (unsigned h = 0; h < 5; ++h) for (unsigned p = 0; p < 3; ++p)
+        for (unsigned z = 0; z < 5; ++z) for (unsigned r = 0; r < 4; ++r) {
+            const uint64_t args[] = {handles[h], reserved[r], pointers[p], pointers[p], sizes[z], sizes[z]};
+            const uint32_t expected = (uint32_t)reserved[r] || !p ? 0x80290001 : 0x8029000b;
+            assert((uint32_t)bbcpu_call(entry, 6, args) == expected && *runtime_errno() == 17);
+        }
+    assert(munmap(protected, page) == 0);
+}
+static void test_video_modes(void) {
+    const char *names[] = {"pjkDsgxli6c#G#H", "N1bEoJ4SRw4#G#H"};
+    for (unsigned i = 0; i < 2; ++i) {
+        bootstrap_initialize(0); assert(!bootstrap_resolve(names[i], 0)); bootstrap_initialize(1);
+        uintptr_t fn = bootstrap_resolve(names[i], 0); assert(fn && !bootstrap_resolve(names[i], 1));
+        if (i) check_video_configure(guest_bridge(fn)); else check_video_mode(guest_bridge(fn));
+    }
+    assert(!bootstrap_resolve("pjkDsgxli6c#H#H", 0) && !bootstrap_resolve("N1bEoJ4SRw4#G#G", 0));
+    puts("PASS: VideoOut any-mode data helper, exact guarded size/fill incl short sizes, 32-bit widths; headless configure precedence, protected pointers, scopes and errno");
+}
+static void test_video_attribute(void) {
+    const char *name = "i6-sR91Wt-4#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("i6-sR91Wt-4#H#H", 0) && !bootstrap_resolve("i6-sR91Wt-4#G#G", 0));
+    check_video_attribute(fn);
+    puts("PASS: VideoOut 40-byte buffer attributes, seven-argument guest ABI, stack pitch, exact guarded/unaligned output, 32-bit widths, scopes and errno");
 }
 static void check_gnm_failure(uintptr_t owner, uintptr_t resource) {
     const uintptr_t entries[] = {guest_bridge(owner), guest_stack_argument(resource, 0x76543210),
@@ -469,6 +574,9 @@ static void test_request_location(uintptr_t entry) {
 }
 int main(void) {
     test_video_capabilities();
+    test_video_attribute();
+    test_video_buffers();
+    test_video_modes();
     test_video_flip_event();
     test_video_flip_rate();
     test_video_adjust_color();

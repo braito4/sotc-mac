@@ -168,6 +168,13 @@ case "$trial_mode" in
         done
         printf 'Native emitter and diagnostic JIT fault checks passed. The upstream Rosetta comparison suite was not run.\n'
         ;;
+    --graphics-check)
+        need clang
+        mkdir -p "$trial_root/work"
+        clang -arch arm64 -O2 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -framework Metal \
+            "$trial_root/tools/check_graphics.m" -o "$trial_root/work/check_graphics"
+        "$trial_root/work/check_graphics"
+        ;;
     --content-check)
         need python3
         python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
@@ -211,5 +218,5 @@ case "$trial_mode" in
         printf 'Logs: %s-jit1.log and %s-jit0.log\n' "$trial_prefix" "$trial_prefix"
         [[ "$trial_blocked" -eq 0 ]] || exit "$trial_blocked"
         ;;
-    *) fail 'Modes: --check --fetch --test-emitter --test --contracts-test --content-check --prepare --entry-test --bootstrap-test --linked-test' ;;
+    *) fail 'Modes: --check --fetch --test-emitter --test --contracts-test --graphics-check --content-check --prepare --entry-test --bootstrap-test --linked-test' ;;
 esac

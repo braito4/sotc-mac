@@ -87,6 +87,19 @@ int main(int argc, char **argv) {
             game_root = argv[4];
         }
     } else if (argc != 2) fail("usage: probe_entry_arm64 IMAGE [--bootstrap [--game-root DIR]]");
+    unsigned budget = 30;
+    const char *configured_budget = getenv("SOTC_DIAGNOSTIC_SECONDS");
+    if (configured_budget) {
+        const size_t length = strlen(configured_budget);
+        if (!length || length > 2) fail("SOTC_DIAGNOSTIC_SECONDS must be 1..60");
+        budget = 0;
+        for (size_t i = 0; i < length; ++i) {
+            if (configured_budget[i] < '0' || configured_budget[i] > '9')
+                fail("SOTC_DIAGNOSTIC_SECONDS must be 1..60");
+            budget = budget * 10 + (unsigned)(configured_budget[i] - '0');
+        }
+        if (!budget || budget > 60) fail("SOTC_DIAGNOSTIC_SECONDS must be 1..60");
+    }
     FILE *f = fopen(argv[1], "rb");
     if (!f) fail("cannot open input");
     char magic[8];
@@ -222,7 +235,8 @@ int main(int argc, char **argv) {
            game_root ? "read-only game-content mounts" : "no game-file API access");
     printf("Image size: %" PRIu64 "; entry offset: %#" PRIx64 "; relocations: %" PRIu64 "\n", size, entry, nr);
     puts("High mapping is temporary: this does not validate SotC's packed pointers.");
-    alarm(5);
+    printf("Diagnostic watchdog: %u seconds\n", budget);
+    alarm(budget);
     if (linked && bootstrap) {
         bootstrap_set_procparam(image + procparam);
         runtime_set_main_tls(image + main_tls[0], main_tls[1], main_tls[2], main_tls[3]);

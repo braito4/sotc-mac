@@ -79,13 +79,18 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental, not playable.** The tool environment can now run the linked diagnostic
 using explicit temporary-file backing, preserving shared physical aliases. Both CPU modes
 complete the original module initializers, create Fios2's three workers, four game job
-workers and a resource-loading worker, create a real kernel event queue, and reach the
-same unresolved `sceVideoOutSetBufferAttribute` call. Both have 19 event flags, 160 fibers
-and 164 fiber runs. The latest interpreter run records 360 direct switches and 167 reads
-(80,621,768 bytes); JIT records 553 switches and 250 reads (80,875,624 bytes). Both open 17
-content files without writes. These counters depend on worker scheduling. VideoOut remains
-headless: open fails, gamma data is prepared, and color, rate, capability and flip-event
-operations reject the invalid display handle. No rendered frame or gameplay is established.
+workers, a resource-loading worker, RenderFlip and Game Render, and reach the same
+unresolved `scePadInit` call. Both have 19 event flags, one event queue with a blocked wait,
+160 fibers and 164 fiber runs. The latest interpreter run records 1,109 direct switches and
+429 reads (81,536,320 bytes); JIT records 1,073 switches and 426 reads (81,529,921 bytes).
+Both open 17 content files without writes. Counters depend on worker scheduling. VideoOut
+prepares gamma, buffer attributes and mode data, while device operations explicitly fail.
+No rendered frame or gameplay is established.
+
+The new `--graphics-check` builds a real Metal prerequisite test. The development tool process
+currently sees zero GPU devices, so it stops before rendering. A successful check in Terminal
+would establish host GPU access, not game rendering. The upstream renderer still needs building
+and integration. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
@@ -121,7 +126,9 @@ application. That call now rejects the invalid display handle before reading set
 Tool runs now also pass flip-rate and capability queries through explicit invalid-handle
 errors. Native user-event queues now pass lifecycle, level/edge notification, timeout and
 concurrent deletion tests; paired linked runs create one queue and reach buffer-attribute
-preparation after an explicit rejection of flip-event registration.
+preparation after an explicit rejection of flip-event registration. Buffer attributes and
+mode preparation now match isolated original-module checks in both CPU modes; the game
+starts its render-related threads and reaches controller initialization.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,
@@ -133,6 +140,7 @@ See [Development status](docs/STATUS.md) for the measured scope and next checks.
 ## Additional diagnostics
 
 ```sh
+bash packaging/test-arm64.sh --graphics-check
 bash packaging/test-arm64.sh --content-check
 SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test
 ```

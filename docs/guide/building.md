@@ -76,3 +76,16 @@ The first command runs synthetic archive/address checks and audits only the supp
 name manifests and file extents. Its private report does not establish asset decoding.
 The second preserves shared physical aliases using an unlinked temporary file when POSIX
 shared-memory creation is unavailable; it does not initialize graphics.
+
+## GPU prerequisite
+
+```sh
+bash packaging/test-arm64.sh --graphics-check
+```
+
+This compiles and runs a synthetic Metal offscreen shader draw/readback check. It does not
+build the game renderer. No device is exposed to the development tool process; run from a
+native macOS Terminal to establish host access. See [Graphics bring-up](../GRAPHICS_BRINGUP.md).
+
+The initialization probe has a 30-second watchdog. `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
+60 seconds; it cannot disable the watchdog. A timeout still fails the paired test.
