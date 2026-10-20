@@ -251,6 +251,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (module) return module;
     const uintptr_t discmap = bootstrap_discmap_resolve(name);
     if (discmap) return discmap;
+    const uintptr_t dialog = bootstrap_dialogs_resolve(name);
+    if (dialog) return dialog;
     const uintptr_t event_flag = bootstrap_event_flags_resolve(name);
     if (event_flag) return event_flag;
     if (!strcmp(name, "bzQExy189ZI#1#u")) return (uintptr_t)init_env;
@@ -320,6 +322,7 @@ void bootstrap_report(void) {
     runtime_memory_report();
     bootstrap_files_report();
     bootstrap_fibers_report();
+    bootstrap_dialogs_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),
            atomic_load_explicit(&console_bytes, memory_order_relaxed));

@@ -74,10 +74,10 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 **Experimental, not playable.** Normal Terminal runs have completed both original module
 initializers and the game's early memory setup. In the latest paired run, JIT and interpreter both
-create Fios2's callback, I/O and decompression workers. Both modes pass the DiscMap queries,
-read four content files totaling 1,788 bytes, and print the game build version. They then
-reach the same unresolved event-flag creation call. No game fibers were created. The subsequent
-JIT run stopped at an unsupported string-mask instruction before an interpreter comparison.
+create Fios2's three workers and four game job workers. Both modes pass the string-mask
+instruction, create 12 event flags and 160 fibers, and record 164 fiber runs. Four initial
+content files totaling 1,788 bytes are read. Both modes then reach the same unresolved
+CommonDialog initialization call. No direct fiber-to-fiber switches were observed.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
@@ -89,7 +89,9 @@ tests in both modes. The new request-location errors and 64-bit failure outputs 
 checked against the supplied original DiscMap module with empty mapping tables. FIFO event
 flags now pass synthetic lifecycle and contention tests, including cancellation and deletion
 with blocked waiters. The new PCMPISTRM/VPCMPISTRM CPU extension passes 61,440 synthetic
-cases per mode and native JIT fault checks. The updated game path needs a normal Terminal run.
+cases per mode and native JIT fault checks. The diagnostic now reports explicit unavailable
+dialog errors: CommonDialog is unsupported, so message-dialog initialization lacks its system
+dependency. This does not provide dialog UI. The updated game path needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

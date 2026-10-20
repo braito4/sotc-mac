@@ -10,6 +10,8 @@ void bootstrap_fibers_report(void);
 int bootstrap_fibers_active(void);
 uintptr_t bootstrap_modules_resolve(const char *name);
 uintptr_t bootstrap_discmap_resolve(const char *name);
+uintptr_t bootstrap_dialogs_resolve(const char *name);
+void bootstrap_dialogs_report(void);
 uintptr_t bootstrap_event_flags_resolve(const char *name);
 void bootstrap_event_flags_report(void);
 unsigned bootstrap_event_flag_waiters(uintptr_t handle);

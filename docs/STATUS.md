@@ -15,21 +15,20 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
 | Content API | Fixture ABI/error tests; normal Terminal confirms four initial game-file reads totaling 1,788 bytes in both modes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic initialize ABI, yield/resume/switch, stack/register/FPU state, restart, attach-context, lifecycle errors and host-thread migration in both modes |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with no direct switches observed |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
+| Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 
-The latest paired normal Terminal baseline completed early memory setup and entered Fios2 startup.
-Both modes loaded the DiscMap provider and created Fios2's callback, I/O and decompression
-workers. Both modes passed the DiscMap queries, opened four game-content files and read
-1,788 bytes without writes. The game printed its build version and reached the same event-flag
-creation call. Three guest workers were created; the game-fiber counter remained zero.
+The latest paired normal Terminal baseline passes the string-mask instruction and enters
+the game's job initialization in both modes. It creates three Fios2 workers and four game job workers,
+12 event flags and 160 fibers. The counters record four event waits and 164 fiber runs, with
+no direct fiber switches or event sets. Four initial content files totaling 1,788 bytes are
+read without writes. Both modes stop at the same CommonDialog initialization call on main.
 
-The subsequent normal Terminal JIT run stopped at an unsupported VPCMPISTRM instruction;
-the wrapper then exited before running the interpreter. It produced no final runtime counters.
-The new PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
+The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
 the upper YMM0 half; VEX clears it. The JIT uses its existing synchronized interpreter fallback
 for these instructions. Other vector operations still use the unchanged pinned implementation.
@@ -38,7 +37,8 @@ There are 61,440 synthetic cases per CPU mode, with an independent comparison-ma
 closed-form self comparisons, mixed-sign ranges, boundary matches, register aliasing and
 unaligned memory. Translated flag consumers, preserved source registers and MXCSR are checked.
 The native emitter and JIT fault checks pass with the adapted CPU archive. These are synthetic
-checks, not a native x86 hardware comparison. Updated linked game progress remains pending.
+checks, not a native x86 hardware comparison. Normal Terminal confirms progress past the
+instruction previously unsupported during game initialization.
 
 Non-timed kernel read/write-lock calls now reuse the upstream backend, with synthetic guest
 lifecycle, shared-reader, exclusive-writer, ownership and busy-destroy checks. The kernel
@@ -49,8 +49,9 @@ Checked thread creation, return, exit, join and detach are now connected to nati
 Dynamic module TLS and DTV tables are isolated per thread; module TLS allocations are released
 when a worker finishes. Synthetic guest workers test this concurrently, including two callers
 competing to join one worker. Original libc/Fios2 initializers still return zero in both modes.
-The normal Terminal baseline confirms Fios2 worker creation; subsequent worker behavior and
-completion remain unverified. Tool execution still rejects shared-memory backing with EPERM.
+The normal Terminal baseline confirms Fios2 and game-worker creation and initial event waits;
+subsequent scheduling, completion and resource churn remain unverified. Tool execution still
+rejects shared-memory backing with EPERM.
 
 The internal loader now preserves full-width module IDs and validates its reserved argument.
 Its supported empty-argument profile loads the implemented fiber provider or, with a read-only
@@ -71,8 +72,15 @@ Waiters receive the full pattern before clear operations; FIFO consumption deter
 matching waiters complete. Cancellation and deletion wake blocked waits with distinct errors.
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
-named open/close remain unresolved. Further game-level use remains unverified because the latest
-JIT run stopped before reporting its runtime counters.
+named open/close remain unresolved. Normal Terminal confirms creation and blocking waits;
+game-level signal, cancellation, timeout and deletion paths remain unverified.
+
+CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic has no dialog
+provider: CommonDialog returns NOT_SUPPORTED and message initialization returns
+NOT_SYSTEM_INITIALIZED. Repeated calls preserve that unavailable state and do not load either
+module. Other dialog APIs remain unresolved. Synthetic guest checks cover stale argument
+registers, preserved buffers/errno and module availability in both modes. This error profile's
+effect on subsequent game initialization needs a normal Terminal run.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the

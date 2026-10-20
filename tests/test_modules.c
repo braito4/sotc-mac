@@ -23,6 +23,33 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void test_unavailable_dialogs(void) {
+    const char *common = "uoUpLGNkygk#c#c", *message = "lDqxaY1UbEo#g#g";
+    bootstrap_initialize(0);
+    assert(!bootstrap_resolve(common, 0) && !bootstrap_resolve(message, 0));
+    bootstrap_initialize(1);
+    const uintptr_t common_fn = bootstrap_resolve(common, 0), message_fn = bootstrap_resolve(message, 0);
+    assert(common_fn && message_fn && !bootstrap_resolve(common, 1) && !bootstrap_resolve(message, 1));
+    assert(!bootstrap_resolve("uoUpLGNkygk#0#F", 0) && !bootstrap_resolve("lDqxaY1UbEo#c#c", 0));
+    /* Neither no-argument initializer may interpret stale argument registers
+     * as a parameter block, acquire a module reference, or become initialized. */
+    int32_t (*loaded)(uint32_t) = (void *)bootstrap_resolve("ynFKQ5bfGks#F#G", 0); assert(loaded);
+    assert((uint32_t)loaded(0x80000018) == 0x805a1001 && (uint32_t)loaded(0xa4) == 0x805a1001);
+    uint64_t buffer[] = {0x123456789abcdef0, 0x23456789abcdef01};
+    const uint64_t initial[] = {buffer[0], buffer[1]};
+    const uint64_t junk[] = {1, UINT64_MAX, (uintptr_t)buffer, 3, 5, 7};
+    const uintptr_t init_common = guest_bridge(common_fn), init_message = guest_bridge(message_fn);
+    *runtime_errno() = 17;
+    assert((uint32_t)bbcpu_call(init_message, 6, junk) == 0x80b80001);
+    for (unsigned i = 0; i < 2; ++i) {
+        assert((uint32_t)bbcpu_call(init_common, 6, junk) == 0x80b8000f);
+        assert((uint32_t)bbcpu_call(init_message, 6, junk) == 0x80b80001);
+    }
+    assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
+    assert((uint32_t)loaded(0x80000018) == 0x805a1001 && (uint32_t)loaded(0xa4) == 0x805a1001);
+    assert(!bootstrap_resolve("BQ3tey0JmQM#c#c", 0)); /* Other dialog APIs stay unresolved. */
+    puts("PASS: no-argument dialog guest ABI, explicit unavailability/dependency errors, capability/scopes, unchanged buffers/errno and module availability");
+}
 static void test_request_location(uintptr_t entry) {
     struct Output {
         uint64_t head, flags, middle1, first, middle2, count, tail;
@@ -64,6 +91,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_unavailable_dialogs();
     bootstrap_initialize(1);
     const char *name = "hHrGoGoNf+s#F#G";
     const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);

@@ -97,6 +97,11 @@ remains outside Git.
 
 ## Limits
 
+CommonDialog initialization reports NOT_SUPPORTED because this diagnostic has no dialog
+provider. MsgDialog initialization then reports its missing system dependency. Both are
+no-argument functions; register residue is not treated as a parameter pointer. Neither call
+activates a module or claims a dialog result. Other dialog APIs remain unresolved.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.

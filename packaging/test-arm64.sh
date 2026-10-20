@@ -38,6 +38,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_cpu_vector.c"
         "$trial_root/runtime/src/bootstrap_modules.c" "$trial_root/runtime/src/bootstrap_files.c"
         "$trial_root/runtime/src/bootstrap_discmap.c"
+        "$trial_root/runtime/src/bootstrap_dialogs.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
         "$trial_root/runtime/src/bootstrap_tls.c" "$trial_root/runtime/src/bootstrap_threads.c"
         "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"
