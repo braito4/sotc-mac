@@ -23,16 +23,18 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 | Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
+| Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired normal Terminal baseline creates three Fios2 workers, four game job
 workers and one resource-loading worker in both modes. There are 19 event flags and 160
-fibers, with 11 event waits, ten event sets, 164 fiber runs and two direct fiber switches.
+fibers, with 9/11 event waits, 9/10 event sets, 164 fiber runs and 1/2 direct fiber switches
+(interpreter/JIT). These concurrent counters need not match at the stop.
 The counters record 17 content opens and 37 reads totaling 80,002,009 bytes without writes;
 the game reports its resource dependency file loaded. Both modes pass the CommonDialog,
 network and ShareUtility failures, initialize the local user service with priority 700,
-and stop at the same GNM owner-registration call. One CommonDialog request, no message-dialog
+pass three GNM owner-registration failures and stop at the same compute-queue mapping call. One CommonDialog request, no message-dialog
 request, one network request and one share initialization request are recorded per mode.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -136,12 +138,24 @@ without reading arguments or modifying output handles. The adapter reproduces th
 behavior and counts requests. It creates no registry or graphics state. Synthetic guest
 checks cover capability/scopes, repeated calls, invalid pointers, unchanged buffers/errno
 and resource calls with a seventh stack argument. Original-module checks pass the same
-cases in both CPU modes. This is not graphics submission or rendering support.
+cases in both CPU modes. Normal Terminal confirms three owner-registration calls and no
+resource-registration calls before compute-queue mapping. This is not rendering support.
+
+Compute-queue mapping now validates the five-argument ABI in the supplied retail module's
+order: pipe, queue, ring size, ring alignment, then read-pointer alignment. Pipe/queue/size
+use 32-bit arguments and addresses retain their full width. The retail bit test allows
+zero size to reach the backend; the adapter preserves that early behavior instead of
+claiming a usable zero-size queue. Valid prefixes return COMPUTEQUEUE_INTERNAL because
+there is no GPU backend. No queue ID is invented, and neither address is dereferenced or
+modified. Synthetic guest tests cover 2,800 combinations, repeated calls, high bits,
+validation precedence, null/aligned/unaligned addresses and errno preservation per mode.
+The same 2,800 cases pass against the supplied original module with an injected failed
+GPU ioctl in both modes. Game behavior after this error needs a normal Terminal run.
 
 ## Next verification
 
 Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
-stops, original module initialization, memory accounting, GNM registration requests and actual file
+stops, original module initialization, memory accounting, GNM registration/compute-queue requests and actual file
 counters. Content reads do not establish successful archive/asset decoding or gameplay.
 
 ## Remaining work

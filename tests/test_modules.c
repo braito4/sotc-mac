@@ -50,6 +50,43 @@ static void check_gnm_failure(uintptr_t owner, uintptr_t resource) {
                 assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
             }
 }
+static void check_compute_queue_failure(uintptr_t entry) {
+    _Alignas(256) uint64_t buffer[32] = {UINT64_C(0x123456789abcdef0), UINT64_MAX};
+    unsigned char initial[sizeof(buffer)]; memcpy(initial, buffer, sizeof(buffer));
+    const uint64_t pipes[] = {0, 6, 7, UINT32_MAX, UINT64_C(0x100000000)};
+    const uint64_t queues[] = {0, 7, 8, UINT32_MAX, UINT64_C(0x100000000)};
+    const uint64_t sizes[] = {0, 1, 2, 3, UINT32_C(0x80000000), UINT32_MAX, UINT64_C(0x100000001)};
+    const uint64_t rings[] = {0, 1, (uintptr_t)buffer, UINT64_C(0xffffffffffffff00)};
+    const uint64_t readers[] = {0, 1, (uintptr_t)buffer, UINT64_C(0xfffffffffffffffc)};
+    *runtime_errno() = 17;
+    for (unsigned p = 0; p < 5; ++p) for (unsigned q = 0; q < 5; ++q)
+        for (unsigned z = 0; z < 7; ++z) for (unsigned r = 0; r < 4; ++r)
+            for (unsigned a = 0; a < 4; ++a) {
+                const uint32_t size = (uint32_t)sizes[z];
+                const uint64_t args[] = {pipes[p], queues[q], rings[r], sizes[z], readers[a]};
+                uint32_t expected = 0x80d170ff;
+                if ((uint32_t)pipes[p] >= 7) expected = 0x80d17000;
+                else if ((uint32_t)queues[q] >= 8) expected = 0x80d17001;
+                else if (size && (size & (uint32_t)(0u - size)) != size) expected = 0x80d17002;
+                else if (rings[r] % 256) expected = 0x80d17003;
+                else if (readers[a] % 4) expected = 0x80d17004;
+                assert((uint32_t)bbcpu_call(entry, 5, args) == expected);
+                assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
+            }
+}
+static void test_unavailable_compute_queue(void) {
+    const char *name = "29oKvKXzEZo#A#B";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);
+    assert(!bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("29oKvKXzEZo#B#B", 0));
+    assert(!bootstrap_resolve("29oKvKXzEZo#A#A", 0));
+    assert(!bootstrap_resolve("ArSg-TGinhk#A#B", 0)); /* No queue to unmap. */
+    const uintptr_t entry = guest_bridge(fn);
+    check_compute_queue_failure(entry); check_compute_queue_failure(entry);
+    puts("PASS: GNM compute queue guest ABI, retail validation order/widths and zero-size prefix, alignment, explicit backend failure, unchanged buffers/errno and repeated calls");
+}
 static void test_unavailable_gnm(void) {
     const char *names[] = {"ZFqKFl23aMc#A#B", "nvEwfYAImTs#A#B"};
     bootstrap_initialize(0);
@@ -194,6 +231,7 @@ static void test_request_location(uintptr_t entry) {
 }
 int main(void) {
     test_unavailable_gnm();
+    test_unavailable_compute_queue();
     test_unavailable_share();
     test_unavailable_network();
     test_unavailable_dialogs();

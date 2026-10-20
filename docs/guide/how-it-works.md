@@ -125,6 +125,11 @@ leave output handles untouched and do not examine names or resource descriptors.
 resource call's seventh stack argument is not forwarded because this error-only provider
 uses no arguments. No registry, command submission or renderer is initialized.
 
+Compute-queue mapping validates the retail pipe/queue bounds, ring-size bit test and
+address alignment, then reports COMPUTEQUEUE_INTERNAL. There is no GPU backend, so the
+adapter creates no queue and leaves the ring and read pointer untouched. Validating this
+failure path does not implement asynchronous GPU compute or command submission.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.
