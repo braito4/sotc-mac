@@ -23,6 +23,38 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void test_unavailable_share(void) {
+    const char *name = "j7DlalBzHh8#o#o";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);
+    assert(!bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("j7DlalBzHh8#o#p", 0));
+    assert(!bootstrap_resolve("j7DlalBzHh8#p#o", 0));
+    assert(!bootstrap_resolve("j7DlalBzHh8#0#F", 0));
+    assert(!bootstrap_resolve("8hZ2EEl2Tto#o#o", 0)); /* No share menu. */
+    const uintptr_t entry = guest_bridge(fn);
+    uint64_t buffer[] = {UINT64_C(0x123456789abcdef0), UINT64_MAX};
+    const uint64_t before[] = {buffer[0], buffer[1]};
+    const uint64_t modes[] = {0, 1, 2, UINT64_C(0x100000001), UINT64_MAX};
+    const uint64_t sizes[] = {0, 0x1ffff, 0x20000, UINT64_C(1) << 32, UINT64_MAX};
+    const uint64_t pointers[] = {0, 1, (uintptr_t)buffer};
+    *runtime_errno() = 17;
+    for (unsigned repeat = 0; repeat < 2; ++repeat)
+        for (unsigned m = 0; m < sizeof(modes) / sizeof(*modes); ++m)
+            for (unsigned z = 0; z < sizeof(sizes) / sizeof(*sizes); ++z)
+                for (unsigned p = 0; p < sizeof(pointers) / sizeof(*pointers); ++p) {
+                    /* The service allocation fails before the final thread
+                     * arguments are inspected, including invalid pointers. */
+                    const uint64_t args[] = {modes[m], sizes[z], UINT64_MAX,
+                                             pointers[p], 3, 5};
+                    const uint32_t expected = modes[m] != 1 || sizes[z] < 0x20000
+                                              ? 0x81170003 : 0x81170002;
+                    assert((uint32_t)bbcpu_call(entry, 6, args) == expected);
+                    assert(!memcmp(buffer, before, sizeof(buffer)) && *runtime_errno() == 17);
+                }
+    puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
+}
 static void test_unavailable_network(void) {
     const char *name = "Nlev7Lg8k3A#Bc#D";
     bootstrap_initialize(0);
@@ -120,6 +152,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_unavailable_share();
     test_unavailable_network();
     test_unavailable_dialogs();
     bootstrap_initialize(1);

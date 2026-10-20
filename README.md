@@ -80,7 +80,7 @@ create Fios2's three workers and four game job workers. Both modes pass the stri
 instruction, create 14 event flags and 160 fibers, and record 164 fiber runs. The file counters
 record 17 content opens and 35 reads totaling 50,603,221 bytes, without writes. Both modes pass
 the explicit CommonDialog and network unavailability responses, then reach the same unresolved
-UserService initialization call.
+ShareUtility initialization call after successfully initializing the local user service.
 No direct fiber-to-fiber switches were observed.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
@@ -96,11 +96,13 @@ with blocked waiters. The new PCMPISTRM/VPCMPISTRM CPU extension passes 61,440 s
 cases per mode and native JIT fault checks. The diagnostic now reports explicit unavailable
 dialog errors: CommonDialog is unsupported, so message-dialog initialization lacks its system
 dependency. Normal Terminal confirms one CommonDialog request and no message-dialog request
-before the UserService stop. Network initialization returns the explicit libSceNet
+before the ShareUtility stop. Network initialization returns the explicit libSceNet
 EOPNOTSUPP error; no network backend is initialized. Normal Terminal confirms subsequent
 content reads in both modes. A process-local UserService profile now provides initialization,
 termination, user queries and one-shot login events, with synthetic guest ABI and concurrency
-checks in both modes. Its effect on the game path needs a normal Terminal run.
+checks in both modes. Normal Terminal confirms successful initialization in both modes with priority 700.
+ShareUtility Ex2 now returns checked early validation/resource errors without initializing
+a sharing service; its effect on the game path needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

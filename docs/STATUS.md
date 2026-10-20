@@ -22,6 +22,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 | Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
+| Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired normal Terminal baseline passes the string-mask instruction and enters
@@ -29,7 +30,7 @@ the game's job initialization in both modes. It creates three Fios2 workers and 
 14 event flags and 160 fibers. The counters record four event waits and 164 fiber runs, with
 no direct fiber switches or event sets. There are 17 content opens and 35 reads totaling
 50,603,221 bytes, without writes. Both modes pass the CommonDialog and network unavailability
-responses and stop at the same UserService initialization call on main. One CommonDialog
+responses and initialize the local user service with priority 700, then stop at the same ShareUtility Ex2 call on main. One CommonDialog
 request, no message-dialog request and one network initialization request are recorded in each mode.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -108,11 +109,22 @@ Synthetic x86 calls cover the four-byte parameter at a protected page boundary, 
 bounds, reinitialization, exact ID/list/event output widths, NUL-terminated names and 64-bit
 buffer sizes. Eight concurrent guest callers test single-owner initialization, exactly-once
 event consumption and repeated queries with separate errno values. Full contracts pass in
-both modes. The updated UserService game path needs a normal Terminal run.
+both modes. Normal Terminal confirms one successful initialization with priority 700 in
+each mode; no user queries or login-event consumption have occurred yet.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
 upstream process-lifetime allocation policy; long-running thread churn is not validated.
+
+ShareUtility Ex2 now checks the full-width mode and heap-size arguments. Mode 1 with at
+least 128 KiB reaches an explicit service resource failure; other prefixes return the
+original early validation error. This diagnostic has no sharing backend. It fails before
+thread-argument validation and never dereferences the final attributes pointer, creates
+initialized state or exposes the share menu. Synthetic guest calls check boundary and
+high-bit values, repeated errors, untouched buffers/errno and scoped capability handling.
+The supplied original module also matches 75 early validation/resource-error cases per
+CPU mode with an injected failed mapping dependency; that isolated check does not start
+the original service. Subsequent sharing behavior remains unimplemented.
 
 ## Next verification
 

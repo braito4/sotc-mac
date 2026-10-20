@@ -115,6 +115,11 @@ initialization and termination. Only a successful event query consumes the pendi
 Termination clears session state. The profile has no host-account, PSN or storage connection,
 and the other UserService functions remain unresolved.
 
+ShareUtility Ex2 has a narrow failure adapter. It validates the full-width mode and minimum
+heap size, then reports a service resource failure before examining thread attributes.
+This matches the original module's early failure path with an unavailable allocation;
+it does not initialize sharing, capture media, create a UI or resolve the share-menu API.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.
