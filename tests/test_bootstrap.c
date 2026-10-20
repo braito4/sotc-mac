@@ -20,6 +20,38 @@ static int sequence[8], count;
 static void note(void *arg) { sequence[count++] = *(int *)arg; }
 static void plain(void) { sequence[count++] = 9; }
 static void recursive(void *arg) { note(arg); bootstrap_finalize(NULL); }
+static void test_compiled_sdk(void) {
+    const char *name = "WB66evu8bsU#0#F";
+    uintptr_t target = bootstrap_resolve(name, 0);
+    assert(target && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("WB66evu8bsU#unrelated", 0));
+    unsigned char *bridge = runtime_low_map(16384, PROT_READ | PROT_WRITE);
+    assert(bridge);
+    bridge[0] = 0x48; bridge[1] = 0xb8; memcpy(bridge+2, &target, 8);
+    bridge[10] = 0xff; bridge[11] = 0xe0;
+    bbcpu_add_guest_code((uintptr_t)bridge, 16384);
+    unsigned char output[8]; memset(output, 0xa5, sizeof(output));
+    uint64_t args[] = {(uintptr_t)(output+1)};
+    *runtime_errno() = 17;
+    assert((uint32_t)bbcpu_call((uintptr_t)bridge, 1, args) == UINT32_C(0x80020003));
+    for (size_t i=0; i<sizeof(output); ++i) assert(output[i] == 0xa5);
+    unsigned char *profile = runtime_low_map(32768, PROT_READ | PROT_WRITE);
+    assert(profile && !mprotect(profile+16384, 16384, PROT_NONE));
+    /* Only the low four SDK bytes may be read or written, even at a guard. */
+    unsigned char *procparam = profile+16384-20;
+    const uint32_t sdk = UINT32_C(0x05800001);
+    memcpy(procparam+16, &sdk, sizeof(sdk)); bootstrap_set_procparam(procparam);
+    args[0] = 0;
+    assert((uint32_t)bbcpu_call((uintptr_t)bridge, 1, args) == UINT32_C(0x80020016));
+    args[0] = (uintptr_t)(output+1);
+    assert((int32_t)bbcpu_call((uintptr_t)bridge, 1, args) == 0);
+    uint32_t result; memcpy(&result, output+1, sizeof(result)); assert(result == sdk);
+    assert(output[0] == 0xa5 && output[5] == 0xa5 && *runtime_errno() == 17);
+    args[0] = (uintptr_t)(profile+16384-4);
+    assert((int32_t)bbcpu_call((uintptr_t)bridge, 1, args) == 0);
+    bootstrap_set_procparam(NULL);
+    puts("PASS: compiled SDK query through guest ABI, actual process profile, scope/errors, four-byte guarded/unaligned buffers and preserved errno");
+}
 static void test_console(void) {
     int64_t (*write_guest)(int, const void *, uint64_t) = (void *)bootstrap_resolve("FxVZqBAA7ks#0#F", 0);
     int32_t *(*guest_error)(void) = (void *)bootstrap_resolve("9BcDykPmo1I#0#F", 0);
@@ -277,6 +309,7 @@ int main(int argc, char **argv) {
     puts("PASS: scoped resolution, capability gate, 40-bit heap/realloc, POSIX recursive mutex lifecycle/errors, destructor order/recursion and x86 guest callback");
     test_wait_reporting();
     test_host_callbacks();
+    test_compiled_sdk();
     test_console();
     bootstrap_test_rwlocks();
     bootstrap_test_event_flags();

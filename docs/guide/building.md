@@ -143,8 +143,12 @@ A real combined run reached color adjustment after opening a display. Typed colo
 adapters now cover that boundary; synthetic loader/routing/ABI tests pass in both modes.
 The existing CPU-only `--linked-test` stays headless and still passes its paired comparison.
 
-The latest combined Terminal run reaches controller initialization after display setup.
+The latest combined Terminal run passes controller initialization after display setup and
+reaches primitive touch-recognizer initialization.
 Graphics mode now connects a checked keyboard-backed logical controller to initialized SDL;
 headless mode retains its input import stop. For fixed controls and the supported API scope,
 see [Keyboard input](../GRAPHICS_BRINGUP.md#keyboard-backed-input). Physical gamepads,
-remapping and motion/vibration APIs remain unsupported. The new combined run is pending.
+remapping and motion/vibration APIs remain unsupported. The command now privately links the supplied original `libSceSystemGesture.sprx` from the
+sibling `sys_modules` directory; set `SOTC_SYSTEM_MODULE_ROOT` if it lives elsewhere. It uses
+a separate image under `work/sotc-graphics-arm64`, preserving the headless diagnostic. Original
+gesture lifecycle checks pass in both CPU modes; the new combined run is pending.

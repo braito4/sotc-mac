@@ -131,6 +131,17 @@ void runtime_restart(void) {
 void bootstrap_set_linked_libc(int enabled) { linked_libc = enabled; }
 void bootstrap_set_procparam(void *param) { process_param = param; }
 static void *get_procparam(void) { return process_param; }
+/* libSceSystemGesture asks for the application's compiled SDK, not the host
+ * OS/firmware version. Match the typed kernel helper in the pinned GPU shim;
+ * read exactly the low 32-bit SDK field from the loader-validated procparam. */
+static int32_t compiled_sdk_version(void *out) {
+    if (!out) return (int32_t)UINT32_C(0x80020016); /* EINVAL */
+    if (!process_param) return (int32_t)UINT32_C(0x80020003); /* ESRCH: no application profile */
+    uint32_t sdk;
+    memcpy(&sdk, (const unsigned char *)process_param + 16, sizeof(sdk));
+    memcpy(out, &sdk, sizeof(sdk));
+    return 0;
+}
 /* Diagnostic console profile: base PS4, matching the 5056 MiB direct-memory
  * budget of the upstream memory backend; PS4 Pro mode is not selected. */
 static int32_t is_neo_mode(void) { return 0; }
@@ -315,6 +326,7 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (!strcmp(name, "H2e8t5ScQGc#1#u")) return (uintptr_t)bootstrap_finalize;
     if (!strcmp(name, "Ou3iL1abvng#0#F")) return (uintptr_t)stack_fail;
     if (!strcmp(name, "959qrazPIrg#0#F")) return (uintptr_t)get_procparam;
+    if (!strcmp(name, "WB66evu8bsU#0#F")) return (uintptr_t)compiled_sdk_version;
     if (!strcmp(name, "WslcK1FQcGI#0#F")) return (uintptr_t)is_neo_mode;
     if (!strcmp(name, "ln33zjBrfjk#A#B")) return (uintptr_t)tessellation_ring_address;
     if (!strcmp(name, "rTXw65xmLIA#0#F")) return (uintptr_t)allocate_direct;

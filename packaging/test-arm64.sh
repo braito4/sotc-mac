@@ -79,6 +79,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_vulkan.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
         "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
@@ -247,14 +248,17 @@ case "$trial_mode" in
         bash "$trial_root/packaging/test-arm64.sh" --graphics-check
         build_diagnostic
         python3 "$trial_root/tools/check_gpu_link.py"
-        SOTC_GAME_ROOT="$trial_game" python3 "$trial_root/tools/prepare_linked_arm64.py"
+        trial_system_modules="${SOTC_SYSTEM_MODULE_ROOT:-$trial_game/../sys_modules}"
+        SOTC_GAME_ROOT="$trial_game" python3 "$trial_root/tools/prepare_linked_arm64.py" \
+            --system-gesture-module "$trial_system_modules/libSceSystemGesture.sprx" \
+            --out "$trial_root/work/sotc-graphics-arm64"
         trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-game-state-XXXXXX")
         trial_log="$trial_root/logs/graphics-game-$(date -u +%Y%m%dT%H%M%SZ).log"
         printf 'Experimental graphics initialization; no game frame established. Log: %s\n' "$trial_log"
         if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
-            "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-linked-arm64/boot-linked.bin" \
+            "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
             --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib" \
             2>&1 | tee "$trial_log"; then trial_status=0; else trial_status=$?; fi
         case "$trial_status" in

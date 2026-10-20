@@ -166,8 +166,8 @@ From a native Terminal with the prepared game dump and built GPU library:
 bash packaging/test-arm64.sh --graphics-game-test
 ```
 
-This prepares the existing linked diagnostic image, initializes the renderer on the host
-main thread and runs module initializers/game entry on a separate host thread. Its default
+This prepares a separate private linked diagnostic image with the supplied original
+libc, Fios2 and system-gesture modules, initializes the renderer on the host main thread and runs module initializers/game entry on a separate host thread. Its default
 CPU mode is JIT; `BB_JIT=0` selects the interpreter. The normal bounded game watchdog remains
 active. Read-only content mounts, private logs/configuration and unknown-import stops remain.
 The guest SDK version comes from the validated process parameter; PSF attributes are still
@@ -200,15 +200,14 @@ same `scePadInit` boundary in both modes.
 The user ran the combined graphics/game path in Terminal. It reached a real VideoOut handle
 and then stopped at the formerly blocked color-adjustment import. The color and capability
 adapters now pass synthetic guest ABI checks in both CPU modes, including backend failures,
-unaligned/bounded buffers, 32/64-bit size handling and live display lifecycle. Their first real
-combined run remains pending. Tool execution still stops at the Metal prerequisite; game
+unaligned/bounded buffers, 32/64-bit size handling and live display lifecycle. The real combined run now passes both adapters and reaches input startup. Tool execution still stops at the Metal prerequisite; game
 presentation and asset/pointer compatibility remain unverified.
 
 ## Keyboard-backed input
 
 The real combined Terminal run now passes color/capability operations, starts RenderFlip and
-Game Render, and stops at `scePadInit`. Graphics mode now connects a keyboard-backed logical
-controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
+Game Render, and passes `scePadInit`. It then stops at primitive touch-recognizer
+initialization, before opening or sampling the controller. Graphics mode connects a keyboard-backed logical controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
 key names are checked on the main thread before guest startup. Headless mode retains its
 existing unresolved input boundary.
 
@@ -236,6 +235,33 @@ behavior and stale handles. The synthetic linked-loader test also reaches `scePa
 checks that an unavailable SDL backend prevents guest startup. Actual keyboard input in the
 combined game run remains to be verified in Terminal.
 
+## Original system-gesture module
+
+The combined command now reads the supplied `libSceSystemGesture.sprx` from the sibling
+`sys_modules` directory. Set `SOTC_SYSTEM_MODULE_ROOT` to an alternate directory containing
+that module if necessary. It is required only by `--graphics-game-test`; the default
+headless linked test still uses just libc/Fios2. Missing, incomplete or wrong-identity
+modules fail explicitly. Nothing is downloaded or copied into the game directory.
+
+The pinned linker binds the original gesture exports by library/module identity and writes
+`work/sotc-graphics-arm64/boot-linked.bin`, separate from the headless image. All output stays
+private. Original executable bytes and FS-relative instructions are preserved; an empty
+PT_TLS metadata entry allocates no thread-storage template. There is no host gesture stub
+that reports success or fabricates an empty event list.
+
+The module's SDK query reads the application's actual four-byte SDK field from the validated
+process parameter. Null outputs fail with EINVAL; a missing application profile reports the
+diagnostic's explicit ESRCH policy without changing output. Guest tests cover exact-width,
+guarded and unaligned buffers and errno in both CPU modes. Seven preparation fixtures cover
+spaced paths, input preservation, strict module identity, missing data, unresolved gestures,
+empty TLS metadata and foreign output preservation.
+
+Private checks against the supplied original library pass in JIT and interpreter: all three
+module initializers return zero; the gesture service rejects open before initialization,
+accepts repeated initialization, opens/closes a valid service and permits repeated finalization.
+These checks do not run game entry or establish touch recognition. The new combined Terminal
+run must still verify the original library with the keyboard-backed pad profile and real renderer.
+
 ## Verified CPU-side display contracts
 
 - Buffer attributes write the exact 40-byte layout. Pitch is the seventh integer argument on
@@ -261,8 +287,9 @@ is generated because no output port or rendering submission has succeeded.
 
 The pinned library and its renderer-only initialization are verified. The optional game
 connection now implements scoped import routing, shared queue ownership, a main-thread event
-loop, a guest worker and memory/fault hooks, with synthetic checks. Its first real combined
-run is pending. Additional retail ABI adapters, system imports and GNM operations will be
+loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
+reaches primitive gesture initialization; the newly linked original gesture module awaits
+verification in that combined path. Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 

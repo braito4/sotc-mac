@@ -36,8 +36,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run pending |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, reaching scePadInit; new keyboard profile awaits Terminal verification |
+| Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; no touch recognition or combined game frame verified |
+| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization; open/read remain unverified |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing scePadInit and reaching primitive gesture initialization; original gesture module now linked for the next run |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -65,8 +66,10 @@ sixteen offline builder tests pass. The GPU library targets macOS 15 or later.
 The user has now confirmed renderer initialization in Terminal, including Metal command-buffer
 encoding with zero game draws/dispatches. The optional graphics/game connection is implemented
 and checked with original synthetic fixtures. A real combined Terminal run now passes color/capability operations, starts RenderFlip and
-Game Render, and reaches `scePadInit`. A checked keyboard-backed input profile is implemented
-for the next combined run. No game frame is verified.
+Game Render, passes `scePadInit` with the checked keyboard backend and reaches primitive
+touch-recognizer initialization before opening a controller. The graphics diagnostic now
+privately links the supplied original system-gesture module. Its module startup and isolated
+initialize/open/close/finalize lifecycle pass in both CPU modes; combined use awaits Terminal verification. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -274,9 +277,11 @@ exercise the optional combined path. This mode keeps the window on the host main
 executes linked modules/game entry on a worker and routes reviewed graphics/queue imports.
 It retains read-only content, private diagnostics and explicit unknown-import stops.
 The latest real combined run passes the color/capability adapters and starts the render
-threads, then stops at `scePadInit`. A keyboard-backed logical controller now implements six
-scoped pad APIs after checking actual SDL readiness. It awaits verification in the real
-combined Terminal session; unsupported sensors, vibration and physical gamepads remain unresolved.
+threads, passes `scePadInit` and then stops at primitive touch-recognizer initialization.
+The keyboard backend is initialized, but the game has not yet opened or sampled it. The
+graphics command now links the supplied original system-gesture module in a separate private
+image, with original executable bytes preserved. The next real combined run is pending;
+unsupported sensors, vibration and physical gamepads remain unresolved.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,
 scoped VideoOut routing, main/worker thread separation and speculative-read fault recovery.
