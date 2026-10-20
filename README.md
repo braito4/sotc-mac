@@ -44,6 +44,8 @@
   console output and direct/flexible memory queries.
 - **Event flags:** native FIFO synchronization with AND/OR conditions, clear modes,
   cancellation, deletion and relative timeouts; tested through the guest ABI in both modes.
+- **User-event queues:** native level/edge notifications, polling, timed/blocking waits and
+  safe deletion with blocked consumers; no synthetic GPU notifications.
 - **Read-only content access:** a narrow file API tested with synthetic fixtures; no save mount.
 - **Guest fibers:** suspension, resumption and switching preserve guest CPU state and stacks.
   Synthetic checks also cover resuming on another host thread.
@@ -77,12 +79,13 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental, not playable.** The tool environment can now run the linked diagnostic
 using explicit temporary-file backing, preserving shared physical aliases. Both CPU modes
 complete the original module initializers, create Fios2's three workers, four game job
-workers and a resource-loading worker, and reach the same unresolved kernel event-queue
-creation call. Both have 19 event flags, 160 fibers and 164 fiber runs. The latest interpreter
-run records 270 direct switches and 127 reads (80,402,890 bytes); JIT records 484 switches
-and 215 reads (80,773,728 bytes). Both open 17 content files without writes. VideoOut remains
-headless: open fails, gamma data is prepared, and color, rate and capability operations
-reject the invalid display handle. No rendered frame or gameplay is established.
+workers and a resource-loading worker, create a real kernel event queue, and reach the
+same unresolved `sceVideoOutSetBufferAttribute` call. Both have 19 event flags, 160 fibers
+and 164 fiber runs. The latest interpreter run records 360 direct switches and 167 reads
+(80,621,768 bytes); JIT records 553 switches and 250 reads (80,875,624 bytes). Both open 17
+content files without writes. These counters depend on worker scheduling. VideoOut remains
+headless: open fails, gamma data is prepared, and color, rate, capability and flip-event
+operations reject the invalid display handle. No rendered frame or gameplay is established.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
@@ -116,7 +119,9 @@ creates no display port or window. The retail gamma helper now prepares three ch
 and original-module checks pass in both modes; normal Terminal confirms progress to color
 application. That call now rejects the invalid display handle before reading settings.
 Tool runs now also pass flip-rate and capability queries through explicit invalid-handle
-errors and reach kernel event-queue creation.
+errors. Native user-event queues now pass lifecycle, level/edge notification, timeout and
+concurrent deletion tests; paired linked runs create one queue and reach buffer-attribute
+preparation after an explicit rejection of flip-event registration.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

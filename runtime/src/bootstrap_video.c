@@ -9,7 +9,7 @@
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
-static _Atomic size_t open_requests, gamma_requests, adjust_requests, rate_requests, capability_requests;
+static _Atomic size_t open_requests, gamma_requests, adjust_requests, rate_requests, capability_requests, flip_event_requests;
 static int32_t video_open(int32_t user, int32_t bus, int32_t index, const void *params) {
     atomic_fetch_add_explicit(&open_requests, 1, memory_order_relaxed);
     /* Diagnostic policy: only the MAIN/index-zero profile is recognized.
@@ -64,7 +64,17 @@ static int32_t capability_unavailable(int32_t handle, void *settings, uint64_t s
     (void)size;
     return (int32_t)UINT32_C(0x8029000b);
 }
+static int32_t flip_event_unavailable(uintptr_t queue, int32_t handle, void *user_data) {
+    atomic_fetch_add_explicit(&flip_event_requests, 1, memory_order_relaxed);
+    /* Port lookup precedes queue validation. No open port exists, so do not
+     * inspect the queue or register an event that could never be signaled. */
+    (void)queue;
+    (void)handle;
+    (void)user_data;
+    return (int32_t)UINT32_C(0x8029000b);
+}
 uintptr_t bootstrap_video_resolve(const char *name) {
+    if (!strcmp(name, "HXzjK9yI30k#G#H")) return (uintptr_t)flip_event_unavailable;
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)video_open;
     if (!strcmp(name, "DYhhWbJSeRg#G#H")) return (uintptr_t)color_settings_gamma;
     if (!strcmp(name, "pv9CI5VC+R0#G#H")) return (uintptr_t)color_adjust_unavailable;
@@ -73,6 +83,8 @@ uintptr_t bootstrap_video_resolve(const char *name) {
     return 0;
 }
 void bootstrap_video_report(void) {
+    printf("Bootstrap: rejected VideoOut flip-event registrations=%zu (no valid display handle)\n",
+           atomic_load_explicit(&flip_event_requests, memory_order_relaxed));
     printf("Bootstrap: unavailable VideoOut open requests=%zu (no device or display handle)\n",
            atomic_load_explicit(&open_requests, memory_order_relaxed));
     printf("Bootstrap: VideoOut color-settings gamma preparations=%zu (no device update)\n",

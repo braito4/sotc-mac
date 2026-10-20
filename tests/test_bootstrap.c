@@ -14,6 +14,7 @@ void bootstrap_test_clocks(void);
 void bootstrap_test_files(void);
 void bootstrap_test_rwlocks(void);
 void bootstrap_test_event_flags(void);
+void bootstrap_test_equeues(void);
 static int sequence[8], count;
 static void note(void *arg) { sequence[count++] = *(int *)arg; }
 static void plain(void) { sequence[count++] = 9; }
@@ -149,6 +150,7 @@ int main(int argc, char **argv) {
     const char *init = "bzQExy189ZI#1#u";
     bootstrap_initialize(0);
     assert(!bootstrap_resolve(init, 0));
+    assert(!bootstrap_resolve("D0OdFMjp46I#0#F", 0));
     bootstrap_initialize(1);
     assert(bootstrap_resolve(init, 0));
     assert(!bootstrap_resolve(init, 1));
@@ -215,6 +217,7 @@ int main(int argc, char **argv) {
     test_console();
     bootstrap_test_rwlocks();
     bootstrap_test_event_flags();
+    bootstrap_test_equeues();
     bootstrap_test_clocks();
     bootstrap_test_files();
     test_memory(argc == 2);

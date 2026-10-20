@@ -13,12 +13,13 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; latest paired tool run: 17 opens per mode; interpreter: 127 reads/80,402,890 bytes, JIT: 215 reads/80,773,728 bytes; no writes |
+| Content API | Fixture ABI/error tests; latest paired tool run: 17 opens per mode; interpreter: 167 reads/80,621,768 bytes, JIT: 250 reads/80,875,624 bytes; no writes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 270/484 direct switches observed (interpreter/JIT) |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 360/553 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
+| User-event queues | Native lifecycle, level/edge triggers, coalescing, batching, getters, polling, const microsecond timeouts, blocked deletion and errno pass through the guest ABI in both modes; no graphics/timer filters |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 | Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
@@ -33,14 +34,15 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
-The latest paired tool run uses explicit temporary-file backing and reaches the same kernel
-event-queue creation call in JIT and interpreter. Each mode creates three Fios2 workers,
-four game job workers, one resource-loading worker, 19 event flags and 160 fibers, with
-164 fiber runs. The interpreter records 270 direct switches and 127 reads/80,402,890 bytes;
-JIT records 484 switches and 215 reads/80,773,728 bytes. Both open 17 content files without
-writes. Both reject three owner registrations, 20 resource registrations, seven compute
-queues, one color update, one flip-rate change and one capability query. The logical
-safe-area query and gamma preparation each run once; no output device or renderer exists.
+The latest paired tool run uses explicit temporary-file backing and reaches the same
+`sceVideoOutSetBufferAttribute` call in JIT and interpreter. Each mode creates three Fios2
+workers, four game job workers, one resource-loading worker, 19 event flags, one event queue
+and 160 fibers, with 164 fiber runs. The interpreter records 360 direct switches and 167
+reads/80,621,768 bytes; JIT records 553 switches and 250 reads/80,875,624 bytes. Counters
+vary with scheduling. Both open 17 content files without writes. Both reject three owner
+registrations, 79 resource registrations, seven compute queues, one color update, one flip-rate
+change, one capability query and one flip-event registration. The logical safe-area query
+and gamma preparation each run once; no output device or renderer exists.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -207,8 +209,28 @@ modes. Paired tool runs pass this rejection and proceed through flip-rate and ca
 Flip-rate and the suffixed device-capability query now reject invalid display handles
 before validating rates or accessing output structures. Original retail exports with empty
 handle tables match the failure paths in both modes. No supported capabilities or frame
-rate are invented. Full linked tests pass with file backing and now stop at kernel event-
-queue creation; that requires a real lifecycle/synchronization contract.
+rate are invented. Full linked tests pass with file backing and now proceed through real
+queue creation and explicit flip-event rejection to buffer-attribute preparation.
+
+User-event queues use a protected native registry and monotonic condition waits. Level
+notifications remain ready; edge notifications clear when returned. Repeated triggers
+coalesce with the latest user data, while re-registration preserves readiness and the
+original flags and resets user data, following the inspected shadPS4 implementation.
+Batches follow registration order. Timeout input is not modified; zero polls immediately.
+Deletion removes the handle immediately, wakes blocked callers with EBADF under the local
+lifetime policy, and frees the queue after its final waiter. Handles are opaque, full-width
+and never reused. The accepted 32-byte name length follows the reference implementation;
+its comment describes a tighter terminator-inclusive bound, so retail boundary compatibility
+remains unverified. Null output pointers receive explicit errors. Synthetic guest tests cover
+guarded layouts, invalid/stale handles, signed IDs, level/edge contention, deletion, getters,
+queue isolation and errno preservation in both modes. Actual startup creates one queue;
+its waits and triggers have not yet been exercised by the game. Timer, graphics, descriptor
+filters and POSIX kevent remain unresolved.
+
+VideoOut flip-event registration rejects invalid display handles before queue validation,
+following shadPS4's port-first check. Guest tests include valid native user queues, invalid
+queue values and protected user-data pointers; rejection leaves the queue empty. No display
+notification is registered and no frame completion is synthesized.
 
 The supplied reference ZIP review produced independent archive/address checks and an
 optional host-memory adaptation, not imported source. See [Reference review](REFERENCE_REVIEW.md).

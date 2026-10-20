@@ -28,6 +28,37 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void test_video_flip_event(void) {
+    const char *name = "HXzjK9yI30k#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("HXzjK9yI30k#H#H", 0));
+    assert(!bootstrap_resolve("HXzjK9yI30k#G#G", 0));
+    const uintptr_t entry = guest_bridge(fn);
+    uintptr_t queue = 0;
+    int32_t (*create)(uintptr_t *, const char *) = (void *)bootstrap_equeues_resolve("D0OdFMjp46I#0#F");
+    int32_t (*destroy)(uintptr_t) = (void *)bootstrap_equeues_resolve("jpFjmgAC5AE#0#F");
+    assert(create(&queue, "fixture") == 0);
+    const uint64_t queues[] = {0, 1, UINT64_MAX, queue};
+    const uint64_t handles[] = {0, 1, 3, 4, UINT32_MAX, UINT64_MAX, 0x80290018, UINT64_C(0xffffffff80290018)};
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    void *protected = mmap(NULL, page, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0); assert(protected != MAP_FAILED);
+    const uint64_t pointers[] = {0, 1, UINT64_MAX, (uintptr_t)protected};
+    *runtime_errno() = 17;
+    for (unsigned q = 0; q < 4; ++q) for (unsigned h = 0; h < 8; ++h) for (unsigned p = 0; p < 4; ++p) {
+        const uint64_t args[] = {queues[q], handles[h], pointers[p]};
+        assert((uint32_t)bbcpu_call(entry, 3, args) == 0x8029000b && *runtime_errno() == 17);
+    }
+    /* Registration failure leaves the real user-event queue empty. */
+    int32_t (*wait)(uintptr_t, void *, int32_t, int32_t *, const uint32_t *) =
+        (void *)bootstrap_equeues_resolve("fzyMKs9kim0#0#F");
+    unsigned char event[32], initial[32]; memset(event, 0xa5, sizeof(event)); memcpy(initial, event, sizeof(event));
+    int32_t n = -1; const uint32_t poll = 0;
+    assert(wait(queue, event, 1, &n, &poll) == (int32_t)0x8002003c && n == 0 && !memcmp(event, initial, sizeof(event)));
+    assert(destroy(queue) == 0 && munmap(protected, page) == 0 && *runtime_errno() == 17);
+    puts("PASS: headless flip-event guest ABI, handle-before-queue validation, real/invalid queues, opaque user data, unchanged empty queue, scopes and errno");
+}
 static void check_video_flip_rate(uintptr_t entry) {
     const uint64_t handles[] = {0, 1, 3, 4, UINT32_MAX, UINT64_MAX,
                                 0x80290018, UINT64_C(0xffffffff80290018)};
@@ -438,6 +469,7 @@ static void test_request_location(uintptr_t entry) {
 }
 int main(void) {
     test_video_capabilities();
+    test_video_flip_event();
     test_video_flip_rate();
     test_video_adjust_color();
     test_video_gamma();

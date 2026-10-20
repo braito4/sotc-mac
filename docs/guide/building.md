@@ -49,7 +49,8 @@ and upstream source files are unchanged.
 
 `--test` runs the native emitter, JIT fault checks linked to the adapted archive, and synthetic
 string-mask checks in both CPU modes. `--contracts-test` also includes the string-mask checks
-alongside the runtime contracts. Neither command needs game files or Rosetta.
+alongside the runtime contracts. These include guest user-event queues with level/edge
+notifications, timeouts and concurrent deletion. Neither command needs game files or Rosetta.
 
 The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
 lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters

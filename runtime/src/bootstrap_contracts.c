@@ -265,6 +265,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (share) return share;
     const uintptr_t users = bootstrap_users_resolve(name);
     if (users) return users;
+    const uintptr_t equeue = bootstrap_equeues_resolve(name);
+    if (equeue) return equeue;
     const uintptr_t event_flag = bootstrap_event_flags_resolve(name);
     if (event_flag) return event_flag;
     if (!strcmp(name, "bzQExy189ZI#1#u")) return (uintptr_t)init_env;
@@ -330,6 +332,7 @@ void bootstrap_report(void) {
     runtime_mutex_report();
     runtime_rwlock_report();
     bootstrap_event_flags_report();
+    bootstrap_equeues_report();
     runtime_thread_report();
     runtime_memory_report();
     bootstrap_files_report();
