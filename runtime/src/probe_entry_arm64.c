@@ -12,6 +12,7 @@
 #include <inttypes.h>
 #include <stdatomic.h>
 #include <signal.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +22,7 @@
 static char (*imports)[128];
 static uint64_t import_count;
 static int bootstrap;
-static int entered_game;
+static _Atomic int entered_game;
 static atomic_flag stopping = ATOMIC_FLAG_INIT;
 typedef struct { uint64_t at, size, flags; } Segment;
 typedef struct { uint64_t at, kind, value, addend; } Reloc;
@@ -69,14 +70,50 @@ static void timed_out(int sig) {
     _Exit(21);
 }
 static void fault(int sig, siginfo_t *info, void *context) {
-    (void)info;
     if (sig == SIGBUS && bbcpu_handle_alignment_fault(context)) return;
+    if (BB_IS_ACCESS_FAULT(sig) && bootstrap_gpu_handle_fault(context, info->si_addr)) return;
+    if (BB_IS_ACCESS_FAULT(sig) && runtime_fault_recover) {
+        sigjmp_buf *recover = runtime_fault_recover;
+        runtime_fault_recover = NULL;
+        sigset_t unblock;
+        sigemptyset(&unblock);
+        sigaddset(&unblock, sig);
+        pthread_sigmask(SIG_UNBLOCK, &unblock, NULL);
+        siglongjmp(*recover, 1);
+    }
     char description[2048];
     if (bbcpu_describe_fault(context, description, sizeof(description)))
         (void)write(STDERR_FILENO, description, strnlen(description, sizeof(description)));
     _Exit(128 + sig);
 }
 
+enum { STACK_SIZE = 8 * 1024 * 1024 };
+typedef struct {
+    int linked;
+    unsigned budget;
+    unsigned char *image;
+    uint64_t procparam, main_tls[4], module_count, entry;
+    Module *modules;
+    void *stack;
+    uint64_t args[2];
+} GuestRun;
+static void *run_guest(void *opaque) {
+    const GuestRun *run = opaque;
+    alarm(run->budget);
+    if (run->linked && bootstrap) {
+        runtime_thread_attach_main();
+        for (uint64_t i = 0; i < run->module_count; ++i) {
+            const uint64_t init_args[3] = {0};
+            printf("Starting linked module %" PRIu64 " initializer\n", i);
+            const int result = (int)bbcpu_call(bb_image_base + run->modules[i].init, 3, init_args);
+            printf("Linked module %" PRIu64 " initializer returned %d\n", i, result);
+            if (result) fail("module initializer failed");
+        }
+    }
+    entered_game = 1;
+    bbcpu_call_on_stack(bb_image_base + run->entry, 2, run->args, run->stack, STACK_SIZE - 64);
+    fail("entry unexpectedly returned");
+}
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
     /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
@@ -85,6 +122,11 @@ int main(int argc, char **argv) {
     if (argc == 3 && !strcmp(argv[1], "--renderer-check"))
         return bootstrap_gpu_renderer_check(argv[2]);
     const char *game_root = NULL;
+    const char *gpu_library = NULL;
+    if (argc == 7 && !strcmp(argv[5], "--graphics-library")) {
+        gpu_library = argv[6];
+        argc = 5;
+    }
     if ((argc == 3 || argc == 5) && !strcmp(argv[2], "--bootstrap")) {
         bootstrap = 1;
         if (argc == 5) {
@@ -92,6 +134,7 @@ int main(int argc, char **argv) {
             game_root = argv[4];
         }
     } else if (argc != 2) fail("usage: probe_entry_arm64 IMAGE [--bootstrap [--game-root DIR]]");
+    if (gpu_library && (!bootstrap || !game_root)) fail("graphics requires linked bootstrap and a read-only game root");
     unsigned budget = 30;
     const char *configured_budget = getenv("SOTC_DIAGNOSTIC_SECONDS");
     if (configured_budget) {
@@ -148,6 +191,7 @@ int main(int argc, char **argv) {
             bindings[index] = address; binding_kinds[index] = kind;
         }
     }
+    if (gpu_library && !linked) fail("graphics requires BBPROBE5 linked input");
     Segment *segments = calloc((size_t)ns, sizeof(*segments));
     Reloc *relocs = calloc(nr ? (size_t)nr : 1, sizeof(*relocs));
     imports = calloc(import_count ? (size_t)import_count : 1, sizeof(*imports));
@@ -188,6 +232,25 @@ int main(int argc, char **argv) {
         if (game_root && bootstrap_mount_game_root(game_root)) fail("cannot mount read-only game root");
     }
     bb_image_base = (uintptr_t)image;
+    /* Publish all guest TLS templates before the GPU can create host workers. */
+    if (linked && bootstrap) {
+        bootstrap_set_procparam(image + procparam);
+        runtime_set_main_tls(image + main_tls[0], main_tls[1], main_tls[2], main_tls[3]);
+        for (uint64_t i = 0; i < module_count; ++i) {
+            const Module *m = &modules[i];
+            if (m->tls_module) bootstrap_set_module_tls(m->tls_module, image + m->tls_at, m->tls_filesz, m->tls_memsz);
+        }
+    }
+
+    if (gpu_library) {
+        struct sigaction gpu_action = {.sa_sigaction = fault, .sa_flags = SA_SIGINFO};
+        sigemptyset(&gpu_action.sa_mask);
+        sigaction(SIGBUS, &gpu_action, NULL); sigaction(SIGSEGV, &gpu_action, NULL); sigaction(SIGILL, &gpu_action, NULL);
+        uint64_t sdk;
+        memcpy(&sdk, image + procparam + 16, sizeof(sdk));
+        if (bootstrap_gpu_start(gpu_library, (uint32_t)sdk)) fail("graphics provider initialization failed");
+    }
+
     for (uint64_t i = 0; i < import_count; ++i) {
         unsigned char *t = traps + i * 32;
         const uint32_t index = (uint32_t)i;
@@ -230,35 +293,27 @@ int main(int argc, char **argv) {
     sigaction(SIGBUS, &action, NULL); sigaction(SIGSEGV, &action, NULL); sigaction(SIGILL, &action, NULL);
     signal(SIGALRM, timed_out);
     setenv("BB_JIT_FAULT_MAP", "1", 1);
-    enum { STACK_SIZE = 8 * 1024 * 1024 };
     void *stack = runtime_low_map(STACK_SIZE, PROT_READ | PROT_WRITE);
     if (!stack) fail("stack mapping failed");
     struct { uint64_t count; const char *args[2]; } params = {1, {"/app0/eboot.bin", NULL}};
     const uint64_t args[] = {(uintptr_t)&params, (uintptr_t)guest_exit};
-    printf("Diagnostic only: %s; %s; no renderer or save access.\n",
+    printf("Diagnostic only: %s; %s; %s; no save access.\n",
            bootstrap ? "narrow bootstrap contracts" : "all imports stop",
-           game_root ? "read-only game-content mounts" : "no game-file API access");
+           game_root ? "read-only game-content mounts" : "no game-file API access",
+           gpu_library ? "experimental graphics provider" : "no renderer");
     printf("Image size: %" PRIu64 "; entry offset: %#" PRIx64 "; relocations: %" PRIu64 "\n", size, entry, nr);
     puts("High mapping is temporary: this does not validate SotC's packed pointers.");
     printf("Diagnostic watchdog: %u seconds\n", budget);
-    alarm(budget);
-    if (linked && bootstrap) {
-        bootstrap_set_procparam(image + procparam);
-        runtime_set_main_tls(image + main_tls[0], main_tls[1], main_tls[2], main_tls[3]);
-        runtime_thread_attach_main();
-        for (uint64_t i = 0; i < module_count; ++i) {
-            const Module *m = &modules[i];
-            if (m->tls_module) bootstrap_set_module_tls(m->tls_module, image + m->tls_at, m->tls_filesz, m->tls_memsz);
-        }
-        for (uint64_t i = 0; i < module_count; ++i) {
-            const uint64_t init_args[3] = {0};
-            printf("Starting linked module %" PRIu64 " initializer\n", i);
-            const int result = (int)bbcpu_call(bb_image_base + modules[i].init, 3, init_args);
-            printf("Linked module %" PRIu64 " initializer returned %d\n", i, result);
-            if (result) fail("module initializer failed");
-        }
+    GuestRun run = {.linked = linked, .budget = budget, .image = image,
+                    .procparam = procparam, .module_count = module_count,
+                    .entry = entry, .modules = modules, .stack = stack,
+                    .args = {args[0], args[1]}};
+    memcpy(run.main_tls, main_tls, sizeof(main_tls));
+    if (gpu_library) {
+        pthread_t guest;
+        if (pthread_create(&guest, NULL, run_guest, &run)) fail("cannot start guest main thread");
+        bootstrap_gpu_window_loop();
+        fail("GPU window loop unexpectedly returned");
     }
-    entered_game = 1;
-    bbcpu_call_on_stack(bb_image_base + entry, 2, args, stack, STACK_SIZE - 64);
-    fail("entry unexpectedly returned");
+    run_guest(&run);
 }

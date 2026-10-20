@@ -55,6 +55,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_share.c"
         "$trial_root/runtime/src/bootstrap_gnm.c"
         "$trial_root/runtime/src/bootstrap_gpu.c"
+        "$trial_root/runtime/src/bootstrap_graphics_routes.c"
         "$trial_root/runtime/src/bootstrap_system.c"
         "$trial_root/runtime/src/bootstrap_video.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
@@ -76,6 +77,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_vulkan.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
         "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
@@ -109,6 +111,8 @@ contracts() {
         fi
         cat "$trial_log"
     done
+    clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_routes.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_routes"
+    "$trial_root/work/test_graphics_routes"
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
@@ -221,6 +225,27 @@ case "$trial_mode" in
         else
             BB_GPU_USER_DIR="$trial_gpu_state" "$trial_root/work/probe_entry_arm64" --gpu-load-check "$trial_root/work/gpu-build/libbbgpu.dylib"
         fi
+        ;;
+    --graphics-game-test)
+        need clang; need python3
+        configure_gpu_driver
+        bash "$trial_root/packaging/test-arm64.sh" --graphics-check
+        build_diagnostic
+        python3 "$trial_root/tools/check_gpu_link.py"
+        SOTC_GAME_ROOT="$trial_game" python3 "$trial_root/tools/prepare_linked_arm64.py"
+        trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-game-state-XXXXXX")
+        trial_log="$trial_root/logs/graphics-game-$(date -u +%Y%m%dT%H%M%SZ).log"
+        printf 'Experimental graphics initialization; no game frame established. Log: %s\n' "$trial_log"
+        if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
+            BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
+            BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
+            "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-linked-arm64/boot-linked.bin" \
+            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib" \
+            2>&1 | tee "$trial_log"; then trial_status=0; else trial_status=$?; fi
+        case "$trial_status" in
+            20) printf 'Stopped at an unimplemented import with the graphics provider enabled; gameplay unverified.\n' ;;
+            *) exit "$trial_status" ;;
+        esac
         ;;
     --content-check)
         need python3

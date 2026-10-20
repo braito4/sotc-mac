@@ -10,11 +10,11 @@
 </p>
 
 > [!IMPORTANT]
-> **Early development: CPU diagnostics only. The game is not playable.**
+> **Early development: CPU diagnostics and renderer bring-up. The game is not playable.**
 >
 > The original executable reaches part of its initialization through the ARM64 translator
 > and through its interpreter. The original libc and Fios2 modules initialize successfully.
-> This project does not yet provide a renderer, audio, a playable launcher or save support.
+> Game rendering, audio, a playable launcher and save support are not yet verified or supported.
 > There is no downloadable game app or gameplay performance result.
 >
 > The goal is to run Shadow of the Colossus on Apple Silicon without Rosetta. The current
@@ -92,10 +92,12 @@ currently sees zero GPU devices, but the user reports that this same check passe
 in Terminal. Host GPU access is established there. The isolated renderer library has now
 compiled and linked as ARM64 with its required loader exports verified. The builder handles
 dependency paths containing spaces, including FFmpeg metadata and CMake cache recovery.
-The library now passes native load/export/unload checks in the diagnostic. An isolated
-`--renderer-check` can attempt its main-thread window initialization from Terminal; the
-tool process stops at its Metal prerequisite. The game path still needs renderer integration,
-and no game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+The library passes native load/export/unload checks. The user confirmed renderer initialization
+and Metal command-buffer processing in Terminal; that isolated run submitted no game draws.
+An optional `--graphics-game-test` now connects a reviewed subset of graphics imports, shares
+kernel queue ownership, and moves game entry to a worker while the main thread pumps the
+window. Synthetic tests pass in both CPU modes. The real combined game/renderer run is still
+pending, and no game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless

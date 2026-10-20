@@ -277,6 +277,9 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
         if (!strcmp(name, "ZT4ODD2Ts9o#libSceLibcInternal")) return (uintptr_t)&need_internal;
         return 0;
     }
+    /* A missing symbol in the selected graphics provider must stop, never
+     * fall back to a second queue registry or headless display provider. */
+    if (bootstrap_graphics_owns(name)) return bootstrap_graphics_resolve(name);
     const uintptr_t clock = bootstrap_clocks_resolve(name);
     if (clock) return clock;
     const uintptr_t fiber = bootstrap_fibers_resolve(name);

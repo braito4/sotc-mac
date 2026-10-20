@@ -14,5 +14,5 @@ Read README.md and docs/STATUS.md before changing the runtime. Public documentat
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
   runtime changes and native CPU checks when changing the CPU context bridge.
-- No renderer, playable app or save support exists yet. Keep claims tied to measured tests.
+- Renderer-only initialization is confirmed; combined game rendering, a playable app and save support remain unverified. Keep claims tied to measured tests.
 - Check the target remote before pushing. Keep private local state and archives ignored.

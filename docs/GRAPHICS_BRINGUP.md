@@ -1,7 +1,7 @@
 # Graphics bring-up
 
-No SotC frame has been rendered or presented. VideoOut currently has an explicit headless
-profile: opening a port returns NO_DEVICE. Successful data-preparation helpers do not create
+No SotC frame has been rendered or presented. The default CPU diagnostic has an explicit headless
+VideoOut profile: opening a port returns NO_DEVICE. Successful data-preparation helpers do not create
 an output device, register display buffers or execute GPU commands.
 
 ## Check host GPU access first
@@ -150,11 +150,52 @@ window and zero SDK/attribute metadata; these do not claim to represent the game
 Close the window to exit, or the 60-second watchdog terminates with code 21.
 
 Seven native loader/renderer fixture tests pass, including configuration delivery, entry into
-the event loop and initialization failure. The real renderer check currently stops at the
-Metal prerequisite with code 24 because the tool process exposes no device. Run it in the
-native Terminal session where the Metal prerequisite previously passed. Real renderer
-initialization and a game frame remain unverified; a diagnostic window would not establish
-SotC rendering.
+the event loop and initialization failure. On 2026-10-20 the user confirmed real renderer
+initialization in native Terminal: guest-memory imports and residency setup completed,
+four Metal pipelines were cached and thousands of command buffers were encoded in Metal.
+The renderer-only run reported zero draws and dispatches because it ran no game code.
+The initially absent cache profile did not prevent initialization from returning success.
+This tool process still exposes no Metal device and stops at the prerequisite with code 24.
+No SotC frame has been verified.
+
+## Optional game connection
+
+From a native Terminal with the prepared game dump and built GPU library:
+
+```sh
+bash packaging/test-arm64.sh --graphics-game-test
+```
+
+This prepares the existing linked diagnostic image, initializes the renderer on the host
+main thread and runs module initializers/game entry on a separate host thread. Its default
+CPU mode is JIT; `BB_JIT=0` selects the interpreter. The normal bounded game watchdog remains
+active. Read-only content mounts, private logs/configuration and unknown-import stops remain.
+The guest SDK version comes from the validated process parameter; PSF attributes are still
+zero for this SDR diagnostic. The renderer retains its standard extra memory pool unless
+`BB_DMEM_EXTRA_MB` is set explicitly. There is no save mount or playable launcher.
+
+A scoped allowlist connects selected VideoOut and GNM entry points. One GPU provider owns
+all supported kernel event-queue creation, waits, user events and graphics notifications.
+Activation rejects existing CPU queue handles or an incomplete provider. Unknown scopes and
+missing selected symbols cannot fall back to a second queue registry. The checked gamma,
+buffer-attribute and mode-data helpers remain local. Retail resource registration keeps its
+checked failure path. Color adjustment and device-capability operations stop unresolved in
+graphics mode because their retail ABI differs from the upstream HLE; they still need explicit
+adapters. Additional GNM operations remain unresolved until reviewed.
+
+Guest TLS templates are published before the GPU creates workers. GPU page-tracking faults
+and speculative-read recovery are connected before renderer initialization. No Bloodborne
+image patches are called. Synthetic tests run a generated original x86 fixture through the
+actual loader in both CPU modes, proving main-thread initialization, worker-thread guest
+execution, scoped VideoOut routing, linked module startup, speculative-read fault recovery and
+the next unknown-import stop. A separate contract test checks provider activation, strict
+scopes, ABI exclusions and queue ownership. The default paired game test still reaches the
+same `scePadInit` boundary in both modes.
+
+The optional graphics/game path has not yet run with the real renderer and game together.
+Its attempt from the tool process stops at the Metal device prerequisite. Renderer-only
+initialization is confirmed; actual game command processing, presentation and asset/pointer
+compatibility remain to be verified in Terminal.
 
 ## Verified CPU-side display contracts
 
@@ -179,18 +220,12 @@ is generated because no output port or rendering submission has succeeded.
 
 ## Remaining integration
 
-The pinned bloodborne-runtime contains a shadPS4-derived GPU library with Vulkan/MoltenVK and
-an experimental Metal backend. Its dependencies and isolated ARM64 library now build, but
-the library is only loaded in the isolated prerequisite mode. Its APIs are not connected
-to the game execution path. Native loading does not establish successful renderer
-initialization or command execution.
-
-A first game frame requires integrating initialization, scoped import resolution,
-guest memory/fault tracking and command submission with this loader.
-macOS window creation/event pumping belongs on the host main thread; game execution must leave
-that thread available. Kernel event queues must have one consistent owner across VideoOut,
-GNM and the kernel adapter. The existing CPU-only queue cannot independently validate or signal
-renderer-owned handles. Bloodborne-specific image hooks must not be applied to SotC.
+The pinned library and its renderer-only initialization are verified. The optional game
+connection now implements scoped import routing, shared queue ownership, a main-thread event
+loop, a guest worker and memory/fault hooks, with synthetic checks. Its first real combined
+run is pending. Additional retail ABI adapters, system imports and GNM operations will be
+needed as the game reaches them. Static-image pointer/address assumptions and subsequent
+asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 
 Only after a valid output port, actual display-buffer registration, translated GNM commands,
 shader execution and successful presentation can this project claim game video. A window,

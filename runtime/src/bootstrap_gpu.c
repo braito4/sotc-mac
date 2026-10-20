@@ -1,7 +1,8 @@
 /* Isolated native loader/renderer prerequisites for bloodborne-runtime's GPU.
  * Load-only mode invokes no GPU API. Renderer mode initializes on the host main
- * thread and pumps its window, with a fixed budget. Neither mode reads game data,
- * patches an image, registers kernel queues, or submits game commands.
+ * thread and pumps its window, with a fixed budget. The optional game path also
+ * registers the shared kernel provider and keeps the module resident. Image
+ * patches are never applied here; game imports stay behind a scoped allowlist.
  */
 #include "bootstrap_contracts.h"
 #include "../upstream/gpu/bbgpu.h"
@@ -19,7 +20,18 @@ static void renderer_timeout(int signal_number) {
     (void)write(STDERR_FILENO, message, sizeof(message)-1);
     _Exit(21);
 }
-static int gpu_check(const char *path, int initialize) {
+static void *game_gpu_library;
+static int (*game_gpu_fault)(void *, void *);
+static void (*game_gpu_window)(void);
+int bootstrap_gpu_handle_fault(void *context, void *address) {
+    return game_gpu_fault ? game_gpu_fault(context, address) : 0;
+}
+void bootstrap_gpu_window_loop(void) {
+    if (!game_gpu_library || !game_gpu_window) _Exit(28);
+    game_gpu_window();
+    _Exit(0);
+}
+static int gpu_check(const char *path, int initialize, uint32_t sdk) {
     if (initialize && !pthread_main_np()) {
         fputs("STOP_GPU_THREAD: renderer initialization requires the host main thread\n", stderr);
         return 28;
@@ -60,7 +72,7 @@ static int gpu_check(const char *path, int initialize) {
         const BbGpuConfig config = {
             .title = "SotC renderer diagnostic - no game frame",
             .serial = "CUSA08809", .user_dir = user_dir,
-            .sdk_version = 0, .psf_attributes = 0, .width = 1280, .height = 720,
+            .sdk_version = sdk, .psf_attributes = 0, .width = 1280, .height = 720,
         };
         struct sigaction action = {0};
         action.sa_handler = renderer_timeout;
@@ -71,11 +83,28 @@ static int gpu_check(const char *path, int initialize) {
             return 28;
         }
         alarm(60);
+        if (initialize == 2) {
+            void (*register_kernel)(void) = (void *)dlsym(library, "bbgpu_register_kernel");
+            game_gpu_library = library;
+            game_gpu_fault = (void *)dlsym(library, "bbgpu_handle_fault");
+            game_gpu_window = window_loop;
+            register_kernel();
+        }
         const int result = initialize_gpu(&config);
         if (result) {
             fprintf(stderr, "STOP_GPU_INIT: renderer returned %d\n", result);
             fflush(NULL);
             _Exit(28); /* Initialization may have started threads: do not unload. */
+        }
+        if (initialize == 2) {
+            uintptr_t (*resolve)(const char *) = (void *)dlsym(library, "bbgpu_resolve");
+            if (bootstrap_graphics_bind(resolve)) {
+                fputs("STOP_GPU_IMPORTS: incomplete provider or existing CPU queues\n", stderr);
+                fflush(NULL);
+                _Exit(28);
+            }
+            puts("GPU: renderer and scoped graphics/queue provider ready; no game frame verified.");
+            return 0; /* Keep the library resident while guest/GPU threads run. */
         }
         puts("PASS: renderer initialization returned; no game commands submitted or game frame verified.");
         puts("Close the diagnostic window to exit (60-second maximum).");
@@ -95,5 +124,6 @@ static int gpu_check(const char *path, int initialize) {
     return 0;
 }
 
-int bootstrap_gpu_load_check(const char *path) { return gpu_check(path, 0); }
-int bootstrap_gpu_renderer_check(const char *path) { return gpu_check(path, 1); }
+int bootstrap_gpu_load_check(const char *path) { return gpu_check(path, 0, 0); }
+int bootstrap_gpu_renderer_check(const char *path) { return gpu_check(path, 1, 0); }
+int bootstrap_gpu_start(const char *path, uint32_t sdk) { return gpu_check(path, 2, sdk); }

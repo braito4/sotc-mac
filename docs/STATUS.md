@@ -35,7 +35,8 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | GPU library build | Pinned renderer and dependencies compiled and linked as ARM64; loader exports verified; five FFmpeg libraries load natively; sixteen offline build tests pass, including spaced paths and CMake cache recovery; no renderer launch or game frame |
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
-| Renderer entry diagnostic | Opt-in main-thread initialization/event loop with private state and 60-second budget; seven native fixture tests pass; real run stops at tool-process Metal prerequisite (exit 24) |
+| Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run pending |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -60,8 +61,10 @@ Zydis compiler flags, FFmpeg generated shell/linker metadata and installed pkg-c
 now preserve spaces in the project path. CMake can recover previously cached broken dependency
 paths. All five installed FFmpeg shared libraries passed native loading/version checks;
 sixteen offline builder tests pass. The GPU library targets macOS 15 or later.
-It loads successfully in the isolated diagnostic, but its APIs are not connected to the game
-execution path. Actual renderer initialization and game rendering remain unverified.
+The user has now confirmed renderer initialization in Terminal, including Metal command-buffer
+encoding with zero game draws/dispatches. The optional graphics/game connection is implemented
+and checked with original synthetic fixtures, but has not yet run with the real game and
+renderer together. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -263,22 +266,19 @@ checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
 
-The Terminal renderer attempt reached SDL display selection but rejected window creation
-because `VK_KHR_surface` was unavailable. The diagnostic now selects the bundled MoltenVK
-manifest and Vulkan loader before initialization. Real enumeration changes from four
-loader-only extensions to 19 including the required surfaces; no renderer/game frame claim
-follows from that extension check.
+Renderer-only initialization has passed in native Terminal after selecting the bundled
+MoltenVK driver. Next run `bash packaging/test-arm64.sh --graphics-game-test` there to
+exercise the optional combined path. This mode keeps the window on the host main thread,
+executes linked modules/game entry on a worker and routes reviewed graphics/queue imports.
+It retains read-only content, private diagnostics and explicit unknown-import stops. Incompatible
+retail color/capability operations remain unresolved until adapted.
 
-The Mac workspace is available again. Native loading of the actual library now passes after
-adding the missing host contracts and configuring private cache state before its static
-initializers. Run `bash packaging/test-arm64.sh --renderer-check` in native Terminal to
-attempt real renderer initialization and its main-thread window loop. This tool process's
-attempt stops at the Metal device prerequisite (exit 24). A diagnostic window is not game
-video. The CPU game path retains its explicit headless VideoOut profile.
-
-The Metal prerequisite has passed on Apple M1 in Terminal, and the isolated ARM64 GPU library
-has built successfully. Next verify actual renderer initialization in Terminal, then connect checked scoped imports,
-memory/fault hooks and consistent kernel queue ownership to the game path. The build alone does not prove game video.
+The combined path passes synthetic JIT/interpreter checks, including linked initialization,
+scoped VideoOut routing, main/worker thread separation and speculative-read fault recovery.
+Queue-ownership tests and the full default headless contracts pass; the paired real-game
+headless test still stops at the same `scePadInit` call. The tool process's graphics/game
+attempt stops at its Metal prerequisite (exit 24). No combined game presentation or game
+frame has been verified.
 
 Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
 in the tool environment, or use the default backend in a normal native Terminal. Compare both

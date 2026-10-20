@@ -125,3 +125,19 @@ The Metal backend still needs Vulkan surface extensions during initialization. I
 that `VK_KHR_surface` is missing, use the updated command and run
 `bash packaging/test-arm64.sh --vulkan-check` to verify extension discovery separately.
 This check now passes with 19 extensions and needs no window or game input.
+
+## Optional game/renderer connection
+
+Renderer-only initialization has now passed in the user's native Terminal. To attempt the
+combined path with the existing prepared game dump and GPU library:
+
+```sh
+bash packaging/test-arm64.sh --graphics-game-test
+```
+
+It prepares the linked diagnostic, keeps the window on the main thread, runs the guest on a
+worker and selects one GPU provider for reviewed graphics and kernel queue imports. Use
+`BB_JIT=0` for the interpreter. Unknown and incompatible imports stop explicitly; the normal
+bounded game watchdog remains active. Logs and configuration stay private under the repository.
+This mode's real combined run is pending; synthetic loader/routing tests pass in both modes.
+The existing CPU-only `--linked-test` stays headless and still passes its paired comparison.
