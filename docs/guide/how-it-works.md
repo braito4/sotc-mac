@@ -135,6 +135,11 @@ It writes only the four-byte ratio and preserves the structure's reserved bytes.
 outputs return the parameter error. This metadata profile does not query a host monitor
 or create a rendering surface; other SystemService calls stay unresolved.
 
+VideoOut open exposes an explicit headless profile: MAIN/index zero reports NO_DEVICE.
+Other buses are unsupported by this diagnostic, and a nonzero main index is invalid.
+The options pointer is not accessed. No display handle, port, window or flip state is
+created; a functioning output requires a graphics backend rather than a successful stub.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.

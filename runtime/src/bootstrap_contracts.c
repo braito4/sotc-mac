@@ -255,6 +255,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (dialog) return dialog;
     const uintptr_t network = bootstrap_network_resolve(name);
     if (network) return network;
+    const uintptr_t video = bootstrap_video_resolve(name);
+    if (video) return video;
     const uintptr_t system = bootstrap_system_resolve(name);
     if (system) return system;
     const uintptr_t gnm = bootstrap_gnm_resolve(name);
@@ -338,6 +340,7 @@ void bootstrap_report(void) {
     bootstrap_share_report();
     bootstrap_gnm_report();
     bootstrap_system_report();
+    bootstrap_video_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),
            atomic_load_explicit(&console_bytes, memory_order_relaxed));

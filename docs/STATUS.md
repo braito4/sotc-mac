@@ -13,9 +13,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; normal Terminal confirms 17 content opens and 38 reads totaling 80,007,246 bytes, without writes, in both modes |
+| Content API | Fixture ABI/error tests; normal Terminal confirms 17 opens per mode; interpreter: 90 reads/80,204,287 bytes, JIT: 191 reads/80,732,037 bytes; no writes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 12 direct switches observed |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 205/428 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
@@ -25,18 +25,20 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
+| VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired normal Terminal baseline creates three Fios2 workers, four game job
 workers and one resource-loading worker in both modes. There are 19 event flags and 160
-fibers, with 11 event waits, 407 event sets, 164 fiber runs and 12 direct fiber switches
-in both modes. The counters record 17 content opens and 38 reads totaling 80,007,246 bytes
-without writes; the game reports its resource dependency file loaded. Both modes pass the
-CommonDialog, network and ShareUtility failures, initialize the local user service with
-priority 700, and pass three GNM owner-registration failures and seven compute-queue failures.
-They stop at the same display-safe-area query. One CommonDialog request, no message-dialog
-request, one network request and one share initialization request are recorded per mode.
+fibers, with 164 fiber runs. The interpreter records 205 direct switches, 44 event waits,
+1,193 sets and 90 reads totaling 80,204,287 bytes. JIT records 428 direct switches, 37 event
+waits, 1,844 sets and 191 reads totaling 80,732,037 bytes. Both open 17 files without writes.
+The worker counters differ because execution is concurrent; both main threads stop at the
+same VideoOut-open call. Both modes pass three GNM owner-registration failures, 20 resource
+registration failures and seven compute-queue failures, then query the logical safe area
+once. UserService remains initialized with priority 700. CommonDialog, network and share
+initialization each have one request; message-dialog initialization has none.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -84,7 +86,7 @@ matching waiters complete. Cancellation and deletion wake blocked waits with dis
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
 named open/close remain unresolved. Normal Terminal confirms creation and blocking waits;
-the latest baseline records 407 game-level event sets. Cancellation, timeout and deletion
+the latest baseline records 1,193/1,844 game-level event sets (interpreter/JIT). Cancellation, timeout and deletion
 paths in the game remain unverified.
 
 CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic has no dialog
@@ -140,7 +142,8 @@ behavior and counts requests. It creates no registry or graphics state. Syntheti
 checks cover capability/scopes, repeated calls, invalid pointers, unchanged buffers/errno
 and resource calls with a seventh stack argument. Original-module checks pass the same
 cases in both CPU modes. Normal Terminal confirms three owner-registration calls and no
-resource-registration calls before compute-queue mapping. This is not rendering support.
+resource-registration calls before compute-queue mapping. The latest baseline now
+confirms 20 resource-registration calls per mode before VideoOut open. This is not rendering support.
 
 Compute-queue mapping now validates the five-argument ABI in the supplied retail module's
 order: pipe, queue, ring size, ring alignment, then read-pointer alignment. Pipe/queue/size
@@ -161,13 +164,24 @@ This does not query a host display, create a window or initialize rendering. Syn
 guest checks cover scope/capability, repeated and unaligned outputs, guards around the
 whole structure, reserved fields on a protected page and errno preservation. The same
 checks pass against the supplied original export with an injected full-area setting
-provider in both modes. Other SystemService APIs remain unresolved. The effect on the
-game startup path still needs a normal Terminal run.
+provider in both modes. Other SystemService APIs remain unresolved. Normal Terminal confirms one
+query per mode and subsequent progress to VideoOut open.
+
+VideoOut open now has a deliberately headless availability profile. Its four-argument ABI
+uses 32-bit user, bus and index fields and a full-width service-options pointer. MAIN bus,
+index zero returns NO_DEVICE. Other buses return UNSUPPORTED_OUTPUT_MODE under this
+profile, without asserting that the retail API lacks those modes; a nonzero index on
+MAIN returns INVALID_VALUE. No options pointer or user record is read because no device
+exists. No window, output port, display handle, flip event or initialized state is created.
+Guest tests cover 32-bit argument widths, system/local user values, repeated failures,
+untouched options/errno and library/capability isolation in both modes. Close, buffer
+registration, resolution and flip APIs remain unresolved. The game response to NO_DEVICE
+still needs a normal Terminal run; opening a working display requires a graphics backend.
 
 ## Next verification
 
 Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
-stops, original module initialization, memory accounting, GNM requests, logical safe-area queries and actual file
+stops, original module initialization, memory accounting, GNM requests, logical safe-area queries, VideoOut requests and actual file
 counters. Content reads do not establish successful archive/asset decoding or gameplay.
 
 ## Remaining work

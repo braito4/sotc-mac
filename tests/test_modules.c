@@ -23,6 +23,40 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void test_unavailable_video(void) {
+    const char *name = "Up36PTk687E#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);
+    assert(!bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("Up36PTk687E#H#H", 0));
+    assert(!bootstrap_resolve("Up36PTk687E#G#G", 0));
+    assert(!bootstrap_resolve("Up36PTk687E#C#D", 0));
+    const uintptr_t entry = guest_bridge(fn);
+    uint64_t buffer[] = {UINT64_C(0x123456789abcdef0), UINT64_MAX};
+    const uint64_t initial[] = {buffer[0], buffer[1]};
+    const uint64_t users[] = {0, 1, 0xff, UINT32_MAX, UINT64_MAX};
+    const uint64_t buses[] = {0, 1, 4, 8, UINT32_MAX, UINT64_C(0x100000000)};
+    const uint64_t indices[] = {0, 1, UINT32_MAX, UINT64_C(0x100000000)};
+    const uint64_t params[] = {0, 1, (uintptr_t)buffer};
+    *runtime_errno() = 17;
+    for (unsigned repeat = 0; repeat < 2; ++repeat)
+        for (unsigned u = 0; u < 5; ++u) for (unsigned b = 0; b < 6; ++b)
+            for (unsigned i = 0; i < 4; ++i) for (unsigned p = 0; p < 3; ++p) {
+                const uint64_t args[] = {users[u], buses[b], indices[i], params[p], 3, 5};
+                const uint32_t expected = (uint32_t)buses[b] != 0 ? 0x80290016
+                                        : (uint32_t)indices[i] != 0 ? 0x80290001 : 0x80290018;
+                assert((uint32_t)bbcpu_call(entry, 6, args) == expected);
+                assert(!memcmp(buffer, initial, sizeof(buffer)) && *runtime_errno() == 17);
+            }
+    /* A failed open creates no port. Close, status, flips and registrations
+     * are deliberately not made available by this error-only provider. */
+    assert(!bootstrap_resolve("uquVH4-Du78#G#H", 0));
+    assert(!bootstrap_resolve("6kPnj51T62Y#G#H", 0));
+    assert(!bootstrap_resolve("w3BY+tAEiQY#G#H", 0));
+    assert(!bootstrap_resolve("U46NwOiJpys#G#H", 0));
+    puts("PASS: headless VideoOut open guest ABI, 32-bit arguments, unsupported modes/index errors, repeated no-device responses, ignored options and unchanged buffers/errno");
+}
 static void check_display_safe_area(uintptr_t entry) {
     unsigned char buffer[148], expected[148];
     const float ratio = 1.0f;
@@ -271,6 +305,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_unavailable_video();
     test_display_safe_area();
     test_unavailable_gnm();
     test_unavailable_compute_queue();
