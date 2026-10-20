@@ -77,11 +77,11 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental, not playable.** In the latest paired normal Terminal run, JIT and interpreter
 both complete the original module initializers, create Fios2's three workers, four game job
 workers and a resource-loading worker. Both modes create 19 event flags and 160 fibers,
-record 164 fiber runs. The interpreter records 205 direct fiber switches and 90 reads
-(80,204,287 bytes); JIT records 428 switches and 191 reads (80,732,037 bytes). Both open
+record 164 fiber runs. The interpreter records 198 direct fiber switches and 86 reads
+(80,193,830 bytes); JIT records 401 switches and 183 reads (80,698,436 bytes). Both open
 17 content files without writes, pass three owner-registration and seven compute-queue
 failures, and query the logical safe area once. Both then reach the same unresolved
-VideoOut-open call. The concurrent worker counters differ at the stop. No rendered frame
+VideoOut gamma-preparation call after one failed VideoOut open per mode. The concurrent worker counters differ at the stop. No rendered frame
 or successful archive/asset-decoding result is established.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
@@ -110,8 +110,10 @@ Compute-queue mapping validates the retail argument contract and reports an expl
 backend failure; normal Terminal confirms seven such requests in each mode. A fixed
 logical safe-area query writes ratio 1.0 while preserving reserved bytes; normal Terminal
 confirms one query per mode. VideoOut open now reports an explicit no-device failure
-for the main output. This diagnostic policy creates no display port or window; its effect
-on the game path needs a normal Terminal run.
+for the main output; normal Terminal confirms progress past it in both modes. This policy
+creates no display port or window. The retail gamma helper now prepares three channels in
+12/16-byte structures with its explicit size argument and original range behavior. Guest ABI
+and original-module checks pass in both modes; its effect on startup needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

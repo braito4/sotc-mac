@@ -13,9 +13,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; normal Terminal confirms 17 opens per mode; interpreter: 90 reads/80,204,287 bytes, JIT: 191 reads/80,732,037 bytes; no writes |
+| Content API | Fixture ABI/error tests; normal Terminal confirms 17 opens per mode; interpreter: 86 reads/80,193,830 bytes, JIT: 183 reads/80,698,436 bytes; no writes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 205/428 direct switches observed (interpreter/JIT) |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 198/401 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
@@ -25,17 +25,18 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
+| Gamma preparation | Retail suffixed export: explicit 32-bit size plus float gamma, 12/16-byte layouts, three channels, pure data preparation |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
 The latest paired normal Terminal baseline creates three Fios2 workers, four game job
 workers and one resource-loading worker in both modes. There are 19 event flags and 160
-fibers, with 164 fiber runs. The interpreter records 205 direct switches, 44 event waits,
-1,193 sets and 90 reads totaling 80,204,287 bytes. JIT records 428 direct switches, 37 event
-waits, 1,844 sets and 191 reads totaling 80,732,037 bytes. Both open 17 files without writes.
+fibers, with 164 fiber runs. The interpreter records 198 direct switches, 48 event waits,
+1,125 sets and 86 reads totaling 80,193,830 bytes. JIT records 401 direct switches, 41 event
+waits, 1,777 sets and 183 reads totaling 80,698,436 bytes. Both open 17 files without writes.
 The worker counters differ because execution is concurrent; both main threads stop at the
-same VideoOut-open call. Both modes pass three GNM owner-registration failures, 20 resource
+same gamma-preparation call after one VideoOut-open failure per mode. Both modes pass three GNM owner-registration failures, 20 resource
 registration failures and seven compute-queue failures, then query the logical safe area
 once. UserService remains initialized with priority 700. CommonDialog, network and share
 initialization each have one request; message-dialog initialization has none.
@@ -86,7 +87,7 @@ matching waiters complete. Cancellation and deletion wake blocked waits with dis
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
 named open/close remain unresolved. Normal Terminal confirms creation and blocking waits;
-the latest baseline records 1,193/1,844 game-level event sets (interpreter/JIT). Cancellation, timeout and deletion
+the latest baseline records 1,125/1,777 game-level event sets (interpreter/JIT). Cancellation, timeout and deletion
 paths in the game remain unverified.
 
 CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic has no dialog
@@ -175,8 +176,22 @@ MAIN returns INVALID_VALUE. No options pointer or user record is read because no
 exists. No window, output port, display handle, flip event or initialized state is created.
 Guest tests cover 32-bit argument widths, system/local user values, repeated failures,
 untouched options/errno and library/capability isolation in both modes. Close, buffer
-registration, resolution and flip APIs remain unresolved. The game response to NO_DEVICE
-still needs a normal Terminal run; opening a working display requires a graphics backend.
+registration, resolution and flip APIs remain unresolved. Normal Terminal confirms one failed open per mode and subsequent gamma preparation;
+opening a working display still requires a graphics backend.
+
+The suffixed gamma-preparation export now uses the supplied retail ABI: a settings pointer,
+an explicit 32-bit size and a scalar float in XMM0. It accepts 12 or 16 bytes, zeros that
+extent and writes the input float to three channels. This differs from the simplified
+shadPS4 declaration; the adapter follows the supplied module. Null output, invalid size
+or out-of-range gamma returns INVALID_VALUE without changing outputs. Ordered comparisons
+preserve the original NaN acceptance/bit patterns. The helper only builds a caller-owned
+structure; it does not require a valid output handle or apply display settings.
+
+Synthetic guest checks cover mixed integer/float arguments, size truncation, exact lower
+and upper range boundaries, infinities/NaNs, repeated calls, unaligned buffers, protected
+page boundaries, invalid/null outputs and errno preservation. The same cases pass against
+the original export in both CPU modes. Full contracts pass; startup after the new helper
+still needs a normal Terminal run.
 
 ## Next verification
 

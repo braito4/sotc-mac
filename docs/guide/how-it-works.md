@@ -140,6 +140,11 @@ Other buses are unsupported by this diagnostic, and a nonzero main index is inva
 The options pointer is not accessed. No display handle, port, window or flip state is
 created; a functioning output requires a graphics backend rather than a successful stub.
 
+The retail suffixed gamma helper is independent of an open display. It receives a pointer,
+a 32-bit structure size and a scalar float; the original ABI accepts 12 or 16 bytes. It
+zeros that extent and writes three equal gamma channels, leaving memory outside the
+structure untouched. Preparing this data does not apply color settings or enable rendering.
+
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.

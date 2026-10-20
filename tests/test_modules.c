@@ -23,6 +23,70 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static uint32_t gamma_call(uintptr_t entry, void *output, uint64_t size, uint32_t bits) {
+    uint64_t gpr[6] = {(uintptr_t)output, size, UINT64_MAX, 3, 5, 7}, result[2];
+    uint8_t xmm[8][16], result_xmm[2][16]; memset(xmm, 0xa5, sizeof(xmm));
+    memcpy(xmm[0], &bits, sizeof(bits));
+    bbcpu_call_full(entry, gpr, (const uint8_t (*)[16])xmm, result, result_xmm);
+    return (uint32_t)result[0];
+}
+static void check_video_gamma(uintptr_t entry) {
+    const struct { uint32_t bits; int valid; } cases[] = {
+        {0,0}, {0x80000000,0}, {0x3dcccccc,0}, {0x3dcccccd,1},
+        {0x3f000000,1}, {0x3f800000,1}, {0x40000000,1}, {0x40000001,0},
+        {0xbf800000,0}, {0x7f800000,0}, {0xff800000,0}, {0x00000001,0},
+        {0x7fc12345,1}, {0xffc12345,1}, {0x7f812345,1}, {0xff812345,1}
+    };
+    const uint64_t sizes[] = {0, 4, 11, 12, 13, 15, 16, 17, UINT32_MAX,
+                              UINT64_C(0x10000000c), UINT64_C(0x100000010)};
+    unsigned char buffer[40], expected[40];
+    *runtime_errno() = 17;
+    for (unsigned repeat = 0; repeat < 2; ++repeat)
+        for (unsigned c = 0; c < sizeof(cases) / sizeof(*cases); ++c)
+            for (unsigned z = 0; z < sizeof(sizes) / sizeof(*sizes); ++z)
+                for (unsigned unaligned = 0; unaligned < 2; ++unaligned) {
+                    memset(buffer, 0xa5, sizeof(buffer)); memcpy(expected, buffer, sizeof(buffer));
+                    const uint32_t size = (uint32_t)sizes[z];
+                    const int valid = cases[c].valid && (size == 12 || size == 16);
+                    if (valid) {
+                        memset(expected + 8 + unaligned, 0, size);
+                        for (unsigned channel = 0; channel < 3; ++channel)
+                            memcpy(expected + 8 + unaligned + channel * 4, &cases[c].bits, 4);
+                    }
+                    assert(gamma_call(entry, buffer + 8 + unaligned, sizes[z], cases[c].bits)
+                           == (valid ? 0 : 0x80290001));
+                    assert(!memcmp(buffer, expected, sizeof(buffer)) && *runtime_errno() == 17);
+                    assert(gamma_call(entry, NULL, sizes[z], cases[c].bits) == 0x80290001);
+                }
+    /* Invalid sizes/ranges must fail before reading or writing the pointer. */
+    assert(gamma_call(entry, (void *)1, 13, 0x3f800000) == 0x80290001);
+    assert(gamma_call(entry, (void *)1, 12, 0x40000001) == 0x80290001);
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *guarded = mmap(NULL, page * 2, PROT_READ | PROT_WRITE,
+                                 MAP_PRIVATE | MAP_ANON, -1, 0);
+    assert(guarded != MAP_FAILED && mprotect(guarded + page, page, PROT_NONE) == 0);
+    for (unsigned size = 12; size <= 16; size += 4) {
+        memset(guarded, 0xa5, page);
+        assert(gamma_call(entry, guarded + page - size, size, 0x3f800000) == 0);
+        for (unsigned channel = 0; channel < 3; ++channel) {
+            uint32_t bits; memcpy(&bits, guarded + page - size + channel * 4, 4);
+            assert(bits == 0x3f800000);
+        }
+        if (size == 16) { uint32_t reserved; memcpy(&reserved, guarded + page - 4, 4); assert(!reserved); }
+        for (size_t i = 0; i < page - size; ++i) assert(guarded[i] == 0xa5);
+    }
+    assert(munmap(guarded, page * 2) == 0 && *runtime_errno() == 17);
+}
+static void test_video_gamma(void) {
+    const char *name = "DYhhWbJSeRg#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("DYhhWbJSeRg#H#H", 0));
+    assert(!bootstrap_resolve("DYhhWbJSeRg#G#G", 0));
+    check_video_gamma(guest_bridge(fn));
+    puts("PASS: retail gamma helper mixed integer/float guest ABI, 12/16-byte layouts, three channels, range/NaN behavior, exact guarded output, invalid pointers/size, scopes and errno");
+}
 static void test_unavailable_video(void) {
     const char *name = "Up36PTk687E#G#H";
     bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
@@ -305,6 +369,7 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_video_gamma();
     test_unavailable_video();
     test_display_safe_area();
     test_unavailable_gnm();
