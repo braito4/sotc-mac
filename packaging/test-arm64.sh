@@ -30,11 +30,13 @@ build_diagnostic() {
     cp "$cpu_repo/out/libbbcpu.a" "$trial_root/work/libbbcpu-context.a"
     ar -t "$trial_root/work/libbbcpu-context.a" | /usr/bin/grep -qx 'cpu.c.o' || fail 'Unexpected bbcpu archive layout.'
     ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o
+    python3 "$trial_root/tools/prepare_runtime_support.py" "$runtime_repo/src/runtime_mutex.c" "$trial_root/work/runtime_mutex_diagnostic.c"
     trial_support=("$trial_root/runtime/src/bootstrap_contracts.c" "$trial_root/runtime/src/bootstrap_clocks.c"
         "$trial_root/runtime/src/bootstrap_cpu_context.c" "$trial_root/runtime/src/bootstrap_fibers.c"
         "$trial_root/runtime/src/bootstrap_modules.c" "$trial_root/runtime/src/bootstrap_files.c"
+        "$trial_root/runtime/src/bootstrap_tls.c" "$trial_root/runtime/src/bootstrap_threads.c"
         "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"
-        "$runtime_repo/src/runtime_mutex.c" "$runtime_repo/src/runtime_rwlock.c" "$runtime_repo/src/runtime_thread.c")
+        "$trial_root/work/runtime_mutex_diagnostic.c" "$runtime_repo/src/runtime_rwlock.c")
     trial_libraries=("$trial_root/work/libbbcpu-context.a" "$trial_deps/lib/libZydis.a" "$trial_deps/lib/libZycore.a")
     trial_sources=("${trial_support[@]}" "$trial_root/runtime/src/runtime_memory_arm64.c" "${trial_libraries[@]}")
     clang "${trial_flags[@]}" "$trial_root/runtime/src/probe_entry_arm64.c" \
@@ -46,6 +48,11 @@ contracts() {
         -c "$trial_root/tests/fiber_guest.c" -o "$trial_root/work/fiber_guest.o"
     python3 "$trial_root/tools/prepare_fiber_fixture.py" "$trial_root/work/fiber_guest.o" "$trial_root/work/fiber_fixture_code.h"
     clang "${trial_flags[@]}" "$trial_root/tests/test_fibers.c" "${trial_sources[@]}" -o "$trial_root/work/test_fibers"
+    clang -target x86_64-linux-gnu -O1 -mno-sse -mno-sse2 -fno-stack-protector -fno-asynchronous-unwind-tables -fno-pic \
+        -c "$trial_root/tests/thread_guest.c" -o "$trial_root/work/thread_guest.o"
+    python3 "$trial_root/tools/prepare_fiber_fixture.py" "$trial_root/work/thread_guest.o" \
+        "$trial_root/work/thread_fixture_code.h" thread_fixture_code
+    clang "${trial_flags[@]}" "$trial_root/tests/test_threads.c" "${trial_sources[@]}" -o "$trial_root/work/test_threads"
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_query.c" \
         "${trial_support[@]}" "${trial_libraries[@]}" -o "$trial_root/work/test_memory_query"
     BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB=512 "$trial_root/work/test_memory_query"
@@ -57,6 +64,12 @@ contracts() {
     for trial_jit in 1 0; do
         trial_log="$trial_prefix-fibers-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_fibers" > "$trial_log" 2>&1; then
+            cat "$trial_log"
+        else
+            trial_status=$?; cat "$trial_log"; exit "$trial_status"
+        fi
+        trial_log="$trial_prefix-threads-jit$trial_jit.log"
+        if BB_JIT="$trial_jit" "$trial_root/work/test_threads" > "$trial_log" 2>&1; then
             cat "$trial_log"
         else
             trial_status=$?; cat "$trial_log"; exit "$trial_status"

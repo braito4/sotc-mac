@@ -43,6 +43,8 @@
 - **Read-only content access:** a narrow file API tested with synthetic fixtures; no save mount.
 - **Guest fibers:** suspension, resumption and switching preserve guest CPU state and stacks.
   Synthetic checks also cover resuming on another host thread.
+- **Guest threads:** native pthread workers with separate guest stacks, static/module TLS,
+  DTV tables and errno. Synthetic checks cover return, exit, join, detach and condition waits.
 - **Local diagnostics:** generated game-derived images and execution logs remain outside Git.
 
 ## Getting started
@@ -65,18 +67,20 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 **Experimental, not playable.** Normal Terminal runs have completed both original module
 initializers and the game's early memory setup. After the module-registry addition, JIT and
-interpreter both enter Fios2 startup and reach the same unresolved read/write-lock initialization
-call. No game content was opened and no game fibers were created in that baseline run.
+interpreter both enter Fios2 startup. The latest normal Terminal run uses its read/write locks
+and condition variables, then reaches the same unresolved thread-creation call. No game content
+was opened and no game fibers or worker threads were created in that baseline run.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
-restart and host-thread migration. The runtime now exposes the upstream non-timed kernel
-read/write locks; synthetic guest lifecycle, ownership and concurrency tests pass in both modes. Linked game
-progress after the read/write-lock addition still needs a normal Terminal run.
+restart and host-thread migration. Non-timed kernel read/write locks pass synthetic lifecycle,
+ownership and concurrency tests in both modes. Checked thread creation and lifecycle operations
+now pass synthetic tests with isolated per-thread TLS and concurrent read-only fixture I/O.
+Linked game progress after the thread addition still needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
-the diagnostic's temporary high image mapping does not solve that. Guest multithreading,
-additional system services, content loading and graphics integration also remain.
+the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,
+additional system services, content loading and graphics integration still need validation.
 
 See [Development status](docs/STATUS.md) for the measured scope and next checks.
 

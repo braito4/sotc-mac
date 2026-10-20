@@ -10,6 +10,7 @@
 #include "platform.h"
 #include "runtime.h"
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +22,7 @@ static char (*imports)[128];
 static uint64_t import_count;
 static int bootstrap;
 static int entered_game;
+static atomic_flag stopping = ATOMIC_FLAG_INIT;
 typedef struct { uint64_t at, size, flags; } Segment;
 typedef struct { uint64_t at, kind, value, addend; } Reloc;
 typedef struct { uint64_t base, size, init, tls_at, tls_memsz, tls_filesz, tls_module; } Module;
@@ -42,9 +44,14 @@ static int mapped(const Segment *s, uint64_t n, uint64_t at, uint64_t size) {
     return 0;
 }
 static _Noreturn void stop_import(uint64_t index, uint64_t argument) {
+    /* Only the first thread reports a terminating boundary. Other threads
+     * cannot interleave a second partial dump before this one exits. */
+    if (atomic_flag_test_and_set_explicit(&stopping, memory_order_relaxed))
+        for (;;) pause();
     if (index >= import_count) fail("bad import index");
     printf("STOP_AT_IMPORT: index=%" PRIu64 " name=%s\n", index, imports[index]);
     printf("Guest first argument: %#" PRIx64 "\n", argument);
+    printf("Guest thread: %s\n", runtime_thread_name());
     const uint64_t caller = bbcpu_import_return();
     if (caller >= bb_image_base) printf("Guest caller offset: %#" PRIx64 "\n", caller - bb_image_base);
     bbcpu_report();

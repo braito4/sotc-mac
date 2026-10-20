@@ -11,12 +11,25 @@ execution with an explicit diagnostic instead of receiving blanket success resul
 ## Runtime adapters
 
 The adapters reuse the pinned upstream platform, mutex, thread metadata, memory and file
-backends. SotC-specific namespace mappings are explicit. Guest thread creation, lifecycle
-operations and thread keys are intentionally unavailable in this single-guest-thread probe.
+backends. SotC-specific namespace mappings are explicit. Checked guest thread creation, join,
+detach and exit use native pthreads and separate low guest stacks. Each thread has its own
+static/module TLS, DTV table, errno and inherited FPU control state. Creation and lifecycle
+claims are serialized; a blocking join does not hold that serialization lock. Competing
+joins cannot both claim the same thread. Thread-key APIs remain unresolved.
+
+The thread adapter includes the pinned backend unchanged and wraps thread start, TCB attachment
+and lifecycle calls. A private build copy changes only the mutex/condition diagnostic counter
+declarations to atomic types. The source checkout and its synchronization algorithms are
+unchanged. Read-only filesystem operations are serialized around the backend descriptor table,
+including close versus read; parallel asynchronous I/O performance is not claimed.
 
 The non-timed kernel read/write-lock family reuses the upstream ownership-aware pthread backend.
 Tests call it through synthetic x86 bridges from several host threads. Kernel relative-timeout
 calls remain unresolved until their distinct timeout ABI has a dedicated adapter.
+
+Worker completion releases module TLS/DTV storage. Explicit exit resets abandoned CPU call depth
+before cleanup. Exit through a live fiber or trap frame stops rather than discarding those
+frames silently. Stacks, TCBs and diagnostic CPU records retain upstream process lifetime.
 
 Direct/flexible availability queries inspect the real allocator state. The tessellation
 address query reserves a collision-aware guest range within the native ARM64 address policy.

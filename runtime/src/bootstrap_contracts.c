@@ -20,10 +20,11 @@
 
 typedef struct { uintptr_t callback; void *argument, *dso; int with_argument, active; } Handler;
 static Handler *handlers;
-static size_t handler_count, handler_capacity, init_calls, plain_calls, cxa_calls;
+static size_t handler_count, handler_capacity;
+static _Atomic size_t init_calls, plain_calls, cxa_calls;
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t flags, stack_canary;
-static size_t allocation_calls;
+static _Atomic size_t allocation_calls;
 static int linked_libc;
 static void *process_param;
 static void **heap_api;
@@ -35,7 +36,6 @@ static void heap_get_trace_info(HeapTrace *info) {
     if (!info) abort();
     info->mask = &heap_trace_mask; info->table = heap_trace_table; info->get_segment_info = 0;
 }
-static struct { const void *data; uint64_t filesz, memsz; void *block; } modules[8];
 static _Atomic uint64_t wait_ns[4];
 static _Atomic uint64_t console_calls, console_bytes;
 /* Console subset of bloodborne-runtime's runtime_file.c POSIX write contract.
@@ -90,20 +90,11 @@ void runtime_guest_call_sites(uint64_t out[3]) {
 }
 uintptr_t runtime_mutex_resolve(const char *name);
 void runtime_mutex_report(void);
-/* Thread creation and keys are not exposed by the diagnostic resolver. */
-void runtime_thread_keys_cleanup(void) {
-    fputs("STOP: thread key cleanup is outside the diagnostic contract set\n", stderr);
-    _Exit(23);
-}
 void runtime_wait_note(int kind, uint64_t ns) {
     if (kind >= 0 && kind < 4) atomic_fetch_add_explicit(&wait_ns[kind], ns, memory_order_relaxed);
 }
 void bootstrap_set_linked_libc(int enabled) { linked_libc = enabled; }
 void bootstrap_set_procparam(void *param) { process_param = param; }
-void bootstrap_set_module_tls(uint64_t module, const void *data, uint64_t filesz, uint64_t memsz) {
-    if (module < 2 || module >= 8 || filesz > memsz || memsz > 1024 * 1024) abort();
-    modules[module].data = data; modules[module].filesz = filesz; modules[module].memsz = memsz;
-}
 static void *get_procparam(void) { return process_param; }
 /* Diagnostic console profile: base PS4, matching the 5056 MiB direct-memory
  * budget of the upstream memory backend; PS4 Pro mode is not selected. */
@@ -167,19 +158,6 @@ static int32_t map_direct(void **out, uint64_t size, int prot, int flags_, int64
     return result;
 }
 static void set_heap_api(void **api) { heap_api = api; }
-static void *tls_get_addr(const uint64_t *index) {
-    if (!index || index[0] < 2 || index[0] >= 8 || !modules[index[0]].data || index[1] >= modules[index[0]].memsz) {
-        fputs("STOP: unsupported dynamic TLS module/offset\n", stderr);
-        _Exit(23);
-    }
-    const uint64_t m = index[0];
-    if (!modules[m].block) {
-        modules[m].block = bb_low_calloc(1, (size_t)modules[m].memsz);
-        if (!modules[m].block) abort();
-        memcpy(modules[m].block, modules[m].data, (size_t)modules[m].filesz);
-    }
-    return (unsigned char *)modules[m].block + index[1];
-}
 
 void bootstrap_initialize(uint64_t capabilities) {
     flags = capabilities;
@@ -282,7 +260,7 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (!strcmp(name, "rTXw65xmLIA#0#F")) return (uintptr_t)allocate_direct;
     if (!strcmp(name, "L-Q3LEjIbgA#0#F")) return (uintptr_t)map_direct;
     if (!strcmp(name, "FxVZqBAA7ks#0#F")) return (uintptr_t)console_write;
-    if (!strcmp(name, "vNe1w4diLCs#0#F")) return (uintptr_t)tls_get_addr;
+    if (!strcmp(name, "vNe1w4diLCs#0#F")) return (uintptr_t)bootstrap_tls_get_addr;
     if (!strcmp(name, "p5EcQeEeJAE#0#F")) return (uintptr_t)set_heap_api;
     if (!strcmp(name, "NWtTN10cJzE#libSceLibcInternalExt")) return (uintptr_t)heap_get_trace_info;
     /* Keep allocator families together. With linked libc, all guest heap calls
@@ -316,11 +294,6 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
                 "mqdNorrB+gI", "XD3mDeybCnk", "bIHoZCTomsI", "+L98PIbGttk"};
             for (size_t i = 0; i < sizeof(rwlocks) / sizeof(*rwlocks); ++i)
                 if (!strncmp(name, rwlocks[i], 11)) return runtime_rwlock_resolve(canonical);
-            /* Single-thread diagnostics: do not expose create/join/detach/exit. */
-            static const char *blocked[] = {"6UgtwV+0zb4", "onNY9Byn-W8", "4qGrR6eoP9Y", "3kg7rT0NQIs",
-                "OxhIB8LB-PQ", "Jmi+9w9u0E4", "h9CcP3J0oVM", "FJrT5LuUBAU"};
-            for (size_t i = 0; i < sizeof(blocked) / sizeof(*blocked); ++i)
-                if (!strncmp(name, blocked[i], 11)) return 0;
             const uintptr_t thread = runtime_thread_resolve(canonical);
             if (thread) return thread;
             const uintptr_t memory = runtime_memory_resolve(canonical);
@@ -331,8 +304,10 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     return 0;
 }
 void bootstrap_report(void) {
+    pthread_mutex_lock(&lock);
     printf("Bootstrap: _init_env=%zu, atexit=%zu, __cxa_atexit=%zu, handlers=%zu\n",
            init_calls, plain_calls, cxa_calls, handler_count);
+    pthread_mutex_unlock(&lock);
     printf("Bootstrap: allocations=%zu (upstream arm64 heap below 1 TiB)\n", allocation_calls);
     runtime_mutex_report();
     runtime_rwlock_report();

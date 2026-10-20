@@ -13,11 +13,18 @@
 #include <sys/stat.h>
 
 static int mounted;
+/* Serialize the native descriptor table's complete operations, including
+ * close versus read and its diagnostic counters. These CPU-only probes use
+ * regular read-only content; parallel asynchronous I/O is not claimed. */
+static pthread_mutex_t file_gate = PTHREAD_MUTEX_INITIALIZER;
 static int64_t read_content(int fd, void *buffer, uint64_t size, int64_t offset, int positional) {
     if (fd < 3) return -EBADF;
     if (size > (uint64_t)SSIZE_MAX || (positional && offset < 0)) return -EINVAL;
     if (!buffer && size) return -EFAULT;
-    return positional ? runtime_file_pread(fd, buffer, size, offset) : runtime_file_read(fd, buffer, size);
+    pthread_mutex_lock(&file_gate);
+    const int64_t result = positional ? runtime_file_pread(fd, buffer, size, offset) : runtime_file_read(fd, buffer, size);
+    pthread_mutex_unlock(&file_gate);
+    return result;
 }
 static int64_t kernel_read_result(int64_t result) {
     return result < 0 ? (int64_t)(int32_t)(UINT32_C(0x80020000) | (uint32_t)runtime_guest_errno((int)-result)) : result;
@@ -31,6 +38,22 @@ static int64_t kernel_read(int fd, void *buffer, uint64_t size) { return kernel_
 static int64_t posix_read(int fd, void *buffer, uint64_t size) { return posix_read_result(read_content(fd, buffer, size, 0, 0)); }
 static int64_t kernel_pread(int fd, void *buffer, uint64_t size, int64_t offset) { return kernel_read_result(read_content(fd, buffer, size, offset, 1)); }
 static int64_t posix_pread(int fd, void *buffer, uint64_t size, int64_t offset) { return posix_read_result(read_content(fd, buffer, size, offset, 1)); }
+#define FILE_PAIR(name, params, args, call) \
+    static int64_t raw_##name params { \
+        pthread_mutex_lock(&file_gate); \
+        const int64_t result = call args; \
+        pthread_mutex_unlock(&file_gate); return result; \
+    } \
+    static int64_t kernel_##name params { return kernel_read_result(raw_##name args); } \
+    static int64_t posix_##name params { return posix_read_result(raw_##name args); }
+FILE_PAIR(open, (const char *p, int f, int m), (p, f, m), runtime_file_open)
+FILE_PAIR(close, (int fd), (fd), runtime_file_close)
+FILE_PAIR(seek, (int fd, int64_t offset, int whence), (fd, offset, whence), runtime_file_lseek)
+FILE_PAIR(stat, (const char *p, void *s), (p, s), runtime_file_stat)
+FILE_PAIR(fstat, (int fd, void *s), (fd, s), runtime_file_fstat)
+FILE_PAIR(getdents, (int fd, char *p, uint64_t n, int64_t *base), (fd, p, n, base), runtime_file_getdents)
+#undef FILE_PAIR
+static int32_t reachability(const char *path) { unsigned char info[120]; return (int32_t)kernel_stat(path, info); }
 int bootstrap_mount_game_root(const char *root) {
     char canonical[PATH_MAX];
     struct stat info;
@@ -51,15 +74,24 @@ uintptr_t bootstrap_files_resolve(const char *canonical) {
     if (!strcmp(symbol, "read") || !strcmp(symbol, "_read")) return (uintptr_t)posix_read;
     if (!strcmp(symbol, "sceKernelPread")) return (uintptr_t)kernel_pread;
     if (!strcmp(symbol, "pread")) return (uintptr_t)posix_pread;
-    static const char *allowed[] = {"sceKernelOpen", "open", "_open", "sceKernelClose", "close", "_close",
-        "sceKernelRead", "read", "_read", "sceKernelPread", "pread", "sceKernelLseek", "lseek",
-        "sceKernelFstat", "fstat", "sceKernelStat", "stat", "sceKernelGetdirentries", "getdirentries",
-        "access", "sceKernelCheckReachability"};
+    static const struct { const char *symbol; void *fn; } allowed[] = {
+        {"sceKernelOpen", kernel_open}, {"open", posix_open}, {"_open", posix_open},
+        {"sceKernelClose", kernel_close}, {"close", posix_close}, {"_close", posix_close},
+        {"sceKernelLseek", kernel_seek}, {"lseek", posix_seek},
+        {"sceKernelStat", kernel_stat}, {"stat", posix_stat},
+        {"sceKernelFstat", kernel_fstat}, {"fstat", posix_fstat},
+        {"sceKernelGetdirentries", kernel_getdents}, {"getdirentries", posix_getdents},
+        {"sceKernelCheckReachability", reachability},
+    };
     for (size_t i = 0; i < sizeof(allowed) / sizeof(*allowed); ++i)
-        if (!strcmp(symbol, allowed[i])) return runtime_file_resolve(canonical);
+        if (!strcmp(symbol, allowed[i].symbol)) return (uintptr_t)allowed[i].fn;
     return 0;
 }
-void bootstrap_files_report(void) { if (mounted) runtime_file_report(); }
+void bootstrap_files_report(void) {
+    pthread_mutex_lock(&file_gate);
+    if (mounted) runtime_file_report();
+    pthread_mutex_unlock(&file_gate);
+}
 
 /* Error mapping copied from this native runtime's runtime_kernel.c. File APIs
  * must return PS4 errno values, not whichever numbers the host uses. */

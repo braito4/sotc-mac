@@ -28,8 +28,11 @@ for offset in range(sym[4], sym[4] + sym[5], sym[9]):
     n, info, _, section, value, size = struct.unpack_from('<IBBHQQ', data, offset)
     if section in starts and info & 15 == 2:
         exports.append((name(n), starts[section] + value))
+array_name = sys.argv[3] if len(sys.argv) > 3 else 'fiber_fixture_code'
+if not array_name.isidentifier():
+    raise SystemExit('Invalid fixture array name.')
 out = ['/* Generated from our synthetic fixture, not game code. */',
-       'static const unsigned char fiber_fixture_code[] = {',
+       f'static const unsigned char {array_name}[] = {{',
        ','.join(str(b) for b in code), '};']
 out += [f'#define {n}_offset {v}' for n, v in exports]
 Path(sys.argv[2]).write_text('\n'.join(out) + '\n')

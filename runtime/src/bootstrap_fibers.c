@@ -65,6 +65,7 @@ typedef struct Frame {
 } Frame;
 static _Thread_local Frame *active;
 static _Atomic unsigned created, runs, switches;
+int bootstrap_fibers_active(void) { return active != NULL; }
 
 static int valid(const Fiber *f) { return f->magic_start == MAGIC0 && f->magic_end == MAGIC1; }
 static void prepare_stack(Fiber *f) {

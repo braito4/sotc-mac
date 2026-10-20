@@ -63,3 +63,13 @@ void bootstrap_cpu_resume(const BbCpu *saved, uint64_t stop) {
     bootstrap_cpu_restore(saved);
     bbcpu_run(current_cpu(), stop);
 }
+void bootstrap_cpu_set_fpu(uint32_t mxcsr, uint16_t control, uint16_t status) {
+    BbCpu *cpu = current_cpu();
+    cpu->mxcsr = mxcsr; cpu->fcw = control; cpu->fsw = status;
+}
+void bootstrap_cpu_thread_finished(void) {
+    BbCpu *cpu = current_cpu();
+    /* pthread_exit may have left translated/nested call frames through the
+     * backend's longjmp. No guest callback is allowed to inherit that depth. */
+    cpu->depth = 0; cpu->r[RSP] = 0; cpu->rip = 0; cpu->stack_top = 0; cpu->jit_link = 0;
+}

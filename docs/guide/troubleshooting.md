@@ -5,6 +5,10 @@
 `STOP_AT_IMPORT` means the CPU reached a system function outside the implemented contract set.
 A matching stop in JIT and interpreter is a bounded initialization result, not a game boot.
 
+Once worker threads are active, different scheduling may expose different first missing APIs.
+The comparison reports such a difference as `INCONCLUSIVE`, not a successful equivalence check.
+The terminating log names the reporting guest thread; only the first thread prints the stop.
+
 `STOP_HOST_RESOURCE` means a required host resource could not be created. Restricted execution
 environments may reject POSIX shared-memory creation with `EPERM`; run the linked diagnostic
 in a normal native macOS Terminal. The synthetic `--contracts-test` avoids that backing pool.

@@ -45,6 +45,11 @@ The build copies the CPU archive privately, removes only its `cpu.c.o`, and comp
 unchanged pinned `cpu.c` through a small context adapter. The decoder, interpreter, JIT and
 other CPU objects are reused. The original archive and upstream source files are unchanged.
 
+The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
+lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters
+atomic. The source checkout is not patched. Synthetic tests now also start concurrent guest
+workers and test condition waits, isolated TLS, thread completion and serialized read-only I/O.
+
 ## Optional game initialization probe
 
 Prepare [your own game files](game-files.md), then run `--linked-test` in a normal Terminal.

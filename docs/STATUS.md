@@ -16,15 +16,27 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
 | Fibers | Synthetic initialize ABI, yield/resume/switch, stack/register/FPU state, restart, attach-context, lifecycle errors and host-thread migration in both modes |
 | Module registry | Reference-counted availability for the implemented fiber module; unsupported modules stay unavailable |
+| Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 
-The latest normal Terminal game baseline completed early memory setup, passed the system-module
-load boundary and entered Fios2 startup. Both modes stopped at the same unresolved read/write-lock
-initialization call. File counters and game-fiber counters remained zero.
+The latest normal Terminal game baseline completed early memory setup and entered Fios2 startup.
+Both modes used three read/write locks and three condition variables, then stopped at the same
+unresolved worker-thread creation call. File, worker-thread and game-fiber counters remained zero.
 
 Non-timed kernel read/write-lock calls now reuse the upstream backend, with synthetic guest
 lifecycle, shared-reader, exclusive-writer, ownership and busy-destroy checks. The kernel
 relative-timeout NIDs stay unresolved because their argument contract differs from the upstream
-absolute-timespec helpers. Linked game progress after this integration remains to be verified.
+absolute-timespec helpers.
+
+Checked thread creation, return, exit, join and detach are now connected to native pthreads.
+Dynamic module TLS and DTV tables are isolated per thread; module TLS allocations are released
+when a worker finishes. Synthetic guest workers test this concurrently, including two callers
+competing to join one worker. Original libc/Fios2 initializers still return zero in both modes.
+Linked game progress after enabling worker threads remains to be verified in a normal Terminal;
+tool execution still rejects shared-memory backing with EPERM.
+
+Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
+fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
+upstream process-lifetime allocation policy; long-running thread churn is not validated.
 
 ## Next verification
 
@@ -36,7 +48,8 @@ infer content loading merely from linking Fios2 successfully.
 
 - Resolve the game's packed static-image pointer/address requirements.
 - Implement additional required system services with checked ABI and error behavior.
-- Integrate guest multithreading and per-thread module TLS before enabling thread creation.
+- Validate actual Fios2 workers and subsequent game threading; add missing thread-key contracts
+  and complete lifecycle/resource reclamation where needed.
 - Validate actual game content loading, not only synthetic filesystem fixtures.
 - Integrate and validate graphics, audio, input and a SotC launcher.
 - Add save support with a separate tested workflow when gameplay is possible.
