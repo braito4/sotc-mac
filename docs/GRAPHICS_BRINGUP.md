@@ -167,7 +167,7 @@ bash packaging/test-arm64.sh --graphics-game-test
 ```
 
 This prepares a separate private linked diagnostic image with the supplied original
-libc, Fios2 and system-gesture modules, initializes the renderer on the host main thread and runs module initializers/game entry on a separate host thread. Its default
+libc, Fios2, system-gesture and NGS2 modules, initializes the renderer on the host main thread and runs module initializers/game entry on a separate host thread. Its default
 CPU mode is JIT; `BB_JIT=0` selects the interpreter. The normal bounded game watchdog remains
 active. Read-only content mounts, private logs/configuration and unknown-import stops remain.
 The guest SDK version comes from the validated process parameter; PSF attributes are still
@@ -208,7 +208,8 @@ presentation and asset/pointer compatibility remain unverified.
 The real combined Terminal run now passes color/capability operations, starts RenderFlip and
 Game Render, passes original gesture initialization and opens the keyboard-backed
 controller. Save/trophy task threads then start, and a thread key is created and set twice
-before the next stop at `sceKernelUuidCreate`.
+and UUID generation passes. The latest real run then fails in audio setup after NGS2
+loading is rejected.
 The controller has not been sampled yet. Graphics mode connects a keyboard-backed logical controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
 key names are checked on the main thread before guest startup. Headless mode retains its
 existing unresolved input boundary.
@@ -263,8 +264,26 @@ module initializers return zero; the gesture service rejects open before initial
 accepts repeated initialization, opens/closes a valid service and permits repeated finalization.
 These checks do not run game entry or establish touch recognition. The real combined Terminal
 run now confirms progress through original gesture initialization and keyboard pad open. It
-starts save/trophy tasks and uses a thread key before stopping at UUID generation. This does not establish touch
+starts save/trophy tasks, uses a thread key and passes UUID generation. This does not establish touch
 recognition, save support or trophy support.
+
+## Original NGS2 module
+
+The latest real combined run reaches an audio configuration write with a null object after
+module ID 0x000B (NGS2) fails to load. The graphics command now reads the supplied original
+`libSceNgs2.sprx` from `SOTC_SYSTEM_MODULE_ROOT` (the same directory as the gesture module),
+validates its library identity and required exports, and links it into the private graphics
+image. No original file is patched or distributed, and no silent-audio stand-in is used.
+
+Both CPU modes initialize that actual module successfully. The loader requires executable
+native system-create/render bindings in the same module and a successful initializer before
+publishing it as available. Load/is-loaded/unload then use checked static-provider references;
+unload does not unmap code or rerun original finalizers. Synthetic linked fixtures cover
+reference lifecycle, premature load, missing/wrong-scope/data/non-executable bindings,
+inconsistent module ownership and initialization failure in JIT/interpreter. The headless
+command remains unchanged. Real NGS2 system creation, AJM decoding and AudioOut playback
+remain unverified; missing downstream services still stop explicitly. The combined Terminal
+run must verify progress beyond the failed audio-object setup. No game frame is established.
 
 ## Verified CPU-side display contracts
 
@@ -293,10 +312,9 @@ The pinned library and its renderer-only initialization are verified. The option
 connection now implements scoped import routing, shared queue ownership, a main-thread event
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization and keyboard pad open, then stops at
-`sceKernelUuidCreate`, after creating and using a thread key. The UUID adapter now uses
-macOS random v4 generation with the native 16-byte uuidgen field layout. Guest ABI, guarded
-buffers, errors and concurrent generation pass in both modes; combined use awaits the next
-Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
+audio setup after UUID generation and thread-key use. NGS2 module rejection leaves an
+audio object null. The original NGS2 module now initializes and is published through the
+checked provider lifecycle in both CPU modes; combined use awaits the next Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 

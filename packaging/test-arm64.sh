@@ -81,6 +81,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_linked_modules.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_vulkan.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
         "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
@@ -263,6 +264,7 @@ case "$trial_mode" in
         trial_system_modules="${SOTC_SYSTEM_MODULE_ROOT:-$trial_game/../sys_modules}"
         SOTC_GAME_ROOT="$trial_game" python3 "$trial_root/tools/prepare_linked_arm64.py" \
             --system-gesture-module "$trial_system_modules/libSceSystemGesture.sprx" \
+            --ngs2-module "$trial_system_modules/libSceNgs2.sprx" \
             --out "$trial_root/work/sotc-graphics-arm64"
         trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-game-state-XXXXXX")
         trial_log="$trial_root/logs/graphics-game-$(date -u +%Y%m%dT%H%M%SZ).log"

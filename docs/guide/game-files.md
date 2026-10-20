@@ -30,8 +30,8 @@ not prove that the game has loaded content; check the actual file counters in th
 images, extracted code, addresses from execution or private game logs to commits or issues.
 
 The optional `--graphics-game-test` additionally requires your readable original
-`libSceSystemGesture.sprx`. By default it reads `../sys_modules` relative to `SOTC_GAME_ROOT`;
-`SOTC_SYSTEM_MODULE_ROOT` selects another directory. It links that module with the same
+`libSceSystemGesture.sprx` and `libSceNgs2.sprx`. By default it reads `../sys_modules` relative to `SOTC_GAME_ROOT`;
+`SOTC_SYSTEM_MODULE_ROOT` selects another directory. It links those modules with the same
 libc/Fios2 into a separate private `work/sotc-graphics-arm64` image, preserving executable
 bytes and leaving all supplied files unchanged. No system module is distributed or fetched.
 The default headless test does not need this additional module.

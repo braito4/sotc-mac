@@ -26,7 +26,10 @@ static _Atomic int entered_game;
 static atomic_flag stopping = ATOMIC_FLAG_INIT;
 typedef struct { uint64_t at, size, flags; } Segment;
 typedef struct { uint64_t at, kind, value, addend; } Reloc;
-typedef struct { uint64_t base, size, init, tls_at, tls_memsz, tls_filesz, tls_module; } Module;
+typedef struct {
+    uint64_t base, size, init, tls_at, tls_memsz, tls_filesz, tls_module;
+    int ngs2_provider;
+} Module;
 
 static _Noreturn void fail(const char *message) {
     fprintf(stderr, "ERROR: %s\n", message);
@@ -81,6 +84,23 @@ static void fault(int sig, siginfo_t *info, void *context) {
         pthread_sigmask(SIG_UNBLOCK, &unblock, NULL);
         siglongjmp(*recover, 1);
     }
+    /* Signal-safe header: report the failure type/address even when it is
+     * outside registered guest code. Recovered GPU/speculative faults return
+     * above and never emit a fatal diagnostic. */
+    char header[96];
+    const char *label = sig == SIGBUS ? "STOP_EXECUTION_FAULT: SIGBUS address=0x"
+                      : sig == SIGILL ? "STOP_EXECUTION_FAULT: SIGILL address=0x"
+                      : "STOP_EXECUTION_FAULT: SIGSEGV address=0x";
+    size_t length = 0;
+    while (*label) header[length++] = *label++;
+    const uintptr_t address = (uintptr_t)info->si_addr;
+    int started = 0;
+    for (int shift = (int)(sizeof(address)*8)-4; shift >= 0; shift -= 4) {
+        const unsigned digit = (unsigned)((address >> shift) & 15);
+        if (digit || started || !shift) { header[length++] = "0123456789abcdef"[digit]; started = 1; }
+    }
+    header[length++] = '\n';
+    (void)write(STDERR_FILENO, header, length);
     char description[2048];
     if (bbcpu_describe_fault(context, description, sizeof(description)))
         (void)write(STDERR_FILENO, description, strnlen(description, sizeof(description)));
@@ -108,6 +128,7 @@ static void *run_guest(void *opaque) {
             const int result = (int)bbcpu_call(bb_image_base + run->modules[i].init, 3, init_args);
             printf("Linked module %" PRIu64 " initializer returned %d\n", i, result);
             if (result) fail("module initializer failed");
+            if (run->modules[i].ngs2_provider) bootstrap_modules_publish_ngs2();
         }
     }
     entered_game = 1;
@@ -287,6 +308,28 @@ int main(int argc, char **argv) {
     }
     for (uint64_t i = 0; i < ns; ++i)
         if (segments[i].flags & 1) bbcpu_add_guest_code(bb_image_base + segments[i].at, (size_t)segments[i].size);
+    /* NGS2 becomes a loadable static provider only when both representative
+     * exports bind to executable guest code in the same linked module. An
+     * import name, host override or failed initializer cannot enable it. */
+    if (linked && bootstrap) {
+        uint64_t create = 0, render = 0;
+        for (uint64_t i=0; i<import_count; ++i) if (binding_kinds[i] == 1 && bindings[i] &&
+                !bootstrap_resolve(imports[i], 0) && bbcpu_is_guest(bb_image_base + bindings[i])) {
+            if (!strcmp(imports[i], "mPYgU4oYpuY#z#t")) create = bindings[i];
+            if (!strcmp(imports[i], "i0VnXM-C9fc#z#t")) render = bindings[i];
+        }
+        if (create && render) {
+            unsigned matches = 0;
+            for (uint64_t i=0; i<module_count; ++i) {
+                Module *m = &modules[i];
+                if (create >= m->base && create-m->base < m->size &&
+                    render >= m->base && render-m->base < m->size) {
+                    m->ngs2_provider = 1; ++matches;
+                }
+            }
+            if (matches != 1) fail("NGS2 exports require a single linked module");
+        }
+    }
     bbcpu_add_guest_code((uintptr_t)traps, (size_t)(import_count + 1) * 32);
     struct sigaction action = {.sa_sigaction = fault, .sa_flags = SA_SIGINFO};
     sigemptyset(&action.sa_mask);

@@ -12,8 +12,18 @@
 #define INVALID_ID ((int32_t)UINT32_C(0x805a1000))
 #define NOT_LOADED ((int32_t)UINT32_C(0x805a1001))
 static _Atomic unsigned fiber_refs, discmap_refs;
+static _Atomic unsigned ngs2_refs;
+static _Atomic int ngs2_initialized;
+/* Called by the loader only after an actual linked NGS2 module initializer
+ * returned success. The loader checks both scoped native export bindings.
+ * This publishes availability, not an open sound device or completed load. */
+void bootstrap_modules_publish_ngs2(void) {
+    atomic_store(&ngs2_initialized, 1);
+    puts("Bootstrap: original NGS2 module initialized; system-module provider available");
+}
 static _Atomic unsigned *references(uint32_t id) {
-    return id == 6 ? &fiber_refs : id == 0xd7 ? &discmap_refs : NULL;
+    return id == 6 ? &fiber_refs : id == 0xd7 ? &discmap_refs
+        : id == 0xb && atomic_load(&ngs2_initialized) ? &ngs2_refs : NULL;
 }
 static int32_t load(uint32_t id) {
     if (!(id & UINT32_C(0x7fffffff))) return INVALID_ID;

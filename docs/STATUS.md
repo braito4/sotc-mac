@@ -1,6 +1,6 @@
 # Development status
 
-Updated 2026-10-20. **CPU bootstrap research; not playable.**
+Updated 2026-10-21. **CPU bootstrap research; not playable.**
 
 | Area | Verified scope |
 |---|---|
@@ -18,7 +18,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 1,109/1,073 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
-| UUID generation | Scoped sceKernelUuidCreate uses macOS random v4 UUIDs in the native 16-byte uuidgen field layout; guest guards, errors, errno and concurrent non-repeating samples tested in both modes; combined use pending |
+| UUID generation | Scoped sceKernelUuidCreate uses macOS random v4 UUIDs in the native 16-byte uuidgen field layout; guest guards, errors, errno and concurrent non-repeating samples tested in both modes; real combined run passes UUID generation |
 | Thread-specific keys | 255 process-wide keys with per-thread generation-tagged values; scoped POSIX/kernel APIs, deletion/reuse, errors and four-pass guest destructors tested in both modes; real combined run confirms one key created and two sets |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | User-event queues | Native lifecycle, level/edge triggers, coalescing, batching, getters, polling, const microsecond timeouts, blocked deletion and errno pass through the guest ABI in both modes; no graphics/timer filters |
@@ -38,9 +38,10 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
+| Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; combined audio setup and sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks start and thread keys are used before sceKernelUuidCreate; new UUID adapter awaits the next run |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; latest failure writes through a null audio object after rejected NGS2 load; original NGS2 provider awaits combined verification |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -70,8 +71,11 @@ encoding with zero game draws/dispatches. The optional graphics/game connection 
 and checked with original synthetic fixtures. A real combined Terminal run now passes color/capability operations, starts RenderFlip and
 Game Render, passes original touch-recognizer initialization and opens the keyboard-backed
 controller. Save and trophy task threads then start; one thread key is created and set
-twice before the next stop at `sceKernelUuidCreate`. A host-backed UUID adapter is now
-implemented for the next combined Terminal run.
+twice, and UUID generation now passes. The latest real combined run then rejects NGS2
+module loading and faults while writing through a null audio configuration object. The
+original NGS2 module is now linked for the next run, with availability published only after
+its actual initializer returns zero. This is an audio-startup dependency failure; no CPU
+translator defect has been established by that fault.
 Starting a save/trophy task does not establish save access or trophy support. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
@@ -156,6 +160,20 @@ buffer sizes. Eight concurrent guest callers test single-owner initialization, e
 event consumption and repeated queries with separate errno values. Full contracts pass in
 both modes. Normal Terminal confirms one successful initialization with priority 700 in
 each mode; no user queries or login-event consumption have occurred yet.
+
+The optional graphics image now also links the supplied original `libSceNgs2.sprx`.
+Its initializer returns zero in JIT and interpreter with the existing original libc. It
+is a static resident provider for module ID 0x000B: load/is-loaded/unload maintain references,
+while code remains mapped and its initializer runs once. The loader identifies it using two
+scoped, executable guest export bindings in the same linked module, then publishes availability
+after successful initialization. Merely naming an import or supplying a data/non-executable
+binding cannot enable it; missing or wrongly scoped bindings leave it unavailable, and
+inconsistent modules or failed initialization abort before game entry. Synthetic loader tests
+cover those cases in both modes and verify reference lifecycle and rejection during initialization.
+The default headless test still has no NGS2 provider. No silent system/rack/voice stand-ins,
+NGS2 event fabrication, audio output device or sound playback is introduced. AJM/AudioOut
+services remain unresolved until implemented. Fatal fault diagnostics now print the signal
+and fault address before the CPU registers; recovered tracking/speculative faults stay silent.
 
 UUID creation uses macOS `uuid_generate_random`, then converts the RFC byte order to the
 native little-endian 32/16/16-bit uuidgen fields. The remaining eight bytes retain their
@@ -308,10 +326,11 @@ executes linked modules/game entry on a worker and routes reviewed graphics/queu
 It retains read-only content, private diagnostics and explicit unknown-import stops.
 The latest real combined run passes the color/capability adapters and starts the render
 threads, passes original gesture initialization and opens the keyboard-backed controller,
-then starts save/trophy tasks, creates/uses a thread key and stops at `sceKernelUuidCreate`.
-No keyboard sample has been read yet. The new UUID adapter generates host-random v4 IDs,
-with the exact 16-byte native field representation and explicit null-pointer errors. Its
-guest ABI/concurrency tests pass in both modes; combined use remains to be verified. The separate private graphics image preserves original executable bytes;
+then starts save/trophy tasks, creates/uses a thread key and passes UUID generation. The
+latest run faults in an audio configuration write after NGS2 load is rejected. The new
+original NGS2 provider passes initialization and strict loader lifecycle tests in both
+modes; its use together with real game entry/rendering awaits the next Terminal run. No
+keyboard sample or sound output has been verified. The separate private graphics image preserves original executable bytes;
 unsupported sensors, vibration and physical gamepads remain unresolved.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,

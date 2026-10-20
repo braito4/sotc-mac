@@ -27,9 +27,13 @@ class PrepareLinkedTests(unittest.TestCase):
         self.gesture = self.root/'modules with spaces/libSceSystemGesture.sprx'
         self.gesture.parent.mkdir()
         self.gesture.write_bytes(b'synthetic gesture source marker')
+        self.ngs2 = self.gesture.parent/'libSceNgs2.sprx'
+        self.ngs2.write_bytes(b'synthetic NGS2 source marker')
         self.out = self.root/'private output'
         self.identity = ('3pcAvmwKCvM', ('libSceSystemGesture', 1), ('libSceSystemGesture', 257))
         self.metadata = dict(missing=[], symbols=[dict(section=1, type=2, identity=self.identity)])
+        self.ngs2_metadata = dict(missing=[], symbols=[dict(section=1, type=2,
+            identity=(n, ('libSceNgs2', 1), ('libSceNgs2', 257))) for n in ('mPYgU4oYpuY','i0VnXM-C9fc')])
         self.calls = []
         self.unresolved = []
         self.patched = 0
@@ -37,17 +41,35 @@ class PrepareLinkedTests(unittest.TestCase):
             self.calls.append((game, out, list(modules)))
             (out/'link.json').write_text(json.dumps(dict(modules=[dict(file=f) for f in modules],
                 fs_loads_patched=self.patched, unresolved_imports=self.unresolved)))
-        fake = types.SimpleNamespace(module=lambda path: self.metadata, link=link, patch_fs_loads=None)
+        fake = types.SimpleNamespace(module=lambda path: self.ngs2_metadata if path == self.ngs2 else self.metadata,
+                                     link=link, patch_fs_loads=None)
         self.addCleanup(patch.stopall)
         patch.object(PREPARE, 'GAME', self.game).start()
         patch.object(PREPARE, 'ORIGINAL', self.boot).start()
         patch.dict('sys.modules', link_modules=fake).start()
 
-    def run_prepare(self, gesture=True):
+    def run_prepare(self, gesture=True, ngs2=False):
         args = ['--out', str(self.out)]
         if gesture:
             args += ['--system-gesture-module', str(self.gesture)]
+        if ngs2:
+            args += ['--ngs2-module', str(self.ngs2)]
         PREPARE.main(args)
+
+    def test_ngs2_linking_and_identity_failures(self):
+        self.run_prepare(ngs2=True)
+        self.assertEqual(self.calls[0][2], [*PREPARE.MODULES,str(self.gesture),str(self.ngs2)])
+        self.ngs2_metadata['symbols'].pop()
+        with self.assertRaisesRegex(SystemExit, 'Unsupported supplied NGS2'):
+            self.run_prepare(ngs2=True)
+        self.ngs2.unlink()
+        with self.assertRaisesRegex(SystemExit, 'Missing supplied libSceNgs2'):
+            self.run_prepare(ngs2=True)
+
+    def test_unresolved_ngs2_is_rejected(self):
+        self.unresolved = ['i0VnXM-C9fc#z#t']
+        with self.assertRaisesRegex(SystemExit, 'did not resolve the game NGS2'):
+            self.run_prepare(ngs2=True)
 
     def test_default_stays_two_modules(self):
         self.run_prepare(False)
