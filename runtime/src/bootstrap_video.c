@@ -9,7 +9,7 @@
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
-static _Atomic size_t open_requests, gamma_requests, adjust_requests;
+static _Atomic size_t open_requests, gamma_requests, adjust_requests, rate_requests, capability_requests;
 static int32_t video_open(int32_t user, int32_t bus, int32_t index, const void *params) {
     atomic_fetch_add_explicit(&open_requests, 1, memory_order_relaxed);
     /* Diagnostic policy: only the MAIN/index-zero profile is recognized.
@@ -47,10 +47,29 @@ static int32_t color_adjust_unavailable(int32_t handle, const void *settings, ui
     (void)size;
     return (int32_t)UINT32_C(0x8029000b); /* INVALID_HANDLE */
 }
+static int32_t flip_rate_unavailable(int32_t handle, int32_t rate) {
+    atomic_fetch_add_explicit(&rate_requests, 1, memory_order_relaxed);
+    /* Retail handle lookup precedes rate validation. The headless profile
+     * has no open ports; even NO_DEVICE passed as a handle stays invalid. */
+    (void)handle;
+    (void)rate;
+    return (int32_t)UINT32_C(0x8029000b);
+}
+static int32_t capability_unavailable(int32_t handle, void *settings, uint64_t size) {
+    atomic_fetch_add_explicit(&capability_requests, 1, memory_order_relaxed);
+    /* The suffixed retail query carries a full-width size; the empty handle
+     * table rejects the handle before it can access either output argument. */
+    (void)handle;
+    (void)settings;
+    (void)size;
+    return (int32_t)UINT32_C(0x8029000b);
+}
 uintptr_t bootstrap_video_resolve(const char *name) {
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)video_open;
     if (!strcmp(name, "DYhhWbJSeRg#G#H")) return (uintptr_t)color_settings_gamma;
     if (!strcmp(name, "pv9CI5VC+R0#G#H")) return (uintptr_t)color_adjust_unavailable;
+    if (!strcmp(name, "CBiu4mCE1DA#G#H")) return (uintptr_t)flip_rate_unavailable;
+    if (!strcmp(name, "kGVLc3htQE8#G#H")) return (uintptr_t)capability_unavailable;
     return 0;
 }
 void bootstrap_video_report(void) {
@@ -60,4 +79,8 @@ void bootstrap_video_report(void) {
            atomic_load_explicit(&gamma_requests, memory_order_relaxed));
     printf("Bootstrap: rejected VideoOut color adjustments=%zu (no valid display handle)\n",
            atomic_load_explicit(&adjust_requests, memory_order_relaxed));
+    printf("Bootstrap: rejected VideoOut flip-rate changes=%zu (no valid display handle)\n",
+           atomic_load_explicit(&rate_requests, memory_order_relaxed));
+    printf("Bootstrap: rejected VideoOut capability queries=%zu (no valid display handle)\n",
+           atomic_load_explicit(&capability_requests, memory_order_relaxed));
 }

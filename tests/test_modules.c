@@ -28,6 +28,27 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void check_video_flip_rate(uintptr_t entry) {
+    const uint64_t handles[] = {0, 1, 3, 4, UINT32_MAX, UINT64_MAX,
+                                0x80290018, UINT64_C(0xffffffff80290018)};
+    const uint64_t rates[] = {0, 1, 2, 3, UINT32_MAX, UINT64_MAX};
+    *runtime_errno() = 17;
+    for (unsigned round = 0; round < 2; ++round)
+        for (unsigned h = 0; h < 8; ++h) for (unsigned r = 0; r < 6; ++r) {
+            const uint64_t args[] = {handles[h], rates[r]};
+            assert((uint32_t)bbcpu_call(entry, 2, args) == 0x8029000b && *runtime_errno() == 17);
+        }
+}
+static void test_video_flip_rate(void) {
+    const char *name = "CBiu4mCE1DA#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("CBiu4mCE1DA#H#H", 0));
+    assert(!bootstrap_resolve("CBiu4mCE1DA#G#G", 0));
+    check_video_flip_rate(guest_bridge(fn));
+    puts("PASS: headless flip-rate guest ABI, invalid-handle precedence, repeated failures/rate extremes, scopes and errno");
+}
 static void check_video_adjust_color(uintptr_t entry) {
     const uint64_t handles[] = {0, 1, 2, 3, 4, UINT32_MAX, UINT64_MAX,
         UINT32_C(0x80290018), UINT64_C(0xffffffff80290018), UINT64_C(0x100000001)};
@@ -57,6 +78,18 @@ static void test_video_adjust_color(void) {
     assert(!bootstrap_resolve("pv9CI5VC+R0#G#G", 0));
     check_video_adjust_color(guest_bridge(fn));
     puts("PASS: headless color-adjust guest ABI, invalid-handle precedence including failed opens, 32-bit handle/size, untouched null/guarded settings, repeated errors, scopes and errno");
+}
+static void test_video_capabilities(void) {
+    const char *name = "kGVLc3htQE8#G#H";
+    bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
+    bootstrap_initialize(1);
+    const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn && !bootstrap_resolve(name, 1));
+    assert(!bootstrap_resolve("kGVLc3htQE8#H#H", 0));
+    assert(!bootstrap_resolve("kGVLc3htQE8#G#G", 0));
+    /* The same invalid-handle matrix covers full-width size arguments and
+     * protected/null outputs, before any actual capability-layout access. */
+    check_video_adjust_color(guest_bridge(fn));
+    puts("PASS: headless capability-query guest ABI, invalid-handle precedence, full-width sizes, untouched protected/null outputs and errno");
 }
 static uint32_t gamma_call(uintptr_t entry, void *output, uint64_t size, uint32_t bits) {
     uint64_t gpr[6] = {(uintptr_t)output, size, UINT64_MAX, 3, 5, 7}, result[2];
@@ -404,6 +437,8 @@ static void test_request_location(uintptr_t entry) {
     assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
 }
 int main(void) {
+    test_video_capabilities();
+    test_video_flip_rate();
     test_video_adjust_color();
     test_video_gamma();
     test_unavailable_video();

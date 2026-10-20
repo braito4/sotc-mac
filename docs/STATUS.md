@@ -9,13 +9,13 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | CPU string masks | PCMPISTRM/VPCMPISTRM: 61,440 synthetic cases per mode against a scalar model; native diagnostic JIT fault checks pass |
 | Runtime contracts | Scoped resolution, capability gate, heap/realloc, recursive mutex lifecycle and destructor callbacks |
 | Read/write locks | Non-timed kernel backend: synthetic guest lifecycle/errors, shared readers, exclusive writes and ownership checks pass in both modes |
-| Memory | Largest-free-range queries against an independent bitmap; real direct aliases, release and flexible availability verified in normal Terminal |
+| Memory | Largest-free-range queries against an independent bitmap; real direct aliases, release and flexible availability verified in normal Terminal and tool runs with explicit file backing |
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
-| Content API | Fixture ABI/error tests; normal Terminal confirms 17 opens per mode; interpreter: 86 reads/80,193,830 bytes, JIT: 198 reads/80,742,980 bytes; no writes |
+| Content API | Fixture ABI/error tests; latest paired tool run: 17 opens per mode; interpreter: 127 reads/80,402,890 bytes, JIT: 215 reads/80,773,728 bytes; no writes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
-| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 196/445 direct switches observed (interpreter/JIT) |
+| Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 270/484 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
@@ -25,22 +25,22 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
+| File-backed host memory | Explicit temporary, unlinked, 0600/CLOEXEC shared backing; alias, clearing, release and linked startup checks pass |
+| Archive/address audit | Six PSARC manifests, 130,238 members; nine synthetic archive/address tests; no full asset decoding or pointer-runtime replacement |
 | Color application availability | Suffixed three-argument ABI; empty-display profile rejects handles before reading settings/size |
 | Gamma preparation | Retail suffixed export: explicit 32-bit size plus float gamma, 12/16-byte layouts, three channels, pure data preparation |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
 
-The latest paired normal Terminal baseline creates three Fios2 workers, four game job
-workers and one resource-loading worker in both modes. There are 19 event flags and 160
-fibers, with 164 fiber runs. The interpreter records 196 direct switches, 50 event waits,
-1,120 sets and 86 reads totaling 80,193,830 bytes. JIT records 445 direct switches, 41 event
-waits, 1,945 sets and 198 reads totaling 80,742,980 bytes. Both open 17 files without writes.
-The worker counters differ because execution is concurrent; both main threads stop at the
-same color-application call after one VideoOut-open failure and one gamma preparation per mode. Both modes pass three GNM owner-registration failures, 20 resource
-registration failures and seven compute-queue failures, then query the logical safe area
-once. UserService remains initialized with priority 700. CommonDialog, network and share
-initialization each have one request; message-dialog initialization has none.
+The latest paired tool run uses explicit temporary-file backing and reaches the same kernel
+event-queue creation call in JIT and interpreter. Each mode creates three Fios2 workers,
+four game job workers, one resource-loading worker, 19 event flags and 160 fibers, with
+164 fiber runs. The interpreter records 270 direct switches and 127 reads/80,402,890 bytes;
+JIT records 484 switches and 215 reads/80,773,728 bytes. Both open 17 content files without
+writes. Both reject three owner registrations, 20 resource registrations, seven compute
+queues, one color update, one flip-rate change and one capability query. The logical
+safe-area query and gamma preparation each run once; no output device or renderer exists.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
 signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
@@ -65,8 +65,9 @@ when a worker finishes. Synthetic guest workers test this concurrently, includin
 competing to join one worker. Original libc/Fios2 initializers still return zero in both modes.
 The normal Terminal baseline confirms Fios2 and game-worker creation and initial event waits;
 the latest run also confirms a resource-loading worker and initial event signals/direct
-fiber switches. Subsequent completion and resource churn remain unverified. Tool execution still
-rejects shared-memory backing with EPERM.
+fiber switches. Subsequent completion and resource churn remain unverified. Tool execution still rejects named POSIX shared-memory creation, but explicit
+`SOTC_MEMORY_BACKING=file` now preserves shared mappings through an unlinked file and
+allows the linked diagnostic to run. The default named-shared-memory backend is unchanged.
 
 The internal loader now preserves full-width module IDs and validates its reserved argument.
 Its supported empty-argument profile loads the implemented fiber provider or, with a read-only
@@ -88,7 +89,7 @@ matching waiters complete. Cancellation and deletion wake blocked waits with dis
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
 named open/close remain unresolved. Normal Terminal confirms creation and blocking waits;
-the latest baseline records 1,120/1,945 game-level event sets (interpreter/JIT). Cancellation, timeout and deletion
+the latest baseline records 1,404/2,095 game-level event sets (interpreter/JIT). Cancellation, timeout and deletion
 paths in the game remain unverified.
 
 CommonDialog and MsgDialog initializers use a no-argument ABI. This diagnostic has no dialog
@@ -201,11 +202,26 @@ and isolated synchronization dependencies match this precedence in both modes. G
 tests cover repeated errors, protected/null settings, failed-open values and errno.
 The module test's trampolines now register their shared code page once to avoid exhausting
 the CPU's range table; no runtime range limit was changed. Full contracts pass in both
-modes. The game path after rejected color application needs a normal Terminal run.
+modes. Paired tool runs pass this rejection and proceed through flip-rate and capability queries.
+
+Flip-rate and the suffixed device-capability query now reject invalid display handles
+before validating rates or accessing output structures. Original retail exports with empty
+handle tables match the failure paths in both modes. No supported capabilities or frame
+rate are invented. Full linked tests pass with file backing and now stop at kernel event-
+queue creation; that requires a real lifecycle/synchronization contract.
+
+The supplied reference ZIP review produced independent archive/address checks and an
+optional host-memory adaptation, not imported source. See [Reference review](REFERENCE_REVIEW.md).
+The six-archive manifest audit and synthetic malformed/truncated/compressed/case-collision
+fixtures pass. Checked pointer arithmetic remains diagnostic-only; static-image pointers
+are still unresolved. File backing passes both-view aliasing, zeroing, post-close mapping,
+permissions, unlinked lifetime and close-on-exec tests, plus real direct/flexible memory
+checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
 
-Run `bash packaging/test-arm64.sh --linked-test` in a normal native Terminal. Compare both
+Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
+in the tool environment, or use the default backend in a normal native Terminal. Compare both
 stops, original module initialization, memory accounting, GNM requests, logical safe-area queries, VideoOut requests and actual file
 counters. Content reads do not establish successful archive/asset decoding or gameplay.
 

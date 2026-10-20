@@ -63,3 +63,15 @@ The linked test requires POSIX shared-memory creation for direct-memory backing.
 restricted automation environments reject that operation; `--contracts-test` does not need it.
 
 No renderer or playable app is built by these commands.
+
+## Content and memory diagnostics
+
+```sh
+bash packaging/test-arm64.sh --content-check
+SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test
+```
+
+The first command runs synthetic archive/address checks and audits only the supplied PSARC
+name manifests and file extents. Its private report does not establish asset decoding.
+The second preserves shared physical aliases using an unlinked temporary file when POSIX
+shared-memory creation is unavailable; it does not initialize graphics.

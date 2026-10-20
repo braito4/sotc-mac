@@ -74,16 +74,15 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 ## Status
 
-**Experimental, not playable.** In the latest paired normal Terminal run, JIT and interpreter
-both complete the original module initializers, create Fios2's three workers, four game job
-workers and a resource-loading worker. Both modes create 19 event flags and 160 fibers,
-record 164 fiber runs. The interpreter records 196 direct fiber switches and 86 reads
-(80,193,830 bytes); JIT records 445 switches and 198 reads (80,742,980 bytes). Both open
-17 content files without writes, pass three owner-registration and seven compute-queue
-failures, and query the logical safe area once. Both then reach the same unresolved
-VideoOut color-application call after one failed VideoOut open and one gamma preparation
-per mode. The concurrent worker counters differ at the stop. No rendered frame
-or successful archive/asset-decoding result is established.
+**Experimental, not playable.** The tool environment can now run the linked diagnostic
+using explicit temporary-file backing, preserving shared physical aliases. Both CPU modes
+complete the original module initializers, create Fios2's three workers, four game job
+workers and a resource-loading worker, and reach the same unresolved kernel event-queue
+creation call. Both have 19 event flags, 160 fibers and 164 fiber runs. The latest interpreter
+run records 270 direct switches and 127 reads (80,402,890 bytes); JIT records 484 switches
+and 215 reads (80,773,728 bytes). Both open 17 content files without writes. VideoOut remains
+headless: open fails, gamma data is prepared, and color, rate and capability operations
+reject the invalid display handle. No rendered frame or gameplay is established.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
@@ -116,7 +115,8 @@ creates no display port or window. The retail gamma helper now prepares three ch
 12/16-byte structures with its explicit size argument and original range behavior. Guest ABI
 and original-module checks pass in both modes; normal Terminal confirms progress to color
 application. That call now rejects the invalid display handle before reading settings.
-Its effect on the game path needs a normal Terminal run.
+Tool runs now also pass flip-rate and capability queries through explicit invalid-handle
+errors and reach kernel event-queue creation.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,
@@ -124,6 +124,17 @@ additional system services, archive/asset decoding and graphics integration
 still need validation.
 
 See [Development status](docs/STATUS.md) for the measured scope and next checks.
+
+## Additional diagnostics
+
+```sh
+bash packaging/test-arm64.sh --content-check
+SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test
+```
+
+The content audit checks archive extents and name manifests without extracting assets.
+File backing avoids named-shared-memory restrictions without changing shared aliases or
+mapping bounds. See [Reference review and applied checks](docs/REFERENCE_REVIEW.md).
 
 ## Documentation
 

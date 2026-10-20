@@ -47,7 +47,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_video.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
         "$trial_root/runtime/src/bootstrap_tls.c" "$trial_root/runtime/src/bootstrap_threads.c"
-        "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"
+        "$runtime_repo/src/runtime_file.c" "$trial_root/runtime/src/platform_arm64.c"
         "$trial_root/work/runtime_mutex_diagnostic.c" "$runtime_repo/src/runtime_rwlock.c")
     trial_libraries=("$trial_root/work/libbbcpu-context.a" "$trial_deps/lib/libZydis.a" "$trial_deps/lib/libZycore.a")
     trial_sources=("${trial_support[@]}" "$trial_root/runtime/src/runtime_memory_arm64.c" "${trial_libraries[@]}")
@@ -59,6 +59,10 @@ build_cpu_strings() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_strings.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_strings"
 }
 contracts() {
+    python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
+    clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
+        "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
+    "$trial_root/work/test_memory_backing"
     clang -target x86_64-linux-gnu -O1 -fno-stack-protector -fno-asynchronous-unwind-tables -fno-pic \
         -c "$trial_root/tests/fiber_guest.c" -o "$trial_root/work/fiber_guest.o"
     python3 "$trial_root/tools/prepare_fiber_fixture.py" "$trial_root/work/fiber_guest.o" "$trial_root/work/fiber_fixture_code.h"
@@ -163,6 +167,12 @@ case "$trial_mode" in
         done
         printf 'Native emitter and diagnostic JIT fault checks passed. The upstream Rosetta comparison suite was not run.\n'
         ;;
+    --content-check)
+        need python3
+        python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
+        python3 "$trial_root/tools/audit_content.py" --game-root "$trial_game" \
+            --report "$trial_root/work/content-audit.json"
+        ;;
     --prepare)
         need python3
         [[ -f "$trial_game/eboot.bin" ]] || fail 'Set SOTC_GAME_ROOT to your own readable CUSA08809 1.01 dump.'
@@ -200,5 +210,5 @@ case "$trial_mode" in
         printf 'Logs: %s-jit1.log and %s-jit0.log\n' "$trial_prefix" "$trial_prefix"
         [[ "$trial_blocked" -eq 0 ]] || exit "$trial_blocked"
         ;;
-    *) fail 'Modes: --check --fetch --test-emitter --test --contracts-test --prepare --entry-test --bootstrap-test --linked-test' ;;
+    *) fail 'Modes: --check --fetch --test-emitter --test --contracts-test --content-check --prepare --entry-test --bootstrap-test --linked-test' ;;
 esac

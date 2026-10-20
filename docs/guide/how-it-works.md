@@ -152,3 +152,11 @@ This preserves the original invalid-handle path without claiming a display updat
 The temporary high image mapping does not validate SotC's packed static pointers. CPU progress
 does not establish renderer correctness, game content loading, saving or playability. Those
 need separate implementation and end-to-end checks.
+
+## Offline checks and restricted host backing
+
+The read-only content audit validates archive/name-table extents without loading assets
+into the guest. Its packed-address helpers classify arithmetic only and do not rewrite
+game fields or resolve static pointers. The runtime memory adapter separately offers
+explicit unlinked-file backing for restricted hosts, preserving shared aliases and the
+original direct/flexible ledger. See [Reference review](../REFERENCE_REVIEW.md).
