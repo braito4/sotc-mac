@@ -79,6 +79,11 @@ static void fault(int sig, siginfo_t *info, void *context) {
 
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
+    if (argc == 3 && !strcmp(argv[1], "--gpu-load-check"))
+        return bootstrap_gpu_load_check(argv[2]);
+    if (argc == 3 && !strcmp(argv[1], "--renderer-check"))
+        return bootstrap_gpu_renderer_check(argv[2]);
     const char *game_root = NULL;
     if ((argc == 3 || argc == 5) && !strcmp(argv[2], "--bootstrap")) {
         bootstrap = 1;

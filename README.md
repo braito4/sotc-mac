@@ -92,8 +92,10 @@ currently sees zero GPU devices, but the user reports that this same check passe
 in Terminal. Host GPU access is established there. The isolated renderer library has now
 compiled and linked as ARM64 with its required loader exports verified. The builder handles
 dependency paths containing spaces, including FFmpeg metadata and CMake cache recovery.
-The library still needs loader integration; no renderer has been launched or game frame
-verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+The library now passes native load/export/unload checks in the diagnostic. An isolated
+`--renderer-check` can attempt its main-thread window initialization from Terminal; the
+tool process stops at its Metal prerequisite. The game path still needs renderer integration,
+and no game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless

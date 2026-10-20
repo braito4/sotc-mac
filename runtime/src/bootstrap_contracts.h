@@ -2,6 +2,13 @@
 #define SOTC_BOOTSTRAP_CONTRACTS_H
 #include <stdint.h>
 #include <stddef.h>
+/* Host/GPU contracts sharing the diagnostic's guest clock and wait accounting. */
+uint64_t runtime_process_time_us(void);
+uint64_t runtime_process_time_counter(void);
+uint64_t runtime_tsc_frequency(void);
+void runtime_sleep_stats(uint64_t *calls, uint64_t *ns, uint64_t *requested_ns);
+int bootstrap_gpu_load_check(const char *path);
+int bootstrap_gpu_renderer_check(const char *path);
 void bootstrap_initialize(uint64_t capabilities);
 uintptr_t bootstrap_resolve(const char *name, int is_data);
 uintptr_t bootstrap_clocks_resolve(const char *name);

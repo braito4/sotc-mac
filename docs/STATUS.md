@@ -33,6 +33,8 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Display data preparation | Exact 40-byte buffer attributes with seventh stack argument; mode fill/size helper; isolated original-module comparisons and guest tests pass in both modes |
 | Metal prerequisite | User reports PASS on Apple M1 in native Terminal: shader compilation, render pipeline, triangle draw and pixel readback; tool process still exposes zero Metal devices |
 | GPU library build | Pinned renderer and dependencies compiled and linked as ARM64; loader exports verified; five FFmpeg libraries load natively; sixteen offline build tests pass, including spaced paths and CMake cache recovery; no renderer launch or game frame |
+| GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
+| Renderer entry diagnostic | Opt-in main-thread initialization/event loop with private state and 60-second budget; seven native fixture tests pass; real run stops at tool-process Metal prerequisite (exit 24) |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -57,7 +59,8 @@ Zydis compiler flags, FFmpeg generated shell/linker metadata and installed pkg-c
 now preserve spaces in the project path. CMake can recover previously cached broken dependency
 paths. All five installed FFmpeg shared libraries passed native loading/version checks;
 sixteen offline builder tests pass. The GPU library targets macOS 15 or later.
-It is not linked into this diagnostic, and no renderer was launched or game frame verified.
+It loads successfully in the isolated diagnostic, but its APIs are not connected to the game
+execution path. Actual renderer initialization and game rendering remain unverified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -259,10 +262,16 @@ checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
 
+The Mac workspace is available again. Native loading of the actual library now passes after
+adding the missing host contracts and configuring private cache state before its static
+initializers. Run `bash packaging/test-arm64.sh --renderer-check` in native Terminal to
+attempt real renderer initialization and its main-thread window loop. This tool process's
+attempt stops at the Metal device prerequisite (exit 24). A diagnostic window is not game
+video. The CPU game path retains its explicit headless VideoOut profile.
+
 The Metal prerequisite has passed on Apple M1 in Terminal, and the isolated ARM64 GPU library
-has built successfully. Next integrate the library's runtime/CPU imports, memory hooks,
-main-thread window/event loop and consistent kernel queue ownership before attempting actual
-renderer initialization. The build alone does not prove game video.
+has built successfully. Next verify actual renderer initialization in Terminal, then connect checked scoped imports,
+memory/fault hooks and consistent kernel queue ownership to the game path. The build alone does not prove game video.
 
 Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
 in the tool environment, or use the default backend in a normal native Terminal. Compare both

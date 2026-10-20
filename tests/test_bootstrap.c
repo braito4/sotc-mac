@@ -4,6 +4,7 @@
 #include "platform.h"
 #include "runtime.h"
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -145,7 +146,67 @@ static void test_memory(int direct_memory) {
     assert(flexible_available(&flex_after) == 0 && flex_after == flex_before);
     puts("PASS: availability queries track real direct/flexible allocation and release");
 }
+static uint64_t callback_sum(uint64_t a, uint64_t b, uint64_t c,
+                             uint64_t d, uint64_t e, uint64_t f) {
+    return a + 2*b + 3*c + 4*d + 5*e + 6*f;
+}
+static void test_wait_reporting(void) {
+    runtime_wait_report(1); /* Clear earlier intervals. */
+    fflush(stdout);
+    int descriptors[2];
+    assert(pipe(descriptors) == 0);
+    const int saved = dup(STDOUT_FILENO);
+    assert(saved >= 0 && dup2(descriptors[1], STDOUT_FILENO) == STDOUT_FILENO);
+    assert(close(descriptors[1]) == 0);
+    runtime_wait_note(0, 2000000);
+    runtime_wait_note(1, 1000000);
+    runtime_wait_report(0);
+    runtime_wait_report(NAN); /* Invalid frame counts do not consume waits. */
+    runtime_wait_report(2);
+    runtime_wait_report(2); /* Second interval is empty. */
+    fflush(stdout);
+    assert(dup2(saved, STDOUT_FILENO) == STDOUT_FILENO && close(saved) == 0);
+    char output[512] = {0};
+    const ssize_t length = read(descriptors[0], output, sizeof(output)-1);
+    assert(length > 0 && close(descriptors[0]) == 0);
+    assert(!strcmp(output, "Runtime waits per frame: cond 1.000 ms\nRuntime waits per frame: mutex 0.500 ms\n"));
+    puts("PASS: measured wait intervals, frame normalization, invalid-frame rejection and snapshot reset");
+}
+static uintptr_t inner_callback;
+static uint64_t callback_nested(uint64_t a, uint64_t b, uint64_t c,
+                                uint64_t d, uint64_t e, uint64_t f) {
+    (void)b; (void)c; (void)d; (void)e; (void)f;
+    const uint64_t args[] = {a};
+    return runtime_guest_call((void *)inner_callback, 1, args);
+}
+static void test_host_callbacks(void) {
+    const uint64_t args[] = {UINT64_C(0x100000001), 2, 3, 4, 5, 6};
+    for (int n = 0; n <= 6; ++n) {
+        uint64_t expected = 0;
+        for (int i = 0; i < n; ++i) expected += args[i] * (uint64_t)(i+1);
+        assert(runtime_guest_call(callback_sum, n, n ? args : NULL) == expected);
+    }
+    unsigned char *guest = runtime_low_map(16384, PROT_READ | PROT_WRITE);
+    assert(guest);
+    /* mov rax,rdi; add rax,7; ret -- synthetic x86 integer callback. */
+    const unsigned char inner[] = {0x48,0x89,0xf8,0x48,0x83,0xc0,7,0xc3};
+    memcpy(guest, inner, sizeof(inner));
+    inner_callback = (uintptr_t)guest;
+    /* Call a native function which calls back into the inner guest function.
+     * Preserve the outer guest's rdi across the host call and add it after. */
+    const unsigned char outer[] = {0x57,0x48,0xb8,0,0,0,0,0,0,0,0,0xff,0xd0,0x5f,0x48,0x01,0xf8,0xc3};
+    memcpy(guest+64, outer, sizeof(outer));
+    const uintptr_t target = (uintptr_t)callback_nested;
+    memcpy(guest+67, &target, sizeof(target));
+    bbcpu_add_guest_code((uintptr_t)guest, 16384);
+    assert(runtime_guest_call(guest, 1, args) == args[0]+7);
+    assert(runtime_guest_call(guest+64, 1, args) == args[0]*2+7);
+    puts("PASS: native callback arities 0..6, full-width guest result and nested guest-host-guest execution");
+}
 int main(int argc, char **argv) {
+    if (argc == 2 && !strcmp(argv[1], "--restart-check")) runtime_restart();
+    if (argc == 2 && !strcmp(argv[1], "--callback-null-check")) runtime_guest_call(NULL, 0, NULL);
+    if (argc == 2 && !strcmp(argv[1], "--callback-count-check")) runtime_guest_call(callback_sum, 7, NULL);
     assert(argc == 1 || (argc == 2 && !strcmp(argv[1], "--direct-memory")));
     const char *init = "bzQExy189ZI#1#u";
     bootstrap_initialize(0);
@@ -214,6 +275,8 @@ int main(int argc, char **argv) {
     assert(result == 42);
     bootstrap_finalize(NULL);
     puts("PASS: scoped resolution, capability gate, 40-bit heap/realloc, POSIX recursive mutex lifecycle/errors, destructor order/recursion and x86 guest callback");
+    test_wait_reporting();
+    test_host_callbacks();
     test_console();
     bootstrap_test_rwlocks();
     bootstrap_test_event_flags();

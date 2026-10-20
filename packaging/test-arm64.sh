@@ -43,6 +43,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_users.c"
         "$trial_root/runtime/src/bootstrap_share.c"
         "$trial_root/runtime/src/bootstrap_gnm.c"
+        "$trial_root/runtime/src/bootstrap_gpu.c"
         "$trial_root/runtime/src/bootstrap_system.c"
         "$trial_root/runtime/src/bootstrap_video.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
@@ -53,7 +54,7 @@ build_diagnostic() {
     trial_libraries=("$trial_root/work/libbbcpu-context.a" "$trial_deps/lib/libZydis.a" "$trial_deps/lib/libZycore.a")
     trial_sources=("${trial_support[@]}" "$trial_root/runtime/src/runtime_memory_arm64.c" "${trial_libraries[@]}")
     clang "${trial_flags[@]}" "$trial_root/runtime/src/probe_entry_arm64.c" \
-        "${trial_sources[@]}" -o "$trial_root/work/probe_entry_arm64"
+        "${trial_sources[@]}" -Wl,-export_dynamic -o "$trial_root/work/probe_entry_arm64"
     [[ "$(lipo -archs "$trial_root/work/probe_entry_arm64")" == arm64 ]] || fail 'Diagnostic is not ARM64.'
 }
 build_cpu_strings() {
@@ -62,6 +63,8 @@ build_cpu_strings() {
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
         "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
     "$trial_root/work/test_memory_backing"
@@ -84,6 +87,16 @@ contracts() {
         "$trial_root/tests/test_clocks.c" "$trial_root/tests/test_files.c" "$trial_root/tests/test_rwlocks.c" \
         "$trial_root/tests/test_event_flags.c" "$trial_root/tests/test_equeues.c" \
         "${trial_sources[@]}" -o "$trial_root/work/test_bootstrap"
+    for trial_failure in restart callback-null callback-count; do
+        trial_log="$trial_prefix-$trial_failure.log"
+        if "$trial_root/work/test_bootstrap" "--$trial_failure-check" > "$trial_log" 2>&1; then
+            fail "Expected explicit rejection for $trial_failure"
+        else
+            trial_status=$?
+            [[ "$trial_status" == 27 ]] || fail "Unexpected $trial_failure exit: $trial_status"
+        fi
+        cat "$trial_log"
+    done
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
@@ -175,6 +188,22 @@ case "$trial_mode" in
         clang -arch arm64 -O2 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -framework Metal \
             "$trial_root/tools/check_graphics.m" -o "$trial_root/work/check_graphics"
         "$trial_root/work/check_graphics"
+        ;;
+    --gpu-load-check|--renderer-check)
+        need clang; need python3
+        if [[ "$trial_mode" == --renderer-check ]]; then
+            bash "$trial_root/packaging/test-arm64.sh" --graphics-check
+        fi
+        build_diagnostic
+        python3 "$trial_root/tools/check_gpu_link.py"
+        trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-load-state-XXXXXX")
+        if [[ "$trial_mode" == --renderer-check ]]; then
+            BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
+                BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
+                "$trial_root/work/probe_entry_arm64" --renderer-check "$trial_root/work/gpu-build/libbbgpu.dylib"
+        else
+            BB_GPU_USER_DIR="$trial_gpu_state" "$trial_root/work/probe_entry_arm64" --gpu-load-check "$trial_root/work/gpu-build/libbbgpu.dylib"
+        fi
         ;;
     --content-check)
         need python3

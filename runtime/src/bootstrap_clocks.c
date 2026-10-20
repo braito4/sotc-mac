@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -84,15 +85,33 @@ static uint64_t process_time_us(void) { return process_counter() / 1000; }
 static uint64_t process_frequency(void) { return UINT64_C(1000000000); }
 static uint64_t tsc_frequency(void) { return BBCPU_TSC_HZ; }
 static uint64_t read_tsc(void) { return bbcpu_tsc(); }
+/* GPU timestamps must share the exact origin/units used by guest clock imports. */
+uint64_t runtime_process_time_us(void) { return process_time_us(); }
+uint64_t runtime_process_time_counter(void) { return process_counter(); }
+uint64_t runtime_tsc_frequency(void) { return tsc_frequency(); }
+/* Destructive interval snapshots, matching the pinned GPU's statistics contract. */
+static _Atomic uint64_t sleep_calls, sleep_total_ns, sleep_requested_ns;
+void runtime_sleep_stats(uint64_t *calls, uint64_t *ns, uint64_t *requested_ns) {
+    *calls = atomic_exchange_explicit(&sleep_calls, 0, memory_order_relaxed);
+    *ns = atomic_exchange_explicit(&sleep_total_ns, 0, memory_order_relaxed);
+    *requested_ns = atomic_exchange_explicit(&sleep_requested_ns, 0, memory_order_relaxed);
+}
+
 static int sleep_for(const GuestTimespec *request, GuestTimespec *remaining) {
     if (!request || request->sec < 0 || request->nsec < 0 || request->nsec >= 1000000000) return EINVAL;
     const struct timespec rq = {request->sec, request->nsec};
     struct timespec rem = {0}, a, b;
     if (clock_gettime(CLOCK_MONOTONIC, &a)) return errno;
     const int result = nanosleep(&rq, &rem), saved_error = result ? errno : 0;
-    if (!clock_gettime(CLOCK_MONOTONIC, &b))
-        runtime_wait_note(3, (uint64_t)(b.tv_sec - a.tv_sec) * UINT64_C(1000000000)
-                            + (uint64_t)(b.tv_nsec - a.tv_nsec));
+    atomic_fetch_add_explicit(&sleep_calls, 1, memory_order_relaxed);
+    atomic_fetch_add_explicit(&sleep_requested_ns,
+        (uint64_t)request->sec * UINT64_C(1000000000) + (uint64_t)request->nsec, memory_order_relaxed);
+    if (!clock_gettime(CLOCK_MONOTONIC, &b)) {
+        const uint64_t elapsed = (uint64_t)(b.tv_sec - a.tv_sec) * UINT64_C(1000000000)
+                                 + (uint64_t)(b.tv_nsec - a.tv_nsec);
+        atomic_fetch_add_explicit(&sleep_total_ns, elapsed, memory_order_relaxed);
+        runtime_wait_note(3, elapsed);
+    }
     /* POSIX writes the remainder on interruption. Keep it untouched on errors
      * such as EINVAL; a successful wait has no remaining duration. */
     if (remaining && (!saved_error || saved_error == EINTR)) *remaining = (GuestTimespec){rem.tv_sec, rem.tv_nsec};

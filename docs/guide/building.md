@@ -107,3 +107,15 @@ build; generated FFmpeg metadata and cached dependency paths are repaired for sp
 A successful build checks ARM64 architecture and API exports and records the host runtime
 symbols it needs. It does not launch the game. See [Graphics bring-up](../GRAPHICS_BRINGUP.md)
 for stages, prerequisites and remaining loader integration.
+
+Before attempting loader integration, run `python3 tools/check_gpu_link.py` on the Mac after
+building the diagnostic and GPU library. It reports missing host symbols without loading the
+library. Exit 2 identifies incomplete coverage; exit 0 establishes symbol presence only.
+See [Graphics bring-up](../GRAPHICS_BRINGUP.md#check-host-symbol-coverage-before-loading).
+
+After symbol coverage is complete, `bash packaging/test-arm64.sh --gpu-load-check` rebuilds
+and loads the actual library without calling its GPU APIs. This now passes on ARM64 macOS.
+Use `bash packaging/test-arm64.sh --renderer-check` in native Terminal to attempt renderer
+initialization and open its diagnostic window. The latter first checks Metal device access;
+it uses isolated cache/configuration directories and a 60-second budget. It does not run
+the game or verify a game frame. See [Graphics bring-up](../GRAPHICS_BRINGUP.md#load-and-initialize-in-separate-stages).

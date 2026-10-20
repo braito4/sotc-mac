@@ -76,6 +76,68 @@ An incremental rerun uses completed packages. The GPU library targets macOS 15 o
 matching the pinned runtime's documented minimum and its C++ library requirements.
 No renderer was launched and no game frame was verified.
 
+## Check host symbol coverage before loading
+
+After building both the GPU library and the CPU diagnostic on the Mac:
+
+```sh
+python3 tools/check_gpu_link.py
+```
+
+This reads the actual binaries with `nm`, compares the GPU's runtime/CPU imports with
+external definitions in the diagnostic, and checks the required GPU API exports. Undefined
+references and local definitions do not satisfy a host import. It does not load either binary
+or invoke library constructors. Missing symbols return exit 2; missing files or an invalid
+inventory return exit 1. The private report is `work/gpu-link-check.json`; explicit
+`--library` and `--executable` paths can select another build.
+
+A complete symbol inventory is only a linking prerequisite. It cannot verify function
+signatures, dependent-library loading, memory/fault hooks, shared queue ownership or window
+threading. A successful inventory therefore still reports ABI and game video as unverified.
+Seven tests cover missing APIs, undefined/local host symbols, malformed inventories and a
+native shared-library/executable fixture with a deliberately missing then supplied host
+function. These fixtures now run on macOS as well as Linux.
+
+## Load and initialize in separate stages
+
+```sh
+bash packaging/test-arm64.sh --gpu-load-check
+bash packaging/test-arm64.sh --renderer-check
+```
+
+The first command rebuilds the diagnostic with host symbol exports, checks symbol coverage,
+and loads the actual library with immediate binding. It finds all six required API exports
+and unloads without calling them. On 2026-10-20 this passes on ARM64 macOS: all 46 runtime/CPU
+imports are present. This is an actual native load test, separate from the symbol inventory.
+
+The missing host contracts now reuse the diagnostic's real clock origin and TSC frequency,
+existing CPU callback bridge, sleep measurements and wait accounting. Callback tests cover
+native arities 0 through 6 and nested guest-host-guest execution in both CPU modes. Sleep
+statistics return and reset measured intervals. Restart remains explicitly unsupported: a
+request exits with `STOP_RESTART_UNAVAILABLE` and code 27; it cannot execute the upstream
+Bloodborne launcher or claim a successful restart.
+
+The library creates cache folders in a C++ static initializer, before `bbgpu_init` runs.
+The commands therefore create an isolated directory under `work` and set `BB_GPU_USER_DIR`
+before loading. A direct invocation without an existing writable absolute directory is rejected
+with code 28. This avoids falling back to the user's ordinary shadPS4 configuration. Load,
+missing-export and missing-host-hook failures also return 28. Generated directories stay private.
+
+The second command first checks real Metal shader/draw/readback access, then initializes the
+renderer and pumps its window on the macOS main thread. It selects Metal, disables game-specific
+profiles and the launcher settings channel, and keeps configuration in the isolated directory.
+No boot image is read, no kernel queue provider is registered, no image patches are applied
+and no game commands are submitted. Its diagnostic config uses the SotC serial, a 1280x720
+window and zero SDK/attribute metadata; these do not claim to represent the game's metadata.
+Close the window to exit, or the 60-second watchdog terminates with code 21.
+
+Seven native loader/renderer fixture tests pass, including configuration delivery, entry into
+the event loop and initialization failure. The real renderer check currently stops at the
+Metal prerequisite with code 24 because the tool process exposes no device. Run it in the
+native Terminal session where the Metal prerequisite previously passed. Real renderer
+initialization and a game frame remain unverified; a diagnostic window would not establish
+SotC rendering.
+
 ## Verified CPU-side display contracts
 
 - Buffer attributes write the exact 40-byte layout. Pitch is the seventh integer argument on
@@ -101,8 +163,9 @@ is generated because no output port or rendering submission has succeeded.
 
 The pinned bloodborne-runtime contains a shadPS4-derived GPU library with Vulkan/MoltenVK and
 an experimental Metal backend. Its dependencies and isolated ARM64 library now build, but
-the library is not linked into this diagnostic. Compilation and export checks do not
-establish successful renderer initialization or command execution.
+the library is only loaded in the isolated prerequisite mode. Its APIs are not connected
+to the game execution path. Native loading does not establish successful renderer
+initialization or command execution.
 
 A first game frame requires integrating initialization, scoped import resolution,
 guest memory/fault tracking and command submission with this loader.

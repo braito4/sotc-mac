@@ -9,6 +9,7 @@
 #include "platform.h"
 #include "runtime.h"
 #include <inttypes.h>
+#include <math.h>
 #include <errno.h>
 #include <limits.h>
 #include <pthread.h>
@@ -92,6 +93,39 @@ uintptr_t runtime_mutex_resolve(const char *name);
 void runtime_mutex_report(void);
 void runtime_wait_note(int kind, uint64_t ns) {
     if (kind >= 0 && kind < 4) atomic_fetch_add_explicit(&wait_ns[kind], ns, memory_order_relaxed);
+}
+/* Aggregate real waits already recorded by the diagnostic. Unlike the upstream
+ * Bloodborne profiler this has no game-specific stack scan or sampler. */
+void runtime_wait_report(double frames) {
+    if (!isfinite(frames) || frames <= 0) return;
+    static const char *kinds[] = {"cond", "mutex", "sema", "sleep"};
+    for (size_t i = 0; i < 4; ++i) {
+        const uint64_t ns = atomic_exchange_explicit(&wait_ns[i], 0, memory_order_relaxed);
+        if (ns) printf("Runtime waits per frame: %s %.3f ms\n", kinds[i], (double)ns / frames / 1e6);
+    }
+}
+/* Shared callback bridge adapted from the pinned runtime.c. ARM64 host code
+ * executes directly; registered guest code goes through the existing CPU bridge,
+ * which preserves nested guest execution. No native game patch is installed. */
+uint64_t runtime_guest_call(const void *fn, int count, const uint64_t *args) {
+    if (!fn || count < 0 || count > 6 || (count && !args)) {
+        fputs("STOP_HOST_CONTRACT: invalid guest callback arguments\n", stderr);
+        _Exit(27);
+    }
+    if (bbcpu_is_guest((uintptr_t)fn)) return bbcpu_call((uintptr_t)fn, count, args);
+    uint64_t a[6] = {0};
+    for (int i = 0; i < count; ++i) a[i] = args[i];
+    typedef uint64_t (*Function)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+    return ((Function)fn)(a[0], a[1], a[2], a[3], a[4], a[5]);
+}
+/* The isolated diagnostic has no restart launcher. Explicitly stop if the GPU
+ * settings menu requests one; never execute Bloodborne's run.sh or pretend that
+ * a restart succeeded. The assertion guard stays false (no restart in flight). */
+volatile int runtime_restarting;
+void runtime_restart(void) {
+    fputs("STOP_RESTART_UNAVAILABLE: diagnostic restart is unsupported\n", stderr);
+    fflush(NULL);
+    _Exit(27);
 }
 void bootstrap_set_linked_libc(int enabled) { linked_libc = enabled; }
 void bootstrap_set_procparam(void *param) { process_param = param; }

@@ -142,5 +142,24 @@ void bootstrap_test_clocks(void) {
     assert(wall.head == 0xa123 && wall.tail == 0xb456);
     assert(timeofday(NULL) == (int32_t)UINT32_C(0x80020016));
     puts("PASS: guest RDTSC/API clock agreement, counter units, clock IDs/layout/errors, realtime and real sleep duration");
+    /* GPU host exports and the guest imports must share clock origin/units. */
+    assert(runtime_tsc_frequency() == frequency());
+    before = counter(); observed = runtime_process_time_counter(); after = counter();
+    assert(before <= observed && observed <= after);
+    before = counter(); observed = runtime_process_time_us(); after = counter();
+    assert(before / 1000 <= observed && observed <= after / 1000);
+    uint64_t calls, elapsed, requested;
+    runtime_sleep_stats(&calls, &elapsed, &requested); /* Discard earlier waits. */
+    runtime_sleep_stats(&calls, &elapsed, &requested);
+    assert(!calls && !elapsed && !requested);
+    request = (GuestTimespec){0, 2000000};
+    assert(sleep(&request, NULL) == 0);
+    request.nsec = 1000000000;
+    assert(sleep(&request, NULL) != 0); /* Rejected input is not a sleep. */
+    runtime_sleep_stats(&calls, &elapsed, &requested);
+    assert(calls == 1 && elapsed >= 2000000 && requested == 2000000);
+    runtime_sleep_stats(&calls, &elapsed, &requested);
+    assert(!calls && !elapsed && !requested);
+    puts("PASS: GPU/guest clock origin and units, real sleep statistics and destructive interval snapshots");
     test_calendar();
 }

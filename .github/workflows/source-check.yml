@@ -16,3 +16,5 @@ jobs:
           bash -n prueba_cpu_arm64.command
       - name: Check Python syntax
         run: python3 -m compileall -q tools
+      - name: Check GPU host symbol inventory with native fixtures
+        run: python3 -m unittest discover -s tests -p test_gpu_link.py
