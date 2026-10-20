@@ -17,10 +17,52 @@ and fragment shaders, renders a triangle into a small offscreen texture, waits f
 and verifies the pixels. It uses no game data, opens no window, and does not establish SotC
 rendering. Resource or pixel-verification failures return exit 24.
 
-The development tool process reports **zero enumerated Metal devices and no default device**.
-The check compiles, but stops before shader compilation or rendering. Its successful-device
-path is therefore not yet verified here. This is a process-access result, not evidence that
-the physical Mac has no GPU. A Terminal result is needed before verifying an actual renderer.
+On 2026-10-20 the user ran this exact check in a native Terminal on **Apple M1** and reported
+PASS for shader compilation, pipeline creation, the triangle draw and pixel readback. The
+host prerequisite is therefore established in that Terminal session. No SotC frame was involved.
+
+The development tool process still reports zero enumerated devices and no default device.
+That process-access restriction does not invalidate the successful Terminal test. GitHub DNS
+also fails in the tool process, so dependency downloads must currently run from Terminal.
+
+## Build the isolated GPU library
+
+```sh
+bash packaging/build-gpu-arm64.sh
+```
+
+This downloads a separate checkout at the pinned bloodborne-runtime revision, including the
+exact FSR-Vulkan, ImGui and CPU submodules recorded in that commit. The current source snapshot
+is missing FSR-Vulkan and ImGui contents. The builder preserves `runtime/upstream` and the
+CPU diagnostic, and does not read game input or start a renderer.
+
+The build uses the pinned upstream ARM64 dependency recipes, omitting the unrelated app-bundle
+Bash/Python runtimes and the x86 assembler prerequisite. It verifies the recipe's SHA-256 before
+preparing that subset; an unexpected recipe is rejected. The generated recipe runs with the
+system Bash and limits compiler parallelism (two jobs by default; `SOTC_GPU_JOBS=1..8`).
+
+A glslang compiler is required. The builder uses `SOTC_GLSLANG`, a compiler on PATH, or the
+existing ARM64 glslang from the adjacent local shadPS4 build. It does not install Homebrew
+packages. Other missing tools are reported before downloads.
+
+Sources, dependencies, build output and a private ABI inventory stay under `work`; build logs
+stay under `logs`. Existing source checkouts must have the exact expected revision, remote
+and clean submodule gitlinks. Foreign or modified checkouts are preserved and rejected.
+Successful builds must produce an ARM64-only library with the loader API exports. The build
+report records its unresolved runtime/CPU symbols for the next integration step.
+
+Useful separate stages:
+
+```sh
+bash packaging/build-gpu-arm64.sh --check  # Read-only inventory; exit 2 if incomplete
+bash packaging/build-gpu-arm64.sh --fetch  # Source/submodules only
+```
+
+Offline tests cover recipe integrity and shell syntax, bounded parallelism, preservation of
+foreign/redirected paths, cleanup after failed fetches, gitlink validation and command-failure
+reporting. An actual fetch from the tool process still stops at GitHub DNS resolution. The
+network download, dependency compilation and GPU library build are therefore not yet verified
+end to end. A built library will still require the loader integration below before game video.
 
 ## Verified CPU-side display contracts
 
@@ -46,8 +88,9 @@ is generated because no output port or rendering submission has succeeded.
 ## Remaining integration
 
 The pinned bloodborne-runtime contains a shadPS4-derived GPU library with Vulkan/MoltenVK and
-an experimental Metal backend. This diagnostic does not build or link that library. Its
-presence as source does not provide a renderer to the diagnostic automatically. An initial
+an experimental Metal backend. The new isolated builder prepares that library, but it has not yet completed a build or
+linked the renderer to this diagnostic. Its presence as source does not provide a renderer
+to the diagnostic automatically. An initial
 CMake configuration cannot find an installed Vulkan SDK. Explicit use of the existing local
 Vulkan headers/loader passes that step and stops at a missing fmt package configuration;
 other dependencies have not yet been resolved and no GPU library has been built.

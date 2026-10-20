@@ -11,5 +11,6 @@ This is a developer diagnostic, not a playable macOS application.
 | [Performance](guide/performance.md) | Current verification scope |
 | [Development status](STATUS.md) | Confirmed milestones and remaining work |
 | [Reference review](REFERENCE_REVIEW.md) | Supplied snapshot findings, independent content/address checks and file backing |
+| [Graphics bring-up](GRAPHICS_BRINGUP.md) | Confirmed Apple M1 prerequisite, isolated renderer build and remaining integration |
 | [Credits](CREDITS.md) | Upstream projects, licenses and pinned revisions |
 | [Publishing](guide/publishing.md) | Maintainer-only GitHub creation and push |

@@ -88,9 +88,10 @@ prepares gamma, buffer attributes and mode data, while device operations explici
 No rendered frame or gameplay is established.
 
 The new `--graphics-check` builds a real Metal prerequisite test. The development tool process
-currently sees zero GPU devices, so it stops before rendering. A successful check in Terminal
-would establish host GPU access, not game rendering. The upstream renderer still needs building
-and integration. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+currently sees zero GPU devices, but the user reports that this same check passes on Apple M1
+in Terminal. Host GPU access is established there. An isolated renderer builder is now available
+with `bash packaging/build-gpu-arm64.sh`; its downloads cannot run here because GitHub DNS
+fails. The renderer still needs a completed build and loader integration. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless

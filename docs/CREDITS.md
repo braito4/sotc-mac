@@ -40,3 +40,8 @@ and vector adapters include pinned upstream implementation files unchanged rathe
 them into a competing runtime. Fiber adapter comments identify its upstream reference.
 
 No game code, assets, generated game functions, saves or executable images are distributed.
+
+The isolated GPU builder uses bloodborne-runtime's pinned renderer and macOS dependency
+recipes (including the bbport and shadPS4 foundations), with a checked build-only subset for
+ARM64 renderer dependencies. It excludes the app-bundle runtimes and does not alter or claim
+authoring of the upstream renderer, shader recompiler, FSR-Vulkan or Dear ImGui sources.

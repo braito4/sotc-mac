@@ -89,3 +89,19 @@ native macOS Terminal to establish host access. See [Graphics bring-up](../GRAPH
 
 The initialization probe has a 30-second watchdog. `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
 60 seconds; it cannot disable the watchdog. A timeout still fails the paired test.
+
+## Isolated renderer build
+
+The Metal prerequisite has passed on Apple M1 in the user's native Terminal. To prepare the
+actual renderer dependencies and library:
+
+```sh
+bash packaging/build-gpu-arm64.sh
+```
+
+This uses a separate pinned source checkout and build area under `work`, leaving the current
+CPU diagnostic and `runtime/upstream` unchanged. It needs network access; GitHub DNS is not
+available in the development tool process. The first build downloads and compiles dependencies.
+A successful build checks ARM64 architecture and API exports and records the host runtime
+symbols it needs. It does not launch the game. See [Graphics bring-up](../GRAPHICS_BRINGUP.md)
+for stages, prerequisites and remaining loader integration.

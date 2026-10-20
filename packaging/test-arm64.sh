@@ -61,6 +61,7 @@ build_cpu_strings() {
 }
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_backing.c" \
         "$trial_root/runtime/src/platform_arm64.c" -o "$trial_root/work/test_memory_backing"
     "$trial_root/work/test_memory_backing"

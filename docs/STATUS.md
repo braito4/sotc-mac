@@ -31,7 +31,8 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Color application availability | Suffixed three-argument ABI; empty-display profile rejects handles before reading settings/size |
 | Gamma preparation | Retail suffixed export: explicit 32-bit size plus float gamma, 12/16-byte layouts, three channels, pure data preparation |
 | Display data preparation | Exact 40-byte buffer attributes with seventh stack argument; mode fill/size helper; isolated original-module comparisons and guest tests pass in both modes |
-| Metal prerequisite | ARM64 offscreen draw/readback check compiles; current tool process exposes zero Metal devices and exits before shader creation; no successful GPU path verified |
+| Metal prerequisite | User reports PASS on Apple M1 in native Terminal: shader compilation, render pipeline, triangle draw and pixel readback; tool process still exposes zero Metal devices |
+| GPU build orchestration | Isolated pinned source/submodule fetch and ARM64-only build recipe with ABI export inventory; eleven offline tests pass; actual fetch blocked by tool-process GitHub DNS |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -48,9 +49,12 @@ two flip-rate changes, one capability query, one flip-event registration, one di
 registration and one mode configuration. Safe area, gamma, buffer attributes and mode-data
 preparation each run once; no output device or renderer exists.
 
-The Metal prerequisite check compiles but reports no default device and zero enumerated
-devices in this tool process. Its GPU draw/readback path remains unverified. The upstream GPU
-library is not linked into this diagnostic. Configuration first requires a Vulkan SDK;
+The user reports that the Metal prerequisite check passes on Apple M1 in native Terminal,
+including GPU draw/readback. This tool process still reports no default device and zero
+enumerated devices. The upstream GPU library is not linked into this diagnostic. The new
+isolated builder fetches its pinned submodules and prepares ARM64 dependencies/build output,
+with offline orchestration tests; its actual fetch still fails on GitHub DNS here.
+The earlier direct configuration first required a Vulkan SDK;
 pointing it at the existing local Vulkan headers/loader advances to a missing fmt package
 configuration. No GPU library was built. See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the
 verified display contracts and remaining renderer integration.
@@ -254,8 +258,9 @@ checks in the linked suite. No game content or persistent save is modified.
 
 ## Next verification
 
-Run `bash packaging/test-arm64.sh --graphics-check` in a native Terminal. The tool process
-cannot currently access a Metal device. This prerequisite does not run the game.
+The Metal prerequisite has passed on Apple M1 in Terminal. Next run
+`bash packaging/build-gpu-arm64.sh` there to fetch and build the isolated GPU library.
+GitHub DNS fails in the tool process. This build does not start the game or prove video.
 
 Run `SOTC_MEMORY_BACKING=file bash packaging/test-arm64.sh --linked-test`
 in the tool environment, or use the default backend in a normal native Terminal. Compare both
