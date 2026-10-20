@@ -7,6 +7,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Host CPU | ARM64-only diagnostic and bbcpu library; no Rosetta |
 | Upstream checks | Native emitter and JIT fault recovery checks passed |
 | Runtime contracts | Scoped resolution, capability gate, heap/realloc, recursive mutex lifecycle and destructor callbacks |
+| Read/write locks | Non-timed kernel backend: synthetic guest lifecycle/errors, shared readers, exclusive writes and ownership checks pass in both modes |
 | Memory | Largest-free-range queries against an independent bitmap; real direct aliases, release and flexible availability verified in normal Terminal |
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
 | Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
@@ -16,9 +17,14 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Fibers | Synthetic initialize ABI, yield/resume/switch, stack/register/FPU state, restart, attach-context, lifecycle errors and host-thread migration in both modes |
 | Module registry | Reference-counted availability for the implemented fiber module; unsupported modules stay unavailable |
 
-The last normal Terminal game baseline completed early memory setup and reached an unresolved
-system-module load in both CPU modes. File counters remained zero. The new fiber/module support
-has passed synthetic tests; linked game progress after this addition remains to be verified.
+The latest normal Terminal game baseline completed early memory setup, passed the system-module
+load boundary and entered Fios2 startup. Both modes stopped at the same unresolved read/write-lock
+initialization call. File counters and game-fiber counters remained zero.
+
+Non-timed kernel read/write-lock calls now reuse the upstream backend, with synthetic guest
+lifecycle, shared-reader, exclusive-writer, ownership and busy-destroy checks. The kernel
+relative-timeout NIDs stay unresolved because their argument contract differs from the upstream
+absolute-timespec helpers. Linked game progress after this integration remains to be verified.
 
 ## Next verification
 

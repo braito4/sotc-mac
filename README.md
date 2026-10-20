@@ -38,7 +38,7 @@
 - **Native Apple Silicon host:** the diagnostic and bbcpu are built as ARM64 binaries.
 - **JIT and interpreter checks:** both modes are compared at explicit initialization boundaries.
 - **Original system modules:** libc and Fios2 are linked from the user's own game dump.
-- **Initial runtime support:** mutexes, destructor callbacks, clocks, timezone conversion,
+- **Initial runtime support:** mutexes, read/write locks, destructor callbacks, clocks, timezone conversion,
   console output and direct/flexible memory queries.
 - **Read-only content access:** a narrow file API tested with synthetic fixtures; no save mount.
 - **Guest fibers:** suspension, resumption and switching preserve guest CPU state and stacks.
@@ -64,13 +64,15 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 **Experimental, not playable.** Normal Terminal runs have completed both original module
-initializers and the game's early memory setup, with JIT and interpreter reaching the same
-unimplemented system-module import. No game content was opened in that baseline run.
+initializers and the game's early memory setup. After the module-registry addition, JIT and
+interpreter both enter Fios2 startup and reach the same unresolved read/write-lock initialization
+call. No game content was opened and no game fibers were created in that baseline run.
 
-The next implementation adds guest fibers and a narrow system-module registry. Its synthetic
-tests pass in both modes, including direct and PLT calls, stack/register/FPU preservation,
-contextless restart and host-thread migration. Progress in the linked game after this change
-still needs a normal Terminal run.
+Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
+in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
+restart and host-thread migration. The runtime now exposes the upstream non-timed kernel
+read/write locks; synthetic guest lifecycle, ownership and concurrency tests pass in both modes. Linked game
+progress after the read/write-lock addition still needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Guest multithreading,

@@ -14,6 +14,10 @@ The adapters reuse the pinned upstream platform, mutex, thread metadata, memory 
 backends. SotC-specific namespace mappings are explicit. Guest thread creation, lifecycle
 operations and thread keys are intentionally unavailable in this single-guest-thread probe.
 
+The non-timed kernel read/write-lock family reuses the upstream ownership-aware pthread backend.
+Tests call it through synthetic x86 bridges from several host threads. Kernel relative-timeout
+calls remain unresolved until their distinct timeout ABI has a dedicated adapter.
+
 Direct/flexible availability queries inspect the real allocator state. The tessellation
 address query reserves a collision-aware guest range within the native ARM64 address policy.
 Fixed maps outside that policy remain rejected. This is separate from the unresolved packed

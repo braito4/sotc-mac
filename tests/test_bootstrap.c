@@ -12,6 +12,7 @@
 void *runtime_low_map(size_t size, int prot);
 void bootstrap_test_clocks(void);
 void bootstrap_test_files(void);
+void bootstrap_test_rwlocks(void);
 static int sequence[8], count;
 static void note(void *arg) { sequence[count++] = *(int *)arg; }
 static void plain(void) { sequence[count++] = 9; }
@@ -211,6 +212,7 @@ int main(int argc, char **argv) {
     bootstrap_finalize(NULL);
     puts("PASS: scoped resolution, capability gate, 40-bit heap/realloc, POSIX recursive mutex lifecycle/errors, destructor order/recursion and x86 guest callback");
     test_console();
+    bootstrap_test_rwlocks();
     bootstrap_test_clocks();
     bootstrap_test_files();
     test_memory(argc == 2);

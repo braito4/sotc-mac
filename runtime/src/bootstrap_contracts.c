@@ -308,6 +308,14 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
             snprintf(canonical, sizeof(canonical), "%.11s%s", name, scope);
             const uintptr_t mutex = runtime_mutex_resolve(canonical);
             if (mutex) return mutex;
+            /* Reuse only the checked non-timed kernel rwlock contracts. The
+             * kernel relative-timeout NIDs have a different argument ABI from
+             * the upstream backend's absolute-timespec functions. Keep those
+             * unresolved until a dedicated relative-time adapter is tested. */
+            static const char *rwlocks[] = {"6ULAa0fq4jA", "BB+kb08Tl9A", "Ox9i0c7L5w0",
+                "mqdNorrB+gI", "XD3mDeybCnk", "bIHoZCTomsI", "+L98PIbGttk"};
+            for (size_t i = 0; i < sizeof(rwlocks) / sizeof(*rwlocks); ++i)
+                if (!strncmp(name, rwlocks[i], 11)) return runtime_rwlock_resolve(canonical);
             /* Single-thread diagnostics: do not expose create/join/detach/exit. */
             static const char *blocked[] = {"6UgtwV+0zb4", "onNY9Byn-W8", "4qGrR6eoP9Y", "3kg7rT0NQIs",
                 "OxhIB8LB-PQ", "Jmi+9w9u0E4", "h9CcP3J0oVM", "FJrT5LuUBAU"};
@@ -327,6 +335,7 @@ void bootstrap_report(void) {
            init_calls, plain_calls, cxa_calls, handler_count);
     printf("Bootstrap: allocations=%zu (upstream arm64 heap below 1 TiB)\n", allocation_calls);
     runtime_mutex_report();
+    runtime_rwlock_report();
     runtime_thread_report();
     runtime_memory_report();
     bootstrap_files_report();

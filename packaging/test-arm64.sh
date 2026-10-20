@@ -34,7 +34,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_cpu_context.c" "$trial_root/runtime/src/bootstrap_fibers.c"
         "$trial_root/runtime/src/bootstrap_modules.c" "$trial_root/runtime/src/bootstrap_files.c"
         "$runtime_repo/src/runtime_file.c" "$runtime_repo/src/platform.c"
-        "$runtime_repo/src/runtime_mutex.c" "$runtime_repo/src/runtime_thread.c")
+        "$runtime_repo/src/runtime_mutex.c" "$runtime_repo/src/runtime_rwlock.c" "$runtime_repo/src/runtime_thread.c")
     trial_libraries=("$trial_root/work/libbbcpu-context.a" "$trial_deps/lib/libZydis.a" "$trial_deps/lib/libZycore.a")
     trial_sources=("${trial_support[@]}" "$trial_root/runtime/src/runtime_memory_arm64.c" "${trial_libraries[@]}")
     clang "${trial_flags[@]}" "$trial_root/runtime/src/probe_entry_arm64.c" \
@@ -50,7 +50,7 @@ contracts() {
         "${trial_support[@]}" "${trial_libraries[@]}" -o "$trial_root/work/test_memory_query"
     BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB=512 "$trial_root/work/test_memory_query"
     clang "${trial_flags[@]}" "$trial_root/tests/test_bootstrap.c" \
-        "$trial_root/tests/test_clocks.c" "$trial_root/tests/test_files.c" \
+        "$trial_root/tests/test_clocks.c" "$trial_root/tests/test_files.c" "$trial_root/tests/test_rwlocks.c" \
         "${trial_sources[@]}" -o "$trial_root/work/test_bootstrap"
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
