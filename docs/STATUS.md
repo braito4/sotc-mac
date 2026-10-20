@@ -18,6 +18,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Fibers | Synthetic ABI/context/lifecycle tests in both modes; actual startup creates 160 fibers and records 164 runs, with 1,109/1,073 direct switches observed (interpreter/JIT) |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
+| Thread-specific keys | 255 process-wide keys with per-thread generation-tagged values; scoped POSIX/kernel APIs, deletion/reuse, errors and four-pass guest destructors tested in both modes; combined use pending |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | User-event queues | Native lifecycle, level/edge triggers, coalescing, batching, getters, polling, const microsecond timeouts, blocked deletion and errno pass through the guest ABI in both modes; no graphics/timer filters |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
@@ -36,9 +37,9 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; no touch recognition or combined game frame verified |
-| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization; open/read remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing scePadInit and reaching primitive gesture initialization; original gesture module now linked for the next run |
+| Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
+| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy task threads start before pthread_key_create; new key contracts await the next run |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -66,10 +67,11 @@ sixteen offline builder tests pass. The GPU library targets macOS 15 or later.
 The user has now confirmed renderer initialization in Terminal, including Metal command-buffer
 encoding with zero game draws/dispatches. The optional graphics/game connection is implemented
 and checked with original synthetic fixtures. A real combined Terminal run now passes color/capability operations, starts RenderFlip and
-Game Render, passes `scePadInit` with the checked keyboard backend and reaches primitive
-touch-recognizer initialization before opening a controller. The graphics diagnostic now
-privately links the supplied original system-gesture module. Its module startup and isolated
-initialize/open/close/finalize lifecycle pass in both CPU modes; combined use awaits Terminal verification. No game frame is verified.
+Game Render, passes original touch-recognizer initialization and opens the keyboard-backed
+controller. Save and trophy task threads then start, and the next stop is `pthread_key_create`.
+The new thread-key profile passes synthetic guest ABI, generation/isolation and destructor
+lifecycle checks in both CPU modes; its combined game use awaits Terminal verification.
+Starting a save/trophy task does not establish save access or trophy support. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
 The PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
@@ -154,8 +156,26 @@ event consumption and repeated queries with separate errno values. Full contract
 both modes. Normal Terminal confirms one successful initialization with priority 700 in
 each mode; no user queries or login-event consumption have occurred yet.
 
-Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
-fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
+Thread-specific keys now implement scoped POSIX and kernel create/delete/set/get APIs.
+The profile has 255 live key slots with 32-bit IDs and full-width per-thread pointer values.
+Destructors must be null or registered guest code; native/unknown addresses are rejected.
+Registry synchronization and internal generations prevent deleted/reused slots inheriting
+values or destructors from another thread. Key deletion never runs a destructor. Guest-thread
+return and explicit exit reset abandoned CPU frames, invoke non-null guest destructors with
+the value cleared first, and keep static/module TLS and errno alive through all callbacks.
+Rearming is bounded to four passes; remaining per-thread values are then discarded. Null
+values do not invoke callbacks. Callback selection occurs under the registry lock and
+execution occurs outside it, allowing a destructor to use the key APIs.
+
+Synthetic tests in both CPU modes cover exact four-byte guarded/unaligned output, full-width
+values and 32-bit key arguments, POSIX versus kernel errors, errno preservation, 255-key
+exhaustion and cross-thread delete/recreate isolation. Real guest workers cover return,
+explicit exit, join and detached completion, live TLS/errno inside guest destructors, value
+clearing, repeated callbacks and the four-pass limit. Recursive thread exit from a destructor
+stops explicitly (exit 23), with negative checks in both modes. Host-owned thread records
+retain their process-lifetime policy; their automatic key teardown is not implemented.
+
+Exiting through a live fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
 upstream process-lifetime allocation policy; long-running thread churn is not validated.
 
 ShareUtility Ex2 now checks the full-width mode and heap-size arguments. Mode 1 with at
@@ -277,10 +297,10 @@ exercise the optional combined path. This mode keeps the window on the host main
 executes linked modules/game entry on a worker and routes reviewed graphics/queue imports.
 It retains read-only content, private diagnostics and explicit unknown-import stops.
 The latest real combined run passes the color/capability adapters and starts the render
-threads, passes `scePadInit` and then stops at primitive touch-recognizer initialization.
-The keyboard backend is initialized, but the game has not yet opened or sampled it. The
-graphics command now links the supplied original system-gesture module in a separate private
-image, with original executable bytes preserved. The next real combined run is pending;
+threads, passes original gesture initialization and opens the keyboard-backed controller,
+then starts save/trophy tasks and stops at `pthread_key_create`. No keyboard sample has been
+read yet. Thread-key APIs and guest destructors are now implemented and tested for the next
+combined run. The separate private graphics image preserves original executable bytes;
 unsupported sensors, vibration and physical gamepads remain unresolved.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,

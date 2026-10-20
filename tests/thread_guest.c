@@ -2,7 +2,28 @@
 #include "thread_fixture.h"
 typedef int (*Lock)(void **);
 typedef int (*Wait)(void **, void **);
+void thread_key_destructor(ThreadFixture *f) {
+    if (!f->destructor_limit) {
+        ((void (*)(void *))f->exit_fn)((void *)0xdead);
+        __asm__ volatile("ud2");
+    }
+    void *(*get)(unsigned int) = (void *)f->key_get_fn;
+    int (*set)(unsigned int, void *) = (void *)f->key_set_fn;
+    f->destructor_errors |= get(f->key) != (void *)0; /* Cleared before callback. */
+    TWord index[] = {2, 0};
+    TWord *tls = ((void *(*)(TWord *))f->tls_fn)(index);
+    f->destructor_errors |= *tls != f->tag;
+    f->destructor_errors |= *((int *(*)(void))f->errno_fn)() != (int)f->tag;
+    TWord own_static;
+    __asm__ volatile("movq %%fs:-16, %0" : "=r"(own_static));
+    f->destructor_errors |= own_static != f->tag+100;
+    ++f->destructor_calls;
+    if (f->destructor_calls < f->destructor_limit)
+        f->destructor_errors |= set(f->key, f) != 0;
+}
 void *thread_worker(ThreadFixture *f) {
+    f->errors |= ((void *(*)(unsigned int))f->key_get_fn)(f->key) != (void *)0;
+    f->errors |= ((int (*)(unsigned int, void *))f->key_set_fn)(f->key, f) != 0;
     __asm__ volatile("movq %%fs:0, %0" : "=r"(f->tcb));
     __asm__ volatile("movq %%fs:-16, %0" : "=r"(f->initial_static));
     __asm__ volatile("movq %%rsp, %0" : "=r"(f->stack_pointer));
@@ -34,6 +55,7 @@ void *thread_worker(ThreadFixture *f) {
     f->errors |= *tls != f->tag || *other_tls != f->tag + 200 || *error != (int)f->tag;
     __asm__ volatile("movq %%fs:-16, %0" : "=r"(f->final_static));
     f->errors |= ((Lock)f->unlock_fn)(&f->shared->mutex) != 0;
+    f->errors |= ((void *(*)(unsigned int))f->key_get_fn)(f->key) != f;
     if (f->path) {
         for (unsigned int trial = 0; trial < 32; ++trial) {
             int fd = ((int (*)(const char *, int, int))f->open_fn)(f->path, 0, 0);

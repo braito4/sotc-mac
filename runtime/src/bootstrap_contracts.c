@@ -397,6 +397,7 @@ void bootstrap_report(void) {
     bootstrap_system_report();
     bootstrap_video_report();
     bootstrap_pad_report();
+    bootstrap_keys_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),
            atomic_load_explicit(&console_bytes, memory_order_relaxed));

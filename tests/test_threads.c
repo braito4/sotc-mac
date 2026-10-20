@@ -22,6 +22,8 @@ typedef int32_t (*Slot)(void **);
 static Create create;
 static Join join;
 static Slot lock_guest, unlock_guest, broadcast;
+static uintptr_t key_get, key_set;
+static uint32_t key;
 static int32_t (*wait_guest)(void **, void **);
 typedef struct {
     pthread_mutex_t mutex;
@@ -48,6 +50,7 @@ static void initialize_fixture(ThreadFixture *f, ThreadShared *shared, uint64_t 
         .path = "/app0/content.bin", .open_fn = host("1G3lF1Gg1k8#0#F"),
         .read_fn = host("Cg4srZ6TKbU#0#F"), .pread_fn = host("+r3rMFwItV4#0#F"),
         .close_fn = host("UK2Tl2DWUns#0#F"), .stat_fn = host("eV9wAD2riIA#0#F"),
+        .key_get_fn = key_get, .key_set_fn = key_set, .key = key, .destructor_limit = 2,
     };
 }
 static void check_fixture(const ThreadFixture *f, void *handle) {
@@ -58,6 +61,8 @@ static void check_fixture(const ThreadFixture *f, void *handle) {
     assert(f->initial_module == 0xaabbccddeeff0011ULL && !f->initial_errno);
     assert(f->self_join_error == UINT32_C(0x8002000b) && f->inherited_mxcsr == 0x3f80);
     assert(f->reads == 32);
+    assert(!f->destructor_errors && f->destructor_calls ==
+           (f->destructor_limit < 4 ? f->destructor_limit : 4));
 }
 static void release_workers(ThreadShared *shared, unsigned ready) {
     assert(lock_guest(&shared->mutex) == 0);
@@ -72,14 +77,15 @@ static void fault(int sig, siginfo_t *info, void *context) {
     if (bbcpu_describe_fault(context, description, sizeof(description))) fputs(description, stderr);
     _Exit(128 + sig);
 }
-int main(void) {
+int main(int argc, char **argv) {
+    assert(argc==1 || (argc==2 && !strcmp(argv[1],"--recursive-key-exit-check")));
     setvbuf(stdout, NULL, _IONBF, 0);
     struct sigaction action = {.sa_sigaction = fault, .sa_flags = SA_SIGINFO}; sigemptyset(&action.sa_mask);
     assert(sigaction(SIGSEGV, &action, NULL) == 0 && sigaction(SIGBUS, &action, NULL) == 0);
     alarm(15);
     bootstrap_initialize(1);
     assert(!bootstrap_resolve("6UgtwV+0zb4#1#u", 0) && !bootstrap_resolve("6UgtwV+0zb4#0#F", 1));
-    assert(!bootstrap_resolve("geDaqgH9lTg#0#F", 0)); /* Keys remain unavailable. */
+    assert(bootstrap_resolve("geDaqgH9lTg#0#F", 0));
     static const uint64_t main_tls[4] = {0, 0, 0x1122334455667788ULL, 0};
     static const uint64_t libc_tls = 0xaabbccddeeff0011ULL;
     static const uint32_t fios_tls = 0x13572468;
@@ -103,6 +109,11 @@ int main(void) {
     code = (uintptr_t)runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(code);
     assert(sizeof(thread_fixture_code) < 16384); memcpy((void *)code, thread_fixture_code, sizeof(thread_fixture_code));
     bbcpu_add_guest_code(code, sizeof(thread_fixture_code));
+    key_get = host("0-KXaS70xy4#p#F"); key_set = host("WrOLvHU0yQM#p#F");
+    int32_t (*key_create)(uint32_t *, uintptr_t) = (void *)host("mqULNdimTn0#p#F");
+    int32_t (*key_delete)(uint32_t) = (void *)host("6BpEZuDT7YI#p#F");
+    assert(key_create(&key, code+thread_key_destructor_offset) == 0);
+    assert(((int32_t (*)(uint32_t, void *))key_set)(key, (void *)0x1234) == 0);
     create = (Create)host("6UgtwV+0zb4#0#F"); join = (Join)host("onNY9Byn-W8#0#F");
     lock_guest = (Slot)host("9UK1vLZQft4#0#F"); unlock_guest = (Slot)host("tn3VlD0hG60#0#F");
     broadcast = (Slot)host("JGgj7Uvrl+A#0#F");
@@ -116,6 +127,8 @@ int main(void) {
     ThreadShared shared = {0};
     assert(mutex_init(&shared.mutex, NULL, "fixture") == 0 && cond_init(&shared.condition, NULL, "fixture") == 0);
     ThreadFixture a, b; initialize_fixture(&a, &shared, 101); initialize_fixture(&b, &shared, 202); b.explicit_exit = 1;
+    b.destructor_limit = 100; /* A perpetually rearming callback stops after four passes. */
+    if (argc==2) b.destructor_limit=0;
     void *one = NULL, *two = NULL, *result = NULL;
     assert((uint32_t)create(NULL, NULL, code, &a, NULL) == 0x80020016);
     assert((uint32_t)create(&one, NULL, (uintptr_t)main, &a, NULL) == 0x80020016);
@@ -135,6 +148,7 @@ int main(void) {
     check_fixture(&a, one); check_fixture(&b, two);
     assert((uint32_t)join(one, NULL) == 0x80020016);
     assert(!bootstrap_threads_live() && bootstrap_tls_live_blocks() == 2);
+    assert(((void *(*)(uint32_t))key_get)(key) == (void *)0x1234);
     assert(*parent_tls == 0x55 && *parent_other == 0x66 && *runtime_errno() == 77);
     BbCpu after; bootstrap_cpu_save(&after);
     assert(after.tcb == parent.tcb && after.mxcsr == parent.mxcsr);
@@ -179,6 +193,7 @@ int main(void) {
     assert(!bootstrap_threads_live() && bootstrap_tls_live_blocks() == 2);
     assert(cond_destroy(&shared.condition) == 0 && mutex_destroy(&shared.mutex) == 0);
     bootstrap_unmount_game_root(); assert(unlink(path) == 0 && rmdir(root) == 0);
+    assert(key_delete(key) == 0);
     alarm(0);
-    puts("PASS: guest threads return/exit/join/detach, independent TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition synchronization and concurrent read-only I/O");
+    puts("PASS: guest threads return/exit/join/detach, independent TLS/keys/errno, guest key destructors with live TLS and four-pass rearming, DTV, low stacks, inherited FPU, synchronization and read-only I/O");
 }

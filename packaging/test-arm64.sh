@@ -57,6 +57,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_gpu.c"
         "$trial_root/runtime/src/bootstrap_graphics_routes.c"
         "$trial_root/runtime/src/bootstrap_pad.c"
+        "$trial_root/runtime/src/bootstrap_keys.c"
         "$trial_root/runtime/src/bootstrap_system.c"
         "$trial_root/runtime/src/bootstrap_video.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
@@ -93,6 +94,7 @@ contracts() {
     python3 "$trial_root/tools/prepare_fiber_fixture.py" "$trial_root/work/thread_guest.o" \
         "$trial_root/work/thread_fixture_code.h" thread_fixture_code
     clang "${trial_flags[@]}" "$trial_root/tests/test_threads.c" "${trial_sources[@]}" -o "$trial_root/work/test_threads"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_keys.c" "${trial_sources[@]}" -o "$trial_root/work/test_keys"
     clang "${trial_flags[@]}" "$trial_root/tests/test_modules.c" "${trial_sources[@]}" -o "$trial_root/work/test_modules"
     clang "${trial_flags[@]}" "$trial_root/tests/test_users.c" "${trial_sources[@]}" -o "$trial_root/work/test_users"
     build_cpu_strings
@@ -130,6 +132,15 @@ contracts() {
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
+        trial_log="$trial_prefix-key-exit-jit$trial_jit.log"
+        if BB_JIT="$trial_jit" "$trial_root/work/test_threads" --recursive-key-exit-check > "$trial_log" 2>&1; then
+            fail 'Expected explicit rejection of recursive thread exit from a key destructor'
+        else
+            trial_status=$?
+            [[ "$trial_status" -eq 23 ]] || { cat "$trial_log"; fail 'Unexpected recursive key-exit result'; }
+            /usr/bin/grep -Fq 'recursive thread exit from a key destructor' "$trial_log" || { cat "$trial_log"; fail 'Missing key-exit rejection'; }
+        fi
+        BB_JIT="$trial_jit" "$trial_root/work/test_keys"
         BB_JIT="$trial_jit" "$trial_root/work/test_pad"
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_color"
         trial_log="$trial_prefix-cpu-strings-jit$trial_jit.log"

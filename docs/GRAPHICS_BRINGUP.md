@@ -206,8 +206,9 @@ presentation and asset/pointer compatibility remain unverified.
 ## Keyboard-backed input
 
 The real combined Terminal run now passes color/capability operations, starts RenderFlip and
-Game Render, and passes `scePadInit`. It then stops at primitive touch-recognizer
-initialization, before opening or sampling the controller. Graphics mode connects a keyboard-backed logical controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
+Game Render, passes original gesture initialization and opens the keyboard-backed
+controller. Save/trophy task threads then start, and `pthread_key_create` is the next stop.
+The controller has not been sampled yet. Graphics mode connects a keyboard-backed logical controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
 key names are checked on the main thread before guest startup. Headless mode retains its
 existing unresolved input boundary.
 
@@ -259,8 +260,10 @@ empty TLS metadata and foreign output preservation.
 Private checks against the supplied original library pass in JIT and interpreter: all three
 module initializers return zero; the gesture service rejects open before initialization,
 accepts repeated initialization, opens/closes a valid service and permits repeated finalization.
-These checks do not run game entry or establish touch recognition. The new combined Terminal
-run must still verify the original library with the keyboard-backed pad profile and real renderer.
+These checks do not run game entry or establish touch recognition. The real combined Terminal
+run now confirms progress through original gesture initialization and keyboard pad open. It
+starts save/trophy tasks before stopping at a thread-key API. This does not establish touch
+recognition, save support or trophy support.
 
 ## Verified CPU-side display contracts
 
@@ -288,8 +291,9 @@ is generated because no output port or rendering submission has succeeded.
 The pinned library and its renderer-only initialization are verified. The optional game
 connection now implements scoped import routing, shared queue ownership, a main-thread event
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
-reaches primitive gesture initialization; the newly linked original gesture module awaits
-verification in that combined path. Additional retail ABI adapters, system imports and GNM operations will be
+passes original gesture initialization and keyboard pad open, then stops at
+`pthread_key_create`. Thread-specific key contracts and guest destructors now pass lifecycle
+and ABI tests in both CPU modes and await the next combined Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 

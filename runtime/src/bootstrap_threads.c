@@ -47,9 +47,11 @@ static void attach_module_tls(void *tcb) {
     bb_guest_tls_set(tcb);
     bootstrap_tls_attach(tcb, tls_offset());
 }
-/* The diagnostic exposes no pthread keys. A key call remains unresolved;
- * there are no hidden key destructors to skip at this lifecycle boundary. */
 void runtime_thread_keys_cleanup(void) {
+    /* Reset abandoned pthread_exit CPU frames before calling destructors.
+     * Keep TCB/module TLS and errno alive until the final callback returns. */
+    bootstrap_cpu_thread_finished();
+    bootstrap_keys_cleanup();
     bootstrap_cpu_thread_finished();
     bootstrap_tls_cleanup();
 }
@@ -117,6 +119,8 @@ static ABI int32_t checked_posix_create_name(GuestThread **t, ThreadAttr **a, Gu
 }
 static ABI int32_t checked_posix_join(GuestThread *t, void **result) { return posix(checked_join(t, result)); }
 uintptr_t runtime_thread_resolve(const char *name) {
+    const uintptr_t key = bootstrap_keys_resolve(name);
+    if (key) return key;
     static const struct { const char *name; void *fn; } overrides[] = {
         {"6UgtwV+0zb4#p#J", checked_create}, {"onNY9Byn-W8#p#J", checked_join},
         {"4qGrR6eoP9Y#p#J", checked_detach}, {"3kg7rT0NQIs#p#J", checked_exit},
