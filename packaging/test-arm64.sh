@@ -28,11 +28,14 @@ build_diagnostic() {
         -I"$trial_deps/include" -I"$cpu_repo/src" -I"$cpu_repo/src/cpu" -I"$runtime_repo/src"
         -I"$trial_root/runtime/src" -I"$trial_root/tests" -I"$trial_root/work")
     cp "$cpu_repo/out/libbbcpu.a" "$trial_root/work/libbbcpu-context.a"
-    ar -t "$trial_root/work/libbbcpu-context.a" | /usr/bin/grep -qx 'cpu.c.o' || fail 'Unexpected bbcpu archive layout.'
-    ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o
+    for trial_member in cpu.c.o interp_vec.c.o; do
+        ar -t "$trial_root/work/libbbcpu-context.a" | /usr/bin/grep -Fxq "$trial_member" || fail 'Unexpected bbcpu archive layout.'
+    done
+    ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o interp_vec.c.o
     python3 "$trial_root/tools/prepare_runtime_support.py" "$runtime_repo/src/runtime_mutex.c" "$trial_root/work/runtime_mutex_diagnostic.c"
     trial_support=("$trial_root/runtime/src/bootstrap_contracts.c" "$trial_root/runtime/src/bootstrap_clocks.c"
         "$trial_root/runtime/src/bootstrap_cpu_context.c" "$trial_root/runtime/src/bootstrap_fibers.c"
+        "$trial_root/runtime/src/bootstrap_cpu_vector.c"
         "$trial_root/runtime/src/bootstrap_modules.c" "$trial_root/runtime/src/bootstrap_files.c"
         "$trial_root/runtime/src/bootstrap_discmap.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
@@ -45,6 +48,9 @@ build_diagnostic() {
         "${trial_sources[@]}" -o "$trial_root/work/probe_entry_arm64"
     [[ "$(lipo -archs "$trial_root/work/probe_entry_arm64")" == arm64 ]] || fail 'Diagnostic is not ARM64.'
 }
+build_cpu_strings() {
+    clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_strings.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_strings"
+}
 contracts() {
     clang -target x86_64-linux-gnu -O1 -fno-stack-protector -fno-asynchronous-unwind-tables -fno-pic \
         -c "$trial_root/tests/fiber_guest.c" -o "$trial_root/work/fiber_guest.o"
@@ -56,6 +62,7 @@ contracts() {
         "$trial_root/work/thread_fixture_code.h" thread_fixture_code
     clang "${trial_flags[@]}" "$trial_root/tests/test_threads.c" "${trial_sources[@]}" -o "$trial_root/work/test_threads"
     clang "${trial_flags[@]}" "$trial_root/tests/test_modules.c" "${trial_sources[@]}" -o "$trial_root/work/test_modules"
+    build_cpu_strings
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_query.c" \
         "${trial_support[@]}" "${trial_libraries[@]}" -o "$trial_root/work/test_memory_query"
     BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB=512 "$trial_root/work/test_memory_query"
@@ -66,6 +73,12 @@ contracts() {
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
+        trial_log="$trial_prefix-cpu-strings-jit$trial_jit.log"
+        if BB_JIT="$trial_jit" "$trial_root/work/test_cpu_strings" > "$trial_log" 2>&1; then
+            cat "$trial_log"
+        else
+            trial_status=$?; cat "$trial_log"; exit "$trial_status"
+        fi
         trial_log="$trial_prefix-fibers-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_fibers" > "$trial_log" 2>&1; then
             cat "$trial_log"
@@ -125,9 +138,16 @@ case "$trial_mode" in
         (cd "$cpu_repo"; BB_DEPS="$trial_deps" bash build.sh)
         [[ "$(lipo -archs "$cpu_repo/out/libbbcpu.a")" == arm64 ]] || fail 'bbcpu is not ARM64.'
         test_emitter
-        (cd "$cpu_repo"; clang -arch arm64 -O2 -std=gnu11 -I"$trial_deps/include" tests/test_jit_fault.c \
-            out/libbbcpu.a "$trial_deps/lib/libZydis.a" "$trial_deps/lib/libZycore.a" -o out/test_jit_fault; out/test_jit_fault)
-        printf 'Native emitter and JIT fault checks passed. The upstream Rosetta comparison suite was not run.\n'
+        build_diagnostic
+        clang "${trial_flags[@]}" "$cpu_repo/tests/test_jit_fault.c" \
+            "$trial_root/runtime/src/bootstrap_cpu_context.c" "$trial_root/runtime/src/bootstrap_cpu_vector.c" \
+            "${trial_libraries[@]}" -o "$trial_root/work/test_jit_fault"
+        "$trial_root/work/test_jit_fault"
+        build_cpu_strings
+        for trial_jit in 1 0; do
+            BB_JIT="$trial_jit" "$trial_root/work/test_cpu_strings"
+        done
+        printf 'Native emitter and diagnostic JIT fault checks passed. The upstream Rosetta comparison suite was not run.\n'
         ;;
     --prepare)
         need python3

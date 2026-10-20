@@ -4,6 +4,12 @@ The host executable is native ARM64. bbcpu decodes the PS4 executable's x86-64 i
 and either translates them to ARM64 with its JIT or interprets them. System calls cross a
 typed host-call bridge into narrowly scoped runtime functions.
 
+A vector-interpreter extension implements PCMPISTRM/VPCMPISTRM string masks. It handles
+implicit string ends, signed byte/word ranges, comparison modes, polarity and flags. The JIT
+uses its existing interpreter fallback for these instructions; that fallback is compiled for
+ARM64. SSE/VEX upper-register behavior and later translated flag consumers are tested.
+All other vector operations delegate to the unchanged pinned implementation.
+
 The loader reads a private image prepared from the user's executable. In linked mode it also
 initializes the original libc and Fios2 modules from the same input. Unknown imports stop
 execution with an explicit diagnostic instead of receiving blanket success results.

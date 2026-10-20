@@ -15,6 +15,8 @@ This project is built on the work of:
   and behavior, direct-memory availability handling and the C event-flag reference.
 - [Zydis](https://github.com/zyantific/zydis) and [Zycore](https://github.com/zyantific/zycore-c):
   instruction decoding dependencies, under their upstream MIT licenses.
+- [Intel Software Developer's Manual, Volume 2B](https://cdrdv2-public.intel.com/774487/253667-sdm-vol-2b.pdf):
+  section 4.1 and the PCMPISTRM instruction entry define the string-mask extension's semantics.
 
 ## Pinned source revisions
 
@@ -27,8 +29,8 @@ This project is built on the work of:
 | Zydis | `v4.1.1` |
 
 The project code is licensed under **GNU GPL version 2 or later**; see [LICENSE](../LICENSE).
-Upstream submodules retain their own license files and attribution. The memory and CPU
-context adapters include pinned upstream implementation files unchanged rather than copying
+Upstream submodules retain their own license files and attribution. The memory, CPU context
+and vector adapters include pinned upstream implementation files unchanged rather than copying
 them into a competing runtime. Fiber adapter comments identify its upstream reference.
 
 No game code, assets, generated game functions, saves or executable images are distributed.

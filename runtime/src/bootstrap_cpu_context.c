@@ -1,7 +1,8 @@
 /* Context bridge for bloodborne-native/bloodborne-recomp
  * f749c155c2ff3bb932795de85c9c8fe9c4aa59ad. The original cpu.c is included
- * unchanged; its object alone is omitted from the diagnostic's private archive.
- * All interpreter, JIT, decoder and original CPU entry points remain unchanged.
+ * unchanged; its object is omitted from the diagnostic's private archive.
+ * The JIT and decoder remain unchanged. A separate vector extension wraps the
+ * pinned interpreter for additional instructions.
  * Foundations: deadinside28/bbport and shadPS4.
  */
 #include "../upstream/recomp/src/cpu/cpu.c"

@@ -41,9 +41,15 @@ bash packaging/test-arm64.sh --contracts-test
 The prefix must contain `include/Zydis`, `include/Zycore`, `lib/libZydis.a` and
 `lib/libZycore.a`. Both libraries must be ARM64 builds.
 
-The build copies the CPU archive privately, removes only its `cpu.c.o`, and compiles the
-unchanged pinned `cpu.c` through a small context adapter. The decoder, interpreter, JIT and
-other CPU objects are reused. The original archive and upstream source files are unchanged.
+The build copies the CPU archive privately and removes `cpu.c.o` and `interp_vec.c.o`.
+It includes unchanged pinned source files through a context adapter and a vector extension.
+The extension handles PCMPISTRM/VPCMPISTRM; other vector instructions use the original
+implementation. The decoder, JIT and remaining CPU objects are reused. The original archive
+and upstream source files are unchanged.
+
+`--test` runs the native emitter, JIT fault checks linked to the adapted archive, and synthetic
+string-mask checks in both CPU modes. `--contracts-test` also includes the string-mask checks
+alongside the runtime contracts. Neither command needs game files or Rosetta.
 
 The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
 lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters

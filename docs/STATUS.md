@@ -6,6 +6,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 |---|---|
 | Host CPU | ARM64-only diagnostic and bbcpu library; no Rosetta |
 | Upstream checks | Native emitter and JIT fault recovery checks passed |
+| CPU string masks | PCMPISTRM/VPCMPISTRM: 61,440 synthetic cases per mode against a scalar model; native diagnostic JIT fault checks pass |
 | Runtime contracts | Scoped resolution, capability gate, heap/realloc, recursive mutex lifecycle and destructor callbacks |
 | Read/write locks | Non-timed kernel backend: synthetic guest lifecycle/errors, shared readers, exclusive writes and ownership checks pass in both modes |
 | Memory | Largest-free-range queries against an independent bitmap; real direct aliases, release and flexible availability verified in normal Terminal |
@@ -20,11 +21,24 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 
-The latest normal Terminal game baseline completed early memory setup and entered Fios2 startup.
+The latest paired normal Terminal baseline completed early memory setup and entered Fios2 startup.
 Both modes loaded the DiscMap provider and created Fios2's callback, I/O and decompression
 workers. Both modes passed the DiscMap queries, opened four game-content files and read
 1,788 bytes without writes. The game printed its build version and reached the same event-flag
 creation call. Three guest workers were created; the game-fiber counter remained zero.
+
+The subsequent normal Terminal JIT run stopped at an unsupported VPCMPISTRM instruction;
+the wrapper then exited before running the interpreter. It produced no final runtime counters.
+The new PCMPISTRM/VPCMPISTRM extension covers every control-byte mode, implicit terminators,
+signed/unsigned byte and word comparisons, output masks and arithmetic flags. Legacy SSE keeps
+the upper YMM0 half; VEX clears it. The JIT uses its existing synchronized interpreter fallback
+for these instructions. Other vector operations still use the unchanged pinned implementation.
+
+There are 61,440 synthetic cases per CPU mode, with an independent comparison-matrix oracle,
+closed-form self comparisons, mixed-sign ranges, boundary matches, register aliasing and
+unaligned memory. Translated flag consumers, preserved source registers and MXCSR are checked.
+The native emitter and JIT fault checks pass with the adapted CPU archive. These are synthetic
+checks, not a native x86 hardware comparison. Updated linked game progress remains pending.
 
 Non-timed kernel read/write-lock calls now reuse the upstream backend, with synthetic guest
 lifecycle, shared-reader, exclusive-writer, ownership and busy-destroy checks. The kernel
@@ -57,8 +71,8 @@ Waiters receive the full pattern before clear operations; FIFO consumption deter
 matching waiters complete. Cancellation and deletion wake blocked waits with distinct errors.
 Opaque handles are never reused; deleted objects are released after their last active waiter.
 Relative microsecond timeouts use monotonic deadlines. Priority-ordered queues return ENOTSUP;
-named open/close remain unresolved. The game path after this addition needs normal Terminal
-verification.
+named open/close remain unresolved. Further game-level use remains unverified because the latest
+JIT run stopped before reporting its runtime counters.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the
