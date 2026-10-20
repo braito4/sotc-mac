@@ -16,13 +16,14 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |
 | Fibers | Synthetic initialize ABI, yield/resume/switch, stack/register/FPU state, restart, attach-context, lifecycle errors and host-thread migration in both modes |
 | Module registry | Reference-counted fiber and local-content DiscMap providers; five-argument internal-load ABI, errors and output preservation tested in both modes |
-| DiscMap | Local-content queries return no-bitmap metadata errors without modifying outputs; opaque unsupported queries stay unresolved |
+| DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 
 The latest normal Terminal game baseline completed early memory setup and entered Fios2 startup.
-Both modes created its callback and I/O workers, used three read/write locks and five condition
-variables, then stopped at the same internal module-load call requesting DiscMap. Two guest
-workers were created; file and game-fiber counters remained zero.
+Both modes loaded the DiscMap provider and created Fios2's callback, I/O and decompression
+workers. They used three read/write locks and seven condition variables, then stopped at the
+same DiscMap request-location query. Three guest workers were created; file and game-fiber
+counters remained zero.
 
 Non-timed kernel read/write-lock calls now reuse the upstream backend, with synthetic guest
 lifecycle, shared-reader, exclusive-writer, ownership and busy-destroy checks. The kernel
@@ -39,10 +40,16 @@ completion remain unverified. Tool execution still rejects shared-memory backing
 The internal loader now preserves full-width module IDs and validates its reserved argument.
 Its supported empty-argument profile loads the implemented fiber provider or, with a read-only
 content mount, the DiscMap provider. Other modules and initialization arguments remain unavailable.
-DiscMap's optical bitmap queries report absent metadata and leave output buffers untouched.
-An opaque DiscMap query stays unresolved until its result contract is established.
-Synthetic checks pass in both modes; both original module initializers still return zero.
-The updated game path past this load requires a normal Terminal run.
+This provider does not load PS4 optical mapping tables. Bitmap-availability queries return the
+no-bitmap error and leave output buffers untouched. The request-location query has a separate
+contract: null required pointers or invalid ranges leave outputs unchanged; valid requests initialize three
+64-bit outputs to unavailable values, then report an unmapped namespace or missing mapping
+entry. A missing mapping entry does not mean the ordinary content file is absent.
+
+The request-query cases were also run against the supplied original DiscMap function with
+empty mapping tables in both CPU modes. This isolated check does not initialize the original
+module or run the game. Full synthetic checks pass; both original libc/Fios2 initializers still
+return zero. The updated game path past this query requires a normal Terminal run.
 
 Thread keys and their destructors are unavailable and remain unresolved. Exiting through a live
 fiber or trap frame stops explicitly. Guest stacks, TCBs and diagnostic CPU records retain the

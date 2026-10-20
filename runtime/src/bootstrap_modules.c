@@ -27,7 +27,7 @@ static int32_t load(uint32_t id) {
         if (count == UINT_MAX) { fputs("STOP: system-module reference overflow\n", stderr); _Exit(23); }
     } while (!atomic_compare_exchange_weak(refs, &count, count + 1));
     if (id == 0xd7 && !count)
-        puts("Bootstrap: DiscMap provider loaded; local content has no optical bitmap metadata");
+        puts("Bootstrap: DiscMap provider loaded; optical mapping tables are not loaded");
     return 0;
 }
 static int32_t loaded(uint32_t id) {

@@ -23,6 +23,46 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void test_request_location(uintptr_t entry) {
+    struct Output {
+        uint64_t head, flags, middle1, first, middle2, count, tail;
+    };
+    const struct Output initial = {0x123456789abcdef0, 101, 0x213456789abcdef0,
+                                  202, 0x313456789abcdef0, 303, 0x413456789abcdef0};
+    struct Output out;
+    uint64_t args[] = {(uintptr_t)"/app0/fixture.bin", 0, 1,
+                      (uintptr_t)&out.flags, (uintptr_t)&out.first, (uintptr_t)&out.count};
+    *runtime_errno() = 17;
+    /* Required path/output pointers and signed range checks precede any write. */
+    const unsigned null_arguments[] = {0, 3, 4, 5};
+    for (unsigned i = 0; i < sizeof(null_arguments) / sizeof(*null_arguments); ++i) {
+        const unsigned slot = null_arguments[i]; const uint64_t saved = args[slot];
+        out = initial; args[slot] = 0;
+        assert((uint32_t)bbcpu_call(entry, 6, args) == 0x81100001);
+        assert(!memcmp(&out, &initial, sizeof(out))); args[slot] = saved;
+    }
+    const int64_t ranges[][2] = {{-1, 1}, {0, 0}, {0, -1}, {0, INT64_MIN}};
+    for (unsigned i = 0; i < sizeof(ranges) / sizeof(*ranges); ++i) {
+        out = initial; args[0] = 1; /* Must not read the path on invalid ranges. */
+        args[1] = (uint64_t)ranges[i][0]; args[2] = (uint64_t)ranges[i][1];
+        assert((uint32_t)bbcpu_call(entry, 6, args) == 0x81100001);
+        assert(!memcmp(&out, &initial, sizeof(out)));
+    }
+    const char *paths[] = {"/app0/fixture.bin", "/app1/fixture.bin", "/hostapp/fixture.bin",
+                          "relative.bin", "/app0", "/app10/fixture.bin", "/APP0/fixture.bin", ""};
+    for (unsigned i = 0; i < sizeof(paths) / sizeof(*paths); ++i) {
+        out = initial; args[0] = (uintptr_t)paths[i]; args[1] = 0; args[2] = 1;
+        assert((uint32_t)bbcpu_call(entry, 6, args) == (i < 2 ? 0x81100003 : 0x81100002));
+        struct Output expected = initial;
+        expected.flags = expected.first = expected.count = UINT64_MAX;
+        assert(!memcmp(&out, &expected, sizeof(out)));
+    }
+    out = initial; args[0] = (uintptr_t)paths[0]; args[1] = args[2] = INT64_MAX;
+    args[4] = args[5] = args[3]; /* Aliased outputs still write exactly one qword. */
+    assert((uint32_t)bbcpu_call(entry, 6, args) == 0x81100003);
+    struct Output expected = initial; expected.flags = UINT64_MAX;
+    assert(!memcmp(&out, &expected, sizeof(out)) && *runtime_errno() == 17);
+}
 int main(void) {
     bootstrap_initialize(1);
     const char *name = "hHrGoGoNf+s#F#G";
@@ -39,6 +79,10 @@ int main(void) {
     assert(load(entry, 0xd7, 0, NULL, 0, &out.result) == 0x805a1001 && out.result == 123);
     assert(!bootstrap_resolve("lbQKqsERhtE#libSceDiscMap", 0));
     char root[] = "/tmp/sotc-discmap-XXXXXX"; assert(mkdtemp(root));
+    char fixture[sizeof(root) + 32];
+    assert(snprintf(fixture, sizeof(fixture), "%s/fixture.bin", root) < (int)sizeof(fixture));
+    FILE *file = fopen(fixture, "wb"); assert(file);
+    assert(fwrite("fixture", 1, 7, file) == 7 && fclose(file) == 0);
     assert(bootstrap_mount_game_root(root) == 0);
     assert(load(entry, 0xd7, 0, NULL, UINT64_C(1) << 40, &out.result) == 0x805a1000);
     assert(load(entry, 0x100d7, 0, NULL, 0, &out.result) == 0x805a1001);
@@ -48,24 +92,31 @@ int main(void) {
     assert(load(entry, 0xd7, 0, NULL, 0, &out.result) == 0 && out.result == 0);
     assert(out.head == 0x12345678 && out.tail == 0x87654321 && loaded(0xd7) == 0);
     assert(plain_load(0xd7) == 0 && unload(0xd7) == 0 && loaded(0xd7) == 0);
-    assert(!bootstrap_resolve("fJgP+wqifno#libSceDiscMap", 0)); /* Opaque query stays unresolved. */
+    const uintptr_t location = bootstrap_resolve("fJgP+wqifno#libSceDiscMap", 0);
+    assert(location && !bootstrap_resolve("fJgP+wqifno#0#F", 0));
+    assert(!bootstrap_resolve("fJgP+wqifno#libSceDiscMap", 1));
+    test_request_location(guest_bridge(location));
     const uintptr_t request = bootstrap_resolve("lbQKqsERhtE#libSceDiscMap", 0);
     const uintptr_t package = bootstrap_resolve("fl1eoDnwQ4s#libSceDiscMap", 0);
     const uintptr_t query = bootstrap_resolve("ioKMruft1ek#libSceDiscMap", 0);
     assert(request && package && query);
     assert(!bootstrap_resolve("lbQKqsERhtE#0#F", 0) && !bootstrap_resolve("lbQKqsERhtE#libSceDiscMap", 1));
-    int32_t values[] = {101, 202, 303};
-    const uint64_t request_args[] = {(uintptr_t)"/app0/not-a-disc.bin", 17, 4096, (uintptr_t)&values[0]};
-    assert((uint32_t)bbcpu_call(guest_bridge(request), 4, request_args) == 0x81100004 && values[0] == 101);
+    int32_t hdd = 101;
+    uint64_t values[] = {UINT64_C(0x1122334455667788), UINT64_C(0x8877665544332211), UINT64_MAX - 1};
+    const uint64_t original[] = {values[0], values[1], values[2]};
+    const uint64_t request_args[] = {(uintptr_t)"/app0/not-a-disc.bin", 17, 4096, (uintptr_t)&hdd};
+    assert((uint32_t)bbcpu_call(guest_bridge(request), 4, request_args) == 0x81100004 && hdd == 101);
     const uint64_t package_args[] = {0, (uintptr_t)&values[1], (uintptr_t)&values[2]};
     assert((uint32_t)bbcpu_call(guest_bridge(package), 3, package_args) == 0x81100004);
     const uint64_t query_args[] = {0, 0, 0, (uintptr_t)&values[0], (uintptr_t)&values[1], (uintptr_t)&values[2]};
     assert((uint32_t)bbcpu_call(guest_bridge(query), 6, query_args) == 0x81100004);
-    assert(values[0] == 101 && values[1] == 202 && values[2] == 303);
+    assert(!memcmp(values, original, sizeof(values)));
     assert(unload(0xd7) == 0 && (uint32_t)loaded(0xd7) == 0x805a1001);
     assert((uint32_t)unload(0xd7) == 0x805a1001);
     out.result = 321;
     assert(load(entry, 0xad, 0, NULL, 0, &out.result) == 0x805a1001 && out.result == 321);
-    bootstrap_unmount_game_root(); assert(rmdir(root) == 0);
-    puts("PASS: five-argument internal module-load ABI, u32 IDs/reserved fields, reference counts, unavailable modules and DiscMap no-bitmap errors with untouched outputs");
+    bootstrap_unmount_game_root(); assert(unlink(fixture) == 0 && rmdir(root) == 0);
+    assert(!bootstrap_resolve("fJgP+wqifno#libSceDiscMap", 0));
+    puts("PASS: internal module-load ABI and references, DiscMap bitmap errors and six-argument request-location errors, 64-bit outputs, range/namespace validation and errno preservation");
+    return 0;
 }

@@ -45,8 +45,9 @@
   Synthetic checks also cover resuming on another host thread.
 - **Guest threads:** native pthread workers with separate guest stacks, static/module TLS,
   DTV tables and errno. Synthetic checks cover return, exit, join, detach and condition waits.
-- **Local-content DiscMap profile:** optical bitmap queries report missing metadata without
-  inventing disc locations. Internal module loading has checked argument and reference handling.
+- **Local-content DiscMap profile:** unloaded mapping tables produce explicit errors without
+  inventing disc locations. Request queries validate ranges and preserve the 64-bit output ABI.
+  Internal module loading has checked argument and reference handling.
 - **Local diagnostics:** generated game-derived images and execution logs remain outside Git.
 
 ## Getting started
@@ -69,16 +70,19 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 **Experimental, not playable.** Normal Terminal runs have completed both original module
 initializers and the game's early memory setup. In the latest run, JIT and interpreter both
-create Fios2's callback and I/O workers, then reach the same unresolved internal module-load
-call requesting DiscMap. No game content was opened and no game fibers were created.
+create Fios2's callback, I/O and decompression workers. DiscMap loads, then both modes reach
+the same unresolved request-location query. No game content was opened and no game fibers
+were created.
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
 in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
 restart and host-thread migration. Non-timed kernel read/write locks pass synthetic lifecycle,
 ownership and concurrency tests in both modes. Checked thread creation and lifecycle operations
 now pass synthetic tests with isolated per-thread TLS and concurrent read-only fixture I/O.
-The new DiscMap profile and five-argument internal loader pass synthetic guest ABI and error
-tests in both modes. Linked game progress after this addition still needs a normal Terminal run.
+The DiscMap profile and five-argument internal loader pass synthetic guest ABI and error
+tests in both modes. The new request-location errors and 64-bit failure outputs were also
+checked against the supplied original DiscMap module with empty mapping tables. Linked game
+progress after the query addition still needs a normal Terminal run.
 
 **Major remaining work:** the game's packed static pointers require a suitable address model;
 the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,

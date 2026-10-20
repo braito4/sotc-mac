@@ -64,10 +64,18 @@ module IDs. The five-argument loader checks the reserved field, accepts only emp
 arguments, and writes the initializer result only after a successful load. Missing modules
 return an unavailable result.
 
-Local content has no PS4 optical bitmap metadata. The supported DiscMap queries return the
-no-bitmap error without changing output buffers or claiming a physical location. An opaque
-query whose contract is not established remains unresolved. Synthetic x86 calls verify the
-loader ABI, reference counts, unavailable cases and unchanged DiscMap outputs in both modes.
+The host provider does not load PS4 optical mapping tables. Bitmap-availability queries return
+the no-bitmap error without changing outputs. The request-location query validates required
+pointers and signed ranges before writing. Valid requests initialize three 64-bit outputs to
+unavailable values; unsupported namespaces return a location error, while recognized disc
+namespaces return a missing-mapping-entry error. No physical placement is invented and no
+filesystem lookup is implied by that result.
+
+Synthetic x86 calls verify the loader ABI, reference counts and both kinds of query failure
+in JIT and interpreter. Request-location tests check output guards, aliasing, full-width values,
+invalid ranges and errno preservation. The same request cases were checked privately against
+the supplied original DiscMap function with empty mapping tables. Generated inspection data
+remains outside Git.
 
 ## Limits
 
