@@ -96,8 +96,8 @@ The library passes native load/export/unload checks. The user confirmed renderer
 and Metal command-buffer processing in Terminal; that isolated run submitted no game draws.
 An optional `--graphics-game-test` now connects a reviewed subset of graphics imports, shares
 kernel queue ownership, and moves game entry to a worker while the main thread pumps the
-window. Synthetic tests pass in both CPU modes. The real combined game/renderer run reaches color
-adjustment after opening a display; typed color/capability adapters are now ready for the next
+window. Synthetic tests pass in both CPU modes. The real combined game/renderer run passes display setup, starts its render threads and
+reaches controller initialization. A keyboard-backed input profile is now ready for the next
 Terminal run. No game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
 
 Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass

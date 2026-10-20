@@ -5,6 +5,7 @@
  * not a complete libc or PS4 runtime. No game code is embedded.
  */
 #include "bootstrap_contracts.h"
+#include "bootstrap_pad.h"
 #include "bbcpu.h"
 #include "platform.h"
 #include "runtime.h"
@@ -280,6 +281,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     /* A missing symbol in the selected graphics provider must stop, never
      * fall back to a second queue registry or headless display provider. */
     if (bootstrap_graphics_owns(name)) return bootstrap_graphics_resolve(name);
+    const uintptr_t pad = bootstrap_pad_resolve(name);
+    if (pad) return pad;
     const uintptr_t clock = bootstrap_clocks_resolve(name);
     if (clock) return clock;
     const uintptr_t fiber = bootstrap_fibers_resolve(name);
@@ -381,6 +384,7 @@ void bootstrap_report(void) {
     bootstrap_gnm_report();
     bootstrap_system_report();
     bootstrap_video_report();
+    bootstrap_pad_report();
     printf("Bootstrap: console writes=%" PRIu64 ", bytes=%" PRIu64 " (stdout/stderr only)\n",
            atomic_load_explicit(&console_calls, memory_order_relaxed),
            atomic_load_explicit(&console_bytes, memory_order_relaxed));

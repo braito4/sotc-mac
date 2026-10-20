@@ -5,6 +5,7 @@
  * patches are never applied here; game imports stay behind a scoped allowlist.
  */
 #include "bootstrap_contracts.h"
+#include "bootstrap_pad.h"
 #include "../upstream/gpu/bbgpu.h"
 #include <dlfcn.h>
 #include <stdio.h>
@@ -97,6 +98,19 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
             _Exit(28); /* Initialization may have started threads: do not unload. */
         }
         if (initialize == 2) {
+            /* SDL_WasInit is not thread-safe: snapshot readiness on this main
+             * thread before the guest starts. Sampling uses thread-safe SDL APIs. */
+            uint32_t (*was_init)(uint32_t) = (void *)dlsym(library, "SDL_WasInit");
+            BootstrapKeyboard input = {
+                .keyboard = (void *)dlsym(library, "SDL_GetKeyboardState"),
+                .scancode = (void *)dlsym(library, "SDL_GetScancodeFromName"),
+                .captured = (void *)dlsym(library, "bbgpu_overlay_captures_input"),
+            };
+            input.initialized_subsystems = was_init ? was_init(UINT32_C(0x2020)) : 0;
+            if (bootstrap_pad_bind(&input)) {
+                fputs("STOP_INPUT_BACKEND: initialized SDL video/gamepad keyboard backend unavailable\n", stderr);
+                fflush(NULL); _Exit(28);
+            }
             uintptr_t (*resolve)(const char *) = (void *)dlsym(library, "bbgpu_resolve");
             if (bootstrap_graphics_bind(resolve)) {
                 fputs("STOP_GPU_IMPORTS: incomplete provider or existing CPU queues\n", stderr);

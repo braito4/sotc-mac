@@ -17,19 +17,20 @@ PROBE = ROOT / 'work/probe_entry_arm64'
 
 def synthetic_image(path):
     image = bytearray(16384)
-    code = bytearray.fromhex('bf ff000000 31f6 31d2 31c9')
-    code += b'\xff\x15' + struct.pack('<i', 256-(len(code)+6))
+    code = bytearray(b'\xff\x15' + struct.pack('<i', 240-6))  # Initialize the real keyboard adapter.
+    code += bytearray.fromhex('bf ff000000 31f6 31d2 31c9')
+    code += b'\xff\x15' + struct.pack('<i', 248-(len(code)+6))
     code += b'\x48\x89\xc7'
-    code += b'\xff\x15' + struct.pack('<i', 264-(len(code)+6))
+    code += b'\xff\x15' + struct.pack('<i', 256-(len(code)+6))
     code += b'\x0f\x0b'
     image[:len(code)] = code
     image[512:515] = bytes.fromhex('31c0c3')  # Original synthetic module initializer: return 0.
     def words(*values):
         return struct.pack('<'+'Q'*len(values), *values)
-    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 2, 2, 1) +
+    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 3, 3, 1) +
         words(128, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
-        words(0, 16384, 5) + b'Up36PTk687E#G#H'.ljust(128, b'\0') +
-        b'fixture-stop#none'.ljust(128, b'\0') + words(256, 1, 0, 0, 264, 1, 1, 0) + image)
+        words(0, 16384, 5) + b'hv1luiJrqQM#H#I'.ljust(128, b'\0') + b'Up36PTk687E#G#H'.ljust(128, b'\0') +
+        b'fixture-stop#none'.ljust(128, b'\0') + words(240, 1, 0, 0, 248, 1, 1, 0, 256, 1, 2, 0) + image)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and shutil.which('clang') and PROBE.is_file(),
@@ -50,6 +51,11 @@ class GraphicsEntryTests(unittest.TestCase):
 #include <sys/mman.h>
 extern __thread sigjmp_buf *runtime_fault_recover;
 typedef struct { const char *title, *serial, *user_dir; unsigned sdk, attributes; int width, height; } Config;
+#include <stdbool.h>
+uint32_t SDL_WasInit(uint32_t flags) { if (!pthread_main_np()) abort(); return getenv("SOTC_FIXTURE_NO_INPUT") ? 0 : flags; }
+const bool *SDL_GetKeyboardState(int *count) { static bool keys[512]; *count=512; return keys; }
+int SDL_GetScancodeFromName(const char *name) { (void)name; return 1; }
+int bbgpu_overlay_captures_input(void) { return 0; }
 static int registered, initialized;
 void bbgpu_register_kernel(void) { if (!pthread_main_np()) abort(); registered=1; }
 int bbgpu_init(const Config *c) {
@@ -103,6 +109,16 @@ void bbgpu_window_loop(void) {
                 self.assertIn('Guest first argument: 0x1234', result.stdout)
                 self.assertIn('name=fixture-stop#none', result.stdout)
                 self.assertIn('Linked module 0 initializer returned 0', result.stdout)
+                self.assertIn('keyboard backend ready; initialized=1', result.stdout)
+            state = root/'unavailable-input-state'
+            state.mkdir()
+            rejected = subprocess.run([str(PROBE), str(boot), '--bootstrap', '--game-root', str(root),
+                '--graphics-library', str(library)], capture_output=True, text=True, timeout=15,
+                env=dict(os.environ, BB_GPU_USER_DIR=str(state), SOTC_FIXTURE_NO_INPUT='1'))
+            self.assertEqual(rejected.returncode, 28, rejected.stdout+rejected.stderr)
+            self.assertIn('STOP_INPUT_BACKEND', rejected.stderr)
+            self.assertNotIn('Starting linked module', rejected.stdout)
+
 
 
 if __name__ == '__main__':

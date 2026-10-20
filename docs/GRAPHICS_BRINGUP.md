@@ -204,6 +204,38 @@ unaligned/bounded buffers, 32/64-bit size handling and live display lifecycle. T
 combined run remains pending. Tool execution still stops at the Metal prerequisite; game
 presentation and asset/pointer compatibility remain unverified.
 
+## Keyboard-backed input
+
+The real combined Terminal run now passes color/capability operations, starts RenderFlip and
+Game Render, and stops at `scePadInit`. Graphics mode now connects a keyboard-backed logical
+controller after the renderer has initialized SDL video/gamepad services. SDL readiness and
+key names are checked on the main thread before guest startup. Headless mode retains its
+existing unresolved input boundary.
+
+The supported scoped APIs are initialization, local-user standard-port open, close,
+read-state, buffered read and controller information. A successful open creates a real
+logical-device lifecycle; reads sample SDL's current keyboard state. The 120-byte guest
+packet has neutral sticks when no direction is held, a real process-clock timestamp,
+translated buttons/triggers and keyboard touchpad clicks. Buffered read produces one current
+sample rather than a fabricated backlog. The renderer menu captures input while open.
+
+| Input | Keys |
+|---|---|
+| Left / right stick | WASD / arrow keys |
+| Cross / Circle / Square / Triangle | Space / Left Shift / E / Q |
+| L1 / R1 / L2 / R2 | 1 / 3 / R / F |
+| L3 / R3 / Options | Z / C / Enter |
+| D-pad | I / J / K / L for up / left / down / right |
+| Left / right touchpad click | Tab / Backspace |
+
+This is a fixed keyboard profile. Physical gamepads, mouse, remapping, vibration and motion
+sensor operations are not connected and remain unresolved. It incorporates no Bloodborne heap
+inspection, input injection or recording. Synthetic guest tests pass in both CPU modes for
+service lifecycle, state changes, menu capture, touch IDs, exact wire layout, error/guard
+behavior and stale handles. The synthetic linked-loader test also reaches `scePadInit` and
+checks that an unavailable SDL backend prevents guest startup. Actual keyboard input in the
+combined game run remains to be verified in Terminal.
+
 ## Verified CPU-side display contracts
 
 - Buffer attributes write the exact 40-byte layout. Pitch is the seventh integer argument on

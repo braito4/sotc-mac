@@ -56,6 +56,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_gnm.c"
         "$trial_root/runtime/src/bootstrap_gpu.c"
         "$trial_root/runtime/src/bootstrap_graphics_routes.c"
+        "$trial_root/runtime/src/bootstrap_pad.c"
         "$trial_root/runtime/src/bootstrap_system.c"
         "$trial_root/runtime/src/bootstrap_video.c"
         "$trial_root/runtime/src/bootstrap_event_flags.c"
@@ -113,6 +114,7 @@ contracts() {
     done
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_routes.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_routes"
     "$trial_root/work/test_graphics_routes"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_pad.c" "${trial_sources[@]}" -o "$trial_root/work/test_pad"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_color.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_color"
     for trial_color_case in unequal reserved size; do
         trial_log="$trial_prefix-color-$trial_color_case.log"
@@ -127,6 +129,7 @@ contracts() {
     trial_contract_arguments=("$trial_root/work/test_bootstrap")
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
+        BB_JIT="$trial_jit" "$trial_root/work/test_pad"
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_color"
         trial_log="$trial_prefix-cpu-strings-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_cpu_strings" > "$trial_log" 2>&1; then

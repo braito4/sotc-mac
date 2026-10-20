@@ -142,3 +142,9 @@ bounded game watchdog remains active. Logs and configuration stay private under 
 A real combined run reached color adjustment after opening a display. Typed color/capability
 adapters now cover that boundary; synthetic loader/routing/ABI tests pass in both modes.
 The existing CPU-only `--linked-test` stays headless and still passes its paired comparison.
+
+The latest combined Terminal run reaches controller initialization after display setup.
+Graphics mode now connects a checked keyboard-backed logical controller to initialized SDL;
+headless mode retains its input import stop. For fixed controls and the supported API scope,
+see [Keyboard input](../GRAPHICS_BRINGUP.md#keyboard-backed-input). Physical gamepads,
+remapping and motion/vibration APIs remain unsupported. The new combined run is pending.
