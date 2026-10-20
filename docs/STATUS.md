@@ -32,7 +32,7 @@ Updated 2026-10-20. **CPU bootstrap research; not playable.**
 | Gamma preparation | Retail suffixed export: explicit 32-bit size plus float gamma, 12/16-byte layouts, three channels, pure data preparation |
 | Display data preparation | Exact 40-byte buffer attributes with seventh stack argument; mode fill/size helper; isolated original-module comparisons and guest tests pass in both modes |
 | Metal prerequisite | User reports PASS on Apple M1 in native Terminal: shader compilation, render pipeline, triangle draw and pixel readback; tool process still exposes zero Metal devices |
-| GPU build orchestration | Isolated pinned source/submodule fetch and ARM64-only build recipe with ABI export inventory; eleven offline tests pass; actual fetch blocked by tool-process GitHub DNS |
+| GPU build orchestration | Isolated pinned source/submodule fetch and ARM64-only build recipe with ABI export inventory; twelve offline tests pass, including a real CMake compile under a spaced prefix; cached ARM64 Zydis rebuilt; remaining xxHash download blocked by tool-process GitHub DNS |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -53,7 +53,9 @@ The user reports that the Metal prerequisite check passes on Apple M1 in native 
 including GPU draw/readback. This tool process still reports no default device and zero
 enumerated devices. The upstream GPU library is not linked into this diagnostic. The new
 isolated builder fetches its pinned submodules and prepares ARM64 dependencies/build output,
-with offline orchestration tests; its actual fetch still fails on GitHub DNS here.
+with offline orchestration tests. The user completed the source fetch and initial packages.
+A quoted-include fix now builds the cached ARM64 Zydis under the existing spaced path; a
+retry reaches xxHash, whose download still fails on GitHub DNS here.
 The earlier direct configuration first required a Vulkan SDK;
 pointing it at the existing local Vulkan headers/loader advances to a missing fmt package
 configuration. No GPU library was built. See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the

@@ -1,6 +1,8 @@
 """Offline build orchestration fixtures; no renderer, downloads or game input."""
 import importlib.util
 import io
+import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -28,6 +30,29 @@ class GpuBuildTests(unittest.TestCase):
         self.assertNotIn('for tool in pkg-config glslangValidator nasm', recipe)
         result = subprocess.run(['/bin/bash', '-n'], input=recipe, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which('cmake') and shutil.which('ninja'), 'CMake/Ninja required')
+    def test_generated_include_flag_builds_with_spaces_in_prefix(self):
+        original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
+        recipe = gpu.prepare_recipe(original)
+        flag_line = next(line.strip().removesuffix('\\').strip() for line in recipe.splitlines()
+                         if '-DCMAKE_C_FLAGS=' in line)
+        with tempfile.TemporaryDirectory(prefix='gpu build fixture ') as temporary:
+            root = Path(temporary)
+            prefix = root / 'dependency prefix with spaces'
+            (prefix / 'include').mkdir(parents=True)
+            (prefix / 'include/fixture.h').write_text('#define FIXTURE_VALUE 42\n')
+            source = root / 'source tree'; source.mkdir()
+            (source / 'fixture.c').write_text('#include <fixture.h>\nint main(void) { return FIXTURE_VALUE != 42; }\n')
+            (source / 'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.24)\nproject(fixture C)\nadd_executable(fixture fixture.c)\n')
+            command = 'set -eu; set -- ' + flag_line + '; printf "%s" "$1"'
+            result = subprocess.run(['/bin/bash', '-c', command], env=dict(os.environ, prefix=str(prefix)),
+                                    capture_output=True, text=True, check=True)
+            build = root / 'build tree'
+            for args in (['cmake', '-S', str(source), '-B', str(build), '-G', 'Ninja', result.stdout],
+                         ['cmake', '--build', str(build)], [str(build / 'fixture')]):
+                checked = subprocess.run(args, capture_output=True, text=True)
+                self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
 
     def test_unknown_recipe_is_rejected(self):
         original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()

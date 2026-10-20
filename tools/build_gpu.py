@@ -48,6 +48,9 @@ def prepare_recipe(data):
     replacements = {
         'cd -- "$(dirname -- "$0")/../.."': 'cd -- "$SOTC_GPU_SOURCE"',
         'jobs=$(sysctl -n hw.ncpu)': 'jobs=$SOTC_GPU_JOBS',
+        # CMake parses compiler flags again after shell argument expansion.
+        '-DCMAKE_C_FLAGS="-I$prefix/include"':
+            '-DCMAKE_C_FLAGS="-I\\"$prefix/include\\""',
         'for tool in pkg-config glslangValidator nasm cmake ninja; do':
             'for tool in pkg-config glslangValidator cmake ninja; do',
     }

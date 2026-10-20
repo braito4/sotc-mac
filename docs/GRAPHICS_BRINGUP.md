@@ -58,11 +58,18 @@ bash packaging/build-gpu-arm64.sh --check  # Read-only inventory; exit 2 if inco
 bash packaging/build-gpu-arm64.sh --fetch  # Source/submodules only
 ```
 
-Offline tests cover recipe integrity and shell syntax, bounded parallelism, preservation of
-foreign/redirected paths, cleanup after failed fetches, gitlink validation and command-failure
-reporting. An actual fetch from the tool process still stops at GitHub DNS resolution. The
-network download, dependency compilation and GPU library build are therefore not yet verified
-end to end. A built library will still require the loader integration below before game video.
+Twelve offline tests cover recipe integrity and shell syntax, bounded parallelism,
+preservation of foreign/redirected paths, cleanup after failed fetches, gitlink validation,
+command-failure reporting and a real CMake/Ninja compilation with spaces in the dependency
+prefix. The Zydis include flag retains literal quotes for CMake's compiler-flag parser;
+shell quoting alone had split the prefix into separate Clang arguments.
+
+The user completed the source fetch and initial dependencies from Terminal. After correcting
+the quoting, the actual cached Zydis was configured, built and installed as ARM64 under the
+existing path with spaces. A builder retry skips that completed package and reaches xxHash,
+whose download still fails on GitHub DNS in the tool process. Re-run the same build command
+in Terminal to resume pending dependencies. The complete GPU library build remains unverified;
+a built library will still require the loader integration below before game video.
 
 ## Verified CPU-side display contracts
 
