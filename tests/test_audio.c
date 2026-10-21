@@ -63,7 +63,8 @@ int main(int argc,char **argv) {
     uintptr_t state=bridge("GrQ9s4IrNaQ#q#M");
     assert(!bootstrap_resolve("GrQ9s4IrNaQ#G#A",0));
     assert(!bootstrap_resolve("JfEPXVxhFqA#G#H",0));
-    assert(!bootstrap_resolve("w3PdaSTSwGE#q#M",0)); /* PCM output stays unresolved. */
+    assert(bootstrap_resolve("w3PdaSTSwGE#q#M",0) && bootstrap_resolve("QOQtbeDqsT4#q#M",0));
+    assert(!bootstrap_resolve("b+uAV89IlxE#q#M",0)); /* Volume updates stay unresolved. */
     *runtime_errno()=77;
     unsigned char output[32],unchanged[32];memset(output,0xa5,32);memcpy(unchanged,output,32);
     assert((uint32_t)call(state,0,0,0,0,0,0)==0x80260004);

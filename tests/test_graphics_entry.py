@@ -26,25 +26,38 @@ def synthetic_image(path, fault=False):
     code += b'\x48\x8d\x35' + struct.pack('<i',1024-(len(code)+7))
     code += b'\xff\x15' + struct.pack('<i',264-(len(code)+6))
     code += bytes.fromhex('85c0 7402 0f0b 4489e7')
+    code += b'\x48\x8d\x35' + struct.pack('<i',3072-(len(code)+7))
+    code += b'\xff\x15' + struct.pack('<i',288-(len(code)+6))
+    code += bytes.fromhex('3d 00010000 7402 0f0b')  # Return frames, not interleaved samples.
+    code += b'\x44\x89\x25' + struct.pack('<i',2048-(len(code)+7))
+    code += b'\x48\x8d\x05' + struct.pack('<i',3072-(len(code)+7))
+    code += b'\x48\x89\x05' + struct.pack('<i',2056-(len(code)+7))
+    code += b'\x48\x8d\x3d' + struct.pack('<i',2048-(len(code)+7))
+    code += bytes.fromhex('be 01000000')
+    code += b'\xff\x15' + struct.pack('<i',280-(len(code)+6))
+    code += bytes.fromhex('3d 00010000 7402 0f0b 4489e7')
     code += b'\xff\x15' + struct.pack('<i',272-(len(code)+6))
     code += bytearray.fromhex('bf ff000000 31f6 31d2 31c9')
     code += b'\xff\x15' + struct.pack('<i', 248-(len(code)+6))
     if fault:
         code += bytes.fromhex('c700 03000000')  # Guest writes to the provider's protected/EOF page.
     code += b'\x48\x89\xc7'
-    code += b'\xff\x15' + struct.pack('<i', 280-(len(code)+6))
+    code += b'\xff\x15' + struct.pack('<i', 296-(len(code)+6))
     code += b'\x0f\x0b'
+    assert len(code)<232
     image[:len(code)] = code
+    image[3072:11264]=b'\x3f'*8192  # Original synthetic samples, deliberately nonzero.
     image[512:515] = bytes.fromhex('31c0c3')  # Original synthetic module initializer: return 0.
     def words(*values):
         return struct.pack('<'+'Q'*len(values), *values)
-    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 7, 7, 1) +
-        words(128, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
+    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 9, 9, 1) +
+        words(768, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
         words(0, 16384, 5) + b'hv1luiJrqQM#H#I'.ljust(128, b'\0') + b'JfEPXVxhFqA#q#M'.ljust(128, b'\0') +
         b'Up36PTk687E#G#H'.ljust(128, b'\0') + b'ekNvsT22rsY#q#M'.ljust(128,b'\0') +
         b'GrQ9s4IrNaQ#q#M'.ljust(128,b'\0') + b's1--uE9mBFw#q#M'.ljust(128,b'\0') +
+        b'w3PdaSTSwGE#q#M'.ljust(128,b'\0') + b'QOQtbeDqsT4#q#M'.ljust(128,b'\0') +
         b'fixture-stop#none'.ljust(128, b'\0') +
-        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0) + image)
+        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0) + image)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and shutil.which('clang') and PROBE.is_file(),
@@ -83,6 +96,13 @@ bool SDL_GetAudioDeviceFormat(uint32_t device,AudioSpec *spec,int *frames) {
     if(device!=100 || !audio_opened || frames) abort();
     *spec=(AudioSpec){0x8120,2,48000};puts("FIXTURE_AUDIO_DEVICE_QUERY");return true;
 }
+bool SDL_PutAudioStreamData(void *stream,const void *data,int bytes) {
+    if(stream!=&audio_stream || !audio_opened || !data || bytes!=8192) abort();
+    for(int i=0;i<bytes;++i) if(((const unsigned char *)data)[i]!=0x3f) abort();
+    puts("FIXTURE_PCM_ACCEPTED");return true;
+}
+int SDL_GetAudioStreamQueued(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();return 0; }
+bool SDL_FlushAudioStream(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();return true; }
 uint32_t SDL_WasInit(uint32_t flags) { if (!pthread_main_np()) abort(); return getenv("SOTC_FIXTURE_NO_INPUT") ? 0 : flags; }
 const bool *SDL_GetKeyboardState(int *count) { static bool keys[512]; *count=512; return keys; }
 int SDL_GetScancodeFromName(const char *name) { (void)name; return 1; }
@@ -161,6 +181,8 @@ void bbgpu_window_loop(void) {
                 self.assertIn('FIXTURE_AUDIO_DEVICE_QUERY',result.stdout)
                 self.assertIn('streams opened=1, closed=1',result.stdout)
                 self.assertIn('state queries=1',result.stdout)
+                self.assertEqual(result.stdout.count('FIXTURE_PCM_ACCEPTED'),2)
+                self.assertIn('PCM buffers=2, PCM bytes=16384',result.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')
                     synthetic_image(fault_boot, fault=True)

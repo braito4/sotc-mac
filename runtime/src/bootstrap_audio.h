@@ -13,6 +13,9 @@ typedef struct {
     void (*destroy)(void *stream);
     uint32_t (*device)(void *stream);
     bool (*device_format)(uint32_t device, BootstrapAudioSpec *spec, int *frames);
+    bool (*put)(void *stream, const void *data, int bytes);
+    int (*queued)(void *stream);
+    bool (*flush)(void *stream);
 } BootstrapAudioBackend;
 int bootstrap_audio_bind(const BootstrapAudioBackend *backend);
 uintptr_t bootstrap_audio_resolve(const char *name);

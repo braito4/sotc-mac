@@ -288,7 +288,7 @@ thread starts before the unresolved AudioOut initialization call. No game frame 
 
 ## AudioOut device-stream lifecycle
 
-The adapter connects four scoped AudioOut calls: Init, Open, Close and GetPortState. SDL audio setup
+The adapter connects six scoped AudioOut calls: Init, Open, Close, GetPortState, Output and Outputs. SDL audio setup
 stays on the renderer main thread; only a ready CoreAudio backend is accepted. Main/BGM
 outputs accept the supported local user or system user, with a shared bounded port pool.
 Open must create/resume an actual SDL playback stream before returning a positive opaque
@@ -299,9 +299,9 @@ The low parameter byte selects one of eight 48 kHz sample formats. Bit 16 is the
 attribute, as defined in [shadPS4's AudioOut header](https://github.com/shadps4-emu/shadPS4/blob/main/src/core/libraries/audio/audioout.h).
 It is retained as port metadata independently of format/channel selection. Other unsupported
 attributes are rejected. The adapter exposes playback only, with no recording, loopback or
-dump route; this does not implement a host-wide capture restriction. PCM submission,
-volume updates and downstream AJM services remain unresolved. No samples are submitted
-or replaced with fabricated silence by this adapter.
+dump route; this does not implement a host-wide capture restriction. Volume updates and
+downstream AJM services remain unresolved. Samples are submitted only to the actual SDL
+playback stream, without a timer-only sink or fabricated silence.
 
 GetPortState queries the device bound to an owned live SDL stream and its current format.
 Main/BGM use the logical primary route. Mono/stereo streams retain their retail channel
@@ -325,12 +325,28 @@ SDL symbol resolution, including the main-thread setup and guest-worker callback
 CPU modes. Native SDL selects CoreAudio in this tool process, but no default playback device
 is visible there. Terminal confirms all three real streams open without failures, including
 the restricted stream, starts sndx_out_thread and passes two GetPortState queries. That
-worker then reaches a POSIX pthread_self NID imported through libkernel by NGS2. The exact
-scoped alias now reuses the existing guest-thread identity service, rather than exposing a
-native pthread_t. Guest tests compare main-thread self exports and concurrent worker-created
-handles, including self-join rejection, isolated TLS/errno and normal return/exit in both
-CPU modes. Other scopes and data imports remain unresolved. The alias needs combined
-verification; no PCM output or game frame is verified.
+worker passes the kernel/POSIX thread-self alias and starts the stream scheduler before
+reaching AudioOutOutputs. Real combined PCM submission still needs verification.
+
+Output/Outputs validate the full batch before staging samples: initialized service, 1..25
+16-byte descriptors, live owned non-duplicate handles, equal buffer sizes and readable input.
+Only a successful SDL put counts as submitted PCM. Legacy 8-channel layouts swap the rear
+and side pairs for SDL; standard layouts and mono/stereo remain unchanged. The retail return
+is frames, not frames multiplied by channels. All streams in a batch share one monotonic
+cadence deadline. Queue backpressure caps input at two buffers; a stalled device returns an
+error after a bounded wait. Null sample pointers flush/drain queued data without submitting
+silence. A later provider failure can leave earlier ports submitted; counters report only
+accepted buffers/bytes. Close cannot destroy streams during submission or drain.
+
+Guest tests cover exact sample bytes in all eight formats, legacy/standard channel order,
+ABI widths, unaligned descriptors, protected descriptor/sample boundaries, validation before
+submission, maximum-sized batches, partial backend failure, missing device/queue support,
+one batch cadence and queue/drain failures in both CPU modes. The synthetic graphics loader
+also executes individual and batch submission through dynamically resolved SDL callbacks.
+Private isolated original Output/Outputs comparisons confirm frame returns, null drains,
+raw copies and relevant init/count/pointer/duplicate/size errors with synthetic driver state.
+They do not initialize the original driver. Actual game PCM delivery, audible sound and a
+game frame remain unverified.
 
 The earlier audio configuration SIGBUS is not reproduced in that latest run. Fatal reports
 retain ARM64 ESR/FAR, signal code, host mapping protection and GPU trap flags without touching
@@ -368,8 +384,8 @@ connection now implements scoped import routing, shared queue ownership, a main-
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization, keyboard pad open, UUID generation, thread-key
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
-passes two device-state queries and reaches a libkernel pthread_self alias. That alias
-now connects to the tested guest-thread identity backend and awaits a combined Terminal run.
+passes device-state and thread-self calls, then reaches AudioOutOutputs. Real SDL PCM
+submission is implemented and awaits a combined Terminal run.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.

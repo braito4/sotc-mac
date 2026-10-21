@@ -122,6 +122,7 @@ contracts() {
     "$trial_root/work/test_graphics_routes"
     clang "${trial_flags[@]}" "$trial_root/tests/test_pad.c" "${trial_sources[@]}" -o "$trial_root/work/test_pad"
     clang "${trial_flags[@]}" "$trial_root/tests/test_audio.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_audio_output.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio_output"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_color.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_color"
     for trial_color_case in unequal reserved size; do
         trial_log="$trial_prefix-color-$trial_color_case.log"
@@ -141,6 +142,8 @@ contracts() {
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --not-ready
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --missing-callback
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --missing-query
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio_output"
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio_output" --missing-output
         trial_log="$trial_prefix-key-exit-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_threads" --recursive-key-exit-check > "$trial_log" 2>&1; then
             fail 'Expected explicit rejection of recursive thread exit from a key destructor'
