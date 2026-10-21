@@ -288,7 +288,7 @@ thread starts before the unresolved AudioOut initialization call. No game frame 
 
 ## AudioOut device-stream lifecycle
 
-The adapter connects three scoped AudioOut calls: Init, Open and Close. SDL audio setup
+The adapter connects four scoped AudioOut calls: Init, Open, Close and GetPortState. SDL audio setup
 stays on the renderer main thread; only a ready CoreAudio backend is accepted. Main/BGM
 outputs accept the supported local user or system user, with a shared bounded port pool.
 Open must create/resume an actual SDL playback stream before returning a positive opaque
@@ -300,26 +300,40 @@ attribute, as defined in [shadPS4's AudioOut header](https://github.com/shadps4-
 It is retained as port metadata independently of format/channel selection. Other unsupported
 attributes are rejected. The adapter exposes playback only, with no recording, loopback or
 dump route; this does not implement a host-wide capture restriction. PCM submission,
-volume/state queries and downstream AJM services remain unresolved. No samples are submitted
+volume updates and downstream AJM services remain unresolved. No samples are submitted
 or replaced with fabricated silence by this adapter.
 
-Guest tests cover paired normal/restricted system-user streams, all eight formats with and
-without the restricted attribute, ABI widths, unknown flags, backend failures, independent
-handles, shared mixed-user capacity and ownership in both CPU modes. A synthetic linked
-fixture also calls the real Init adapter. Native SDL setup selects CoreAudio in this tool
-process, but no default playback device is visible there. Terminal confirms initialization
-and the first system-owned eight-channel float stream open succeed. Its second open adds
-the restricted attribute, which the adapter previously rejected as an invalid sample
-format. The corrected restricted-stream open still needs real combined verification.
+GetPortState queries the device bound to an owned live SDL stream and its current format.
+Main/BGM use the logical primary route. Mono/stereo streams retain their retail channel
+count; multichannel streams use current device channels, capped at the stream's input count.
+Volume is the retail non-pad sentinel, flags are zero and the explicit reroute count is zero;
+this profile does not track automatic host routing events. A missing device, unavailable query
+or invalid device information fails without changing the output. Null pointers are checked
+before initialization and handle validity, following the supplied module. Defined fields are
+written only through byte 15, preserving the padding byte and both reserved 64-bit words.
 
-A later audio configuration write faults in both CPU modes. Its page has no host access
-permissions and no GPU trap flags; why access was removed is not established. Fatal reports
-include ARM64 ESR/FAR, signal code, host mapping protection and trap flags without touching
+Guest tests cover paired normal/restricted system-user streams, all formats, ABI widths,
+unknown flags, provider failures, independent handles, mixed-user capacity and lifecycle in
+both CPU modes. State checks also cover live device format changes/failures, stale handles,
+unaligned output, reserved bytes and a buffer ending at a protected-page boundary. The
+isolated supplied original export also matches main/BGM mono/stereo/multichannel field
+values, null/init/handle error order, the volume sentinel and preserved padding/reserved
+bytes in both modes. That private comparison supplies synthetic device/port tables and
+suppresses locking; it does not initialize the original audio driver. The
+synthetic graphics loader executes restricted Open/GetPortState/Close through actual dynamic
+SDL symbol resolution, including the main-thread setup and guest-worker callbacks, in both
+CPU modes. Native SDL selects CoreAudio in this tool process, but no default playback device
+is visible there. Terminal confirms all three real streams open without failures, including
+the restricted stream, and starts sndx_out_thread before the unresolved GetPortState call.
+The new state adapter needs combined verification; no PCM output or game frame is verified.
+
+The earlier audio configuration SIGBUS is not reproduced in that latest run. Fatal reports
+retain ARM64 ESR/FAR, signal code, host mapping protection and GPU trap flags without touching
 the faulting bytes, acquiring the guest VMA lock or changing protection. Synthetic guest
 writes cover read-only mappings and writable mappings beyond file backing; speculative-read
-recovery still passes. Bounded AudioOut init/open diagnostics identify preceding service
-errors. Re-run the combined command in Terminal and keep the private AudioOut lines and
-complete fatal report. No memory-fault repair or game frame is claimed.
+recovery still passes. Bounded AudioOut init/open diagnostics identify preceding errors.
+Re-run the combined command in Terminal and keep the private log and next stop boundary.
+No general memory-fault repair is claimed.
 
 ## Verified CPU-side display contracts
 
@@ -348,8 +362,8 @@ The pinned library and its renderer-only initialization are verified. The option
 connection now implements scoped import routing, shared queue ownership, a main-thread event
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization, keyboard pad open, UUID generation, thread-key
-use and original NGS2 loading, then faults on a non-null audio configuration write in both
-CPU modes. Fatal mapping/syndrome and bounded AudioOut diagnostics await a Terminal run.
+use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
+reaches GetPortState. The live device-state adapter awaits a combined Terminal run.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.

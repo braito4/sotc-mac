@@ -19,22 +19,32 @@ def synthetic_image(path, fault=False):
     image = bytearray(16384)
     code = bytearray(b'\xff\x15' + struct.pack('<i', 232-6))  # Initialize the keyboard and audio adapters.
     code += b'\xff\x15' + struct.pack('<i', 240-(len(code)+6))
+    # Open a restricted 8-channel stream, query its real bound device, then close it.
+    code += bytes.fromhex('bf ff000000 31f6 31d2 b9 00010000 41b8 80bb0000 41b9 05000100')
+    code += b'\xff\x15' + struct.pack('<i',256-(len(code)+6))
+    code += bytes.fromhex('41 89c4 89c7')  # Preserve the stream handle in r12d.
+    code += b'\x48\x8d\x35' + struct.pack('<i',1024-(len(code)+7))
+    code += b'\xff\x15' + struct.pack('<i',264-(len(code)+6))
+    code += bytes.fromhex('85c0 7402 0f0b 4489e7')
+    code += b'\xff\x15' + struct.pack('<i',272-(len(code)+6))
     code += bytearray.fromhex('bf ff000000 31f6 31d2 31c9')
     code += b'\xff\x15' + struct.pack('<i', 248-(len(code)+6))
     if fault:
         code += bytes.fromhex('c700 03000000')  # Guest writes to the provider's protected/EOF page.
     code += b'\x48\x89\xc7'
-    code += b'\xff\x15' + struct.pack('<i', 256-(len(code)+6))
+    code += b'\xff\x15' + struct.pack('<i', 280-(len(code)+6))
     code += b'\x0f\x0b'
     image[:len(code)] = code
     image[512:515] = bytes.fromhex('31c0c3')  # Original synthetic module initializer: return 0.
     def words(*values):
         return struct.pack('<'+'Q'*len(values), *values)
-    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 4, 4, 1) +
+    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 7, 7, 1) +
         words(128, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
         words(0, 16384, 5) + b'hv1luiJrqQM#H#I'.ljust(128, b'\0') + b'JfEPXVxhFqA#q#M'.ljust(128, b'\0') +
-        b'Up36PTk687E#G#H'.ljust(128, b'\0') + b'fixture-stop#none'.ljust(128, b'\0') +
-        words(232, 1, 0, 0, 240, 1, 1, 0, 248, 1, 2, 0, 256, 1, 3, 0) + image)
+        b'Up36PTk687E#G#H'.ljust(128, b'\0') + b'ekNvsT22rsY#q#M'.ljust(128,b'\0') +
+        b'GrQ9s4IrNaQ#q#M'.ljust(128,b'\0') + b's1--uE9mBFw#q#M'.ljust(128,b'\0') +
+        b'fixture-stop#none'.ljust(128, b'\0') +
+        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0) + image)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and shutil.which('clang') and PROBE.is_file(),
@@ -59,11 +69,20 @@ typedef struct { const char *title, *serial, *user_dir; unsigned sdk, attributes
 #include <stdbool.h>
 bool SDL_InitSubSystem(uint32_t flags) { if (!pthread_main_np() || flags!=0x10) abort(); return true; }
 const char *SDL_GetCurrentAudioDriver(void) { if (!pthread_main_np()) abort(); return "coreaudio"; }
-void *SDL_OpenAudioDeviceStream(uint32_t device,const void *spec,void *callback,void *userdata) {
-    (void)device;(void)spec;(void)callback;(void)userdata;abort();
+typedef struct { int format, channels, frequency; } AudioSpec;
+static int audio_stream, audio_opened;
+void *SDL_OpenAudioDeviceStream(uint32_t device,const AudioSpec *spec,void *callback,void *userdata) {
+    if(pthread_main_np() || device!=UINT32_MAX || spec->format!=0x8120 || spec->channels!=8 ||
+       spec->frequency!=48000 || callback || userdata || audio_opened) abort();
+    audio_opened=1;return &audio_stream;
 }
-bool SDL_ResumeAudioStreamDevice(void *stream) { (void)stream;abort(); }
-void SDL_DestroyAudioStream(void *stream) { (void)stream;abort(); }
+bool SDL_ResumeAudioStreamDevice(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();return true; }
+void SDL_DestroyAudioStream(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();audio_opened=0; }
+uint32_t SDL_GetAudioStreamDevice(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();return 100; }
+bool SDL_GetAudioDeviceFormat(uint32_t device,AudioSpec *spec,int *frames) {
+    if(device!=100 || !audio_opened || frames) abort();
+    *spec=(AudioSpec){0x8120,2,48000};puts("FIXTURE_AUDIO_DEVICE_QUERY");return true;
+}
 uint32_t SDL_WasInit(uint32_t flags) { if (!pthread_main_np()) abort(); return getenv("SOTC_FIXTURE_NO_INPUT") ? 0 : flags; }
 const bool *SDL_GetKeyboardState(int *count) { static bool keys[512]; *count=512; return keys; }
 int SDL_GetScancodeFromName(const char *name) { (void)name; return 1; }
@@ -139,6 +158,9 @@ void bbgpu_window_loop(void) {
                 self.assertIn('Linked module 0 initializer returned 0', result.stdout)
                 self.assertIn('keyboard backend ready; initialized=1', result.stdout)
                 self.assertIn('AudioOut: SDL ready=1, initialized=1',result.stdout)
+                self.assertIn('FIXTURE_AUDIO_DEVICE_QUERY',result.stdout)
+                self.assertIn('streams opened=1, closed=1',result.stdout)
+                self.assertIn('state queries=1',result.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')
                     synthetic_image(fault_boot, fault=True)

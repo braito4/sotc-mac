@@ -140,6 +140,7 @@ contracts() {
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --unavailable
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --not-ready
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --missing-callback
+        BB_JIT="$trial_jit" "$trial_root/work/test_audio" --missing-query
         trial_log="$trial_prefix-key-exit-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_threads" --recursive-key-exit-check > "$trial_log" 2>&1; then
             fail 'Expected explicit rejection of recursive thread exit from a key destructor'

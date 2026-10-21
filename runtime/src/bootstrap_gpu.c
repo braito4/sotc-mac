@@ -94,6 +94,8 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
                 .open=(void *)dlsym(library,"SDL_OpenAudioDeviceStream"),
                 .resume=(void *)dlsym(library,"SDL_ResumeAudioStreamDevice"),
                 .destroy=(void *)dlsym(library,"SDL_DestroyAudioStream"),
+                .device=(void *)dlsym(library,"SDL_GetAudioStreamDevice"),
+                .device_format=(void *)dlsym(library,"SDL_GetAudioDeviceFormat"),
             };
             if(init_subsystem && init_subsystem(0x10)) {
                 audio.initialized_subsystems=0x10;

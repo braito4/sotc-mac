@@ -16,8 +16,8 @@ static pthread_mutex_t audio_lock=PTHREAD_MUTEX_INITIALIZER;
 static BootstrapAudioBackend backend;
 static int configured, ready, initialized;
 static uint32_t sequence;
-static struct { int32_t handle; int type, restricted; void *stream; } ports[PORTS];
-static uint64_t init_requests, open_requests, opened, closed, failures;
+static struct { int32_t handle; int type, restricted, channels; void *stream; } ports[PORTS];
+static uint64_t init_requests, open_requests, opened, closed, failures, state_queries;
 int bootstrap_audio_bind(const BootstrapAudioBackend *input) {
     pthread_mutex_lock(&audio_lock);
     if (configured) { pthread_mutex_unlock(&audio_lock); return -1; }
@@ -63,6 +63,7 @@ static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frame
         } else {
             result=(int32_t)(UINT32_C(0x20000000)|++sequence);
             ports[slot].handle=result;ports[slot].type=type;ports[slot].stream=stream;++opened;
+            ports[slot].channels=spec.channels;
             /* Restricted is a port attribute, never a sample-format index.
              * These streams only target playback: no capture, loopback or
              * audio dump path is exposed by this adapter. */
@@ -82,19 +83,47 @@ static int32_t audio_close(int32_t handle) {
     }
     pthread_mutex_unlock(&audio_lock);return result;
 }
+static int32_t audio_state(int32_t handle, void *output) {
+    /* Retail checks null first and writes fields through byte 15 only. The
+     * padding byte at 3 and reserved words at 16..31 belong to the caller. */
+    if(!output) return AUDIO_ERROR(4);
+    pthread_mutex_lock(&audio_lock);++state_queries;
+    int32_t result=!initialized ? AUDIO_ERROR(0xf) : AUDIO_ERROR(3);
+    if(initialized) for(int i=0;i<PORTS;++i) if(ports[i].stream && ports[i].handle==handle) {
+        BootstrapAudioSpec spec={0};
+        const uint32_t device=backend.device ? backend.device(ports[i].stream) : 0;
+        if(!device || !backend.device_format || !backend.device_format(device,&spec,NULL) ||
+           spec.channels<=0 || spec.frequency<=0 || !spec.format) {
+            result=AUDIO_ERROR(0x10);break;
+        }
+        /* Main/BGM use the logical primary output route. Mono/stereo ports
+         * retain their retail channel count; multichannel follows the bound
+         * device, capped by the actual stream's input channels. */
+        const uint16_t route=1, volume=UINT16_MAX, reroute=0;
+        const uint8_t channels=(uint8_t)(ports[i].channels<=2 || ports[i].channels<spec.channels
+            ? ports[i].channels : spec.channels);
+        const uint64_t flags=0;
+        unsigned char *out=output;
+        memcpy(out,&route,2);out[2]=channels;
+        memcpy(out+4,&volume,2);memcpy(out+6,&reroute,2);memcpy(out+8,&flags,8);
+        result=0;break;
+    }
+    pthread_mutex_unlock(&audio_lock);return result;
+}
 uintptr_t bootstrap_audio_resolve(const char *name) {
     if(!configured) return 0;
     if(!strcmp(name,"JfEPXVxhFqA#q#M")) return (uintptr_t)audio_init;
     if(!strcmp(name,"ekNvsT22rsY#q#M")) return (uintptr_t)audio_open;
     if(!strcmp(name,"s1--uE9mBFw#q#M")) return (uintptr_t)audio_close;
+    if(!strcmp(name,"GrQ9s4IrNaQ#q#M")) return (uintptr_t)audio_state;
     return 0;
 }
 void bootstrap_audio_report(void) {
     pthread_mutex_lock(&audio_lock);
     unsigned restricted=0;
     for(int i=0;i<PORTS;++i) if(ports[i].stream && ports[i].restricted) ++restricted;
-    if(configured) printf("AudioOut: SDL ready=%d, initialized=%d, init requests=%llu, streams opened=%llu, closed=%llu, failures=%llu, restricted live=%u (no output submitted by this adapter)\n",
+    if(configured) printf("AudioOut: SDL ready=%d, initialized=%d, init requests=%llu, streams opened=%llu, closed=%llu, failures=%llu, restricted live=%u, state queries=%llu (no output submitted by this adapter)\n",
         ready,initialized,(unsigned long long)init_requests,(unsigned long long)opened,
-        (unsigned long long)closed,(unsigned long long)failures,restricted);
+        (unsigned long long)closed,(unsigned long long)failures,restricted,(unsigned long long)state_queries);
     pthread_mutex_unlock(&audio_lock);
 }

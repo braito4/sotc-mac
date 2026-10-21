@@ -38,11 +38,11 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| AudioOut stream lifecycle | Three scoped init/open/close APIs use initialized SDL CoreAudio and real device streams; local/system user IDs, restricted attributes, guest ABI, provider failures, formats and shared capacity pass in both modes; real Terminal initialization and one system-owned eight-channel float stream open succeed; restricted-port combined use and playback unverified |
+| AudioOut stream lifecycle/state | Scoped init/open/close and live SDL device-state queries; guest ABI, reserved-byte preservation, errors and lifecycle pass in both CPU modes and through the graphics loader; Terminal opens three real streams including a restricted one and starts sndx_out_thread; next observed boundary is GetPortState; PCM output unverified |
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load now passes and sndx_loader_thread starts before sceAudioOutInit; new AudioOut stream adapter awaits combined verification |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker reaches GetPortState; device-state adapter awaits combined verification |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -73,24 +73,27 @@ and checked with original synthetic fixtures. A real combined Terminal run now p
 Game Render, passes original touch-recognizer initialization and opens the keyboard-backed
 controller. Save and trophy task threads then start; one thread key is created and set
 twice, and UUID generation now passes. The latest real combined run loads the original
-NGS2 module and creates its sound-loader thread; the earlier null audio-object fault is
-no longer observed. A checked SDL CoreAudio service and actual stream open/close adapter now
-cover the subsequent AudioOut imports. The latest combined Terminal runs instead fault on
-an audio configuration write to a non-null direct-memory address in both JIT and interpreter.
-The new Terminal diagnostics confirm AudioOut initialization and the first system-user
-eight-channel floating-point main-output open succeed. A second open adds the restricted
-attribute, which our adapter incorrectly treated as part of the sample format. Format and
-attribute are now decoded separately; the restricted bit is retained on the port, while
-other unsupported bits are rejected. Both ports require actual SDL playback streams and
-share the existing capacity. Guest tests cover paired normal/restricted opens, all eight
-sample formats with and without the attribute, provider failures and mixed capacity in
-both modes. Combined restricted-port startup and the later memory fault still need a
-Terminal run; PCM output remains unresolved.
-Fatal diagnostics now include the ARM64 syndrome, signal code, host mapping protection and
-lock-free GPU trap flags in either mode. Synthetic guest writes verify both read-only-page
-faults and SIGBUS from a writable mapping beyond its file backing; recovered faults stay silent.
-The latest fatal report shows no host access permissions and no GPU trap flags at the write;
-it does not establish why that mapping lost access. No protection override is applied.
+NGS2 module, opens three actual AudioOut streams (normal main, restricted main and BGM)
+without failures, and starts the sound-output worker. It reaches the previously unresolved
+`sceAudioOutGetPortState`; that run no longer reproduces the audio configuration SIGBUS.
+
+The new scoped state adapter queries the actual SDL device bound to a live owned stream.
+It reports the logical primary route and available channel count, with the retail main/BGM
+volume sentinel and no explicit reroutes. Missing device/query support or invalid device
+information returns an error without changing output. Only the defined fields through byte
+15 are written; the padding byte and reserved words are preserved. Guest tests cover guarded
+and unaligned outputs, null/init/handle error order, all formats, device changes/failures and
+closed streams in both CPU modes.
+The private isolated original export matches the main/BGM format/channel matrix, defined
+fields, reserved bytes and null/init/handle error order in both modes, using synthetic port
+tables without original driver initialization. The actual graphics loader exercises open/state/close
+through dynamically resolved SDL callbacks in both modes. The state adapter still needs a
+combined Terminal run; PCM submission remains unresolved.
+
+Fatal diagnostics retain ARM64 syndrome, signal code, host mapping protection and lock-free
+GPU trap flags in either mode. Synthetic guest writes verify read-only-page faults and SIGBUS
+from writable mappings beyond file backing; speculative-read recovery still passes. No host
+memory protection is bypassed and no general memory-fault fix is claimed.
 Starting a save/trophy task does not establish save access or trophy support. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 
