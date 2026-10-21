@@ -50,8 +50,9 @@ Physical SDL3 gamepad input now complements the keyboard fallback. See
 [DualShock input](guide/building.md#dualshock-input) for connection and logging.
 Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
 hotplug, output errors and synthetic callback dispatch in both CPU modes. The latest
-native low-resolution repeats have no physical connection logged; earlier native
-runs detect a DualSense. An earlier complete summary records 778 physical samples,
+native 120-second-budget low-resolution run detects a DualSense, without a recorded
+disconnection. The preceding short repeats have no physical connection logged.
+An earlier complete summary records 778 physical samples,
 387 accepted LED requests and 388 accepted rumble requests without disconnection;
 the timeout run has no final input summary. These counters do not identify the
 connection transport or prove the physical output effect.
@@ -84,7 +85,49 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the owner repeats the low-resolution configuration and reports
+**Current result:** the owner's next low-resolution run uses a 120-second budget
+with DMA off, async submission off, JIT/statistics on and scene preset 4. Initialization
+completes at about 0.93 seconds; a DualSense is detected before the main loop starts
+at about 1.37 seconds. There is no recorded physical disconnection or input-backend
+failure. This establishes detection in this run, not transport, physical output
+effects, completed hotplug in the preceding run or absence of every input issue.
+Scene raster remains 640x360, half-resolution targets 320x180 and UI/output 1920x1080;
+later statistics windows record reduced scene draws.
+
+The renderer reports submitted GPU work unfinished for ten seconds, with the last
+completed timeline value immediately before the awaited value and later recording
+work already present. The supervisor stops on that message before the 120-second
+wall deadline: confirmed child exit 21, supervisor exit 31, elapsed about 112.05
+seconds. The cancellation notice is observed about 5.24 ms after the request and
+there is no cleanup error, import stop or CPU-fault report. There is no recorded
+device-lost error. The pinned `Rasterizer::GpuSignalLoop` waits on the work semaphore;
+`GpuWatchdog` distinguishes this branch from a tick not yet submitted. This does
+not identify the command, shader, dependency or driver behavior responsible, prove
+a hardware hang, or report a new host kernel panic. Do not fake label completion,
+disable the watchdog or extend the budget as a remedy.
+
+The last statistics window reports a worst flip interval of about 22.17 seconds
+and 355 shader/pipeline compiles totaling about 12.75 seconds. These are aggregate
+observations, not proof that compilation caused the stalled submission. Sampled
+Vulkan allocations rise from 4307 to 5740 MiB, and images from 490 to 1418 MiB;
+imported guest memory remains 6592 MiB. The Linux-style zero RSS/VRAM/GTT fields do
+not measure macOS pressure. Low pixel count has not eliminated the progress failure.
+
+Both typed Metal blit failures persist, along with 161 PerVertexKHR messages,
+263 Phi offset messages, SRT-walk failures, 9567 buffer clamps and 399 incomplete
+GPU-mapping warnings. Message counts are not distinct shader/resource counts or
+causal evidence. The last Metal sample also reports draws skipped for missing
+pipelines. The CSV retains 519 complete rows through about 38.03 seconds relative
+to its first row, plus a partial row; cancellation buffering prevents treating
+this as the final presentation time or explaining the remainder of the run.
+
+Next work is offline/source diagnosis of the typed-copy failures and the pending
+submission's shader/resource dependencies, with synthetic fixtures before another
+native game comparison. Keep the protective stop and DMA-off setting. No renderer
+patch, dependency update or GPU execution was made to analyze this log. Earlier
+confirmed and unknown stop results below remain separate historical observations.
+
+**Preceding 30-second repeat:** the owner repeats the low-resolution configuration and reports
 that the window closes when turning on the controller. The only input line records
 the logical controller opening with keyboard fallback. There is no physical
 connection/disconnection message, input-backend failure, unresolved-import stop,

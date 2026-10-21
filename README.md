@@ -15,10 +15,9 @@
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
 > in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
 > only the first logo. The latest native run confirms reduced scene draws at
-> 640x360. The latest repeat requests termination at its 30-second deadline but
-> cannot collect the exit status; a later check finds the process absent. The owner
-> reports window closure while turning on the controller, without a physical
-> connection or input fault logged. The diagnostic reaches the main loop with game
+> 640x360 and detects a DualSense. With a 120-second budget, it reports submitted
+> GPU work unfinished for ten seconds and stops after about 112 seconds; cooperative
+> process exit is confirmed. The diagnostic reaches the main loop with game
 > GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
@@ -30,11 +29,11 @@
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
-> run reached its 120-second limit. A 30-second native comparison confirmed cooperative
-> child exit. A low-resolution comparison confirms child exit after about
-> 30.37 seconds, but its repeat again has an unknown exit status at supervisor
-> completion. Integer-format image-copy errors remain, and lower total memory
-> pressure has not been demonstrated.
+> run reached its 120-second limit. The latest low-resolution run instead stops on
+> the renderer's GPU watchdog before that limit, with confirmed child exit.
+> Earlier short comparisons had both confirmed and unknown exit statuses.
+> Integer-format image-copy errors remain, and lower total memory pressure has
+> not been demonstrated.
 > Low-resolution comparisons are authorized, one at a time; see
 > the [scene-preset comparison](docs/DEVELOPMENT_HANDOFF.md#low-resolution-scene-comparison).
 > Lower pixel counts do not guarantee lower total memory pressure or host stability.
@@ -109,10 +108,11 @@ detects a DualSense and continues beyond the save-dialog boundary. It ends at th
 60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
 recorded during that interval. Draw/dispatch counters are not gameplay FPS.
 The POSIX `usleep` import from an earlier instrumented run is corrected. The latest
-low-resolution repeat retains 399 complete flip rows and has no import/fault stop,
-but its deadline cleanup cannot confirm child exit. A later check finds the process
-absent. No physical controller connection is logged in that repeat. A record of
-presentation calls does not establish correct image contents or gameplay performance.
+low-resolution run detects a DualSense and stops on the renderer's GPU watchdog
+after about 112 seconds, with no import stop or CPU-fault report. The child exits
+with status 21; supervisor status 31 preserves the GPU-stall reason. Its CSV retains
+519 complete flip rows, with later rows lost to buffering at cancellation. A record
+of presentation calls does not establish correct image contents or gameplay performance.
 
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/
 metadata failure paths. Full synthetic contracts pass in both CPU modes; private

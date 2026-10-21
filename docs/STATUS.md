@@ -3,7 +3,28 @@
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
-reported host watchdog kernel panic.** The latest native low-resolution repeat
+reported host watchdog kernel panic.** The latest owner-run low-resolution test
+uses a 120-second budget, DMA off, async submission off and JIT/statistics on.
+It detects a DualSense, starts the main loop at about 1.37 seconds and applies
+640x360 scene raster targets. The renderer then reports submitted GPU work unfinished
+for ten seconds. The supervisor stops the run after about 112.05 seconds, before
+the wall deadline, and confirms child exit 21; its own status 31 preserves the stall
+reason. There is no cleanup error, import stop, CPU-fault report, device-lost error
+or recorded controller disconnection. This confirms one supervised stop after a
+GPU-progress failure, not host stability, correct images or a cause for the stall.
+
+The last statistics window records a worst flip interval of about 22.17 seconds
+and 355 shader/pipeline compiles totaling about 12.75 seconds. Sampled Vulkan
+allocations reach 5740 MiB and images 1418 MiB; these are not total macOS RAM
+measurements. The two integer-format Metal blit failures, PerVertexKHR, SRT/Phi,
+buffer clamps and incomplete GPU-mapping warnings persist. The CSV retains 519
+complete rows through about 38.03 seconds relative to its first row, plus a partial
+row; buffered-row loss prevents using it to timestamp the final stall. Do not
+attribute the stall to the controller, one shader or memory pressure without
+submission-level evidence. No GPU run was launched for this analysis. See the
+[current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
+
+The preceding native 30-second low-resolution repeat
 ends with the 30-second budget request and a native cancellation notice observed
 about 1.90 ms later. The supervisor does not collect child exit within its two-second
 allowance and finishes after about 32.02 seconds with unknown child status and exit 1.
@@ -20,7 +41,7 @@ owner's request to resume direct GPU use, a separate supervised synthetic prereq
 check still returns zero Metal devices and confirmed exit 24 after about 0.17 seconds;
 no synthetic draw or game renderer starts in this tool context.
 
-The preceding native comparison adds only
+The earlier confirmed-exit comparison adds only
 scene preset 4 to DMA off, asynchronous submission off, JIT/statistics on and a
 30-second budget. It enters the main loop at about 2.81 seconds, configures scene
 targets at 640x360 and later records 26/26 and 24/24 scene draws at reduced size.
