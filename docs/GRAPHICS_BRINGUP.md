@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-then stops at scePthreadGetthreadid.
+passes numeric thread identity; main then stops at scePadSetLightBar.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. SoundSystemSndx then reaches scePthreadGetthreadid; no game frame has
+script and main loop. Numeric thread identity now passes; main reaches scePadSetLightBar. No game frame has
 been verified.
 
 ## Network-control availability
@@ -462,4 +462,22 @@ The supplied original export confirms a no-argument ABI and a 32-bit descriptor 
 Synthetic guest tests cover main/worker identity, stale registers, concurrent uniqueness,
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
-structures. Actual game continuation after this import requires Terminal verification.
+structures. Terminal confirms continuation after numeric thread identity; main now reaches
+scePadSetLightBar.
+
+## Keyboard-controller light-bar availability
+
+The scoped two-argument scePadSetLightBar adapter validates initialization, null parameter,
+handle and the retail RGB brightness rule in that order. It reads exactly three RGB bytes;
+reserved storage is not inspected. All three channels at or below 12 produce
+INVALID_LIGHTBAR_SETTING. A valid color on the live keyboard-backed logical controller
+returns NOT_PERMITTED: this is an explicit diagnostic policy because no physical light bar
+is available, not a claim that output hardware changed. Unreadable RGB input returns
+INVALID_ARG without host faults; stale handles remain invalid.
+
+Guest tests exercise the RGB boundary matrix, guarded/unaligned three-byte input, partial
+unreadable input, 32-bit handle width, stale extra arguments, initialization/null/handle
+ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU modes.
+A private supplied-module comparison confirms retail validation and exact RGB reads, and
+propagation of an injected device-output denial. The game caller discards this result;
+actual continuation with the new adapter still requires Terminal verification.

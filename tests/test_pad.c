@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <unistd.h>
 static bool keys[512];
 static int capture, available=1, key_calls;
 static const struct { const char *name; int code; } names[] = {
@@ -35,6 +36,7 @@ static uint64_t load(const void *p,size_t size) { uint64_t v=0;memcpy(&v,p,size)
 int main(void) {
     bootstrap_initialize(1);
     assert(!bootstrap_resolve("hv1luiJrqQM#H#I",0));
+    assert(!bootstrap_resolve("RR4novUEENY#H#I",0));
     BootstrapKeyboard backend={.initialized_subsystems=0x2020,.keyboard=keyboard,.scancode=scancode,.captured=captured};
     backend.initialized_subsystems=0x20; assert(bootstrap_pad_bind(&backend)==-1);
     assert(!bootstrap_resolve("hv1luiJrqQM#H#I",0));
@@ -42,6 +44,12 @@ int main(void) {
     available=1; assert(bootstrap_pad_bind(&backend)==0); assert(bootstrap_pad_bind(&backend)==-1);
     assert(!bootstrap_resolve("hv1luiJrqQM#A#B",0));
     assert(!bootstrap_resolve("rIZnR6eSpvk#H#I",0)); /* Unsupported sensor API stays unresolved. */
+    bootstrap_initialize(0);assert(!bootstrap_resolve("RR4novUEENY#H#I",0));bootstrap_initialize(1);
+    assert(!bootstrap_resolve("RR4novUEENY#A#B",0));
+    const uintptr_t lightbar=bridge("RR4novUEENY#H#I");
+    *runtime_errno()=17;
+    assert((uint32_t)call(lightbar,1,0,0,0)==0x80920005);
+    assert((uint32_t)call(lightbar,UINT64_MAX,1,0,0)==0x80920005);
     const uintptr_t init=bridge("hv1luiJrqQM#H#I"),open=bridge("xk0AcarP3V4#H#I");
     const uintptr_t close=bridge("6ncge5+l5Qs#H#I"),read=bridge("YndgXqQVV7c#H#I");
     const uintptr_t buffered=bridge("q1cHNfGycLI#H#I"),info=bridge("gjP9-KQzoUk#H#I");
@@ -53,6 +61,23 @@ int main(void) {
     assert((uint32_t)call(open,1,0,0,1)==0x80920001);
     int32_t handle=call(open,1,0,0,0); assert(handle>0);
     assert((uint32_t)call(open,1,0,0,0)==0x80920004);
+    assert((uint32_t)call(lightbar,UINT64_MAX,0,0,0)==0x80920001);
+    assert((uint32_t)call(lightbar,UINT64_MAX,1,0,0)==0x80920003);
+    assert((uint32_t)call(lightbar,handle,1,0,0)==0x80920001);
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *guard=mmap(NULL,page*2,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
+    assert(guard!=MAP_FAILED && !mprotect(guard+page,page,PROT_NONE));
+    unsigned char *rgb=guard+page-3;
+    for(unsigned r=0;r<=13;++r) for(unsigned g=0;g<=13;++g) for(unsigned b=0;b<=13;++b) {
+        rgb[0]=(unsigned char)r;rgb[1]=(unsigned char)g;rgb[2]=(unsigned char)b;
+        const uint32_t expected_error=r<=12 && g<=12 && b<=12 ? 0x80920006 : 0x80920101;
+        assert((uint32_t)call(lightbar,UINT64_C(0x1234000000000000)|(uint32_t)handle,(uintptr_t)rgb,1,UINT64_MAX)==expected_error);
+        assert(rgb[0]==r && rgb[1]==g && rgb[2]==b && *runtime_errno()==17);
+    }
+    rgb[0]=255;assert((uint32_t)call(lightbar,handle,(uintptr_t)rgb,0,0)==0x80920101);
+    assert((uint32_t)call(lightbar,handle,(uintptr_t)(guard+page-2),0,0)==0x80920001);
+    assert((uint32_t)call(lightbar,handle,(uintptr_t)(guard+page),0,0)==0x80920001);
+    assert(!munmap(guard,page*2));
     unsigned char packet[128],expected[128]; memset(packet,0xa5,sizeof(packet));
     const uint64_t before=runtime_process_time_us();
     assert(call(read,handle,(uintptr_t)(packet+1),0,0)==0);
@@ -88,10 +113,12 @@ int main(void) {
     assert((uint32_t)call(read,handle,(uintptr_t)(packet+1),0,0)==0x80920005 && !memcmp(expected,packet,sizeof(packet)));
     available=1; assert(call(close,handle,0,0,0)==0);
     const int previous_calls=key_calls;
+    assert((uint32_t)call(lightbar,handle,1,0,0)==0x80920003);
     assert((uint32_t)call(read,handle,1,0,0)==0x80920003 && key_calls==previous_calls);
     assert((uint32_t)call(info,handle,1,0,0)==0x80920003);
     int32_t next=call(open,1,0,0,0); assert(next>0 && next!=handle);
     assert((uint32_t)call(read,handle,1,0,0)==0x80920003);
+    assert((uint32_t)call(lightbar,handle,1,0,0)==0x80920003);
     assert(call(close,next,0,0,0)==0);
-    puts("PASS: keyboard pad guest ABI, initialization/lifecycle, provider key samples, overlay capture, touch transitions, exact layouts, buffer guards and stale handles");
+    puts("PASS: keyboard pad guest ABI, initialization/lifecycle, provider key samples, overlay capture, touch transitions, exact layouts, buffer guards, stale handles and unavailable light-bar validation/three-byte guarded RGB/errno");
 }

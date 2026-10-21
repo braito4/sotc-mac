@@ -43,8 +43,8 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Launch-splash availability | Scoped no-argument HideSplashScreen returns the supplied original module's absent launch-control error; repeated calls, ignored stale arguments, scopes, buffers/errno and loader continuation pass in both modes; Terminal continues after the response; no splash dismissal or game frame claimed |
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
-| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker submits PCM to SDL without errors and starts the stream scheduler; main passes the absent launch-control and NP title responses, finishes initialization and starts the main loop and Shadow Game Update after the unavailable NetCtl response; SoundSystemSndx reaches Getthreadid |
+| Keyboard input profile | SDL readiness checked on main thread; seven scoped pad APIs implement keyboard input and explicit light-bar unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker submits PCM to SDL without errors and starts the stream scheduler; main passes the absent launch-control and NP title responses, finishes initialization and starts the main loop and Shadow Game Update after the unavailable NetCtl response; numeric thread identity passes; main reaches PadSetLightBar |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -397,7 +397,7 @@ threads, passes original gesture initialization and opens the keyboard-backed co
 then starts save/trophy tasks, creates/uses a thread key and passes UUID generation. The
 latest run loads NGS2, opens three real audio streams, passes two device-state queries and
 the thread-self alias, then starts the stream scheduler and submits PCM to SDL before stopping
-at scePthreadGetthreadid in SoundSystemSndx after world loading begins, the main loop starts
+at scePadSetLightBar on main after numeric thread identity passes, world loading begins and the main loop starts
 and Shadow Game Update is created.
 Title and adjacent content-restriction uninitialized paths pass guest/original/loader checks;
 the optional restriction branch was not taken in Terminal. Four keyboard samples are recorded; audible sound
@@ -444,7 +444,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. SoundSystemSndx then reaches scePthreadGetthreadid; no game frame has
+script and main loop. Numeric thread identity now passes; main reaches scePadSetLightBar. No game frame has
 been verified.
 
 ## Network-control availability
@@ -470,4 +470,22 @@ The supplied original export confirms a no-argument ABI and a 32-bit descriptor 
 Synthetic guest tests cover main/worker identity, stale registers, concurrent uniqueness,
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
-structures. Actual game continuation after this import requires Terminal verification.
+structures. Terminal confirms continuation after numeric thread identity; main now reaches
+scePadSetLightBar.
+
+## Keyboard-controller light-bar availability
+
+The scoped two-argument scePadSetLightBar adapter validates initialization, null parameter,
+handle and the retail RGB brightness rule in that order. It reads exactly three RGB bytes;
+reserved storage is not inspected. All three channels at or below 12 produce
+INVALID_LIGHTBAR_SETTING. A valid color on the live keyboard-backed logical controller
+returns NOT_PERMITTED: this is an explicit diagnostic policy because no physical light bar
+is available, not a claim that output hardware changed. Unreadable RGB input returns
+INVALID_ARG without host faults; stale handles remain invalid.
+
+Guest tests exercise the RGB boundary matrix, guarded/unaligned three-byte input, partial
+unreadable input, 32-bit handle width, stale extra arguments, initialization/null/handle
+ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU modes.
+A private supplied-module comparison confirms retail validation and exact RGB reads, and
+propagation of an injected device-output denial. The game caller discards this result;
+actual continuation with the new adapter still requires Terminal verification.

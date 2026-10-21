@@ -2,10 +2,13 @@
  * ABI layouts/errors from bloodborne-native runtime_pad.c and AjncSystem's
  * SotC reference (GPL-2.0-or-later); SDL3 supplies actual keyboard state.
  * No Bloodborne heap addresses, input injection/replay or game hooks are used.
- * Physical gamepads, mouse, sensors and vibration remain unsupported.
+ * Physical gamepads, mouse, sensors, light-bar output and vibration remain
+ * unsupported. Light-bar ABI/validation also checked against the supplied
+ * retail module; NOT_PERMITTED is from shadPS4 pad_errors.h.
  */
 #include "bootstrap_pad.h"
 #include "bootstrap_contracts.h"
+#include "runtime.h"
 #include <pthread.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -35,7 +38,7 @@ static BootstrapKeyboard keyboard;
 static int bound, initialized, opened, handle, next_handle = 1;
 static uint8_t connection_count, touch_id;
 static int last_touch;
-static uint64_t touch_since, reads;
+static uint64_t touch_since, reads, lightbar_requests;
 static const struct { const char *key; uint32_t button; } bindings[] = {
     {"Space",0x4000}, {"Left Shift",0x2000}, {"E",0x8000}, {"Q",0x1000},
     {"1",0x400}, {"3",0x800}, {"R",0x100}, {"F",0x200},
@@ -143,11 +146,30 @@ static int32_t controller_info(int32_t id, ControllerInfo *out) {
     }
     pthread_mutex_unlock(&pad_lock); return result;
 }
+static int32_t set_lightbar(int32_t id, const void *param) {
+    pthread_mutex_lock(&pad_lock);
+    ++lightbar_requests;
+    /* Retail validation order: initialization, null parameter, handle, RGB.
+     * Only RGB is defined input here; the reserved byte is never read. */
+    int32_t result=!initialized ? PAD_ERROR(5) : !param ? PAD_ERROR(1)
+        : !opened || id!=handle ? PAD_ERROR(3) : 0;
+    unsigned char rgb[3];
+    if (!result) {
+        if (bb_read_memory(rgb,(uintptr_t)param,sizeof(rgb))!=sizeof(rgb)) result=PAD_ERROR(1);
+        else if (rgb[0]<=12 && rgb[1]<=12 && rgb[2]<=12) result=PAD_ERROR(6);
+        /* This logical keyboard device has no physical light bar. Explicit
+         * diagnostic policy: NOT_PERMITTED, never pretend the color changed. */
+        else result=PAD_ERROR(0x101);
+    }
+    pthread_mutex_unlock(&pad_lock);
+    return result;
+}
 uintptr_t bootstrap_pad_resolve(const char *name) {
     if (!bound) return 0; /* Default headless mode keeps its existing import stop. */
     static const struct { const char *name; void *fn; } exports[] = {
         {"hv1luiJrqQM#H#I",pad_init}, {"xk0AcarP3V4#H#I",pad_open},
         {"6ncge5+l5Qs#H#I",pad_close}, {"YndgXqQVV7c#H#I",read_state},
+        {"RR4novUEENY#H#I",set_lightbar},
         {"q1cHNfGycLI#H#I",read_buffered}, {"gjP9-KQzoUk#H#I",controller_info},
     };
     for (size_t i=0; i<sizeof(exports)/sizeof(*exports); ++i)
@@ -156,7 +178,7 @@ uintptr_t bootstrap_pad_resolve(const char *name) {
 }
 void bootstrap_pad_report(void) {
     pthread_mutex_lock(&pad_lock);
-    if (bound) printf("Input: keyboard backend ready; initialized=%d, open=%d, samples=%llu\n",
-                     initialized,opened,(unsigned long long)reads);
+    if (bound) printf("Input: keyboard backend ready; initialized=%d, open=%d, samples=%llu, unavailable light-bar requests=%llu\n",
+                     initialized,opened,(unsigned long long)reads,(unsigned long long)lightbar_requests);
     pthread_mutex_unlock(&pad_lock);
 }
