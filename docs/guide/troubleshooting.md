@@ -12,7 +12,8 @@ unresolved import or CPU fault. This does not establish system stability.
 
 Dynamic shader reads are disabled; every explicitly supplied value other than
 `BB_DIRECT_MEMORY_ACCESS=0` is rejected before library loading and launch prechecks.
-The combined default is 120 seconds at the owner's request. The rollback does not
+The combined path now defaults to no game-duration limit at the owner's request;
+GPU-progress supervision and the prerequisite budgets remain active. The rollback does not
 prove the renderer is safe. The user-space watchdog cannot guarantee recovery from a
 kernel/driver hang. The owner has authorized one brief supervised comparison at a
 time; do not repeat the DMA-on incident or run a sequence automatically. Continue
@@ -71,9 +72,12 @@ Run `--graphics-check` in a native Terminal; no synthetic game frame or fallback
 A successful check establishes only an offscreen synthetic draw. See
 [Graphics bring-up](../GRAPHICS_BRINGUP.md).
 
-`STOP_TIMEOUT` remains a failed diagnostic. The default watchdog is 30 seconds;
-`SOTC_DIAGNOSTIC_SECONDS=1..1800` changes its bounded duration without disabling it.
-Headless probes default to 30 seconds; the combined game/graphics default is 120.
+`STOP_TIMEOUT` remains a failed diagnostic. Headless probes default to 30 seconds.
+`SOTC_DIAGNOSTIC_SECONDS=1..1800` selects a bounded duration;
+`SOTC_DIAGNOSTIC_SECONDS=0` disables both game-duration timers and is the combined
+game/graphics default. It preserves GPU-stall detection and cooperative cancellation.
+Close the window or press Ctrl+C to stop manually. The ten-second Metal prerequisite
+and 60-second renderer initialization budget remain unchanged.
 Explicit budgets remain accepted, but increasing them does not resolve a GPU stall
 or protect against the reported system watchdog panic. Use one supervised test at a time.
 

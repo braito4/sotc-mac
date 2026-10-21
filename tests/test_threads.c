@@ -129,6 +129,21 @@ int main(int argc, char **argv) {
         assert(bbcpu_call(code+thread_identity_offset,1,argument)==parent_identity);
         assert(*runtime_errno()==77);
     }
+    const char *yield_names[]={"6XG4B33N09g#0#F","6XG4B33N09g#p#F"};
+    for(unsigned i=0;i<sizeof(yield_names)/sizeof(*yield_names);++i) {
+        const uint64_t argument[]={host(yield_names[i])};
+        assert(!bootstrap_resolve(yield_names[i],1));
+        for(unsigned n=0;n<32;++n) {
+            assert((int32_t)bbcpu_call(code+thread_numeric_identity_offset,1,argument)==0);
+            assert(*runtime_errno()==77);
+        }
+        assert(bbcpu_call(code+thread_numeric_identity_offset,1,numeric_argument)==main_numeric_id);
+    }
+    assert(!bootstrap_resolve("6XG4B33N09g#1#u",0));
+    bootstrap_initialize(0);
+    assert(!bootstrap_resolve(yield_names[0],0) && !bootstrap_resolve(yield_names[1],0));
+    bootstrap_initialize(1);
+    puts("PASS: scoped sched_yield calls the native scheduler through the guest ABI, preserving guest errno and thread identity");
     key_get = host("0-KXaS70xy4#p#F"); key_set = host("WrOLvHU0yQM#p#F");
     int32_t (*key_create)(uint32_t *, uintptr_t) = (void *)host("mqULNdimTn0#p#F");
     int32_t (*key_delete)(uint32_t) = (void *)host("6BpEZuDT7YI#p#F");

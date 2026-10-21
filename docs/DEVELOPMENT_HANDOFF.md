@@ -6,6 +6,125 @@ before changing code. [Status](STATUS.md) and [Graphics bring-up](GRAPHICS_BRING
 contain chronological investigations; their earlier “latest run” sections describe
 older boundaries, not the present state.
 
+## Continuation checkpoint
+
+**Newest native boundary and implemented corrections:** the owner-run preset-4
+capture now confirms no duration deadline in both supervision layers. It detects a
+DualSense, starts the main loop at about 1.37 seconds, and exits after about 160.93
+seconds at the unresolved POSIX `sched_yield` import. Child and supervisor both
+report exit 20; no GPU-progress watchdog stop is recorded. This establishes a new
+import boundary, not stable gameplay. Rendering errors persist: 310 PerVertexKHR
+messages, 354 graphics-pipeline creation failures and four undeclared shared-U32
+compute failures. These are message counts, not unique shaders or frames.
+
+The scoped POSIX `sched_yield` exports now call the native scheduler, preserve
+guest errno on success and translate host failure to POSIX -1/guest errno. Guest
+ABI checks in both JIT and interpreter cover both observed library scopes, thread
+identity and rejection of data/unrelated/disabled bindings. Full native contracts
+pass. Game continuation beyond this newly implemented import remains untested.
+
+The checked local shader-compatibility overlay makes two renderer corrections:
+
+- Wave64 ballot lowering runs after shared-memory simplification and previously
+  introduced a U64 scratch view alongside its U32 stores on a device without
+  explicit workgroup aliasing. It now loads the aligned pair as two U32 values and
+  packs the same low/high halves, keeping the scratch reservation and barriers.
+  The original pass reproduces missing shared-U32 MSL declarations in all nine
+  synthetic compute modules; the adapted pass produces none. Checks exercise
+  64/128/256-thread groups and three initial LDS sizes, including alignment padding.
+- Before MoltenVK module creation, raw per-vertex inputs used exclusively at
+  vertex zero use the existing upstream rewriter's exact Flat case only when the
+  device fixes the provoking vertex to the first vertex. Configurable provoking
+  vertex support disables this rewrite. Both new and cached module paths apply
+  the policy. Ordinary modules and inputs reading
+  vertices one/two or mixed vertices remain unchanged and explicitly unsupported;
+  derivative reconstruction is not admitted into this compatibility policy.
+
+Shader binary cache version 22 invalidates the old compute output. The original
+three-backport, submission-journal and pipeline-validity states migrate through
+digest-checked patches; partial and foreign states remain rejected. The new policy
+lives in `runtime/src/gpu_msl_compat.h`; regression driver:
+`python3 tools/check_shader_compat.py`. It uses synthetic IR/SPIR-V and no GPU or
+game data. Conversion tests do not establish Metal driver acceptance or pixels.
+
+The incremental ARM64 library rebuild, auxiliary emitter regression, actual
+pipeline-validity guards, 21 offline builder tests and 46-symbol host-link check
+pass. The full builder's prerequisite check currently cannot find the external
+glslang executable referenced by the older configuration; the incremental build
+reused the existing generated shader assets and succeeded. Restore a real glslang
+compiler (or set `SOTC_GLSLANG`) before a fresh dependency/configuration build.
+No real GPU experiment was launched for these corrections. SRT/Phi, general
+per-vertex inputs, typed copies and correct scene rendering remain open.
+
+### Earlier duration implementation and native capture
+
+This checkpoint supersedes the older black-screen and stopping-boundary descriptions
+below. The owner now **sees the 3D animation, with defects**. Correct scene rendering,
+introduction synchronization, playable gameplay and stability remain unverified.
+
+The newest reviewed native capture selects preset 4 (640x360 scene configuration,
+320x180 half targets, 1920x1080 output), DMA off, async submission off, JIT and
+statistics/journaling on. Initialization completes at about 1.10 seconds and the
+main loop starts at about 1.62 seconds. A DualSense connects during the run, followed
+by sixteen further statistics windows. There is no GPU-watchdog message, import
+stop or CPU-fault report before the 120-second wall deadline. The supervisor then
+fails to confirm cooperative child exit and ends after about 122.02 seconds with
+unknown child status and exit 1, despite a cancellation notice after about 1.81 ms.
+A later targeted PID lookup finds the process absent; its exit code/time remain
+unknown. A preceding preset-4 run logs window closure and a confirmed natural
+child/supervisor exit 0 after about 101.27 seconds.
+
+The newest capture records 199 PerVertexKHR messages, 222 graphics-pipeline creation
+failures, four undeclared `shared_mem_u32` compute failures, 271 SRT-walk failures,
+263 Phi offset failures and 25044 buffer-size clamps. The final Metal sample still
+reports 1696 draws skipped for missing pipelines in its interval. These establish
+omitted rendering work, without isolating the owner's visible defects to one cause.
+All twenty-two statistics windows print zero scene/reduced draws per frame; these
+are rounded averages. `BeginRenderingFull` recognizes scene start using at least
+five color targets and an eligible depth target. Preset selection alone does not
+prove SotC's actual 3D draws were downscaled. Do not remove this condition blindly
+or claim total GPU/memory pressure was reduced. Sampled Vulkan allocations/images
+peak at 3795/586 MiB; imported guest memory remains unchanged and macOS pressure
+is not measured. The CSV retains 1237 complete rows through about 113.53 seconds
+relative to its first row, plus a partial row. Buffered loss prevents identifying
+the final presentation time. No pending-submission dump appears because the
+renderer watchdog did not trigger; no exact unfinished GPU command is identified.
+
+**No-deadline game duration implemented at the owner's request:**
+`SOTC_DIAGNOSTIC_SECONDS=0` disables the supervisor wall deadline and the native
+guest alarm. The combined launcher now defaults to zero and explicitly passes the
+same setting to both layers. The GPU-progress watchdog, DMA guard, cooperative
+cancellation and manual window-close/Terminal interruption remain in place. Explicit
+1..1800-second runs remain available; headless probes still default to 30 seconds.
+The independent ten-second Metal precheck and 60-second renderer initialization
+budget remain unchanged. No duration setting protects against a kernel/driver hang.
+
+Relevant files are `tools/run_gpu_diagnostic.py`, `runtime/src/probe_entry_arm64.c`
+and `packaging/test-arm64.sh`. Synthetic tests cover no-deadline natural exit,
+GPU-stall cancellation, manual cancellation, launcher propagation and the native
+guest alarm in JIT/interpreter. No real GPU experiment was launched for this change.
+Validation: `bash packaging/test-arm64.sh --contracts-test` completed natively in
+ARM64 with JIT/interpreter contracts passing, including all six duration/launcher
+tests and twenty-two supervisor tests. One optional real Vulkan-loader test was
+skipped because the isolated GPU dependencies were not present in the validation
+checkout. Shell syntax, staged-source audit and patch application checks also pass.
+The historical native capture above still used the old 120-second limit; it does
+not validate the new mode or resolve the unconfirmed child exit.
+
+After applying and validating these sources in the owner's working copy, the
+no-deadline command preserves the preceding renderer settings:
+
+```sh
+SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
+  SOTC_DIAGNOSTIC_SECONDS=0 BB_JIT=1 BB_FRAME_STATS=1 BB_UPSCALE_PRESET=4 \
+  bash packaging/test-arm64.sh --graphics-game-test
+```
+
+Close the window or press Ctrl+C to stop; inspect the log before another run.
+Confirm the previous instance has closed first. Do not launch a real GPU experiment
+from the restricted tool process. Preset 4 remains a requested scene configuration,
+not proof that SotC's actual 3D draws are reduced.
+
 ## Goal and current evidence
 
 The goal is native Apple Silicon execution of the PS4 game through bbcpu and the
@@ -697,9 +816,9 @@ bash packaging/test-arm64.sh --contracts-test
 
 Read the newest `logs/graphics-game-*.log` by modification time, not an old filename
 from chat. Compare its final lines with the preceding completed run. No new GPU
-run is needed for this inspection. The combined game default is 120 seconds;
-headless remains 30.
-`SOTC_DIAGNOSTIC_SECONDS` accepts only 1..1800. Renderer-only initialization retains
+run is needed for this inspection. The combined game now defaults to no duration
+limit; headless remains 30 seconds. `SOTC_DIAGNOSTIC_SECONDS` accepts 0..1800, with
+zero disabling only the game-duration timers. Renderer-only initialization retains
 its separate 60-second limit. A timeout is an observation boundary,
 not successful gameplay or evidence that all imports are implemented.
 
@@ -739,7 +858,7 @@ Important environment variables:
 | `SOTC_SYSTEM_MODULE_ROOT` | Original gesture/NGS2 modules; default sibling `sys_modules` directory |
 | `SOTC_MEMORY_BACKING=file` | Unlinked temporary-file backing with shared aliases when POSIX shm is unavailable |
 | `BB_JIT=1` / `BB_JIT=0` | ARM64 translation / interpreter |
-| `SOTC_DIAGNOSTIC_SECONDS` | Accepts 1..1800; combined default 120, headless 30; not protection from a kernel hang |
+| `SOTC_DIAGNOSTIC_SECONDS` | Accepts 0..1800; 0 means no game-duration limit and is the combined default; headless default 30; prerequisite budgets and GPU-progress cancellation stay active |
 | `SOTC_GPU_SUBMIT_TRACE` | Combined diagnostic defaults to 1; 0 disables the bounded CPU submission journal and Metal callbacks; dumps on GPU watchdog |
 | `BB_DIRECT_MEMORY_ACCESS` | Unset or literal 0 only; all other values rejected before GPU loading/prechecks |
 | `BB_ASYNC_SUBMIT=0` | Current single comparison: submit on the calling thread; preserve recording workers |

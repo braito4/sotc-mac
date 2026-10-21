@@ -45,6 +45,16 @@ class GpuSupervisorTests(unittest.TestCase):
         self.assertIn(b'child_returncode=0 exit=0', log)
         self.assertNotIn(b'STOP_GPU_WALL_TIMEOUT', log)
 
+    def test_no_deadline_preserves_natural_exit_after_a_silent_interval(self):
+        result, log, elapsed = self.run_fixture(
+            "import time; time.sleep(1.1); print('NATURAL_EXIT'); raise SystemExit(7)", seconds='0')
+        self.assertEqual(result.returncode, 7, result.stderr)
+        self.assertGreater(elapsed, 1)
+        self.assertIn(b'wall budget=none, stop on GPU watchdog', log)
+        self.assertIn(b'NATURAL_EXIT', log)
+        self.assertIn(b'child_returncode=7 exit=7', log)
+        self.assertNotIn(b'STOP_GPU_WALL_TIMEOUT', log)
+
     def test_wall_stop_is_recorded_before_child_cleanup_output(self):
         source = '''import os,signal,sys,time
 def stopped(signum,frame):
@@ -91,7 +101,7 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
         result, log, elapsed = self.run_fixture(
             "import os,signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
             "os.write(1,b'GPU '); time.sleep(.05); os.write(1,b'watch'); "
-            "time.sleep(.05); os.write(1,b'dog: stuck\\n'); time.sleep(30)")
+            "time.sleep(.05); os.write(1,b'dog: stuck\\n'); time.sleep(30)", seconds='0')
         self.assertEqual(result.returncode, 31, result.stderr)
         self.assertIn(b'GPU watchdog: stuck', log)
         self.assertIn(b'STOP_GPU_STALL', log)
@@ -156,13 +166,14 @@ time.sleep(30)
 
     def test_parent_cancellation_is_recorded(self):
         for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
-            with self.subTest(signal=sig):
-                self.check_parent_cancellation(sig)
+            for seconds in ('0', '5'):
+                with self.subTest(signal=sig, seconds=seconds):
+                    self.check_parent_cancellation(sig, seconds)
 
-    def check_parent_cancellation(self, sig):
+    def check_parent_cancellation(self, sig, seconds):
         with tempfile.TemporaryDirectory() as directory:
             log = Path(directory)/'cancel.log'
-            child = subprocess.Popen([sys.executable,str(RUNNER),'--seconds','5','--log',str(log),
+            child = subprocess.Popen([sys.executable,str(RUNNER),'--seconds',seconds,'--log',str(log),
                 '--',sys.executable,'-u','-c',"import time; print('READY'); time.sleep(30)"],
                 stdout=subprocess.PIPE,stderr=subprocess.PIPE)
             try:
@@ -188,7 +199,7 @@ time.sleep(30)
                 self.assertIn(b'GPU supervisor: finished', log)
 
     def test_invalid_budget_never_launches_child(self):
-        for seconds in ('0', '1801', '-1', '', '1.5', ' 1', '\u0661'):
+        for seconds in ('1801', '-1', '', '1.5', ' 1', '+1', '10000', '\u0661'):
             with self.subTest(seconds=seconds):
                 result, log, _ = self.run_fixture("print('MUST_NOT_RUN')", seconds=seconds)
                 self.assertEqual(result.returncode, 2, result.stderr)
@@ -216,9 +227,12 @@ class CooperativeDiagnosticTests(unittest.TestCase):
         cls.binary = cls.root/'fixture'
         source.write_text('''#include "diagnostic_control.h"
 #include <signal.h>
-int main(void) {
+#include <string.h>
+int main(int argc, char **argv) {
     if (sotc_diagnostic_control_start()) return 28;
     signal(SIGTERM,SIG_IGN);
+    if (argc == 2 && !strcmp(argv[1], "stall"))
+        fputs("GPU watchdog: synthetic stalled submission\\n", stderr);
     for (;;) pause();
 }
 ''')
@@ -241,6 +255,18 @@ int main(void) {
         self.assertIn(b'STOP_DIAGNOSTIC_CONTROL: parent requested termination',data)
         self.assertIn(b'child_returncode=21 exit=21',data)
         self.assertRegex(data,rb'control_notice_seen=1 control_notice_after_request_ms=[0-9.]+')
+        self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
+
+    def test_no_deadline_still_cooperatively_stops_on_gpu_watchdog(self):
+        log = self.root/'unlimited-stall.log'
+        result = subprocess.run([sys.executable,str(RUNNER),'--seconds','0','--log',str(log),
+            '--cooperative-stop','--',str(self.binary),'stall'],capture_output=True,timeout=5)
+        self.assertEqual(result.returncode,31,result.stderr)
+        data = log.read_bytes()
+        self.assertIn(b'wall budget=none',data)
+        self.assertIn(b'STOP_GPU_STALL',data)
+        self.assertIn(b'child_returncode=21 exit=31',data)
+        self.assertNotIn(b'STOP_GPU_WALL_TIMEOUT',data)
         self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
 
     def test_notice_is_distinct_from_observed_child_exit(self):
@@ -338,7 +364,7 @@ os._exit(21)
         for sig in (signal.SIGINT, signal.SIGTERM):
             with self.subTest(signal=sig):
                 log = self.root/('cancel-'+str(sig)+'.log')
-                parent = subprocess.Popen([sys.executable,str(RUNNER),'--seconds','5',
+                parent = subprocess.Popen([sys.executable,str(RUNNER),'--seconds','0',
                     '--log',str(log),'--cooperative-stop','--',str(self.binary)],
                     stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 try:

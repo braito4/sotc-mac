@@ -341,9 +341,10 @@ case "$trial_mode" in
         if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
             SOTC_GPU_SUBMIT_TRACE="${SOTC_GPU_SUBMIT_TRACE:-1}" \
+            SOTC_DIAGNOSTIC_SECONDS="${SOTC_DIAGNOSTIC_SECONDS-0}" \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \
-            --seconds "${SOTC_DIAGNOSTIC_SECONDS:-120}" --log "$trial_log" --cooperative-stop \
+            --seconds "${SOTC_DIAGNOSTIC_SECONDS-0}" --log "$trial_log" --cooperative-stop \
             -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
             --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib"
         then trial_status=0; else trial_status=$?; fi

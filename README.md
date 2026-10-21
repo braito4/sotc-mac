@@ -12,15 +12,15 @@
 > [!IMPORTANT]
 > **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
-> The owner has visually confirmed the logos/menu and heard the opening introduction audio
-> in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
-> only the first logo. The owner now reports a black screen where the 3D animation
-> should appear. The preceding 640x360 native run detects a DualSense and stops on the
-> GPU watchdog after about 114.91 seconds, with confirmed cooperative process exit.
-> The newest capture omits the reduced-scene preset and stalls much earlier, after
-> about 19.49 seconds, with compute/transfer work pending and child exit unconfirmed.
-> The diagnostic reaches the main loop with game
-> GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
+> The owner has visually confirmed the logos/menu, opening introduction audio and
+> now the 3D animation with rendering defects. The latest preset-4 capture confirms
+> no duration deadline, detects a DualSense and exits after about 161 seconds at
+> `sched_yield`, without a GPU-watchdog stop. That import and two scoped shader
+> compatibility defects now have tested corrections; game verification is pending.
+> Earlier captures stalled on the GPU watchdog. See the
+> [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+> The diagnostic reaches the main loop with game GPU commands and a physical controller.
+> Introduction video correctness, entering a playable scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
 > The goal is to run Shadow of the Colossus on Apple Silicon without Rosetta. The current
@@ -30,10 +30,11 @@
 > [!WARNING]
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
-> reads remain disabled and enabling them is blocked before GPU loading. An earlier
-> run reached its 120-second limit. The preceding complete low-resolution run instead stops on
-> the renderer's GPU watchdog before that limit, with confirmed child exit.
-> The newest 30-second-budget capture also stalls, with unknown child exit status.
+> reads remain disabled and enabling them is blocked before GPU loading. The latest
+> reviewed capture reached a later import stop without a duration deadline; earlier captures stopped on the
+> renderer's GPU watchdog, with both confirmed and unconfirmed cooperative exits.
+> At the owner's request, game-duration limits now default to disabled; GPU-progress
+> supervision, manual cancellation and prerequisite budgets remain active.
 > Integer-format image-copy errors remain, and lower total memory pressure has
 > not been demonstrated.
 > Low-resolution comparisons are authorized, one at a time; see
@@ -101,6 +102,14 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 ## Status
 
+The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
+supersedes the historical run summaries below. The owner now sees defective 3D
+animation; the latest reviewed preset-4 run confirms no duration deadline and
+reaches `sched_yield` without a GPU-watchdog report. Its native binding and the
+wave64 scratch/vertex-zero shader corrections pass CPU-only checks; the next
+native run must verify continuation and visible output. Correct rendering and
+gameplay stability remain unverified.
+
 **Experimental: earlier runs reached the logos/menu on Apple M1; the last
 uninstrumented 30-second comparison showed only the first logo.**
 The owner also previously confirmed hearing the opening of the game's introduction. This
@@ -134,8 +143,10 @@ metadata failure paths. Full synthetic contracts pass in both CPU modes; private
 comparisons check original validation and injected dependency-error propagation.
 No save storage or completed UI interaction is created. Following the reported host
 panic, dynamic shader-memory reads are disabled and nonzero overrides are rejected.
-The combined default budget is 120 seconds at the owner's request; the user-space
-timer cannot protect against a kernel/driver hang. The owner has authorized gradual
+The combined default now has no game-duration limit at the owner's request;
+`SOTC_DIAGNOSTIC_SECONDS=0` disables both duration timers, while 1..1800 selects
+a bounded run. GPU-progress cancellation, DMA protection and prerequisite budgets
+remain active. These cannot protect against a kernel/driver hang. The owner has authorized gradual
 supervised GPU testing. See the
 [current incident and handoff](docs/DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
 

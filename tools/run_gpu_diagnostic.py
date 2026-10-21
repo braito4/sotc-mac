@@ -1,7 +1,8 @@
 """Supervise one GPU diagnostic, preserving its private output and exit status.
 
-The wall deadline includes renderer startup. Owned executables use a cancellation
-pipe and exit themselves; generic synthetic fixtures can use process-group signals.
+An optional wall deadline includes renderer startup; zero removes only that deadline.
+Owned executables use a cancellation pipe and exit themselves; generic synthetic
+fixtures can use process-group signals.
 Neither mechanism guarantees recovery from a kernel/driver hang. No retries.
 """
 import argparse
@@ -20,8 +21,8 @@ CONTROL_FD_ENV = 'SOTC_DIAGNOSTIC_CONTROL_FD'
 
 def seconds_argument(value):
     if (not value.isascii() or not value.isdigit() or not 1 <= len(value) <= 4
-            or not 1 <= int(value) <= 1800):
-        raise argparse.ArgumentTypeError('seconds must be 1..1800')
+            or not 0 <= int(value) <= 1800):
+        raise argparse.ArgumentTypeError('seconds must be 0..1800 (0 means no wall deadline)')
     return int(value)
 
 
@@ -105,7 +106,8 @@ def supervise(command, seconds, log_path, cooperative=False):
                     'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER', 'BB_FRAME_STATS',
                     'BB_FRAME_LOG', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES', 'BB_OUTPUT_RES',
                     'SOTC_GPU_SUBMIT_TRACE')}
-        emit((f'GPU supervisor: wall budget={seconds}s, stop on GPU watchdog, no retries; '
+        wall_budget = f'{seconds}s' if seconds else 'none'
+        emit((f'GPU supervisor: wall budget={wall_budget}, stop on GPU watchdog, no retries; '
               f'stop_mode={"cooperative" if cooperative else "process-group"}; '
               f'settings={json.dumps(settings, sort_keys=True)}\n').encode())
         previous = {sig: signal.signal(sig, interrupted_by)
@@ -117,7 +119,7 @@ def supervise(command, seconds, log_path, cooperative=False):
         stop_requested_at = None
         started = time.monotonic()
         try:
-            deadline = started + seconds
+            deadline = started + seconds if seconds else None
             child_env = dict(os.environ)
             child_env.pop(CONTROL_FD_ENV, None)
             if cooperative:
@@ -138,13 +140,13 @@ def supervise(command, seconds, log_path, cooperative=False):
                     if interrupted:
                         reason = (128 + interrupted, b'STOP_GPU_CANCELLED: termination requested after interruption\n')
                         break
-                    remaining = deadline - time.monotonic()
-                    if remaining <= 0:
+                    remaining = deadline - time.monotonic() if deadline is not None else None
+                    if remaining is not None and remaining <= 0:
                         reason = (21, b'STOP_GPU_WALL_TIMEOUT: total budget exhausted; termination requested\n')
                         break
                     if eof and child.poll() is not None:
                         break
-                    for key, _ in selector.select(min(remaining, 0.1)):
+                    for key, _ in selector.select(0.1 if remaining is None else min(remaining, 0.1)):
                         data = os.read(key.fileobj.fileno(), 65536)
                         if not data:
                             selector.unregister(key.fileobj)
@@ -222,7 +224,8 @@ def supervise(command, seconds, log_path, cooperative=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--seconds', required=True, type=seconds_argument)
+    parser.add_argument('--seconds', required=True, type=seconds_argument,
+                        help='total wall budget, 0..1800 seconds; 0 keeps supervision without a deadline')
     parser.add_argument('--log', required=True, type=Path)
     parser.add_argument('--cooperative-stop', action='store_true',
                         help='use the cancellation pipe implemented by our diagnostic executable')

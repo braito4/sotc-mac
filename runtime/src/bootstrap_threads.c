@@ -118,6 +118,14 @@ static ABI int32_t checked_posix_create_name(GuestThread **t, ThreadAttr **a, Gu
     return posix(checked_create(t, a, e, arg, name));
 }
 static ABI int32_t checked_posix_join(GuestThread *t, void **result) { return posix(checked_join(t, result)); }
+/* POSIX sched_yield is distinct from scePthreadYield: call the host scheduler
+ * and preserve POSIX -1/errno failure semantics rather than reporting success
+ * unconditionally. Guest errno is independent of the host's errno. */
+static ABI int32_t checked_sched_yield(void) {
+    if (sched_yield() == 0) return 0;
+    *runtime_errno() = runtime_guest_errno(errno);
+    return -1;
+}
 /* Numeric thread IDs are distinct from opaque ScePthread handles. The retail
  * no-argument export returns a 32-bit current-thread ID. Allocate positive,
  * process-unique guest IDs; never truncate a pointer or macOS's 64-bit ID.
@@ -147,6 +155,8 @@ uintptr_t runtime_thread_resolve(const char *name) {
          * with both existing self exports, never return native pthread_t. */
         {"EotR8a3ASf4#p#J", thread_self},
         {"EI-5-jlq2dE#p#J", thread_numeric_id},
+        {"6XG4B33N09g#p#J", checked_sched_yield},
+        {"6XG4B33N09g#I#J", checked_sched_yield},
         {"6UgtwV+0zb4#p#J", checked_create}, {"onNY9Byn-W8#p#J", checked_join},
         {"4qGrR6eoP9Y#p#J", checked_detach}, {"3kg7rT0NQIs#p#J", checked_exit},
         {"OxhIB8LB-PQ#I#J", checked_posix_create}, {"Jmi+9w9u0E4#I#J", checked_posix_create_name},

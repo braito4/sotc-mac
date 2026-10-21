@@ -111,17 +111,18 @@ This compiles and runs a synthetic Metal offscreen shader draw/readback check. I
 build the game renderer. No device is exposed to the development tool process; run from a
 native macOS Terminal to establish host access. See [Graphics bring-up](../GRAPHICS_BRINGUP.md).
 
-Headless probes default to a 30-second watchdog; the combined graphics/game default
-is 120 seconds at the owner's request. `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
-1800 seconds, including 600 for ten minutes; zero cannot disable the watchdog.
-Renderer-only initialization keeps its independent 60-second budget. A timeout
-still fails the paired test and does not establish successful gameplay. A user-space
-timer cannot guarantee recovery from a kernel/driver hang. Longer budgets are not
-a remedy for the reported incident. The combined process now also has an external
-wall deadline, including renderer startup, and stops on a GPU-watchdog message.
-The Metal prerequisite has its own ten-second supervisor. Neither can guarantee
-recovery from a kernel/driver hang. The current one-run comparison is 30 seconds;
-inspect its log before any further GPU test.
+Headless probes default to a 30-second watchdog. At the owner's request, the combined
+graphics/game path now defaults to no duration limit. `SOTC_DIAGNOSTIC_SECONDS=0`
+disables both the supervisor wall deadline and the native guest alarm. Explicit
+1..1800-second runs remain available; their supervisor deadline includes renderer
+startup. The combined launcher passes the same setting to both layers.
+GPU-progress supervision and cooperative cancellation stay active. Close the window
+or press Ctrl+C to stop manually; inspect the log before another GPU test.
+
+Renderer initialization keeps its independent 60-second budget, and the Metal
+prerequisite retains its ten-second supervisor. A timeout still fails the paired
+test and does not establish successful gameplay. Neither cancellation nor a
+user-space timer guarantees recovery from a kernel/driver hang.
 
 ## Isolated renderer build
 
@@ -177,8 +178,9 @@ bash packaging/test-arm64.sh --graphics-game-test
 
 It prepares the linked diagnostic, keeps the window on the main thread, runs the guest on a
 worker and selects one GPU provider for reviewed graphics and kernel queue imports. Use
-`BB_JIT=0` for the interpreter. Unknown and incompatible imports stop explicitly; the normal
-bounded game watchdog remains active. Logs and configuration stay private under the repository.
+`BB_JIT=0` for the interpreter. Unknown and incompatible imports stop explicitly;
+GPU-progress supervision remains active even with no game-duration limit. Logs and
+configuration stay private under the repository.
 A real combined run reached color adjustment after opening a display. Typed color/capability
 adapters now cover that boundary; synthetic loader/routing/ABI tests pass in both modes.
 The existing CPU-only `--linked-test` stays headless and still passes its paired comparison.
@@ -216,6 +218,19 @@ This uses Sirit and the installed SPIRV-Cross MSL compiler without a GPU or game
 Exit 0 means both synthetic interfaces convert; exit 2 reproduces the currently known
 PerVertexKHR limitation after ordinary-input conversion succeeds. Other failures are
 errors. It does not validate driver compilation, pixels or a semantic workaround.
+
+For the checked vertex-zero compatibility policy and wave64 scratch correction:
+
+```sh
+python3 tools/check_shader_compat.py
+```
+
+The original SPIRV-Cross limitation above remains: this correction admits only
+vertex-zero inputs through the exact Flat path where provoking vertex is fixed
+to the first vertex, and retains the other unsupported
+interfaces. The combined regression also reproduces the original mixed-width
+workgroup declaration defect before testing the corrected compute emitter. It
+uses no GPU or game data. The builder runs it after rebuilding the library.
 
 
 ## DualShock input

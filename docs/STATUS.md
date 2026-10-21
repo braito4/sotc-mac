@@ -2,6 +2,36 @@
 
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
+**Newest boundary:** the no-deadline preset-4 run exits after about 160.93 seconds
+at POSIX `sched_yield`, with confirmed child/supervisor exit 20 and no GPU-watchdog
+stop. Scoped native bindings for that import now pass full JIT/interpreter
+contracts. A checked renderer overlay fixes mixed-width wave64 scratch and admits
+the exact vertex-zero Flat input rewrite before both new and cached MoltenVK
+module creation. Nine original synthetic compute modules reproduce the missing
+shared-memory declaration; nine corrected modules convert, and first/other-vertex
+policy checks pass without a GPU. The ARM64 library is rebuilt incrementally;
+game continuation and visible rendering improvements remain untested. General
+PerVertexKHR and SRT/Phi failures remain. See the first
+[handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Continuation checkpoint:** the owner now sees the 3D animation with rendering
+defects. The latest reviewed preset-4 run detects a DualSense and reaches the old
+120-second wall deadline without a GPU-watchdog, import-stop or CPU-fault report.
+Cooperative child exit remains unconfirmed, even though a later PID lookup finds
+the process absent. This supersedes the historical black-screen and earlier-stall
+summaries below. Preset selection does not prove the actual scene draws were reduced.
+See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The authorized no-deadline game mode is implemented: `SOTC_DIAGNOSTIC_SECONDS=0`
+disables the supervisor wall deadline and native guest alarm. The combined launcher
+defaults to zero and propagates the same value to both layers. GPU-progress
+supervision, DMA protection and cooperative cancellation remain active; explicit
+1..1800-second runs remain available. Headless, Metal and renderer-initialization
+defaults remain 30, 10 and 60 seconds respectively. Synthetic checks exercise
+natural exit, GPU-stall/manual cancellation, launcher propagation and native
+JIT/interpreter alarm behavior. No new real GPU run validates this change or fixes
+the rendering errors or unconfirmed exit.
+
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The owner now reports a black screen instead
 of the expected 3D animation. The newest capture stops much earlier, after about

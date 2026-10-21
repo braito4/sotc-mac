@@ -158,7 +158,7 @@ typedef struct {
 } GuestRun;
 static void *run_guest(void *opaque) {
     const GuestRun *run = opaque;
-    alarm(run->budget);
+    alarm(run->budget); /* Zero cancels the duration alarm; parent cancellation remains independent. */
     if (run->linked && bootstrap) {
         runtime_thread_attach_main();
         for (uint64_t i = 0; i < run->module_count; ++i) {
@@ -196,18 +196,18 @@ int main(int argc, char **argv) {
         }
     } else if (argc != 2) fail("usage: probe_entry_arm64 IMAGE [--bootstrap [--game-root DIR]]");
     if (gpu_library && (!bootstrap || !game_root)) fail("graphics requires linked bootstrap and a read-only game root");
-    unsigned budget = gpu_library ? 120 : 30;
+    unsigned budget = gpu_library ? 0 : 30;
     const char *configured_budget = getenv("SOTC_DIAGNOSTIC_SECONDS");
     if (configured_budget) {
         const size_t length = strlen(configured_budget);
-        if (!length || length > 4) fail("SOTC_DIAGNOSTIC_SECONDS must be 1..1800");
+        if (!length || length > 4) fail("SOTC_DIAGNOSTIC_SECONDS must be 0..1800 (0 means no duration limit)");
         budget = 0;
         for (size_t i = 0; i < length; ++i) {
             if (configured_budget[i] < '0' || configured_budget[i] > '9')
-                fail("SOTC_DIAGNOSTIC_SECONDS must be 1..1800");
+                fail("SOTC_DIAGNOSTIC_SECONDS must be 0..1800 (0 means no duration limit)");
             budget = budget * 10 + (unsigned)(configured_budget[i] - '0');
         }
-        if (!budget || budget > 1800) fail("SOTC_DIAGNOSTIC_SECONDS must be 1..1800");
+        if (budget > 1800) fail("SOTC_DIAGNOSTIC_SECONDS must be 0..1800 (0 means no duration limit)");
     }
     FILE *f = fopen(argv[1], "rb");
     if (!f) fail("cannot open input");
@@ -386,7 +386,8 @@ int main(int argc, char **argv) {
            gpu_library ? "experimental graphics provider" : "no renderer");
     printf("Image size: %" PRIu64 "; entry offset: %#" PRIx64 "; relocations: %" PRIu64 "\n", size, entry, nr);
     puts("High mapping is temporary: this does not validate SotC's packed pointers.");
-    printf("Diagnostic watchdog: %u seconds\n", budget);
+    if (budget) printf("Diagnostic watchdog: %u seconds\n", budget);
+    else puts("Diagnostic duration limit: none");
     GuestRun run = {.linked = linked, .budget = budget, .image = image,
                     .procparam = procparam, .module_count = module_count,
                     .entry = entry, .modules = modules, .stack = stack,

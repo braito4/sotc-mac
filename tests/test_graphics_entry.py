@@ -262,7 +262,7 @@ void bbgpu_window_loop(void) {
                 self.assertIn('save-dialog startup requests: initialize=1, open=1',result.stdout)
                 self.assertIn('unsupported VideoOut window-margin requests=1',result.stdout)
                 self.assertIn('unavailable network-control initialization requests=1',result.stdout)
-                for seconds in (None,'1800'):
+                for seconds in (None,'0','1800'):
                     override=root/('config-'+mode+'-'+str(seconds));override.mkdir()
                     env=dict(baseline,BB_DIRECT_MEMORY_ACCESS='0',BB_GPU_USER_DIR=str(override))
                     env.pop('SOTC_DIAGNOSTIC_SECONDS',None)
@@ -271,7 +271,9 @@ void bbgpu_window_loop(void) {
                         '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,env=env)
                     self.assertEqual(check.returncode,20,check.stdout+check.stderr)
                     self.assertIn('FIXTURE_DMA=0',check.stdout)
-                    self.assertIn('Diagnostic watchdog: '+(seconds or '120')+' seconds',check.stdout)
+                    expected = ('Diagnostic duration limit: none' if seconds in (None, '0') else
+                                'Diagnostic watchdog: '+seconds+' seconds')
+                    self.assertIn(expected,check.stdout)
                 rejected_dma=subprocess.run([str(PROBE),str(boot),'--bootstrap','--game-root',str(root),
                     '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,
                     env=dict(baseline,BB_DIRECT_MEMORY_ACCESS='1'))

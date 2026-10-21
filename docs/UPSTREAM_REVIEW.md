@@ -12,6 +12,32 @@ Observed heads during review were `17d3c4cdb0e7` for the app and `22923f080229`
 for runtime. These are dated observations, not automatic update targets. Our runtime,
 CPU and reference pins remain unchanged.
 
+## Scoped shader compatibility and POSIX yield (2026-10-21)
+
+The pinned runtime already has a PerVertexKHR rewrite in its native Metal compiler,
+but MoltenVK compiles the original module first. The local policy reuses only the
+existing exact vertex-zero/Flat case before new and cached module creation, and
+only on devices with fixed first-vertex provoking behavior. Configurable provoking
+vertex support and other vertex selections preserve the original module. No
+derivative reconstruction, dropped vertex selection or replacement shader is
+introduced. SPIRV-Cross's general per-vertex limitation remains.
+
+The pinned wave64 lowering pass runs after shared-memory simplification. Its
+ballot emulation introduced an additional U64 scratch view on devices without
+explicit workgroup aliasing. The local correction loads the aligned low/high U32
+pair and packs the same mask, preserving allocation and barriers. The original
+pass reproduces undeclared shared-U32 MSL references in nine synthetic modules;
+the adapted pass converts all nine and checks offsets for every invocation.
+Shader binary version 22 invalidates the old output. These are original local
+corrections on the pinned bloodborne-native/bbport/shadPS4 sources; source pins
+are unchanged. The existing Metal rewriter retains its Wooloomooloo2 and Huax-1839
+credits. Native driver compilation, pixels and gameplay remain unverified.
+
+The newest native import stop is POSIX `sched_yield`, distinct from the existing
+`scePthreadYield` export. The local scoped adapter calls the actual host scheduler
+and preserves POSIX return/errno semantics. Full guest ABI contracts pass in both
+CPU modes. No game execution was launched to validate these changes.
+
 ## Selected backports
 
 | Upstream change | Relevance and implementation |
