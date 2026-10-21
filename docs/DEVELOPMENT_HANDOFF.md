@@ -16,22 +16,23 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run completes initialization at 946.4805 milliseconds and
-enters the main loop at 1.3778 seconds. Metal reports a sample of 612 draws and 2,366
-dispatches per second, and a cache write reports 151 compiled pipelines. These are
-activity counters, not FPS or correct pixels. Neither the previous queue overflow
-nor duplicate `locn0` error appears. The next stop is our strict EXTRQ range guard,
-not an unsupported instruction: the game requests a field extending beyond bit 63.
+The last native Terminal run completes initialization at 957.6603 milliseconds and
+enters the main loop at 1.3992 seconds. It passes the earlier EXTRQ range stop and
+reaches an unsupported VPMOVZXWQ instruction. A cache-write message reports 183
+compiled pipelines in the session; these are not frames. Neither the previous GPU
+notification overflow nor duplicate `locn0` error appears. Correct pixels remain
+unverified.
 
-The CPU adapter now uses QEMU v10.1.0's shift/mask/truncate policy for those EXTRQ and
-INSERTQ ranges. AMD leaves them undefined; this is an explicit compatibility choice,
-not a hardware guarantee. Both modes cover all six-bit controls. Continuation after
-this policy adjustment needs another Terminal run. No GPU rebuild is needed.
+After checking the preferred upstream sources, the local vector extension now covers
+the missing signed/unsigned byte/word-to-qword widening pairs in SSE and VEX forms.
+A synthetic fixture checks the full widening family in SSE128, VEX128 and VEX256,
+including existing native JIT paths. Continuation after this CPU change still needs
+Terminal verification. No GPU rebuild is needed.
 
-The renderer still reports `PerVertexKHR decoration is not supported in MSL`, skips
-affected pipelines, and has SRT Phi, buffer-clamp and compressed-texture errors.
-The new isolated fragment-interface diagnostic reproduces the MSL compiler limitation
-without game data or a GPU. Correct pixels remain unverified.
+The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (56
+reported errors in the last run), and has SRT Phi, buffer-clamp and compressed-texture
+usage errors. The isolated fragment diagnostic reproduces the compiler limitation
+without game data or a GPU. IT_GET_LOD_STATS also remains unimplemented.
 
 ## First session: reproduce the boundary
 
@@ -142,14 +143,16 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Verify continuation after the SSE4a compatibility adjustment.** The last stop
-   was our explicit range guard. EXTRQ/INSERTQ now match QEMU v10.1.0 for truncated
-   out-of-range fields as well as AMD-defined ranges. Tests cover 524,288 cases per
-   mode against a bit-by-bit oracle; a private comparison also executes QEMU's actual
-   scalar helpers. No native x86/AMD hardware oracle is claimed. Preserve architectural
-   flags and upper YMM state; upper XMM quadword preservation remains a diagnostic
-   choice for bits AMD leaves undefined.
-2. **MSL fragment interface support.** The newest log has 31 `PerVertexKHR` conversion
+1. **Verify continuation after the widening batch.** The latest CPU stop was
+   VPMOVZXWQ. The preferred upstream recomp snapshot also lacks the byte/word-to-qword
+   sign/zero extension pairs; eight mnemonic variants are now covered locally through
+   its synchronized fallback. Native and full contracts cover 64,512 widening cases
+   per mode across all twelve signed/unsigned pairs, SSE128/VEX128/VEX256, aliases,
+   high registers, unaligned inputs and exact memory reads next to protected pages.
+   Existing native JIT paths remain delegated to the pin. Upper lanes, other vectors,
+   MXCSR and flags are checked. No native x86 hardware oracle is claimed. Existing
+   SSE4a compatibility regressions remain in the suite.
+2. **MSL fragment interface support.** The newest log has 56 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does
@@ -226,6 +229,8 @@ lock, reentry, reuse, count rollback, absent hooks and explicit allocation/capac
 failure. `tests/test_prepare_memory.py` checks the restricted transformation and
 rejection of changed upstream input. The SSE4a fixture is `tests/test_cpu_sse4a.c`, run by both `--test` and
 `--contracts-test`, including the documented QEMU-compatible truncation policy in all four forms.
+The widening family is `tests/test_cpu_widen.c`, also run in both modes by those
+commands. It exercises all existing width pairs as well as the new qword pairs.
 The GPU-only auxiliary emitter regression is `python3 tools/check_tessellation.py`;
 it needs the isolated build but neither a GPU device nor game data. Backport source
 checks are part of `tests/test_gpu_build.py`. Other graphics regressions are split across
@@ -257,7 +262,7 @@ with this repository. Keep game content read-only and do not access saves.
 Update this page when the observed stopping boundary or reproduction command changes.
 Separate what was seen in Terminal, what synthetic tests establish, what is only a
 hypothesis and what remains unverified. A successful next run should replace the
-current EXTRQ range-guard boundary above with its actual result, including any timeout.
+current VPMOVZXWQ boundary above with its actual result, including any timeout.
 
 ## Preferred upstream reference
 

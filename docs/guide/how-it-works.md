@@ -8,7 +8,7 @@ A vector-interpreter extension implements PCMPISTRM/VPCMPISTRM string masks. It 
 implicit string ends, signed byte/word ranges, comparison modes, polarity and flags. The JIT
 uses its existing interpreter fallback for these instructions; that fallback is compiled for
 ARM64. SSE/VEX upper-register behavior and later translated flag consumers are tested.
-All other vector operations delegate to the unchanged pinned implementation.
+Instructions outside the local extensions delegate to the pinned implementation.
 
 The extension also handles SSE4a EXTRQ/INSERTQ in register and immediate forms.
 The JIT uses its existing synchronized interpreter fallback. Six-bit field controls,
@@ -17,6 +17,12 @@ Flags and upper YMM lanes are preserved. AMD leaves the destination's upper XMM
 quadword undefined; preserving it here is a diagnostic policy. For architecturally undefined overrunning ranges, the diagnostic uses QEMU
 v10.1.0-compatible shift/mask/truncation instead of stopping. This is not an AMD
 hardware guarantee. This does not establish complete SSE4a instruction coverage.
+
+Signed/unsigned byte/word-to-qword widening forms missing upstream are also handled
+by the extension for SSE128, VEX128 and VEX256. Exact-width memory reads preserve
+guard-page boundaries; legacy and VEX upper-register behavior differs as required.
+The complete twelve-pair widening family is checked in both modes, including the
+other pairs that retain their pinned native JIT/interpreter paths.
 
 The loader reads a private image prepared from the user's executable. In linked mode it also
 initializes the original libc and Fios2 modules from the same input. Unknown imports stop

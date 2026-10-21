@@ -56,6 +56,11 @@ Both commands also run synthetic EXTRQ/INSERTQ register/immediate checks in JIT 
 interpreter, covering every six-bit control pair, including the explicit QEMU-compatible policy
 for architecturally undefined overrunning fields. These use a scalar bit oracle, not native x86 hardware execution.
 
+They also run `tests/test_cpu_widen.c`: 64,512 cases per mode across signed/unsigned
+byte, word and dword widening, SSE128/VEX128/VEX256, aliases/high registers, exact-width
+memory against inaccessible pages, upper lanes and flags. No complete AVX2 coverage
+or x86 hardware oracle is implied.
+
 The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
 lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters
 atomic. The source checkout is not patched. Synthetic tests now also start concurrent guest

@@ -1073,3 +1073,31 @@ solution. SRT, texture usage and visible-frame verification remain open.
 The user's preferred upstream reference is bloodborne-mac and its runtime/recomp
 projects; this policy is recorded in AGENTS.md and the development handoff. Existing
 source pins remain unchanged.
+
+## Missing qword widening pairs after upstream comparison
+
+The next Terminal run passes the former EXTRQ range guard and enters the main loop
+at 1.3992 seconds. It stops at unsupported VPMOVZXWQ; a cache message records 183
+compiled pipelines in the session. Queue overflow and duplicate-location errors are
+absent. PerVertexKHR conversion failures, SRT Phi errors, buffer clamps, compressed
+image usage and IT_GET_LOD_STATS remain unresolved. No correct game image is verified.
+
+The preferred bloodborne-mac/runtime/recomp reference was checked again. The current
+recomp source also lacks PMOVZXBQ, PMOVZXWQ, PMOVSXBQ and PMOVSXWQ and their VEX
+mnemonics in both interpreter and ARM64 JIT. The local extension completes those eight
+mnemonics using the pinned widening behavior as the reference. Other width pairs
+still use their existing pinned native JIT or interpreter paths. Source pins are
+unchanged; the missing forms use the JIT's synchronized interpreter fallback.
+
+Both signed and zero extension work for SSE128, VEX128 and VEX256 destinations.
+Register aliases are captured before writing; memory reads use precisely the bytes
+consumed, even when a protected page starts immediately afterward. Legacy SSE keeps
+upper YMM bits; VEX128 clears them and VEX256 fills the full destination. No flags
+or MXCSR changes are introduced. This does not establish complete AVX2 coverage.
+
+Native CPU checks and full contracts pass. The new byte-copy/sign-fill oracle covers
+64,512 cases per mode across the full twelve-pair signed/unsigned widening family:
+all byte values, word/dword boundaries and deterministic patterns, low/high/aliased
+registers, unaligned and two-sided guard-page memory, upper lanes and translated flag
+consumers. There is no hardware x86 oracle or game input in those tests. A new
+Terminal run must verify game continuation; no GPU rebuild is needed for this change.

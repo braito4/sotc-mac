@@ -78,3 +78,23 @@ MSL interface error skips some pipelines. The CPU instruction family is handled 
 separate local extension; it is not part of these renderer backports. SRT, compressed
 texture usage and visible-frame verification remain open. See the current
 [handoff](DEVELOPMENT_HANDOFF.md) for the next reproduction step.
+
+## Integer widening review after the VPMOVZXWQ stop
+
+The preferred reference was followed through its runtime/recomp split. Observed
+heads during this follow-up were app `6b23bd27663e6a36338433abb9f03cde60b14fa8`,
+runtime `22923f08022909b7e22f7ae8c02ad4c3f6554bfd` and recomp
+`b9652d75edc0a281f06cec0da6ff72e9f5150a70`.
+The [reviewed interpreter](https://github.com/bloodborne-native/bloodborne-recomp/blob/b9652d75edc0a281f06cec0da6ff72e9f5150a70/src/cpu/interp_vec.c)
+and [ARM64 JIT](https://github.com/bloodborne-native/bloodborne-recomp/blob/b9652d75edc0a281f06cec0da6ff72e9f5150a70/src/cpu/jit_arm64.c)
+implement eight widening pairs, but do not contain cases for signed/unsigned
+byte/word-to-qword extension, including VPMOVZXWQ. No ready implementation was found
+in those reviewed files; this is not a claim about every upstream branch or PR.
+
+The SotC vector adapter therefore completes the eight missing SSE/VEX mnemonic
+variants locally, preserving the pinned implementation for other pairs. The source
+pins and JIT code are unchanged. `tests/test_cpu_widen.c` checks the entire widening
+family, including existing native JIT paths, across 64,512 synthetic cases per mode.
+Exact-width guard-page reads, sign/zero fill, aliasing and upper-register behavior
+are tested without game input or native x86 execution. The next Terminal run must
+establish continuation beyond the reported instruction.

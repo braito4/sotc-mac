@@ -78,9 +78,11 @@ build_diagnostic() {
 build_cpu_strings() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_strings.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_strings"
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_sse4a.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_sse4a"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_widen.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_widen"
 }
 test_cpu_sse4a() {
     BB_JIT="$1" "$trial_root/work/test_cpu_sse4a"
+    BB_JIT="$1" "$trial_root/work/test_cpu_widen"
 }
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py

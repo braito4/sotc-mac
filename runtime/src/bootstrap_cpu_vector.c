@@ -12,6 +12,41 @@
 #include "../upstream/recomp/src/cpu/interp_vec.c"
 #undef bbcpu_exec_vec
 
+/* Complete the byte/word -> qword signed/unsigned widening pairs missing in
+ * the pinned backend and reviewed upstream b9652d75edc0. Other widening pairs
+ * still use its native JIT or interpreter. Load precisely the memory operand
+ * width; the unread bytes may be in an inaccessible page. */
+static int widen_qwords(BbCpu *cpu, const BbInsn *in) {
+    unsigned source_bytes;
+    int signed_source;
+    switch (in->mnemonic) {
+    case M(PMOVZXBQ): case M(VPMOVZXBQ): source_bytes=1; signed_source=0; break;
+    case M(PMOVZXWQ): case M(VPMOVZXWQ): source_bytes=2; signed_source=0; break;
+    case M(PMOVSXBQ): case M(VPMOVSXBQ): source_bytes=1; signed_source=1; break;
+    case M(PMOVSXWQ): case M(VPMOVSXWQ): source_bytes=2; signed_source=1; break;
+    default: return 0;
+    }
+    const unsigned bytes=(unsigned)width(in), lanes=bytes/8, read_bytes=lanes*source_bytes;
+    const BbOp *dst=&in->op[0], *src=&in->op[1];
+    if (in->count!=2 || (bytes!=16 && bytes!=32) || (!in->vex && bytes!=16) ||
+        dst->type!=OP_REG || dst->kind!=RK_VEC || dst->reg>=16 || dst->size!=bytes)
+        bbcpu_fatal(cpu,in,"widening destination shape");
+    BbVec source={0},result={0};
+    if (src->type==OP_REG && src->kind==RK_VEC && src->reg<16) {
+        memcpy(source.b,cpu->v[src->reg].b,read_bytes);
+    } else if (src->type==OP_MEM && src->size==read_bytes) {
+        memcpy(source.b,(const void *)bbcpu_addr(cpu,in,src),read_bytes);
+        bb_fence_load();
+    } else bbcpu_fatal(cpu,in,"widening source shape");
+    for (unsigned i=0;i<lanes;++i) {
+        if (signed_source)
+            result.q[i]=(uint64_t)(int64_t)(source_bytes==1 ? source.sb[i] : source.sw[i]);
+        else result.q[i]=source_bytes==1 ? source.b[i] : source.w[i];
+    }
+    vwrite(cpu,in,dst,&result,(int)bytes);
+    return 1;
+}
+
 /* AMD APM volume 4, revision 3.27: EXTRQ/INSERTQ (SSE4a).
  * https://docs.amd.com/v/u/en-US/26568_3.27_APM_Vol4_PUB
  * Zydis describes the written destination as 64 bits, not an entire XMM.
@@ -112,6 +147,7 @@ static void implicit_string_mask(BbCpu *cpu, const BbInsn *in) {
     if (in->vex) memset(cpu->v[0].b + 16, 0, 16);
 }
 int bbcpu_exec_vec(BbCpu *cpu, const BbInsn *in) {
+    if (widen_qwords(cpu,in)) return 1;
     if (in->mnemonic == ZYDIS_MNEMONIC_EXTRQ || in->mnemonic == ZYDIS_MNEMONIC_INSERTQ) {
         sse4a_field(cpu, in); return 1;
     }
