@@ -11,6 +11,17 @@
 static _Atomic size_t safe_area_requests;
 static _Atomic size_t uuid_requests;
 static _Atomic size_t splash_requests;
+static _Atomic size_t language_requests;
+static int32_t system_param(int32_t id, int32_t *out) {
+    /* Narrow local profile: English (US), matching the retail language
+     * fallback. No PS4 settings service or host-language inference. Other
+     * parameter IDs are outside this profile and explicitly rejected. */
+    if (!out || id != 1) return (int32_t)UINT32_C(0x80a10003);
+    const int32_t language = 1;
+    memcpy(out, &language, sizeof(language));
+    atomic_fetch_add_explicit(&language_requests,1,memory_order_relaxed);
+    return 0;
+}
 static int32_t hide_splash(void) {
     atomic_fetch_add_explicit(&splash_requests,1,memory_order_relaxed);
     /* Supplied retail wrapper: no-argument ABI, propagated error when its
@@ -46,10 +57,13 @@ static int32_t display_safe_area(void *info) {
 uintptr_t bootstrap_system_resolve(const char *name) {
     if (!strcmp(name, "1n37q1Bvc5Y#a#a")) return (uintptr_t)display_safe_area;
     if (!strcmp(name, "Xjoosiw+XPI#0#F")) return (uintptr_t)create_uuid;
+    if (!strcmp(name, "fZo48un7LK4#a#a")) return (uintptr_t)system_param;
     if (!strcmp(name, "Vo5V8KAwCmk#a#a")) return (uintptr_t)hide_splash;
     return 0;
 }
 void bootstrap_system_report(void) {
+    printf("Bootstrap: system language queries=%zu (local English-US profile; other settings unsupported)\n",
+           atomic_load_explicit(&language_requests,memory_order_relaxed));
     printf("Bootstrap: logical display safe-area queries=%zu (ratio=1.0; no host display)\n",
            atomic_load_explicit(&safe_area_requests, memory_order_relaxed));
     printf("Bootstrap: UUID creations=%zu (host entropy; random v4 profile)\n",

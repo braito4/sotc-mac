@@ -327,7 +327,7 @@ is visible there. Terminal confirms all three real streams open without failures
 the restricted stream, starts sndx_out_thread and passes two GetPortState queries. That
 worker passes the kernel/POSIX thread-self alias and starts the stream scheduler before
 submitting PCM to SDL. Terminal confirms sustained accepted buffers with no output errors;
-main passes HideSplashScreen and then reaches NpSetNpTitleId.
+main passes HideSplashScreen and the NP title response, then reaches SystemServiceParamGetInt.
 
 Output/Outputs validate the full batch before staging samples: initialized service, 1..25
 16-byte descriptors, live owned non-duplicate handles, equal buffer sizes and readable input.
@@ -367,7 +367,7 @@ stale registers, exact scope/capability, unchanged buffers/errno and continuatio
 the graphics loader in both modes. An isolated supplied original export gives the same
 error with no launch-control context and a supplied SDK lookup, without original module
 initialization. The real combined run continues after this response while PCM submission
-continues, then reaches NpSetNpTitleId.
+continues through the NP title response, then reaches SystemServiceParamGetInt.
 
 ## NP availability
 
@@ -379,8 +379,8 @@ The game caller discards these results. Guest tests check the one/two-pointer AB
 errors, null/unreadable pointers, unchanged buffers/errno and exact scope/capability in both
 CPU modes. An isolated supplied original manager confirms those paths without initialization;
 the synthetic graphics loader also exercises both responses and continues in both modes.
-The real combined boundary is NpSetNpTitleId; continuation with these responses remains to
-be checked in Terminal.
+Terminal confirms continuation after the title response; the optional restriction call was
+not taken. The next boundary is SystemServiceParamGetInt (language).
 
 ## Verified CPU-side display contracts
 
@@ -411,8 +411,8 @@ loop, a guest worker and memory/fault hooks, with synthetic checks. The real com
 passes original gesture initialization, keyboard pad open, UUID generation, thread-key
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
-Main passes the absent launch-control response and reaches NpSetNpTitleId. The scoped NP
-uninitialized responses await a combined run.
+Main passes the absent launch-control and NP title responses and reaches
+SystemServiceParamGetInt. The local language profile awaits a combined run.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -420,3 +420,15 @@ asset loading remain unresolved. Bloodborne-specific image hooks must never be a
 Only after a valid output port, actual display-buffer registration, translated GNM commands,
 shader execution and successful presentation can this project claim game video. A window,
 synthetic checker image, mode structure or artificial flip wakeup does not establish that.
+
+## Local system language
+
+The exact-scoped SystemServiceParamGetInt adapter supports only language ID 1 with an
+explicit English-US profile (value 1), matching the supplied retail wrapper's fallback
+when its settings query fails. This does not read host preferences or create a PS4 settings
+service. Null output and other IDs return PARAMETER; other settings remain unsupported.
+Only four output bytes are written, including for an unaligned destination. Synthetic
+guest ABI, ID width, guarded output, errors, scopes and errno checks run in both CPU modes;
+a private original-module comparison confirms the language fallback and null/invalid-ID
+behavior. The graphics-loader fixture checks the language value during initialization.
+Actual game continuation after this language query still requires Terminal verification.

@@ -52,13 +52,19 @@ def synthetic_image(path, fault=False):
     assert len(code)<232
     image[:len(code)] = code
     image[3072:11264]=b'\x3f'*8192  # Original synthetic samples, deliberately nonzero.
-    # Original synthetic module initializer queries unavailable NP, then returns zero.
+    # Synthetic initializer checks unavailable NP and the local language profile.
     initializer=bytes.fromhex('31ff')+b'\xff\x15'+struct.pack('<i',320-(512+8))
-    initializer+=bytes.fromhex('3d 02005580 7402 0f0b 31c0c3')
+    initializer+=bytes.fromhex('3d 02005580 7402 0f0b')
+    initializer+=bytes.fromhex('bf 01000000')
+    initializer+=b'\x48\x8d\x35'+struct.pack('<i',1200-(512+len(initializer)+7))
+    initializer+=b'\xff\x15'+struct.pack('<i',328-(512+len(initializer)+6))
+    initializer+=bytes.fromhex('85c0 7402 0f0b')
+    initializer+=b'\x83\x3d'+struct.pack('<i',1200-(512+len(initializer)+7))+b'\x01'
+    initializer+=bytes.fromhex('7402 0f0b 31c0c3')
     image[512:512+len(initializer)]=initializer
     def words(*values):
         return struct.pack('<'+'Q'*len(values), *values)
-    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 12, 12, 1) +
+    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 13, 13, 1) +
         words(768, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
         words(0, 16384, 5) + b'hv1luiJrqQM#H#I'.ljust(128, b'\0') + b'JfEPXVxhFqA#q#M'.ljust(128, b'\0') +
         b'Up36PTk687E#G#H'.ljust(128, b'\0') + b'ekNvsT22rsY#q#M'.ljust(128,b'\0') +
@@ -66,8 +72,8 @@ def synthetic_image(path, fault=False):
         b'w3PdaSTSwGE#q#M'.ljust(128,b'\0') + b'QOQtbeDqsT4#q#M'.ljust(128,b'\0') +
         b'fixture-stop#none'.ljust(128, b'\0') + b'Vo5V8KAwCmk#a#a'.ljust(128,b'\0') +
         b'Ec63y59l9tw#S#T'.ljust(128,b'\0') +
-        b'A2CQ3kgSopQ#S#T'.ljust(128,b'\0') +
-        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0,304,1,9,0,312,1,10,0,320,1,11,0) + image)
+        b'A2CQ3kgSopQ#S#T'.ljust(128,b'\0') + b'fZo48un7LK4#a#a'.ljust(128,b'\0') +
+        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0,304,1,9,0,312,1,10,0,320,1,11,0,328,1,12,0) + image)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and shutil.which('clang') and PROBE.is_file(),
@@ -196,6 +202,7 @@ void bbgpu_window_loop(void) {
                 self.assertIn('unavailable splash-hide requests=1',result.stdout)
                 self.assertIn('unavailable NP title registrations=1',result.stdout)
                 self.assertIn('unavailable NP content-restriction requests=1',result.stdout)
+                self.assertIn('system language queries=1',result.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')
                     synthetic_image(fault_boot, fault=True)

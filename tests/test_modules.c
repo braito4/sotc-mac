@@ -548,6 +548,34 @@ static void test_unavailable_np_restriction(void) {
     check_unavailable_np_restriction(guest_bridge(fn));
     puts("PASS: NP content-restriction one-pointer guest ABI, init-before-structure/size validation, repeated errors, scopes and unchanged inputs/errno");
 }
+static void check_system_language(uintptr_t entry) {
+    unsigned char buffer[12], before[12];
+    memset(before,0xa5,sizeof(before));
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) {
+        memcpy(buffer,before,sizeof(buffer));
+        const uint64_t args[]={UINT64_C(0xabcdef0000000001),(uintptr_t)(buffer+3)};
+        assert((uint32_t)bbcpu_call(entry,2,args)==0);
+        int32_t value;memcpy(&value,buffer+3,sizeof(value));assert(value==1);
+        assert(!memcmp(buffer,before,3) && !memcmp(buffer+7,before+7,5));
+        const uint64_t null_args[]={1,0};
+        assert((uint32_t)bbcpu_call(entry,2,null_args)==0x80a10003);
+        const uint32_t rejected[]={0,2,3,4,5,7,1000,UINT32_MAX};
+        for(unsigned i=0;i<sizeof(rejected)/sizeof(rejected[0]);++i) {
+            const uint64_t bad[]={rejected[i],1};
+            assert((uint32_t)bbcpu_call(entry,2,bad)==0x80a10003);
+        }
+        assert(*runtime_errno()==17);
+    }
+}
+static void test_system_language(void) {
+    const char *name="fZo48un7LK4#a#a";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("fZo48un7LK4#V#W",0) && !bootstrap_resolve("fZo48un7LK4#0#F",0));
+    check_system_language(guest_bridge(fn));
+    puts("PASS: local English-US system-language profile, two-argument guest ABI, 32-bit ID, guarded unaligned output, null/unsupported errors, scopes and errno");
+}
 static void check_unavailable_splash(uintptr_t entry) {
     const uint64_t initial[]={UINT64_C(0x123456789abcdef0),UINT64_C(0x23456789abcdef01)};
     uint64_t buffer[2];memcpy(buffer,initial,sizeof(buffer));
@@ -654,6 +682,7 @@ int main(void) {
     test_unavailable_np_restriction();
     test_unavailable_dialogs();
     test_unavailable_splash();
+    test_system_language();
     bootstrap_initialize(1);
     const char *name = "hHrGoGoNf+s#F#G";
     const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);
