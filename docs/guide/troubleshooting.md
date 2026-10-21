@@ -2,19 +2,29 @@
 
 ## Host watchdog kernel panic
 
-Real GPU testing is paused after the owner reported no watchdogd check-ins for
-90 seconds. The latest private game log ends during renderer initialization,
+The owner reported no watchdogd check-ins for 90 seconds, then authorized gradual
+GPU testing. The incident-associated private game log ends during renderer initialization,
 before guest execution. The preceding complete run already reports a GPU
 submission unfinished for more than ten seconds, then the diagnostic timeout.
-These observations do not identify the cause of the system panic.
+These observations do not identify the cause of the system panic. The newest native
+run now uses DMA off and ends at its 120-second limit without a GPU-stall message,
+unresolved import or CPU fault. This does not establish system stability.
 
 Dynamic shader reads are disabled; every explicitly supplied value other than
 `BB_DIRECT_MEMORY_ACCESS=0` is rejected before library loading and launch prechecks.
 The combined default is 120 seconds at the owner's request. The rollback does not
 prove the renderer is safe. The user-space watchdog cannot guarantee recovery from a
-kernel/driver hang; do not extend it or repeat GPU tests to diagnose this incident.
-Continue with read-only inspection and `--contracts-test`, which uses CPU execution
-and synthetic GPU doubles. See the [handoff](../DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
+kernel/driver hang. The owner has authorized one brief supervised comparison at a
+time; do not repeat the DMA-on incident or run a sequence automatically. Continue
+using `--contracts-test` for CPU/synthetic verification. See the
+[current comparison](../DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
+
+`STOP_GPU_STALL` (exit 31) means the external supervisor saw a renderer
+`GPU watchdog:` message and stopped the process group. `STOP_GPU_WALL_TIMEOUT`
+(exit 21) is its wall deadline, including renderer startup; it is an observation
+boundary, not successful gameplay. The log retains child output and the reason for
+stopping. A normal child stop keeps its original exit status. Never automatically
+retry either stop; inspect the saved log first.
 
 ## Expected diagnostic stops
 
@@ -47,7 +57,7 @@ A successful check establishes only an offscreen synthetic draw. See
 `SOTC_DIAGNOSTIC_SECONDS=1..1800` changes its bounded duration without disabling it.
 Headless probes default to 30 seconds; the combined game/graphics default is 120.
 Explicit budgets remain accepted, but increasing them does not resolve a GPU stall
-or protect against the reported system watchdog panic. Real GPU tests are paused.
+or protect against the reported system watchdog panic. Use one supervised test at a time.
 
 `STOP_MEMORY_LAYOUT` means a requested mapping could not be satisfied. Do not disable fixed-map
 bounds or overwrite host shared regions to continue. The temporary image mapping still leaves

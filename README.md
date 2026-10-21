@@ -22,11 +22,11 @@
 > of the game's engine.
 
 > [!WARNING]
-> **GPU experiments are paused after a reported macOS watchdog kernel panic.**
-> A preceding run also reported a stalled GPU submission. The cause is unresolved.
-> Automatic dynamic shader reads have been withdrawn and enabling them is blocked
-> before GPU loading. This rollback does not establish renderer stability. Use
-> CPU/synthetic contracts while investigating; do not repeat the graphics test.
+> **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
+> The owner authorized one brief supervised experiment at a time. Dynamic shader
+> reads remain disabled and enabling them is blocked before GPU loading. The latest
+> native run reaches its 120-second limit without a reported GPU stall; this does
+> not establish renderer stability. See the [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 <p align="center">
   <a href="docs/guide/installation.md"><strong>Getting started</strong></a>
@@ -101,7 +101,8 @@ comparisons check original validation and injected dependency-error propagation.
 No save storage or completed UI interaction is created. Following the reported host
 panic, dynamic shader-memory reads are disabled and nonzero overrides are rejected.
 The combined default budget is 120 seconds at the owner's request; the user-space
-timer cannot protect against a kernel/driver hang. Real GPU testing is paused. See the
+timer cannot protect against a kernel/driver hang. The owner has authorized gradual
+supervised GPU testing. See the
 [current incident and handoff](docs/DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
 
 The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset

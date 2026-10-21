@@ -20,3 +20,5 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_gpu_link.py
       - name: Check Vulkan surface requirements
         run: python3 -m unittest discover -s tests -p test_vulkan.py
+      - name: Check GPU supervisor without GPU execution
+        run: python3 -m unittest discover -s tests -p test_gpu_supervisor.py

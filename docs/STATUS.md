@@ -2,12 +2,12 @@
 
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
-**Current incident: real GPU testing is paused after a reported host watchdog
-kernel panic.** A preceding run also reported a stalled GPU submission. The cause
-is unresolved. Dynamic shader reads are disabled and enabling them is rejected
-before GPU loading/prechecks; the combined default budget is 120 seconds at the
-owner's request. This rollback does not establish renderer stability. Use CPU/synthetic contracts
-and the [incident handoff](DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
+**Current incident: GPU testing resumes gradually at the owner's request after a
+reported host watchdog kernel panic.** The latest native run uses DMA off, reaches
+its 120-second timeout and records no import stop, CPU fault or GPU-watchdog warning.
+The cause of the earlier panic remains unresolved. Dynamic shader reads stay
+blocked. The next comparison is supervised for 30 seconds with asynchronous
+submission disabled; see the [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |
 |---|---|
@@ -1224,3 +1224,30 @@ paused, with no attempt to reproduce the
 panic. CPU/synthetic tests cover configuration rejection, library-constructor
 isolation, launch-precheck ordering, timeout routing and the runtime ABI. No real
 GPU library is loaded by this verification. Raw logs and panic details stay private.
+
+## Gradual testing resumed with external supervision (2026-10-21)
+
+The owner explicitly authorized gradual GPU tests after the initial pause. A new
+native run uses DMA off, completes initialization at about 1.69 seconds, enters the
+main loop at about 2.33 seconds and reaches its 120-second timeout without an import
+stop, CPU execution fault or GPU-watchdog warning. Metal draws/dispatches continue
+in its sampled intervals. The DualSense is detected. Correct introduction video,
+scene entry and system stability remain unverified. Five per-vertex conversion
+messages, 220 Phi offset errors, 228 SRT-walk failures and 996 buffer clamps remain.
+These counts are not distinct shaders or evidence that their causes are fixed.
+
+The combined launcher now uses an independent parent to mirror private output,
+apply a wall deadline including renderer startup and stop the process group on a
+GPU-watchdog message. Stop reasons and original child exit status are preserved;
+there are no retries. Synthetic child-process tests cover fragmented output,
+silent children, ignored TERM, worker cleanup, cancellation, status propagation,
+invalid durations and preserving existing logs. The standalone Metal check is
+also supervised for ten seconds. Neither userspace process can guarantee recovery
+from a kernel/driver hang.
+
+The next native comparison is one 30-second run with BB_ASYNC_SUBMIT=0 and DMA off.
+Only submission timing changes; the recording workers and renderer pins stay the
+same. A short Metal precheck in automation still reports zero devices and exits
+24 before shader execution, so the combined comparison needs native Terminal.
+Inspect that one log before another experiment; no shader fix or stability result
+is claimed by the new supervisor.

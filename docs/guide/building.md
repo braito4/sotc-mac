@@ -5,10 +5,9 @@ workflow. The official upstream comparison suite uses an x86 reference; it is no
 these native-only checks.
 
 > [!WARNING]
-> Real GPU testing is paused after a reported host watchdog kernel panic and an
-> earlier stalled GPU submission. Use CPU/synthetic contracts while investigating.
-> The GPU commands below document existing interfaces; do not run them to reproduce
-> this incident. See the [incident handoff](../DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
+> After a reported host watchdog panic, the owner has authorized one brief GPU
+> comparison at a time. DMA remains disabled; do not replay the incident settings
+> or chain tests automatically. Use the [current comparison](../DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 ## Sources
 
@@ -118,7 +117,11 @@ is 120 seconds at the owner's request. `SOTC_DIAGNOSTIC_SECONDS` accepts 1 throu
 Renderer-only initialization keeps its independent 60-second budget. A timeout
 still fails the paired test and does not establish successful gameplay. A user-space
 timer cannot guarantee recovery from a kernel/driver hang. Longer budgets are not
-a remedy for the reported incident; GPU testing remains paused.
+a remedy for the reported incident. The combined process now also has an external
+wall deadline, including renderer startup, and stops on a GPU-watchdog message.
+The Metal prerequisite has its own ten-second supervisor. Neither can guarantee
+recovery from a kernel/driver hang. The current one-run comparison is 30 seconds;
+inspect its log before any further GPU test.
 
 ## Isolated renderer build
 
@@ -242,7 +245,8 @@ prove that a motor moved or a light changed. After disconnection a log message c
 keyboard fallback; reconnection is detected on the next pad query.
 
 No renderer rebuild is required for host adapter changes. The combined command
-rebuilds that adapter, but real GPU runs are currently paused after the host incident.
+rebuilds that adapter. Use the current single comparison in the handoff after the
+host incident, and inspect its log before proceeding.
 
 Synthetic keyboard and gamepad ABI tests are part of `--contracts-test` in both CPU
 modes; no physical controller or game files are needed for those tests.

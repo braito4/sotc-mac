@@ -90,6 +90,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_supervisor.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_budget.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
@@ -286,11 +287,13 @@ case "$trial_mode" in
         printf 'Native emitter and diagnostic JIT fault checks passed. The upstream Rosetta comparison suite was not run.\n'
         ;;
     --graphics-check)
-        need clang
-        mkdir -p "$trial_root/work"
+        need clang; need python3
+        mkdir -p "$trial_root/work" "$trial_root/logs"
         clang -arch arm64 -O2 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -framework Metal \
             "$trial_root/tools/check_graphics.m" -o "$trial_root/work/check_graphics"
-        "$trial_root/work/check_graphics"
+        python3 "$trial_root/tools/run_gpu_diagnostic.py" --seconds 10 \
+            --log "$trial_root/logs/metal-smoke-$(date -u +%Y%m%dT%H%M%SZ).log" \
+            -- "$trial_root/work/check_graphics"
         ;;
     --vulkan-check)
         need python3
@@ -330,9 +333,11 @@ case "$trial_mode" in
         if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
-            "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
-            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib" \
-            2>&1 | tee "$trial_log"; then trial_status=0; else trial_status=$?; fi
+            python3 "$trial_root/tools/run_gpu_diagnostic.py" \
+            --seconds "${SOTC_DIAGNOSTIC_SECONDS:-120}" --log "$trial_log" \
+            -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
+            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib"
+        then trial_status=0; else trial_status=$?; fi
         case "$trial_status" in
             20) printf 'Stopped at an unimplemented import with the graphics provider enabled; gameplay unverified.\n' ;;
             *) exit "$trial_status" ;;

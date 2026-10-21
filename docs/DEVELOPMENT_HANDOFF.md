@@ -37,9 +37,9 @@ NOT_SYSTEM_INITIALIZED because CommonDialog is unavailable, and Open validates i
 base header/address cookie/reserved bytes and outer size before reporting no instance.
 The initializer policy and its injected dependency-error comparison are distinct from
 Open's original-module validation comparison. The subsequent native run continues
-until timeout. Real GPU testing is now paused following the host incident below.
-This tool process exposes no Metal device; current verification uses CPU/synthetic
-contracts without loading the real GPU library.
+until timeout. After the host incident below, the owner authorized gradual GPU
+testing. This tool process still exposes no Metal device, so real comparisons need
+the owner's native Terminal. CPU/synthetic contracts do not load the real renderer.
 
 The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (78
 reported errors in an earlier run), and has SRT Phi and compressed-texture usage errors.
@@ -58,7 +58,7 @@ connection transport or prove the physical output effect.
 ## Host watchdog incident
 
 The owner reported a macOS kernel panic with no watchdogd check-ins for 90 seconds.
-The most recent private graphics log ends during renderer initialization, after
+The incident-associated private graphics log ends during renderer initialization, after
 importing approximately 6.4 GiB of guest memory and preparing rendering workers.
 It does not reach the renderer-ready line, linked-module initialization or guest
 entry. Its selected dynamic-memory setting is 1. The preceding complete graphics
@@ -76,11 +76,47 @@ incident. Explicit 1..1800-second budgets remain supported, but a
 user-space alarm cannot guarantee recovery from a kernel/driver hang. Do not
 increase timeouts as a remedy or treat DMA off as evidence of safe GPU execution.
 
-Real GPU tests are paused. Do not ask the owner to reproduce this incident or
-automatically launch a renderer, game run or Metal prerequisite check. Continue
-with read-only log/source analysis and CPU/synthetic tests. The normalized evidence
-above is sufficient for the public handoff; panic reports, device identifiers,
-addresses and execution logs remain private.
+The initial pause is superseded by the owner's explicit request to resume gradually.
+Do not repeat the DMA-enabled incident configuration or run an automatic sequence.
+The normalized evidence above is sufficient for the public handoff; panic reports,
+device identifiers, addresses and execution logs remain private.
+
+## Gradual GPU testing
+
+The newest native log uses DMA off and a 120-second budget. Initialization completes
+at about 1.69 seconds and the main loop starts at about 2.33 seconds. The run ends
+at STOP_TIMEOUT without an unresolved import, CPU fault or GPU-watchdog message.
+It records Metal draw/dispatch activity throughout its sampled intervals and detects
+the DualSense. This does not verify scene entry, introduction-video correctness or
+system stability. Five PerVertexKHR conversion errors, 220 Phi offset errors, 228
+SRT-walk failures and 996 buffer clamps remain; message counts are not distinct
+shaders and cannot be compared as performance or correctness improvements.
+
+`tools/run_gpu_diagnostic.py` now supervises the combined process in a separate
+session. Its wall budget includes renderer startup. On any `GPU watchdog:` message,
+it stops the child group (exit 31); deadline expiration returns 21. Cancellation
+is forwarded and recorded. TERM escalates to KILL after a short grace period.
+The child exit status is otherwise preserved, output is mirrored into a new private
+log, and there is no retry. This is an additional user-space stop, not protection
+against a frozen kernel/driver. The standalone Metal prerequisite uses a separate
+ten-second supervisor. The combined default remains 120 seconds.
+
+The next single comparison uses 30 seconds and disables only asynchronous
+submission (`BB_ASYNC_SUBMIT=0`), keeping DMA off and the same renderer/source pins.
+The preceding native log confirms asynchronous submissions were enabled. The
+pinned scheduler's switch moves submission back to the calling thread; recording
+worker count is unchanged. This tests queue-submission timing, not a claimed fix
+for the panic or the missing shader interfaces. Run once from native Terminal:
+
+```sh
+SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
+  SOTC_DIAGNOSTIC_SECONDS=30 BB_JIT=1 \
+  bash packaging/test-arm64.sh --graphics-game-test
+```
+
+Inspect the newest game log before another run. Record what was actually visible,
+whether progression stopped, the selected setting, terminal stop and any GPU-stall
+message. Keep other renderer settings unchanged and do not turn DMA back on.
 
 ## First session: inspect without GPU execution
 
@@ -127,7 +163,7 @@ The main entry points are:
 | `python3 tools/check_gpu_link.py` | Inspect actual host/library symbol coverage; does not validate ABI or load the library |
 | `bash packaging/test-arm64.sh --gpu-load-check` | Load the library without renderer initialization |
 | `bash packaging/test-arm64.sh --renderer-check` | Initialize the renderer and diagnostic window without guest commands |
-| `bash packaging/test-arm64.sh --graphics-game-test` | Combined experiment; currently paused after the host watchdog incident |
+| `bash packaging/test-arm64.sh --graphics-game-test` | One supervised combined experiment; see the current 30-second comparison above |
 
 Important environment variables:
 
@@ -140,6 +176,7 @@ Important environment variables:
 | `BB_JIT=1` / `BB_JIT=0` | ARM64 translation / interpreter |
 | `SOTC_DIAGNOSTIC_SECONDS` | Accepts 1..1800; combined default 120, headless 30; not protection from a kernel hang |
 | `BB_DIRECT_MEMORY_ACCESS` | Unset or literal 0 only; all other values rejected before GPU loading/prechecks |
+| `BB_ASYNC_SUBMIT=0` | Current single comparison: submit on the calling thread; preserve recording workers |
 | `SOTC_GPU_JOBS` | Isolated build parallelism, 1..8 |
 
 The launch script explicitly selects its bundled Vulkan loader, MoltenVK ICD and
@@ -149,7 +186,7 @@ The builder repairs generated FFmpeg/pkg-config metadata for prefixes with space
 Do not move the repository merely to conceal a quoting regression.
 
 A restricted automation process can compile and run CPU contracts while exposing
-no Metal device. Real renderer experiments are currently paused. A failed device
+no Metal device. Run only the authorized single comparison in native Terminal. A failed device
 precheck in that process is not evidence that the user's GPU is unsupported.
 
 ## Code ownership and execution path
@@ -190,8 +227,10 @@ archive and diagnostic sources in `work`.
    initialization-only log and the earlier GPU-stall log together. Review renderer
    startup, shared guest-memory residency, queue progress and the pinned upstream
    sources. The cause is unresolved; do not assume DMA, memory pressure or the
-   controller is responsible. Leave GPU testing paused. Scene entry and introduction
-   video remain later goals; the owner has confirmed logos/menu and opening audio.
+   controller is responsible. The owner has resumed gradual testing; run one
+   supervised comparison, inspect it, and do not replay the DMA-on incident.
+   Scene entry and introduction video remain later goals; the owner has confirmed
+   logos/menu and opening audio.
 2. **MSL fragment interface support.** An earlier game log has 78 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
