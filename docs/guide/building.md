@@ -175,8 +175,9 @@ a thread key is created/used and UUID generation passes. The latest run then sto
 `sceAudioOutInit` after the original NGS2 load succeeds and its sound-loader thread starts.
 Graphics mode now connects a checked keyboard-backed logical controller to initialized SDL;
 headless mode retains its input import stop. For fixed controls and the supported API scope,
-see [Keyboard input](../GRAPHICS_BRINGUP.md#keyboard-backed-input). Physical gamepads,
-remapping and motion/vibration APIs remain unsupported. The command now privately links the supplied original `libSceSystemGesture.sprx` from the
+see [Keyboard input](../GRAPHICS_BRINGUP.md#keyboard-backed-input) and
+[DualShock input](#dualshock-input). Physical SDL3 gamepads are supported by the host
+adapter; remapping and motion APIs remain unsupported. The command now privately links the supplied original `libSceSystemGesture.sprx` from the
 sibling `sys_modules` directory; set `SOTC_SYSTEM_MODULE_ROOT` if it lives elsewhere. It uses
 a separate image under `work/sotc-graphics-arm64`, preserving the headless diagnostic. Original
 gesture lifecycle checks pass in both CPU modes. Thread-specific keys and their guest
@@ -201,3 +202,39 @@ This uses Sirit and the installed SPIRV-Cross MSL compiler without a GPU or game
 Exit 0 means both synthetic interfaces convert; exit 2 reproduces the currently known
 PerVertexKHR limitation after ordinary-input conversion succeeds. Other failures are
 errors. It does not validate driver compilation, pixels or a semantic workaround.
+
+
+## DualShock input
+
+Connect a DualShock 4 by USB or pair it with macOS before running the combined
+`--graphics-game-test`. The adapter opens the first SDL-recognized gamepad, including
+one connected after startup. Disconnect other controllers when selecting a DualShock.
+The existing keyboard mapping is used whenever no physical controller is available;
+a connected gamepad takes precedence. Headless CPU diagnostics remain unchanged.
+
+Supported input includes the four face buttons, D-pad, Options, L1/R1, L3/R3,
+both analog sticks, L2/R2 analog values and digital presses above half travel,
+touchpad click and two touch contacts. Share/back maps to the touchpad shortcut.
+The overlay captures physical input just as it captures keyboard input. Motion,
+gyroscope, PS-button system actions and user remapping are not implemented.
+
+The game can request RGB light-bar colors and small/large motor vibration. These
+calls forward to SDL and succeed only if SDL accepts the operation. Missing hardware
+features and backend failures return an explicit error. Rumble is limited to one
+second per request and stopped on controller close. USB/Bluetooth feature availability
+and actual physical output remain unverified until tested with hardware.
+
+Look for `Input: physical controller connected:` in the private log. The final
+`Input: SDL3 gamepad backend ready` line reports connection/disconnection counts,
+physical samples, and accepted LED/rumble operations. Accepted operations do not
+prove that a motor moved or a light changed. After disconnection a log message confirms
+keyboard fallback; reconnection is detected on the next pad query.
+
+No renderer rebuild is required. The existing command rebuilds the host adapter:
+
+```sh
+SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=60 BB_JIT=1 bash packaging/test-arm64.sh --graphics-game-test
+```
+
+Synthetic keyboard and gamepad ABI tests are part of `--contracts-test` in both CPU
+modes; no physical controller or game files are needed for those tests.

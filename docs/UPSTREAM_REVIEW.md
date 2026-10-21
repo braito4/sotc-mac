@@ -98,3 +98,27 @@ family, including existing native JIT paths, across 64,512 synthetic cases per m
 Exact-width guard-page reads, sign/zero fill, aliasing and upper-register behavior
 are tested without game input or native x86 execution. The next Terminal run must
 establish continuation beyond the reported instruction.
+
+
+## SDL3 gamepad adapter review (2026-10-21)
+
+Reviewed `src/runtime_pad.c` at the pinned runtime and at preferred upstream runtime
+[`22923f08022909b7e22f7ae8c02ad4c3f6554bfd`](https://github.com/bloodborne-native/bloodborne-runtime/blob/22923f08022909b7e22f7ae8c02ad4c3f6554bfd/src/runtime_pad.c).
+Both use SDL gamepad enumeration/open/connection checks and free the device list.
+The local host adapter follows that lifecycle and the DS4 button mapping, while
+keeping SDL initialization on the renderer main thread, explicit output errors,
+existing guest-handle validation and keyboard fallback. No game hooks, replay,
+heap offsets, calibration or dependency updates were imported.
+
+SDL3 callback signatures, button/axis enum values and thread-safety were checked
+against the installed pinned SDL3 headers. See the primary
+[SDL3 gamepad API](https://wiki.libsdl.org/SDL3/CategoryGamepad).
+The vibration byte order is large motor then small motor, consistent with the
+[shadPS4 pad layout](https://github.com/shadps4-emu/shadPS4/blob/main/src/core/libraries/pad/pad.h)
+and the preferred runtime's low/high-frequency forwarding.
+
+`--contracts-test` passes with synthetic keyboard and physical-gamepad callback
+providers in both CPU modes, including all 65,536 signed axis inputs. The installed
+SDL library exposes all required and optional callbacks; a native headless SDL
+initialization/enumeration check found no connected gamepad. Physical USB/Bluetooth
+input, rumble and LED behavior are not yet verified.

@@ -1101,3 +1101,19 @@ all byte values, word/dword boundaries and deterministic patterns, low/high/alia
 registers, unaligned and two-sided guard-page memory, upper lanes and translated flag
 consumers. There is no hardware x86 oracle or game input in those tests. A new
 Terminal run must verify game continuation; no GPU rebuild is needed for this change.
+
+
+## SDL3 physical controller adapter (2026-10-21)
+
+The combined graphics host now binds the resident SDL3 gamepad provider alongside
+the keyboard provider. It supports DualShock-compatible buttons, analog sticks and
+triggers, two touch contacts, hotplug with keyboard fallback, and checked LED/rumble
+forwarding. Failed outputs remain explicit errors. No dependency pin or renderer
+binary changed. Synthetic guest ABI coverage runs in JIT and interpreter modes;
+physical USB/Bluetooth operation still requires hardware verification.
+
+The latest native Terminal log passes the widening batch and stops at
+`sceSaveDataMount2` on the save worker. Draw/dispatch activity is present, but correct
+pixels, game FPS and a playable application remain unverified. See the
+[development handoff](DEVELOPMENT_HANDOFF.md) for the current boundary and
+[connection instructions](guide/building.md#dualshock-input).

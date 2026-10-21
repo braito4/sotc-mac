@@ -16,23 +16,25 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run completes initialization at 957.6603 milliseconds and
-enters the main loop at 1.3992 seconds. It passes the earlier EXTRQ range stop and
-reaches an unsupported VPMOVZXWQ instruction. A cache-write message reports 183
-compiled pipelines in the session; these are not frames. Neither the previous GPU
-notification overflow nor duplicate `locn0` error appears. Correct pixels remain
-unverified.
+The last native Terminal run completes initialization at about 0.92 seconds and
+enters the main loop at about 1.37 seconds. It passes the vector widening batch and
+stops at `sceSaveDataMount2` on the Save Task Thread after a dirty-profile save request.
+No unsupported CPU instruction, notification overflow or duplicate `locn0` appears.
+GPU samples include thousands of draws and dispatches per second; these are command
+counts, not gameplay FPS or verification of correct pixels. The pipeline archive
+reports 209 pipelines. Correct game video remains unverified.
 
-After checking the preferred upstream sources, the local vector extension now covers
-the missing signed/unsigned byte/word-to-qword widening pairs in SSE and VEX forms.
-A synthetic fixture checks the full widening family in SSE128, VEX128 and VEX256,
-including existing native JIT paths. Continuation after this CPU change still needs
-Terminal verification. No GPU rebuild is needed.
+The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (70
+reported errors in the last run), and has SRT Phi and compressed-texture usage errors.
+The isolated fragment diagnostic reproduces the compiler limitation without game data
+or a GPU. IT_GET_LOD_STATS also remains unimplemented.
 
-The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (56
-reported errors in the last run), and has SRT Phi, buffer-clamp and compressed-texture
-usage errors. The isolated fragment diagnostic reproduces the compiler limitation
-without game data or a GPU. IT_GET_LOD_STATS also remains unimplemented.
+Physical SDL3 gamepad input now complements the keyboard fallback. See
+[DualShock input](guide/building.md#dualshock-input) for connection and logging.
+Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
+hotplug, output errors and synthetic callback dispatch in both CPU modes. Hardware input,
+Bluetooth/USB output and game behavior still need a connected-controller Terminal run.
+No GPU rebuild is needed for this host adapter change.
 
 ## First session: reproduce the boundary
 
@@ -143,16 +145,14 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Verify continuation after the widening batch.** The latest CPU stop was
-   VPMOVZXWQ. The preferred upstream recomp snapshot also lacks the byte/word-to-qword
-   sign/zero extension pairs; eight mnemonic variants are now covered locally through
-   its synchronized fallback. Native and full contracts cover 64,512 widening cases
-   per mode across all twelve signed/unsigned pairs, SSE128/VEX128/VEX256, aliases,
-   high registers, unaligned inputs and exact memory reads next to protected pages.
-   Existing native JIT paths remain delegated to the pin. Upper lanes, other vectors,
-   MXCSR and flags are checked. No native x86 hardware oracle is claimed. Existing
-   SSE4a compatibility regressions remain in the suite.
-2. **MSL fragment interface support.** The newest log has 56 `PerVertexKHR` conversion
+1. **Save mounting and physical input verification.** The current explicit stop is
+   `sceSaveDataMount2`. SaveData initialization and directory searches already report
+   unavailable/not initialized, so implement and test the corresponding mount failure
+   contract before considering any persistence backend. No save access is authorized
+   by this adapter. Test DualShock input in native Terminal with a connected controller;
+   distinguish accepted SDL callbacks from confirmed physical output. The completed
+   widening and SSE4a fixtures remain in the CPU regression suite.
+2. **MSL fragment interface support.** The newest log has 70 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does
@@ -262,7 +262,7 @@ with this repository. Keep game content read-only and do not access saves.
 Update this page when the observed stopping boundary or reproduction command changes.
 Separate what was seen in Terminal, what synthetic tests establish, what is only a
 hypothesis and what remains unverified. A successful next run should replace the
-current VPMOVZXWQ boundary above with its actual result, including any timeout.
+current SaveData mount boundary above with its actual result, including any timeout.
 
 ## Preferred upstream reference
 

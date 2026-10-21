@@ -145,6 +145,14 @@ bool SDL_FlushAudioStream(void *stream) { if(stream!=&audio_stream || !audio_ope
 uint32_t SDL_WasInit(uint32_t flags) { if (!pthread_main_np()) abort(); return getenv("SOTC_FIXTURE_NO_INPUT") ? 0 : flags; }
 const bool *SDL_GetKeyboardState(int *count) { static bool keys[512]; *count=512; return keys; }
 int SDL_GetScancodeFromName(const char *name) { (void)name; return 1; }
+uint32_t *SDL_GetGamepads(int *count) { *count=0; return NULL; }
+void SDL_free(void *p) { if(p) abort(); }
+void *SDL_OpenGamepad(uint32_t id) { (void)id; return NULL; }
+void SDL_CloseGamepad(void *p) { (void)p; abort(); }
+bool SDL_GamepadConnected(void *p) { (void)p; return false; }
+const char *SDL_GetGamepadName(void *p) { (void)p; return "fixture"; }
+int16_t SDL_GetGamepadAxis(void *p,int axis) { (void)p; (void)axis; return 0; }
+bool SDL_GetGamepadButton(void *p,int button) { (void)p; (void)button; return false; }
 int bbgpu_overlay_captures_input(void) { return 0; }
 static int registered, initialized;
 void bbgpu_register_kernel(void) { if (!pthread_main_np()) abort(); registered=1; }

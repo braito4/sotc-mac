@@ -150,6 +150,7 @@ contracts() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_shaders.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_shaders"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_routes.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_routes"
     clang "${trial_flags[@]}" "$trial_root/tests/test_pad.c" "${trial_sources[@]}" -o "$trial_root/work/test_pad"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_gamepad.c" "${trial_sources[@]}" -o "$trial_root/work/test_gamepad"
     clang "${trial_flags[@]}" "$trial_root/tests/test_audio.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio"
     clang "${trial_flags[@]}" "$trial_root/tests/test_audio_output.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio_output"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_color.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_color"
@@ -189,6 +190,7 @@ contracts() {
         fi
         BB_JIT="$trial_jit" "$trial_root/work/test_keys"
         BB_JIT="$trial_jit" "$trial_root/work/test_pad"
+        BB_JIT="$trial_jit" "$trial_root/work/test_gamepad"
         test_cpu_sse4a "$trial_jit"
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_color"
         trial_log="$trial_prefix-cpu-strings-jit$trial_jit.log"

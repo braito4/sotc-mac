@@ -132,6 +132,23 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
                 fputs("STOP_INPUT_BACKEND: initialized SDL video/gamepad keyboard backend unavailable\n", stderr);
                 fflush(NULL); _Exit(28);
             }
+            BootstrapGamepad controller = {
+                .devices=(void *)dlsym(library,"SDL_GetGamepads"),
+                .free_devices=(void *)dlsym(library,"SDL_free"),
+                .open=(void *)dlsym(library,"SDL_OpenGamepad"),
+                .close=(void *)dlsym(library,"SDL_CloseGamepad"),
+                .connected=(void *)dlsym(library,"SDL_GamepadConnected"),
+                .name=(void *)dlsym(library,"SDL_GetGamepadName"),
+                .axis=(void *)dlsym(library,"SDL_GetGamepadAxis"),
+                .button=(void *)dlsym(library,"SDL_GetGamepadButton"),
+                .touch=(void *)dlsym(library,"SDL_GetGamepadTouchpadFinger"),
+                .rumble=(void *)dlsym(library,"SDL_RumbleGamepad"),
+                .led=(void *)dlsym(library,"SDL_SetGamepadLED"),
+            };
+            if (bootstrap_pad_bind_gamepad(&controller)) {
+                fputs("STOP_INPUT_BACKEND: incomplete SDL3 gamepad provider\n",stderr);
+                fflush(NULL); _Exit(28);
+            }
             uintptr_t (*resolve)(const char *) = (void *)dlsym(library, "bbgpu_resolve");
             if (bootstrap_graphics_bind(resolve)) {
                 fputs("STOP_GPU_IMPORTS: incomplete provider or existing CPU queues\n", stderr);
