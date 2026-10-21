@@ -31,9 +31,11 @@
 > run reached its 120-second limit. A 30-second native comparison confirmed cooperative
 > child exit. After correcting a POSIX sleep import, the latest instrumented run
 > reaches its deadline and emits its native cancellation notice, but still fails
-> to confirm child exit. The output-pipe correction is insufficient to resolve
-> the whole native stop. Confirm the previous process has ended before another
-> GPU comparison; closing its window alone does not establish process exit.
+> to collect the child exit status. The owner confirms automatic window closure;
+> a later targeted lookup finds that PID absent. Its exact exit timing and code
+> remain unknown. Low-resolution comparisons are authorized, one at a time; see
+> the [prepared scene-preset comparison](docs/DEVELOPMENT_HANDOFF.md#low-resolution-scene-comparison).
+> Lower pixel counts do not guarantee lower total memory pressure or host stability.
 > See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 

@@ -5,13 +5,14 @@ Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The latest instrumented comparison uses DMA
 off, asynchronous submission off, JIT on and a 30-second budget. It enters the main
-loop at about 1.65 seconds and records five flip-statistics windows, with no import
+loop at about 1.35 seconds and records five flip-statistics windows, with no import
 stop, CPU-fault report or GPU-watchdog warning. After the deadline, the native
-cancellation notice is now visible, but child exit remains unobserved within the
+cancellation notice is observed about 1.47 ms after the request, but child exit remains unobserved within the
 two-second allowance. The footer reports unknown child status and supervisor exit
-1 after about 32.02 seconds. This
-is a failed stop, not confirmed process termination. The CSV retains 438 complete
-flip records through about 25.23 seconds from its first record, followed by a partial
+1 after about 32.02 seconds. The owner confirms automatic window closure, and a
+later targeted PID lookup returns ESRCH. The process is absent at that later check;
+its exit code and exact timing remain unknown. The CSV retains 438 complete flip
+records through about 25.37 seconds from its first record, followed by a partial
 row. Presentation records do not establish image correctness or gameplay FPS.
 
 The POSIX sleep/time aliases from the preceding import stop remain corrected.
@@ -23,8 +24,13 @@ still fails to confirm exit. The supervisor now records the child PID and the
 time it observes the native notice, separately from the actual child status.
 No exit delay, driver cause or recovery is inferred from acknowledgement alone.
 Confirm the prior process has ended before another instance, and investigate its
-exit phase. Preserve statistics, renderer settings and duration; dynamic shader
-reads stay blocked. See the
+exit phase. Dynamic shader reads stay blocked. The owner has authorized a separate
+low-resolution comparison: change only the existing host scene preset to 4, which
+requests 640x360 for eligible scenes. The pinned settings loader and target-size
+selection pass a CPU-only check. The supervised Metal prerequisite in this tool
+context returns zero devices/status 24, so no low-resolution game/GPU run was
+launched here. Imported guest memory/native images remain; pressure reduction and
+actual SotC pass eligibility must be measured. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |

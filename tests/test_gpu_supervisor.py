@@ -110,12 +110,17 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
                 "import os,pathlib; assert os.environ['BB_FRAME_STATS']=='1'; "
                 "pathlib.Path(os.environ['BB_FRAME_LOG']).write_text('synthetic flip fixture\\n')",
                 environment={'BB_FRAME_STATS': '1', 'BB_FRAME_LOG': str(frames),
+                             'BB_UPSCALE_PRESET': '4', 'BB_RENDER_RES': '',
+                             'BB_OUTPUT_RES': '1920x1080',
                              'SYNTHETIC_PRIVATE_SECRET': 'must-not-be-in-the-log'})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(frames.read_text(), 'synthetic flip fixture\n')
             settings = json.loads(log.splitlines()[0].split(b'settings=', 1)[1])
             self.assertEqual(settings['BB_FRAME_STATS'], '1')
             self.assertEqual(settings['BB_FRAME_LOG'], str(frames))
+            self.assertEqual(settings['BB_UPSCALE_PRESET'], '4')
+            self.assertEqual(settings['BB_RENDER_RES'], '')
+            self.assertEqual(settings['BB_OUTPUT_RES'], '1920x1080')
             self.assertNotIn(b'must-not-be-in-the-log', log)
 
     def test_stalled_process_group_does_not_leave_a_worker_running(self):

@@ -83,7 +83,32 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the latest run includes the output-backpressure correction and
+**Current result:** the latest instrumented run records its cancellation notice
+about 1.47 ms after the parent stop request, but still ends with unknown child status
+and supervisor exit 1 after about 32.02 seconds. The owner confirms that the window
+closed itself, without manual termination. A subsequent targeted `proc_pidpath`
+lookup returns ESRCH for that run's PID. This confirms process absence at the later
+check, not its exit code, exact exit time or the cause of the supervisor's failed
+collection. No process sample was taken because that PID was no longer present.
+Do not describe this execution as a permanently live process or a proven driver
+hang; do not retroactively replace the unknown return code with success.
+
+Initialization finishes at about 0.92 seconds and the main loop starts at about
+1.35 seconds. The same DMA-off, async-off, JIT/statistics-on 30-second settings are
+recorded, with five statistics windows, no import stop, CPU-fault report or GPU
+watchdog warning. Its CSV retains 438 complete rows through about 25.37 seconds
+relative to the first row, plus a partial row. Errors persist: 52 PerVertexKHR,
+259 Phi offset, 267 SRT-walk, six compressed-format/usage errors and 7,687 buffer
+clamps. The DualSense is detected. This run's image progression remains unreported.
+
+The owner now explicitly authorizes low-resolution GPU tests to reduce load.
+The next single scene-preset comparison is prepared below. A supervised Metal
+prerequisite attempted from this tool context returns zero devices and status 24
+after about 0.35 seconds, with a confirmed child exit. No real game/GPU test was
+launched here, and no permission escalation or alternate Terminal-control path
+was attempted.
+
+**Earlier acknowledgement checkpoint:** that run includes the output-backpressure correction and
 now emits `STOP_DIAGNOSTIC_CONTROL: parent requested termination`. The supervisor
 still fails to observe child exit within its two-second allowance. Its footer
 reports `child_returncode=None exit=1` after about 32.02 seconds. This is still a
@@ -117,13 +142,50 @@ logging change, using only synthetic processes/guests. The native control header
 and renderer are unchanged from the preceding backpressure correction.
 
 Before another GPU instance, confirm that the prior `probe_entry_arm64` process
-has ended. Window closure alone is insufficient when the supervisor cannot reap
-it. The next investigation needs the exit-phase process state/stack rather than
-another renderer flag. For a future supervised comparison, the private log's PID
+has ended. The latest recorded PID is absent at the targeted check above. Window
+closure alone is insufficient when the supervisor cannot reap a future instance.
+An exit-phase process state/stack could distinguish the remaining collection
+failure; this is separate from the authorized scene-preset test. The private log's PID
 identifies the owned diagnostic in Activity Monitor. If it remains present after
 the failure, use Sample Process for that specific diagnostic and keep the report
 under ignored `work`. Record a sampling failure or an already-exited process as
 such; do not request elevated access or substitute external termination signals.
+
+### Low-resolution scene comparison
+
+The prepared next single native comparison adds only `BB_UPSCALE_PRESET=4` to the
+preceding 30-second settings. The pinned `BbSettings::Load` accepts this preset;
+`SceneResolution::ForPreset` requests 640x360 from the default 1920x1080 output,
+with 320x180 half-resolution effects where eligible. This uses the existing
+host-side raster proxy path. The window, UI/output images and imported guest pools
+retain their preceding sizes. Do not set `BB_RENDER_RES`: its compatibility path
+assumes a game-specific startup resolution patch that is not applied to SotC.
+
+```sh
+SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
+  SOTC_DIAGNOSTIC_SECONDS=30 BB_JIT=1 BB_FRAME_STATS=1 BB_UPSCALE_PRESET=4 \
+  bash packaging/test-arm64.sh --graphics-game-test
+```
+
+Keep the default FSR 3.1 provider and output resolution; do not add frame-limit,
+worker, DMA or memory-budget changes to this comparison. The supervisor header
+now also records `BB_UPSCALE_PRESET`, `BB_RENDER_RES` and `BB_OUTPUT_RES`, so inherited
+overrides can be identified. A CPU-only check compiles the actual pinned settings
+implementation and scene-size header, then verifies preset 4 selects 640x360 without
+a fixed guest-resolution session. It does not exercise rasterization or a GPU.
+
+Look for `Scene resolution: raster 640x360` and nonzero `reduced-size draws` in the
+five-second statistics. The setting/size message alone does not prove that SotC's
+draws used the proxies: the renderer checks scene dimensions, formats, attachments
+and pass eligibility. Native-size guest images remain allocated and reduced proxy
+images can be additional allocations. Pixel work may fall for eligible passes;
+lower total memory pressure, fewer shader failures, image correctness and host
+stability are not established. Guest pool imports remain approximately 6.4 GiB.
+Read the new log and memory counters before another comparison. This tool context
+has no Metal device; actual validation needs the owner's native Terminal.
+The upstream VRAM/GTT/RSS fields read Linux `/proc` files and report zero on this
+Mac; those zeros are not evidence of low memory pressure. Vulkan allocation/image
+counters describe only their own allocations, not total macOS unified-memory use.
 
 **Earlier unacknowledged-stop checkpoint:** after the POSIX clock-alias correction, that instrumented
 run reaches its 30-second deadline without an import stop, CPU-fault report or GPU
@@ -296,11 +358,9 @@ message. Keep other renderer settings unchanged and do not turn DMA back on.
 ### First-logo presentation trace
 
 The owner has run the pinned renderer's `BB_FRAME_STATS=1` instrumentation. The
-latest acknowledged-but-unconfirmed stop and the CPU-only logging changes are
-summarized above. After confirming the previous process has ended and preparing
-the exit-phase investigation, a future single native Terminal comparison keeps that
-instrumentation, the same 30-second budget, DMA off, asynchronous submission off
-and JIT on:
+following command records its preceding baseline for comparison; the current
+prepared next test is the [low-resolution scene comparison](#low-resolution-scene-comparison)
+above. Do not automatically repeat this baseline:
 
 ```sh
 SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
@@ -393,6 +453,7 @@ Important environment variables:
 | `BB_ASYNC_SUBMIT=0` | Current single comparison: submit on the calling thread; preserve recording workers |
 | `BB_FRAME_STATS=1` | Opt-in host-side flip/wait statistics for the first-logo investigation; remove the variable for baseline timing |
 | `BB_FRAME_LOG` | Optional CSV destination; with statistics on, the combined launcher defaults to private per-run `frames.csv`; final rows may be buffered |
+| `BB_UPSCALE_PRESET=4` | Prepared low-resolution comparison: requests 640x360 host scene targets at default output; confirm actual reduced draws, native/guest memory does not automatically shrink |
 | `SOTC_GPU_JOBS` | Isolated build parallelism, 1..8 |
 
 The launch script explicitly selects its bundled Vulkan loader, MoltenVK ICD and
