@@ -8,7 +8,84 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
-### Current shader-metadata boundary and CPU-only continuation
+### Earlier native stalls after the lookup/SRT update
+
+Two subsequent owner-run tests stop on GPU progress, earlier than the preceding
+156.90-second shader-metadata boundary. Both use preset 4, DMA off, async submission
+off, JIT/statistics/journaling on and no duration deadline. The owner's report is
+less visual progress. Do not describe these runs as rendering validation.
+
+| Capture order | Elapsed | Observed stop | Child/supervisor status |
+|---|---:|---|---|
+| Previous metadata boundary | 156.90 s | Missing shader metadata | 23 / 23 |
+| First new attempt | 16.61 s | GPU-progress watchdog | unknown / 1 |
+| Latest attempt | 107.54 s | GPU-progress watchdog, with native Metal error evidence | unknown / 1 |
+
+The prerequisite synthetic Metal draw/readback passes in the owner's Terminal.
+Both game attempts detect a DualSense and enter the main loop (about 1.41/1.55 s).
+The first attempt retains a pending native chunk with commit returned but neither
+scheduled nor completion callback; the preceding chunk completed successfully.
+The latest attempt instead records the preceding chunk's completion callback with
+**status 5, error 8**. The installed Apple SDK defines these as
+`MTLCommandBufferStatusError` and `MTLCommandBufferErrorOutOfMemory`: insufficient
+memory to execute that command buffer. The old trace did not retain the NSError
+domain/description. This is concrete native error evidence, not a measurement of
+total macOS memory pressure or proof of which resource exhausted it.
+
+The latest watchdog's awaited submission is absent from the retained journal (or
+had not reached submit); it cannot be reconstructed from the preceding shader's
+identity. The latest log still has 281 PerVertexKHR messages, 323 failed graphics
+pipelines, 271 SRT-walk failures and 12,110 buffer clamps. Unsupported-Phi diagnostic
+messages and missing shared-U32 errors are absent, but the run stops at a different
+boundary. There is no new required metadata failure or snapshot. Do not claim the
+previous missing shader is repaired based on this earlier exit.
+
+The scene setting remains **640x360** (half targets 320x180, UI 1920x1080), but all
+sixteen latest statistics samples have zero reduced-size scene draws. The earlier
+metadata run has nonzero reduced scene draws. A preset selection therefore does
+not prove those frames used the reduced scene path. Sampled Vulkan allocation
+maxima are 5,167 MiB in the latest run versus 3,393 MiB in the previous metadata
+run, while image maxima are 709 versus 1,988 MiB. These are different progress
+windows and exclude other native/system allocations; neither establishes a total
+RAM trend. CSV `alloc_mb` is **new device allocation per frame**, not live/resident
+memory. Do not interpret its maximum as a process memory peak.
+
+Both new supervisors observe cooperative cancellation quickly but cannot collect
+child exit within the existing allowance. A later targeted existence check finds
+both child PIDs absent; exit codes/times remain unconfirmed. No further GPU test
+was launched from the restricted tool process.
+
+A new checked `sotc-metal-command-error` overlay fixes independent error handling:
+
+- The native completion handler always checks `MTLCommandBufferStatusError`, even
+  with the optional submission journal disabled. Previously error status was only
+  stored in the journal; the application continued until a later stall report.
+- `runtime/src/gpu_command_failure.h` prints the real error domain, code,
+  description, label, command-buffer identity, recording generation, and the
+  device's actual allocation/recommended-working-set counters, then self-exits 23.
+  It does not retry GPU work, fabricate successful progress or signal fake fences.
+- With tracing enabled, the fatal report includes the bounded originating
+  submission/open-recording candidate tail. Lookup matches both handle and
+  generation; missing/evicted records remain explicit. This is not a per-command
+  GPU execution marker.
+
+Native ARM64 rebuilding, 23 digest/migration builder tests, full JIT/interpreter
+contracts and CPU-only completion/journal fixtures pass. The latter check failure
+with tracing on/off, unknown error details, success continuation, pre-submit
+failure, recorded submissions and reused handles. No native GPU run validates this
+new stop behavior or fixes the memory exhaustion. Pins/cache version 23 and the
+640x360 configuration are unchanged. Fresh builds still need the missing external
+glslang prerequisite.
+
+CPU replay of the latest capture's 1,059 modules converts 778 (including four exact
+vertex-zero rewrites); all 281 failures remain unsupported PerVertexKHR fragment
+inputs. Private reports stay under `work/`. This confirms a persistent compiler
+limitation, not driver or image correctness. There is no controlled bisect tying
+the new stalls to one lookup/Phi change. Continue with memory/resource residency,
+the exact per-vertex input path and actual scene eligibility before another native
+comparison; preserve the earlier metadata evidence separately.
+
+### Previous shader-metadata boundary and CPU-only continuation
 
 The newest owner-run preset-4 capture reaches the main loop at about 1.47 seconds,
 detects a DualSense, and stops after about 156.90 seconds with confirmed child and

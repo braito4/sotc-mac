@@ -16,6 +16,14 @@ static std::string Report(Recorder& recorder, Key scheduler, U64 tick, U64 done 
     while (const auto n = std::fread(buffer, 1, sizeof(buffer), file)) result.append(buffer, n);
     std::fclose(file); return result;
 }
+static std::string FailureReport(Recorder& recorder, U64 chunk) {
+    auto* file = std::tmpfile(); assert(file);
+    recorder.ReportMetalFailure(file, chunk);
+    std::rewind(file);
+    std::string result; char buffer[1024];
+    while (const auto n = std::fread(buffer, 1, sizeof(buffer), file)) result.append(buffer, n);
+    std::fclose(file); return result;
+}
 static Submission Batch(Key scheduler, U64 tick) {
     Submission s{}; s.scheduler = scheduler; s.tick = tick; s.timeline = 55;
     s.wait_count = 1; s.waits[0] = {66, 7};
@@ -64,6 +72,23 @@ int main(int argc, char** argv) {
     assert(reused.find("Metal chunk=2 ") != std::string::npos);
     assert(reused.find("status=5 error=99") != std::string::npos);
     assert(reused.find(" dispatch ") == std::string::npos);
+    auto failure = FailureReport(recorder, chunk2);
+    assert(failure.find("FAILED_METAL chunk=2 retained=1") != std::string::npos);
+    assert(failure.find("tick=2 status=5 error=99") != std::string::npos);
+    assert(failure.find(" draw ") != std::string::npos && failure.find(" dispatch ") == std::string::npos);
+    // Completion can fail before queue submission is registered. Retain its
+    // open recording, and do not borrow notes from a reused command buffer.
+    const auto early = recorder.Begin(300);
+    recorder.Note(300, "early_dispatch", 321, 0, 7, 8, 9);
+    const auto early_chunk = recorder.CommitMetal(300, early);
+    recorder.MetalEvent(early_chunk, 2, 5, 8);
+    failure = FailureReport(recorder, early_chunk);
+    assert(failure.find("tick=0 status=5 error=8") != std::string::npos);
+    assert(failure.find("early_dispatch") != std::string::npos);
+    recorder.Begin(300); recorder.Note(300, "unrelated_reuse");
+    failure = FailureReport(recorder, early_chunk);
+    assert(failure.find("unrelated_reuse") == std::string::npos);
+    assert(FailureReport(recorder, 999).find("retained=0") != std::string::npos);
     assert(Report(recorder, 11, 2).find("not retained or submit not reached") != std::string::npos);
     assert(Report(recorder, 10, 2, 1).find("LAST_COMPLETED tick=1") != std::string::npos);
 

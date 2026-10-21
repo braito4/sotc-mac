@@ -130,6 +130,49 @@ public:
         }
         ++missing_metal_events;
     }
+    void ReportMetalFailure(std::FILE* output, U64 id) {
+        MetalChunk failed{};
+        Commands commands;
+        Key scheduler{};
+        U64 tick{};
+        bool retained = false;
+        bool submitted = false;
+        const char* source = "not-retained";
+        {
+            std::lock_guard lock{mutex};
+            for (const auto& chunk : metal) if (chunk.id == id) {
+                failed = chunk; retained = true; break;
+            }
+            if (retained) {
+                for (auto it = submissions.rbegin(); it != submissions.rend(); ++it) {
+                    for (std::size_t i = 0; i < it->buffer_count && i < 32; ++i) {
+                        if (it->buffers[i] == failed.buffer && it->recordings[i] == failed.recording) {
+                            commands = it->commands; scheduler = it->scheduler; tick = it->tick;
+                            submitted = true; source = "submission";
+                            break;
+                        }
+                    }
+                    if (submitted) break;
+                }
+                if (!submitted) {
+                    if (auto it = open.find(failed.buffer); it != open.end() &&
+                        it->second.recording == failed.recording) {
+                        commands = it->second; source = "open-recording";
+                    }
+                }
+            }
+        }
+        std::fprintf(output, "GPU submission trace: FAILED_METAL chunk=%llu retained=%d "
+                     "buffer=%#llx recording=%llu scheduler=%#llx tick=%llu "
+                     "status=%d error=%lld notes=%llu retained_notes=%zu source=%s; "
+                     "CPU submission/recording candidates, not precise failing GPU instructions\n",
+                     (unsigned long long)id, int(retained), (unsigned long long)failed.buffer,
+                     (unsigned long long)failed.recording, (unsigned long long)scheduler,
+                     (unsigned long long)tick, failed.status, (long long)failed.error,
+                     (unsigned long long)commands.total, commands.tail.size(), source);
+        PrintCommands(output, commands);
+        std::fflush(output);
+    }
     void Report(std::FILE* output, Key scheduler, U64 tick, U64 completed) {
         // Copy under lock; printing must not block recording/completion callbacks.
         std::deque<Submission> selected;
@@ -176,19 +219,22 @@ public:
                                  int(chunk.scheduled), int(chunk.callback), chunk.status,
                                  (long long)chunk.error);
             }
-            for (const auto& command : submission.commands.tail)
-                std::fprintf(output, "GPU submission trace: cb_command=%llu recording=%llu buffer=%#llx %s "
-                             "shader=%016llx,%016llx count=%llu,%llu,%llu\n",
-                             (unsigned long long)command.ordinal, (unsigned long long)command.recording,
-                             (unsigned long long)command.buffer,
-                             command.name.data(), (unsigned long long)command.shader[0],
-                             (unsigned long long)command.shader[1], (unsigned long long)command.count[0],
-                             (unsigned long long)command.count[1], (unsigned long long)command.count[2]);
+            PrintCommands(output, submission.commands);
         }
         if (!found) std::fputs("GPU submission trace: awaited submission not retained or submit not reached\n", output);
         std::fflush(output);
     }
 private:
+    static void PrintCommands(std::FILE* output, const Commands& commands) {
+        for (const auto& command : commands.tail)
+            std::fprintf(output, "GPU submission trace: cb_command=%llu recording=%llu buffer=%#llx %s "
+                         "shader=%016llx,%016llx count=%llu,%llu,%llu\n",
+                         (unsigned long long)command.ordinal, (unsigned long long)command.recording,
+                         (unsigned long long)command.buffer,
+                         command.name.data(), (unsigned long long)command.shader[0],
+                         (unsigned long long)command.shader[1], (unsigned long long)command.count[0],
+                         (unsigned long long)command.count[1], (unsigned long long)command.count[2]);
+    }
     static void PrintDependency(std::FILE* output, const char* kind, const Dependency& d) {
         std::fprintf(output, "GPU submission trace: %s semaphore=%#llx value=%llu\n", kind,
                      (unsigned long long)d.semaphore, (unsigned long long)d.value);

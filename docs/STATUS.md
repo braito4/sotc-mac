@@ -2,17 +2,21 @@
 
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
-**Newest boundary:** the no-deadline preset-4 run passes `sched_yield` and the
-missing shared-U32 errors, then exits 23 after about 156.90 seconds at missing
-shader metadata, without a GPU-watchdog stop. Bounded backing-memory lookup,
-speculative retry and private failure evidence are implemented. Equal incoming Phi
-offset programs now flatten exactly, with cycle/depth/expansion bounds; divergent
-or lane-dependent values remain dynamic. Cache version 23 invalidates stale output.
-All CPU checks and full JIT/interpreter contracts pass; native game validation of
-these latest changes is pending. Standalone CPU replay converts 1,134/1,609 cached
-modules; all 475 failures are unsupported PerVertexKHR fragment inputs. Conversion
-does not validate the driver or images. The owner restored the 640x360 scene setting;
-no 320-wide scene change was applied. See the current
+**Newest boundary:** two owner-run preset-4 tests stop earlier on the GPU watchdog,
+after about 16.61 and 107.54 seconds. The preceding run reached missing shader
+metadata after 156.90 seconds. The latest native chunk records status 5/error 8,
+which the Apple SDK defines as a command-buffer error from insufficient memory.
+Child exits remain unconfirmed by their supervisors; later PID checks find both
+absent. Both runs retain the 640x360 setting, but the latest statistics record no
+reduced scene draws. General PerVertexKHR, dynamic SRT and buffer clamps persist.
+
+A checked overlay now stops immediately on a failed native Metal completion,
+records the real NSError and device allocation/budget counters, and preserves its
+bounded CPU candidate tail when available. It applies with tracing on/off and
+never substitutes fence success. Native rebuilding, full contracts, 23 builder
+fixtures and CPU-only failure/journal tests pass. No new GPU test validates the
+stop or fixes exhaustion. CPU replay of the latest capture converts 778/1,059
+modules; all 281 failures are PerVertexKHR. See the current
 [handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 **Continuation checkpoint:** the owner now sees the 3D animation with rendering

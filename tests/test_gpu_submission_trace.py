@@ -10,6 +10,29 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 class SubmissionTraceTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('c++'), 'native C++ compiler required')
+    def test_failed_command_stops_with_or_without_journal(self):
+        with tempfile.TemporaryDirectory(prefix='command failure ') as temporary:
+            binary=Path(temporary)/'fixture'
+            subprocess.run(['c++','-std=c++20','-O1','-Wall','-Wextra','-Werror','-pthread',
+                            '-I'+str(ROOT/'runtime/src'),str(ROOT/'tests/gpu_command_failure.cpp'),
+                            '-o',str(binary)],check=True)
+            for trace in ('0','1'):
+                for case in ('success','error','unknown'):
+                    with self.subTest(trace=trace,case=case):
+                        run=subprocess.run([str(binary),case],capture_output=True,text=True,timeout=5,
+                                           env=dict(os.environ,SOTC_GPU_SUBMIT_TRACE=trace))
+                        self.assertEqual(run.returncode,0 if case=='success' else 23,run.stderr)
+                        if case=='success':
+                            self.assertNotIn('STOP_',run.stderr)
+                        else:
+                            self.assertIn('STOP_GPU_METAL_COMMAND: status=5',run.stderr)
+                            self.assertIn('allocated_bytes=123456 recommended_working_set_bytes=654321',run.stderr)
+                            self.assertIn('code=123' if case=='unknown' else 'code=8',run.stderr)
+                            self.assertIn('domain=unavailable' if case=='unknown' else 'MTLCommandBufferErrorDomain',run.stderr)
+                            self.assertEqual('FAILED_METAL' in run.stderr,trace=='1')
+                            if trace=='1': self.assertIn('count=2,3,4',run.stderr)
+
     @unittest.skipUnless(shutil.which('c++') and shutil.which('cc'), 'native C/C++ compilers required')
     def test_native_journal_and_strict_opt_in(self):
         with tempfile.TemporaryDirectory(prefix='submission fixture ') as temporary:
