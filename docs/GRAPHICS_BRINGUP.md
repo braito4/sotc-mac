@@ -928,3 +928,27 @@ interpreter. Both match; the actual native invalid-stage acceptance is also repr
 in isolation to establish the need for the guard. These checks initialize no renderer
 and submit no GPU work. The full contracts pass in both modes. No upstream edit or
 GPU rebuild is required. Game continuation after this batch requires Terminal testing.
+
+## Real-time calendar batch after the next JIT stop
+
+The next Terminal JIT run enters the main loop at 1.3731 seconds and reaches
+sceRtcGetCurrentClock. Metal reports samples of 96 draws/575 dispatches and
+159 draws/910 dispatches per second. These are renderer work counters, not FPS or
+verified game pixels. SRT Phi/resource-offset errors, unflattened resources and
+buffer clamps remain unresolved; this change makes no renderer correction.
+
+Four exact scoped RTC functions are implemented together: GetCurrentClock,
+GetCurrentClockLocalTime, GetTickResolution and GetDayOfWeek. Calendar reads use
+the real host clock and timezone, signed 32-bit minute offsets and the original
+16-byte Gregorian output layout. Resolution is one million ticks per second.
+Weekday validation follows the supported title's SDK profile, including month-before-
+year error precedence. Null calendar outputs preserve guest errno. No network time
+or clock-setting API is supplied.
+
+Synthetic guest tests cover four timezone profiles, positive/negative minute offsets
+and signed extremes, 32-bit argument narrowing, guarded unaligned outputs, Gregorian
+weekday cases across years 1 through 9999, leap centuries, invalid arguments and
+scope/capability gates. A private comparison against the supplied original four
+functions passes the same cases in JIT and interpreter using real host clock reads.
+The full contracts also pass in both CPU modes. No GPU rebuild is required; game
+continuation after this batch still requires a Terminal run.

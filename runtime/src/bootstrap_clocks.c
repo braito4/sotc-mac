@@ -205,8 +205,54 @@ static int32_t kernel_timeofday(GuestTimeval *out) {
     *out = (GuestTimeval){t.tv_sec, t.tv_usec};
     return 0;
 }
+/* RTC calendar subset; proleptic Gregorian helpers adapted from the pinned
+ * runtime_rtc.c (bloodborne-native/bbport, GPL-2.0-or-later). One tick is one
+ * microsecond since year 1. No network-clock or host-clock-setting API is bound. */
+typedef struct { uint16_t year,month,day,hour,minute,second;uint32_t microsecond; } RtcDate;
+_Static_assert(sizeof(RtcDate)==16,"RTC calendar ABI");
+static void rtc_calendar(uint64_t tick,void *out) {
+    int64_t z=(int64_t)(tick/UINT64_C(86400000000))+306;
+    int64_t era=z/146097,doe=z-era*146097;
+    int64_t yoe=(doe-doe/1460+doe/36524-doe/146096)/365;
+    int64_t doy=doe-(365*yoe+yoe/4-yoe/100),mp=(5*doy+2)/153;
+    int64_t month=mp<10 ? mp+3 : mp-9;
+    uint64_t us=tick%UINT64_C(86400000000);
+    const RtcDate date={(uint16_t)(yoe+era*400+(month<=2)),(uint16_t)month,
+        (uint16_t)(doy-(153*mp+2)/5+1),(uint16_t)(us/UINT64_C(3600000000)),
+        (uint16_t)(us/UINT64_C(60000000)%60),(uint16_t)(us/1000000%60),(uint32_t)(us%1000000)};
+    memcpy(out,&date,sizeof(date));
+}
+static int32_t rtc_current(void *out,int32_t minutes) {
+    if(!out) return (int32_t)UINT32_C(0x80b50002);
+    struct timespec now;if(clock_gettime(CLOCK_REALTIME,&now)) return kernel_result(errno);
+    uint64_t tick=UINT64_C(62135596800000000)+(uint64_t)now.tv_sec*1000000+(uint64_t)now.tv_nsec/1000;
+    tick+=(uint64_t)((int64_t)minutes*60000000);rtc_calendar(tick,out);return 0;
+}
+static int32_t rtc_current_local(void *out) {
+    if(!out) return (int32_t)UINT32_C(0x80b50002);
+    struct timespec now;if(clock_gettime(CLOCK_REALTIME,&now)) return kernel_result(errno);
+    int32_t standard,dst;int error=zone_at(now.tv_sec,&standard,&dst);if(error) return kernel_result(error);
+    /* Retail truncates the combined offset to whole minutes before adding it. */
+    int64_t minutes=((int64_t)standard+dst)/60;
+    uint64_t tick=UINT64_C(62135596800000000)+(uint64_t)now.tv_sec*1000000+(uint64_t)now.tv_nsec/1000;
+    tick+=(uint64_t)(minutes*60000000);rtc_calendar(tick,out);return 0;
+}
+static uint32_t rtc_resolution(void) {return 1000000;}
+static int32_t rtc_weekday(int32_t year,int32_t month,int32_t day) {
+    /* The supported retail title uses the SDK >= 3 validation order. */
+    if(month<1 || month>12) return (int32_t)UINT32_C(0x80b50009);
+    if(year<1 || year>9999) return (int32_t)UINT32_C(0x80b50008);
+    static const int days[]={31,28,31,30,31,30,31,31,30,31,30,31};
+    int leap=year%4==0 && (year%100!=0 || year%400==0);
+    if(day<1 || day>days[month-1]+(month==2 && leap)) return (int32_t)UINT32_C(0x80b5000a);
+    static const int shift[]={0,3,2,5,0,3,5,1,4,6,2,4};
+    year-=month<3;
+    return (year+year/4-year/100+year/400+shift[month-1]+day)%7;
+}
 uintptr_t bootstrap_clocks_resolve(const char *name) {
     static const struct { const char *name; void *function; } exports[] = {
+        {"8lfvnRMqwEM#X#Y",rtc_current},{"ZPD1YOKI+Kw#X#Y",rtc_current_local},
+        {"jMNwqYr4R-k#X#Y",rtc_resolution},{"CyIK-i4XdgQ#X#Y",rtc_weekday},
         {"1j3S3n-tTW4#0#F", tsc_frequency}, {"-2IRUCO--PM#0#F", read_tsc},
         {"4J2sUJmuHZQ#0#F", process_time_us}, {"fgxnMeTNUtY#0#F", process_counter},
         {"BNowx2l588E#0#F", process_frequency}, {"QBi7HCK03hw#0#F", kernel_clock},
