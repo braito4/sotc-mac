@@ -307,6 +307,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
     if (discmap) return discmap;
     const uintptr_t dialog = bootstrap_dialogs_resolve(name);
     if (dialog) return dialog;
+    const uintptr_t savedata = bootstrap_savedata_resolve(name);
+    if (savedata) return savedata;
     const uintptr_t network = bootstrap_network_resolve(name);
     if (network) return network;
     const uintptr_t video = bootstrap_video_resolve(name);
@@ -393,6 +395,7 @@ void bootstrap_report(void) {
     bootstrap_files_report();
     bootstrap_fibers_report();
     bootstrap_dialogs_report();
+    bootstrap_savedata_report();
     bootstrap_network_report();
     bootstrap_users_report();
     bootstrap_share_report();

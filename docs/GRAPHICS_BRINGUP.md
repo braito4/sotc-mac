@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-passes numeric thread identity; main passes scePadSetLightBar and then stops at sceSystemServiceGetStatus.
+passes numeric thread identity; main passes scePadSetLightBar and passes sceSystemServiceGetStatus and then stops at sceSaveDataInitialize3.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and reaches sceSystemServiceGetStatus. No game frame has
+script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, then reaches sceSaveDataInitialize3. No game frame has
 been verified.
 
 ## Network-control availability
@@ -463,7 +463,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-denial; main now reaches sceSystemServiceGetStatus.
+denial and system-status query; main now reaches sceSaveDataInitialize3.
 
 ## Keyboard-controller light-bar availability
 
@@ -481,7 +481,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-sceSystemServiceGetStatus.
+sceSystemServiceGetStatus, then reaches sceSaveDataInitialize3.
 
 ## Standalone system status
 
@@ -499,4 +499,21 @@ arguments, null error, scope/capability and errno in both CPU modes. A private s
 wrapper comparison uses synthetic same-foreground-app/empty-event helper dependencies
 and confirms the same complete output. The graphics-loader fixture verifies every status
 byte after initializing the destination to a nonzero pattern. Actual game continuation
-after this import requires Terminal verification.
+after this query is confirmed in Terminal, including processing the local login event.
+The next unresolved import is sceSaveDataInitialize3.
+
+## Savedata availability
+
+The exact-scoped one-pointer sceSaveDataInitialize3 returns SaveData INTERNAL because
+this diagnostic has no savedata backend. The optional parameter is opaque and is not
+inspected, including when null. This explicit failure creates no initialized state,
+contexts, save directories, substitute filesystem, mounts or files; existing saves are
+not read or modified. Other initialization versions, termination and mount APIs remain
+unresolved. This is an unavailable-service adapter, not save support.
+
+Guest tests check the pointer ABI, repeated failure, null/invalid/protected pointers,
+unchanged buffers/errno and exact scope/capability in both CPU modes. A private supplied
+Initialize3 wrapper comparison injects backend INTERNAL and checks propagation through
+the original error conversion without reading the optional parameter. The synthetic
+graphics loader also continues after the response in both modes. Actual game continuation
+with this failure still requires Terminal verification; no game frame is verified.

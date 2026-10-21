@@ -476,6 +476,27 @@ static void test_unavailable_share(void) {
                 }
     puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
 }
+static void check_unavailable_savedata(uintptr_t entry) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    unsigned char param[64],before[64];memset(param,0xa5,sizeof(param));memcpy(before,param,sizeof(before));
+    const uint64_t pointers[]={0,1,UINT64_MAX,(uintptr_t)param,(uintptr_t)protected};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) for(unsigned i=0;i<sizeof(pointers)/sizeof(*pointers);++i) {
+        const uint64_t args[]={pointers[i],UINT64_MAX,1,3,5,7};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0x809f000b);
+        assert(!memcmp(param,before,sizeof(param)) && *runtime_errno()==17);
+    }
+    assert(!munmap(protected,page));
+}
+static void test_unavailable_savedata(void) {
+    const char *name="TywrFKCoLGY#u#d";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("TywrFKCoLGY#V#W",0) && !bootstrap_resolve("TywrFKCoLGY#0#F",0));
+    check_unavailable_savedata(guest_bridge(fn));
+    puts("PASS: unavailable SaveData Initialize3 one-pointer guest ABI, repeated INTERNAL, opaque null/protected parameters, ignored extra registers, scopes/capability and unchanged inputs/errno");
+}
 static void check_unavailable_network_control(uintptr_t entry) {
     const uint64_t before[]={UINT64_C(0x123456789abcdef0),UINT64_C(0x23456789abcdef01)};
     uint64_t buffer[2];memcpy(buffer,before,sizeof(buffer));
@@ -728,6 +749,7 @@ int main(void) {
     test_unavailable_share();
     test_unavailable_network();
     test_unavailable_network_control();
+    test_unavailable_savedata();
     test_unavailable_np_title();
     test_unavailable_np_restriction();
     test_unavailable_dialogs();

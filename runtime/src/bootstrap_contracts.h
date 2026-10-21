@@ -26,6 +26,8 @@ void bootstrap_modules_publish_ngs2(void);
 uintptr_t bootstrap_discmap_resolve(const char *name);
 uintptr_t bootstrap_dialogs_resolve(const char *name);
 void bootstrap_dialogs_report(void);
+uintptr_t bootstrap_savedata_resolve(const char *name);
+void bootstrap_savedata_report(void);
 uintptr_t bootstrap_network_resolve(const char *name);
 void bootstrap_network_report(void);
 uintptr_t bootstrap_video_resolve(const char *name);
