@@ -38,7 +38,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| AudioOut stream lifecycle | Three scoped init/open/close APIs use initialized SDL CoreAudio and real device streams; local/system user IDs, guest ABI, provider failures, formats and shared capacity pass in both modes; real Terminal initialization succeeds; system-user port validation corrected, real stream access/playback still unverified |
+| AudioOut stream lifecycle | Three scoped init/open/close APIs use initialized SDL CoreAudio and real device streams; local/system user IDs, restricted attributes, guest ABI, provider failures, formats and shared capacity pass in both modes; real Terminal initialization and one system-owned eight-channel float stream open succeed; restricted-port combined use and playback unverified |
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
@@ -77,12 +77,15 @@ NGS2 module and creates its sound-loader thread; the earlier null audio-object f
 no longer observed. A checked SDL CoreAudio service and actual stream open/close adapter now
 cover the subsequent AudioOut imports. The latest combined Terminal runs instead fault on
 an audio configuration write to a non-null direct-memory address in both JIT and interpreter.
-The new Terminal diagnostics confirm AudioOut initialization succeeds, followed by a system-user
-main-output open that our adapter incorrectly rejected as an invalid type. The system user is
-now accepted alongside the supported local user, with the same shared port limits and actual
-SDL stream requirement. Guest tests cover the system user's eight-channel floating-point
-request, provider failures and mixed-user capacity in both modes. This corrects that rejection;
-whether it also avoids the later memory fault still requires a combined Terminal run.
+The new Terminal diagnostics confirm AudioOut initialization and the first system-user
+eight-channel floating-point main-output open succeed. A second open adds the restricted
+attribute, which our adapter incorrectly treated as part of the sample format. Format and
+attribute are now decoded separately; the restricted bit is retained on the port, while
+other unsupported bits are rejected. Both ports require actual SDL playback streams and
+share the existing capacity. Guest tests cover paired normal/restricted opens, all eight
+sample formats with and without the attribute, provider failures and mixed capacity in
+both modes. Combined restricted-port startup and the later memory fault still need a
+Terminal run; PCM output remains unresolved.
 Fatal diagnostics now include the ARM64 syndrome, signal code, host mapping protection and
 lock-free GPU trap flags in either mode. Synthetic guest writes verify both read-only-page
 faults and SIGBUS from a writable mapping beyond its file backing; recovered faults stay silent.

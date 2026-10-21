@@ -9,13 +9,14 @@
 #include <stdio.h>
 #include <string.h>
 #define AUDIO_ERROR(n) ((int32_t)(UINT32_C(0x80260000) | (n)))
+#define AUDIO_ATTR_RESTRICTED UINT32_C(0x10000)
 enum { PORTS=9 };
 _Static_assert(sizeof(BootstrapAudioSpec)==12, "pinned SDL3 audio-spec ABI");
 static pthread_mutex_t audio_lock=PTHREAD_MUTEX_INITIALIZER;
 static BootstrapAudioBackend backend;
 static int configured, ready, initialized;
 static uint32_t sequence;
-static struct { int32_t handle; int type; void *stream; } ports[PORTS];
+static struct { int32_t handle; int type, restricted; void *stream; } ports[PORTS];
 static uint64_t init_requests, open_requests, opened, closed, failures;
 int bootstrap_audio_bind(const BootstrapAudioBackend *input) {
     pthread_mutex_lock(&audio_lock);
@@ -38,10 +39,11 @@ static int32_t audio_init(void) {
 static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frames,uint32_t freq,uint32_t param) {
     pthread_mutex_lock(&audio_lock);
     ++open_requests;
+    const uint32_t format=param&0xff;
     int32_t result = !initialized ? AUDIO_ERROR(0xf)
         : !frames || frames>2048 || (frames&255) ? AUDIO_ERROR(6)
         : freq!=48000 ? AUDIO_ERROR(8)
-        : param>7 ? AUDIO_ERROR(7)
+        : format>7 || (param & ~(AUDIO_ATTR_RESTRICTED|UINT32_C(0xff))) ? AUDIO_ERROR(7)
         /* Main/BGM output may belong to the console system user (0xff),
          * independently of the keyboard profile's signed-in local user. */
         : (user!=1 && user!=255) || type<0 || type>1 || index ? AUDIO_ERROR(0xa) : 0;
@@ -52,8 +54,8 @@ static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frame
     }
     if (!result) {
         static const int channels[]={1,2,8,1,2,8,8,8};
-        const BootstrapAudioSpec spec={.format=param>=3 && param!=6 ? 0x8120 : 0x8010,
-            .channels=channels[param],.frequency=48000};
+        const BootstrapAudioSpec spec={.format=format>=3 && format!=6 ? 0x8120 : 0x8010,
+            .channels=channels[format],.frequency=48000};
         void *stream=backend.open(UINT32_MAX,&spec,NULL,NULL);
         if (!stream || !backend.resume(stream)) {
             if(stream) backend.destroy(stream);
@@ -61,6 +63,10 @@ static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frame
         } else {
             result=(int32_t)(UINT32_C(0x20000000)|++sequence);
             ports[slot].handle=result;ports[slot].type=type;ports[slot].stream=stream;++opened;
+            /* Restricted is a port attribute, never a sample-format index.
+             * These streams only target playback: no capture, loopback or
+             * audio dump path is exposed by this adapter. */
+            ports[slot].restricted=(param&AUDIO_ATTR_RESTRICTED)!=0;
         }
     }
     if (open_requests<=16)
@@ -85,8 +91,10 @@ uintptr_t bootstrap_audio_resolve(const char *name) {
 }
 void bootstrap_audio_report(void) {
     pthread_mutex_lock(&audio_lock);
-    if(configured) printf("AudioOut: SDL ready=%d, initialized=%d, init requests=%llu, streams opened=%llu, closed=%llu, failures=%llu (no output submitted by this adapter)\n",
+    unsigned restricted=0;
+    for(int i=0;i<PORTS;++i) if(ports[i].stream && ports[i].restricted) ++restricted;
+    if(configured) printf("AudioOut: SDL ready=%d, initialized=%d, init requests=%llu, streams opened=%llu, closed=%llu, failures=%llu, restricted live=%u (no output submitted by this adapter)\n",
         ready,initialized,(unsigned long long)init_requests,(unsigned long long)opened,
-        (unsigned long long)closed,(unsigned long long)failures);
+        (unsigned long long)closed,(unsigned long long)failures,restricted);
     pthread_mutex_unlock(&audio_lock);
 }

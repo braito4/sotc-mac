@@ -288,41 +288,38 @@ thread starts before the unresolved AudioOut initialization call. No game frame 
 
 ## AudioOut device-stream lifecycle
 
-The next adapter connects only three scoped AudioOut calls: Init, Open and Close. SDL audio
-subsystem setup stays on the renderer main thread; only a ready CoreAudio backend is accepted.
-The guest service has checked one-time initialization, local/system-user main/BGM port validation,
-48 kHz formats and bounded stream capacity. Open must create/resume an actual SDL playback
-stream before returning a positive opaque handle; failure releases partial resources. Close
-owns stream destruction, and handles are not reused. There is no timer-only or dummy-device
-success path. The default headless diagnostic still leaves these imports unresolved.
+The adapter connects three scoped AudioOut calls: Init, Open and Close. SDL audio setup
+stays on the renderer main thread; only a ready CoreAudio backend is accepted. Main/BGM
+outputs accept the supported local user or system user, with a shared bounded port pool.
+Open must create/resume an actual SDL playback stream before returning a positive opaque
+handle; failures release partial resources. Close owns stream destruction, and handles
+are not reused. The default headless diagnostic leaves these imports unresolved.
 
-Guest tests verify lifecycle, format/argument ABI, failures, capacity and ownership in both
-CPU modes; the synthetic linked fixture also calls the real Init adapter. Native SDL audio
-setup selects CoreAudio in this tool process, but a stream open fails because no default
-playback device is visible there. The next Terminal run must verify real stream access.
-PCM submission, volume/state queries and downstream AJM services are still unresolved; no
-samples are submitted, recorded or replaced with fabricated silence by this adapter.
+The low parameter byte selects one of eight 48 kHz sample formats. Bit 16 is the restricted
+attribute, as defined in [shadPS4's AudioOut header](https://github.com/shadps4-emu/shadPS4/blob/main/src/core/libraries/audio/audioout.h).
+It is retained as port metadata independently of format/channel selection. Other unsupported
+attributes are rejected. The adapter exposes playback only, with no recording, loopback or
+dump route; this does not implement a host-wide capture restriction. PCM submission,
+volume/state queries and downstream AJM services remain unresolved. No samples are submitted
+or replaced with fabricated silence by this adapter.
 
-The latest Terminal execution faults at an audio configuration write to non-null direct
-memory in both CPU modes. A matching interpreter fault rules out a failure exclusive to
-JIT emission; it does not identify the underlying cause. Fatal reports now include ARM64
-ESR/FAR, signal code, host mapping protection and GPU trap flags, without reading the
-faulting bytes, acquiring the guest VMA lock or changing protection. Synthetic guest writes
-exercise read-only mappings and writable mappings beyond file backing in both modes, while
-the existing speculative-read recovery still passes. Audio initialization and the first
-sixteen port-open attempts also report their arguments/results before a possible fatal exit.
-These are diagnostics, not a memory or audio repair. Re-run the command above in Terminal;
-keep its private log, including any AudioOut lines and the complete fatal report.
+Guest tests cover paired normal/restricted system-user streams, all eight formats with and
+without the restricted attribute, ABI widths, unknown flags, backend failures, independent
+handles, shared mixed-user capacity and ownership in both CPU modes. A synthetic linked
+fixture also calls the real Init adapter. Native SDL setup selects CoreAudio in this tool
+process, but no default playback device is visible there. Terminal confirms initialization
+and the first system-owned eight-channel float stream open succeed. Its second open adds
+the restricted attribute, which the adapter previously rejected as an invalid sample
+format. The corrected restricted-stream open still needs real combined verification.
 
-The resulting Terminal report confirms Init succeeds, then Open rejects the system user
-(the pinned UserService header defines system ID 0xff). That restriction in the adapter was
-incorrect: global main/BGM streams now accept either the supported local user or the system
-user. Both identities share the existing port capacity and CoreAudio device requirements;
-other IDs remain outside this profile. Guest regression checks exercise a system-owned
-eight-channel floating-point stream, failed open/resume, close and shared mixed-user limits
-in JIT and interpreter. The subsequent faulting page has no host permissions and no GPU
-trap flags. The corrected open validation still needs a real combined run to establish
-whether startup proceeds; no memory protection is bypassed and no game frame is claimed.
+A later audio configuration write faults in both CPU modes. Its page has no host access
+permissions and no GPU trap flags; why access was removed is not established. Fatal reports
+include ARM64 ESR/FAR, signal code, host mapping protection and trap flags without touching
+the faulting bytes, acquiring the guest VMA lock or changing protection. Synthetic guest
+writes cover read-only mappings and writable mappings beyond file backing; speculative-read
+recovery still passes. Bounded AudioOut init/open diagnostics identify preceding service
+errors. Re-run the combined command in Terminal and keep the private AudioOut lines and
+complete fatal report. No memory-fault repair or game frame is claimed.
 
 ## Verified CPU-side display contracts
 
