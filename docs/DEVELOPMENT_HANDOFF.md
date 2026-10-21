@@ -83,7 +83,44 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the latest native GPU run confirms cooperative cancellation.
+**Current result:** the flip-statistics run ends at an unresolved POSIX `usleep`
+import in the original NGS2 audio module, on its sound-system thread. Initialization
+finishes at about 1.17 seconds and the main loop starts at about 1.63 seconds. The
+supervisor confirms `child_returncode=20 exit=20` after about 19.67 seconds, before
+the 30-second deadline. There is no CPU-fault report, GPU-watchdog warning or cleanup
+error. DMA and asynchronous submission remain off, with JIT and frame statistics on.
+The run's visual progression has not been reported; do not attach the prior
+first-logo observation to it automatically.
+
+The private CSV retains 134 complete flip rows spanning about 9.03 seconds relative
+to its first row, with a longest recorded interval of about 1.12 seconds. One
+five-second summary reports a 16.7/s flip rate. These are presentation-path records,
+not proof of distinct displayed images, correct pixels, gameplay FPS or absence of
+a later stall. This import-stop path explicitly flushes streams before `_Exit`;
+concurrent work can still end between observations. Do not use the CSV's relative
+origin as process startup time or its last row as the process stop time. The file
+still has 49 PerVertexKHR errors, 220 Phi offset errors, 228 SRT-walk failures, six
+compressed-format/usage errors and 1,153 buffer clamps. Input uses keyboard fallback
+with no physical gamepad detected; the earlier comparison detected a DualSense.
+
+The missing symbol's NID matches POSIX `usleep`, and the supplied module's import
+identity is `libkernel` library version 1 / module version 257. The linker correctly
+normalizes that identity into the executable's kernel namespace. Our clock resolver
+only bound the POSIX-library spelling. It now binds the exact kernel-library alias
+to the same real POSIX sleeper, preserving interruption and errno semantics. The
+same review found the already-present POSIX `gettimeofday` import in the kernel
+namespace, so its checked adapter receives that exact alias too. No NID-only
+fallback, new timing policy or fabricated success is introduced. The next native
+comparison uses the same instrumented 30-second configuration below.
+
+The full synthetic `--contracts-test` passes in JIT and interpreter after this
+change, without loading the real GPU or game. New guest-call checks cover both
+scopes, rejected data/foreign scopes, zero and real microsecond waits, 32-bit
+argument truncation, signal interruption with POSIX EINTR, success errno
+preservation and guarded realtime outputs. Continuing past the original audio
+module's import in a native game run remains unverified.
+
+**Earlier cooperative-stop checkpoint:** the preceding native GPU run confirms cooperative cancellation.
 Its header records DMA off, asynchronous submission off and JIT on. The control
 channel is ready before renderer initialization, which finishes at about 1.10
 seconds; the main loop starts at about 1.63 seconds. At the 30-second deadline,
@@ -92,17 +129,17 @@ with `child_returncode=21 exit=21` after about 30.52 seconds. There is no cleanu
 error, unresolved import, CPU-fault report or GPU-watchdog message. This verifies
 the stop for that run; it is not a renderer-stability or gameplay result.
 
-**Visual boundary:** the owner reports only the first logo, without reaching the
+**Earlier visual boundary:** the owner reports only the first logo, without reaching the
 second. The earlier menu and introduction-audio observations remain historical;
 this run does not reproduce them. The duration and submission configuration differ
 from earlier runs, so neither is an established cause of the missing progression.
 The last sampled Metal activity drops to one draw and nine dispatches, but these
 are command counters, not a record of displayed images or a diagnosis of a stall.
 
-The latest file still has 21 PerVertexKHR/skipped-pipeline messages, 220 Phi offset
+That file still has 21 PerVertexKHR/skipped-pipeline messages, 220 Phi offset
 errors, 228 SRT-walk failures, six compressed-texture usage errors and 910 clamps.
 The DualSense and Metal command activity are recorded. Message/command counts are
-not FPS or evidence of better rendering. The next investigation records flip
+not FPS or evidence of better rendering. The subsequent investigation records flip
 progress with the existing host-side statistics described below. Do not change
 renderer settings based solely on error counts. The following paragraphs retain
 earlier checkpoints.
@@ -180,9 +217,10 @@ message. Keep other renderer settings unchanged and do not turn DMA back on.
 
 ### First-logo presentation trace
 
-The next single native Terminal comparison keeps the same 30-second budget, DMA
-off, asynchronous submission off and JIT on. Add only the pinned renderer's
-`BB_FRAME_STATS=1` instrumentation:
+The owner has run the pinned renderer's `BB_FRAME_STATS=1` instrumentation. The
+result and sleep-import correction are summarized above. The next single native
+Terminal comparison keeps that instrumentation, the same 30-second budget, DMA
+off, asynchronous submission off and JIT on:
 
 ```sh
 SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
@@ -190,7 +228,7 @@ SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
   bash packaging/test-arm64.sh --graphics-game-test
 ```
 
-No new GPU run was launched to prepare this trace. Use a native Terminal only
+No additional GPU run was launched to correct the clock aliases. Use a native Terminal only
 after the prior diagnostic window has closed; inspect the resulting log before
 another comparison. The launcher chooses a private `frames.csv` inside this run's
 isolated GPU-state directory unless `BB_FRAME_LOG` is already specified. The
@@ -210,7 +248,9 @@ intervals, host/GPU wait counters and compilation work. If flips continue while
 the first logo remains, investigate image/resource contents; if the trace stops,
 investigate the submission/presentation waits. No result alone justifies skipping
 a fence, replacing a shader result with zero, increasing the budget or enabling
-DMA. The current log has no flip trace, so that distinction remains unresolved.
+DMA. The retained records establish some flip progress; they do not yet identify
+the cause of the earlier first-logo observation. Resolve the measured import stop
+before another renderer change.
 
 ## First session: inspect without GPU execution
 

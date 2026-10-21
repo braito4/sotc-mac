@@ -13,8 +13,9 @@
 > **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
-> in earlier native Terminal runs. The latest 30-second comparison shows only the first
-> logo; it does not reach the second. The diagnostic reaches the main loop with game
+> in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
+> only the first logo. The subsequent instrumented run stops at a POSIX sleep import;
+> its image progression has not been reported. The diagnostic reaches the main loop with game
 > GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
@@ -26,10 +27,10 @@
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
-> run reached its 120-second limit. The latest 30-second native comparison confirms
-> cooperative child exit with the expected diagnostic status and no cleanup error.
-> The owner reports that its image remains at the first logo. This verifies the stop
-> mechanism for that run, not renderer stability or gameplay.
+> run reached its 120-second limit. A 30-second native comparison confirmed cooperative
+> child exit. The subsequent flip-statistics run stops at an unresolved POSIX sleep
+> import after about 19.67 seconds. The scoped sleep/time aliases are corrected for
+> the next comparison; renderer stability and gameplay remain unverified.
 > See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
@@ -92,14 +93,17 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 ## Status
 
-**Experimental: earlier runs reached the logos/menu on Apple M1; the latest
-30-second comparison shows only the first logo.**
+**Experimental: earlier runs reached the logos/menu on Apple M1; the last
+uninstrumented 30-second comparison showed only the first logo.**
 The owner also previously confirmed hearing the opening of the game's introduction. This
 establishes audible game output, without proving full audio coverage or audiovisual
 synchronization. An earlier native run reaches the main loop at about 1.38 seconds,
 detects a DualSense and continues beyond the save-dialog boundary. It ends at the
 60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
 recorded during that interval. Draw/dispatch counters are not gameplay FPS.
+The subsequent instrumented comparison records 134 flip rows before stopping at
+a POSIX `usleep` import in the original audio module. A record of presentation
+calls does not establish correct image contents or gameplay performance.
 
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/
 metadata failure paths. Full synthetic contracts pass in both CPU modes; private

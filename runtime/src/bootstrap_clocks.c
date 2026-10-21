@@ -258,12 +258,15 @@ uintptr_t bootstrap_clocks_resolve(const char *name) {
         {"BNowx2l588E#0#F", process_frequency}, {"QBi7HCK03hw#0#F", kernel_clock},
         {"lLMT9vJAck0#0#F", posix_clock}, {"lLMT9vJAck0#p#F", posix_clock},
         {"smIj7eqzZE8#0#F", posix_resolution}, {"smIj7eqzZE8#p#F", posix_resolution},
-        {"1jfXLRVzisc#0#F", kernel_usleep}, {"QcteRwbsnV0#p#F", posix_usleep},
+        /* The original NGS2 module imports POSIX usleep from libkernel itself.
+         * Keep its POSIX errno contract in both verified library namespaces. */
+        {"1jfXLRVzisc#0#F", kernel_usleep},
+        {"QcteRwbsnV0#0#F", posix_usleep}, {"QcteRwbsnV0#p#F", posix_usleep},
         {"QvsZxomvUHs#0#F", kernel_nanosleep},
         {"yS8U2TGCe1A#0#F", posix_nanosleep}, {"yS8U2TGCe1A#p#F", posix_nanosleep},
         {"NhpspxdjEKU#0#F", posix_nanosleep}, {"NhpspxdjEKU#p#F", posix_nanosleep},
         {"ejekcaNQNq0#0#F", kernel_timeofday}, {"kOcnerypnQA#0#F", kernel_timezone},
-        {"n88vx3C5nW8#p#F", posix_timeofday},
+        {"n88vx3C5nW8#0#F", posix_timeofday}, {"n88vx3C5nW8#p#F", posix_timeofday},
         {"-o5uEDpN+oY#0#F", utc_to_local}, {"0NTHN1NKONI#0#F", local_to_utc},
     };
     for (size_t i = 0; i < sizeof(exports) / sizeof(*exports); ++i)

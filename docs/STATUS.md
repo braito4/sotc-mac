@@ -3,18 +3,19 @@
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
-reported host watchdog kernel panic.** The latest 30-second comparison uses DMA off
-and asynchronous submission off. It records GPU activity without an import stop,
-CPU-fault report or GPU-watchdog warning. Its footer confirms cooperative child
-exit with status 21 after about 30.52 seconds, without the earlier cleanup error.
-The owner confirms that only the first logo appears; the second is not reached.
-The log does not identify whether presentation stops or resource loading continues.
-Earlier menu/audio observations used other runs and do not establish progression
-in this shorter comparison. The next brief experiment adds the pinned renderer's
-flip statistics while preserving the duration and renderer settings.
-This verifies the stop in that run, not renderer stability or scene correctness.
-The earlier 120-second run ended at its diagnostic timeout. Dynamic shader reads
-stay blocked. See the
+reported host watchdog kernel panic.** The latest instrumented comparison uses DMA
+off, asynchronous submission off, JIT on and a 30-second budget. It enters the main
+loop at about 1.63 seconds, then stops on an unresolved POSIX `usleep` import in the
+original audio module. Its footer confirms child/supervisor status 20 after about
+19.67 seconds, without a CPU-fault report, GPU-watchdog warning or cleanup error.
+This is an import stop before the deadline, not a timeout or a graphics result.
+The CSV retains 134 flip records over about 9.03 seconds from its own first record;
+it does not establish image contents, total frame count or gameplay FPS. The prior
+uninstrumented comparison showed only the first logo according to the owner; the
+latest run's visual progression has not been reported. Narrow sleep/time aliases
+now route both verified POSIX library scopes to the existing checked adapters.
+The next comparison preserves the instrumentation, renderer settings and duration.
+Dynamic shader reads stay blocked. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |
@@ -26,7 +27,7 @@ stay blocked. See the
 | Read/write locks | Non-timed kernel backend: synthetic guest lifecycle/errors, shared readers, exclusive writes and ownership checks pass in both modes |
 | Memory | Largest-free-range queries against an independent bitmap; real direct aliases, release and flexible availability verified in normal Terminal and tool runs with explicit file backing |
 | Console | x86-to-ARM64 writes, descriptor isolation, embedded NUL and guest errors |
-| Clocks | TSC/API agreement, clock ABI, real sleeps and realtime |
+| Clocks | TSC/API agreement, clock ABI, real sleeps and realtime; POSIX sleep/time aliases checked through guest ABI in both library scopes, including microsecond width/duration, interruption/errno and guarded outputs |
 | Timezones | UTC/local round trips across four zones, seasonal/half-hour DST and a transition boundary |
 | Content API | Fixture ABI/error tests; latest paired tool run: 17 opens per mode; interpreter: 429 reads/81,536,320 bytes, JIT: 426 reads/81,529,921 bytes; no writes |
 | Original modules | libc and Fios2 initializers returned zero in JIT and interpreter |

@@ -4,7 +4,10 @@
 #include "platform.h"
 #include "runtime.h"
 #include <assert.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -17,6 +20,81 @@ typedef struct { int64_t t; uint32_t west_sec, dst_sec; } GuestTimesec;
 typedef struct { int32_t minuteswest, dsttime; } GuestTimezone;
 static uint64_t ns(const struct timespec *t) { return (uint64_t)t->tv_sec * 1000000000 + t->tv_nsec; }
 static uint64_t guest_ns(const GuestTimespec *t) { return (uint64_t)t->sec * 1000000000 + t->nsec; }
+typedef struct { pthread_t target; _Atomic int done; } SleepInterruption;
+static volatile sig_atomic_t sleep_interrupted;
+static void interrupt_handler(int signo) { (void)signo; sleep_interrupted = 1; }
+static void *interrupt_sleeper(void *opaque) {
+    SleepInterruption *context = opaque;
+    /* Repeat briefly so a signal delivered during bridge entry is followed by
+     * one during the real wait. Target only this synthetic test's main thread. */
+    for (unsigned i = 0; i < 100 && !atomic_load(&context->done); ++i) {
+        const struct timespec delay = {0, 2000000};
+        assert(nanosleep(&delay, NULL) == 0);
+        assert(pthread_kill(context->target, SIGUSR1) == 0);
+    }
+    return NULL;
+}
+static void test_posix_clock_aliases(void) {
+    const char *names[] = {"QcteRwbsnV0#0#F", "QcteRwbsnV0#p#F",
+                           "n88vx3C5nW8#0#F", "n88vx3C5nW8#p#F"};
+    unsigned char *bridge = runtime_low_map(16384, PROT_READ | PROT_WRITE);
+    assert(bridge);
+    for (unsigned i = 0; i < 4; ++i) {
+        uintptr_t target = bootstrap_resolve(names[i], 0);
+        assert(target && !bootstrap_resolve(names[i], 1));
+        unsigned char *slot = bridge + 16*i;
+        slot[0] = 0x48; slot[1] = 0xb8;
+        memcpy(slot+2, &target, sizeof(target)); slot[10] = 0xff; slot[11] = 0xe0;
+    }
+    assert(!bootstrap_resolve("QcteRwbsnV0#1#u", 0));
+    assert(!bootstrap_resolve("n88vx3C5nW8#1#u", 0));
+    bbcpu_add_guest_code((uintptr_t)bridge, 16384);
+    struct sigaction action = {.sa_handler = interrupt_handler}, previous;
+    sigemptyset(&action.sa_mask);
+    assert(sigaction(SIGUSR1, &action, &previous) == 0);
+    sigset_t unblocked, previous_mask;
+    sigemptyset(&unblocked); sigaddset(&unblocked, SIGUSR1);
+    assert(pthread_sigmask(SIG_UNBLOCK, &unblocked, &previous_mask) == 0);
+    for (unsigned i = 0; i < 2; ++i) {
+        const uintptr_t entry = (uintptr_t)bridge + 16*i;
+        const uint64_t zero[] = {0}, short_wait[] = {UINT64_C(0xfeedface000007d0)};
+        *runtime_errno() = 17;
+        assert((int32_t)bbcpu_call(entry, 1, zero) == 0 && *runtime_errno() == 17);
+        struct timespec before, after;
+        assert(clock_gettime(CLOCK_MONOTONIC, &before) == 0);
+        assert((int32_t)bbcpu_call(entry, 1, short_wait) == 0 && *runtime_errno() == 17);
+        assert(clock_gettime(CLOCK_MONOTONIC, &after) == 0);
+        assert(ns(&after)-ns(&before) >= 2000000); /* Low 32 bits are microseconds. */
+        SleepInterruption context = {.target = pthread_self(), .done = 0};
+        pthread_t sender;
+        sleep_interrupted = 0;
+        assert(pthread_create(&sender, NULL, interrupt_sleeper, &context) == 0);
+        const uint64_t long_wait[] = {1000000};
+        const int32_t result = (int32_t)bbcpu_call(entry, 1, long_wait);
+        const int guest_errno = *runtime_errno();
+        atomic_store(&context.done, 1);
+        assert(pthread_join(sender, NULL) == 0);
+        assert(sleep_interrupted && result == -1 && guest_errno == 4);
+    }
+    assert(sigaction(SIGUSR1, &previous, NULL) == 0);
+    assert(pthread_sigmask(SIG_SETMASK, &previous_mask, NULL) == 0);
+    for (unsigned i = 2; i < 4; ++i) {
+        struct { uint64_t head; GuestTimeval value; uint64_t tail; } wrapped = {0xa123, {0}, 0xb456};
+        const uintptr_t entry = (uintptr_t)bridge + 16*i;
+        const uint64_t arguments[] = {(uintptr_t)&wrapped.value, 0}, no_outputs[] = {0, 0};
+        struct timeval before, after;
+        *runtime_errno() = 17;
+        assert(gettimeofday(&before, NULL) == 0);
+        assert((int32_t)bbcpu_call(entry, 2, arguments) == 0 && *runtime_errno() == 17);
+        assert(gettimeofday(&after, NULL) == 0);
+        const int64_t observed = wrapped.value.sec*INT64_C(1000000)+wrapped.value.usec;
+        assert(before.tv_sec*INT64_C(1000000)+before.tv_usec <= observed);
+        assert(observed <= after.tv_sec*INT64_C(1000000)+after.tv_usec);
+        assert(wrapped.head == 0xa123 && wrapped.tail == 0xb456);
+        assert((int32_t)bbcpu_call(entry, 2, no_outputs) == 0 && *runtime_errno() == 17);
+    }
+    puts("PASS: scoped POSIX sleep/time aliases through guest ABI, microsecond width/duration, EINTR/errno and guarded realtime outputs");
+}
 static void test_calendar(void) {
     int32_t (*to_local)(int64_t, int64_t *, GuestTimesec *, uint64_t *) =
         (void *)bootstrap_resolve("-o5uEDpN+oY#0#F", 0);
@@ -161,5 +239,6 @@ void bootstrap_test_clocks(void) {
     runtime_sleep_stats(&calls, &elapsed, &requested);
     assert(!calls && !elapsed && !requested);
     puts("PASS: GPU/guest clock origin and units, real sleep statistics and destructive interval snapshots");
+    test_posix_clock_aliases();
     test_calendar();
 }
