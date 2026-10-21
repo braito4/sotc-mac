@@ -3,7 +3,24 @@
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
-reported host watchdog kernel panic.** The latest native comparison adds only
+reported host watchdog kernel panic.** The latest native low-resolution repeat
+ends with the 30-second budget request and a native cancellation notice observed
+about 1.90 ms later. The supervisor does not collect child exit within its two-second
+allowance and finishes after about 32.02 seconds with unknown child status and exit 1.
+A later targeted PID lookup returns ESRCH; this confirms later process absence,
+not its exit code, exact exit time or a permanently live process. The owner reports
+the window closed when turning on the controller. Only keyboard fallback is logged,
+with no physical controller connection or input fault, so the log cannot attribute
+the closure to hotplug. No import stop, CPU-fault report or GPU-watchdog warning is
+recorded. Scene targets remain 640x360, with nonzero reduced scene draws. The CSV
+retains 399 complete rows through about 23.70 seconds relative to its first row,
+plus a partial row. Integer-format Metal blit failures and the earlier shader/resource
+errors persist. No additional game/GPU test was launched for this analysis. At the
+owner's request to resume direct GPU use, a separate supervised synthetic prerequisite
+check still returns zero Metal devices and confirmed exit 24 after about 0.17 seconds;
+no synthetic draw or game renderer starts in this tool context.
+
+The preceding native comparison adds only
 scene preset 4 to DMA off, asynchronous submission off, JIT/statistics on and a
 30-second budget. It enters the main loop at about 2.81 seconds, configures scene
 targets at 640x360 and later records 26/26 and 24/24 scene draws at reduced size.
@@ -17,7 +34,7 @@ The POSIX sleep/time aliases from the preceding import stop remain corrected.
 Two CPU-only fixtures reproduce blocked cooperative shutdown with a full output
 pipe. The supervisor now drains output during its unchanged two-second exit wait;
 the native cancellation notice is best effort and nonblocking before self-exit.
-Earlier native runs still had unknown exit status; the latest result does not
+Earlier native runs still had unknown exit status; that confirmed-exit result does not
 explain those failures or attribute the successful stop to the preset. Dynamic
 shader reads stay blocked. Imported guest memory remains 6592 MiB. The sampled
 Vulkan allocation maximum is 4867 MiB versus 4593 MiB in the preceding baseline;

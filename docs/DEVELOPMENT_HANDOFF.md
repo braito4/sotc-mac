@@ -50,7 +50,8 @@ Physical SDL3 gamepad input now complements the keyboard fallback. See
 [DualShock input](guide/building.md#dualshock-input) for connection and logging.
 Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
 hotplug, output errors and synthetic callback dispatch in both CPU modes. The latest
-completed game run detects a DualSense. An earlier complete summary records 778 physical samples,
+native low-resolution repeats have no physical connection logged; earlier native
+runs detect a DualSense. An earlier complete summary records 778 physical samples,
 387 accepted LED requests and 388 accepted rumble requests without disconnection;
 the timeout run has no final input summary. These counters do not identify the
 connection transport or prove the physical output effect.
@@ -83,7 +84,42 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the owner's single low-resolution comparison confirms the
+**Current result:** the owner repeats the low-resolution configuration and reports
+that the window closes when turning on the controller. The only input line records
+the logical controller opening with keyboard fallback. There is no physical
+connection/disconnection message, input-backend failure, unresolved-import stop,
+CPU-fault report or GPU-watchdog warning. The recorded stop is the existing
+30-second wall deadline, followed by the native cancellation notice observed about
+1.90 ms later. This evidence does not establish whether hotplug completed or caused
+any separate problem; do not diagnose a controller crash from timing coincidence.
+
+The supervisor again fails to collect the child status within its unchanged
+two-second allowance: unknown child status, supervisor exit 1, elapsed about
+32.02 seconds. A later lookup of that specific PID returns ESRCH. This confirms
+later process absence, not its exit code, exact exit time, a successful supervised
+stop or a permanently live process. Preserve the owner's window observation and
+this failed collection separately. Do not increase the grace period as a presumed
+fix or enable external-signal fallback.
+
+Initialization completes at about 1.07 seconds and the main loop starts at about
+1.53 seconds. Scene raster remains 640x360 with 320x180 half-resolution targets
+and 1920x1080 UI/output. Five statistics windows record nonzero reduced scene draws
+after the first window; the last is 27 reduced draws/frame out of 33 scene draws.
+The CSV retains 399 complete rows through about 23.70 seconds relative to its first
+row, plus a partial row. Buffered-row loss still prevents a final frame count.
+Both integer-format Metal blit failures recur, alongside the earlier shader/resource
+errors. Sampled Vulkan allocations peak at 4772 MiB and images at 931 MiB; these
+are renderer counters, not measured total macOS RAM pressure or proof of lower load.
+
+The owner also requests direct GPU use now that the scene resolution is reduced.
+GPU rendering is already active in the owner's native runs; DMA-off is a separate
+dynamic shader-read setting. One supervised synthetic Metal prerequisite recheck in
+the tool context still exposes zero devices and confirms child/supervisor exit 24
+after about 0.17 seconds, before any draw or game renderer launch. This is a host
+execution-access limitation, not a repository GPU-disable switch. No escalation,
+alternate Terminal-control route or additional native game test was attempted.
+
+**Preceding confirmed-exit result:** the owner's single low-resolution comparison confirms the
 preset was applied: scene raster targets are 640x360 with 320x180 half-resolution
 targets and 1920x1080 UI/output. The last two statistics windows record 26 reduced
 draws/frame out of 26 scene draws, then 24 out of 24. This verifies application to
@@ -124,7 +160,7 @@ nearest-copy semantics that preserve integer values, rather than a float output
 cast or skipped-copy success. Validate pixel formats, rectangles, mip selection
 and representative integer values with synthetic data before another native
 comparison. The new sampler-LOD-bias warning is a separate remaining limitation.
-No renderer patch or extra GPU run was made as part of this log analysis.
+No renderer patch or further native game comparison was made for this log analysis.
 
 **Earlier timed-notice checkpoint:** that instrumented run records its cancellation notice
 about 1.47 ms after the parent stop request, but still ends with unknown child status
