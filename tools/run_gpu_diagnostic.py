@@ -42,7 +42,7 @@ def stop_group(child):
         raise OSError(errno.ETIMEDOUT, 'process-group stop: child exit not observed')
 
 
-def stop_cooperatively(child, control_fd):
+def stop_cooperatively(child, control_fd, emit):
     """Ask the owned child to stop; never substitute denied external signals."""
     if child.poll() is not None:
         return
@@ -52,10 +52,28 @@ def stop_cooperatively(child, control_fd):
         pass  # The child may already be exiting; still confirm its status.
     except OSError as error:
         raise OSError(error.errno, f'cancellation pipe: {error.strerror}') from error
-    try:
-        child.wait(timeout=2)
-    except subprocess.TimeoutExpired as error:
-        raise OSError(errno.ETIMEDOUT, 'cooperative stop: child exit not observed') from error
+    # Keep consuming output while waiting. Otherwise a full pipe can block the
+    # child's stop notice (or another last write) before it gets to self-exit.
+    os.set_blocking(child.stdout.fileno(), False)
+    deadline = time.monotonic() + 2
+    while child.poll() is None:
+        # Bound each batch so a child that keeps writing cannot starve the
+        # cancellation deadline. No external-signal fallback is introduced.
+        for _ in range(16):
+            try:
+                data = os.read(child.stdout.fileno(), 65536)
+            except BlockingIOError:
+                break
+            if not data:
+                break
+            emit(data)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 and child.poll() is None:
+            raise OSError(errno.ETIMEDOUT, 'cooperative stop: child exit not observed')
+        try:
+            child.wait(timeout=max(0, min(remaining, 0.01)))
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def supervise(command, seconds, log_path, cooperative=False):
@@ -140,7 +158,7 @@ def supervise(command, seconds, log_path, cooperative=False):
                 cleanup_stage = 'cooperative cancellation' if cooperative else 'process-group cancellation'
                 try:
                     if cooperative:
-                        stop_cooperatively(child, control_write)
+                        stop_cooperatively(child, control_write, emit)
                     else:
                         stop_group(child)
                     # Drain the bounded pipe without blocking if the child

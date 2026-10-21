@@ -83,7 +83,43 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the flip-statistics run ends at an unresolved POSIX `usleep`
+**Current result:** after the POSIX clock-alias correction, the latest instrumented
+run reaches its 30-second deadline without an import stop, CPU-fault report or GPU
+watchdog warning. Initialization finishes at about 0.91 seconds and the main loop
+starts at about 1.34 seconds. DMA and asynchronous submission remain off, with JIT
+and frame statistics on. The log records five flip-statistics windows. Its CSV
+retains 438 complete rows through about 24.80 seconds relative to the first record,
+followed by a partial row. Flip records do not establish pixel correctness, game
+progression or gameplay FPS; the latest image progression is still unreported.
+
+The supervisor records its deadline request, followed by a cooperative-stop error:
+child exit is not observed in the two-second allowance. Its footer reports
+`child_returncode=None exit=1` after about 32.04 seconds. There is no native
+`STOP_DIAGNOSTIC_CONTROL` acknowledgement. Classify this as a failed stop and ensure
+the previous instance has closed before another GPU comparison. Do not infer a
+kernel/driver hang, clean exit or continued process lifetime solely from this file.
+Shader/resource failures persist: 64 PerVertexKHR errors, 259 Phi offset errors,
+267 SRT-walk failures, six compressed-format/usage errors and 7,942 buffer clamps.
+The DualSense is detected again; no final input/audio summary is available.
+
+CPU-only fixtures reproduce two output-backpressure failure mechanisms in the old
+cancellation code: a full inherited output pipe blocks the native stop notice
+before `_Exit`, and a child writing queued output cannot exit while the supervisor
+waits without draining it. Both fail before the fix. The native control thread now
+makes its notice nonblocking and best effort, then exits regardless of delivery.
+The supervisor consumes bounded output batches while awaiting exit, retaining the
+same two-second allowance and never using external-signal fallback. All 19 targeted
+supervisor tests pass, including the two regressions. This explains a reproducible
+mechanism consistent with the native log, but does not establish that it caused
+that native failure. No new GPU run was launched for this correction, and native
+stop confirmation remains pending.
+
+The full synthetic `--contracts-test` passes in JIT and interpreter with this
+change. The Metal prerequisite also compiles with the updated control header;
+it was not executed. Neither check loads a real GPU or validates recovery from a
+kernel/driver hang.
+
+**Earlier import-stop checkpoint:** the preceding flip-statistics run ends at an unresolved POSIX `usleep`
 import in the original NGS2 audio module, on its sound-system thread. Initialization
 finishes at about 1.17 seconds and the main loop starts at about 1.63 seconds. The
 supervisor confirms `child_returncode=20 exit=20` after about 19.67 seconds, before
@@ -117,10 +153,10 @@ The full synthetic `--contracts-test` passes in JIT and interpreter after this
 change, without loading the real GPU or game. New guest-call checks cover both
 scopes, rejected data/foreign scopes, zero and real microsecond waits, 32-bit
 argument truncation, signal interruption with POSIX EINTR, success errno
-preservation and guarded realtime outputs. Continuing past the original audio
-module's import in a native game run remains unverified.
+preservation and guarded realtime outputs. The subsequent native run has no import
+stop during its recorded interval, as summarized above.
 
-**Earlier cooperative-stop checkpoint:** the preceding native GPU run confirms cooperative cancellation.
+**Earlier cooperative-stop checkpoint:** an earlier native GPU run confirms cooperative cancellation.
 Its header records DMA off, asynchronous submission off and JIT on. The control
 channel is ready before renderer initialization, which finishes at about 1.10
 seconds; the main loop starts at about 1.63 seconds. At the 30-second deadline,
@@ -218,9 +254,11 @@ message. Keep other renderer settings unchanged and do not turn DMA back on.
 ### First-logo presentation trace
 
 The owner has run the pinned renderer's `BB_FRAME_STATS=1` instrumentation. The
-result and sleep-import correction are summarized above. The next single native
-Terminal comparison keeps that instrumentation, the same 30-second budget, DMA
-off, asynchronous submission off and JIT on:
+latest run's stop failure and the CPU-only cancellation correction are summarized
+above. After confirming the previous diagnostic has closed and completing the
+synthetic checks, the next single native Terminal comparison keeps that
+instrumentation, the same 30-second budget, DMA off, asynchronous submission off
+and JIT on:
 
 ```sh
 SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
@@ -228,7 +266,7 @@ SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
   bash packaging/test-arm64.sh --graphics-game-test
 ```
 
-No additional GPU run was launched to correct the clock aliases. Use a native Terminal only
+No additional GPU run was launched to correct cancellation backpressure. Use a native Terminal only
 after the prior diagnostic window has closed; inspect the resulting log before
 another comparison. The launcher chooses a private `frames.csv` inside this run's
 isolated GPU-state directory unless `BB_FRAME_LOG` is already specified. The
@@ -249,8 +287,8 @@ the first logo remains, investigate image/resource contents; if the trace stops,
 investigate the submission/presentation waits. No result alone justifies skipping
 a fence, replacing a shader result with zero, increasing the budget or enabling
 DMA. The retained records establish some flip progress; they do not yet identify
-the cause of the earlier first-logo observation. Resolve the measured import stop
-before another renderer change.
+the cause of the earlier first-logo observation. Confirm the corrected cancellation
+path in one comparison before another renderer change.
 
 ## First session: inspect without GPU execution
 

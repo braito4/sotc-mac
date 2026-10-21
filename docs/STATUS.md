@@ -5,17 +5,22 @@ Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The latest instrumented comparison uses DMA
 off, asynchronous submission off, JIT on and a 30-second budget. It enters the main
-loop at about 1.63 seconds, then stops on an unresolved POSIX `usleep` import in the
-original audio module. Its footer confirms child/supervisor status 20 after about
-19.67 seconds, without a CPU-fault report, GPU-watchdog warning or cleanup error.
-This is an import stop before the deadline, not a timeout or a graphics result.
-The CSV retains 134 flip records over about 9.03 seconds from its own first record;
-it does not establish image contents, total frame count or gameplay FPS. The prior
-uninstrumented comparison showed only the first logo according to the owner; the
-latest run's visual progression has not been reported. Narrow sleep/time aliases
-now route both verified POSIX library scopes to the existing checked adapters.
-The next comparison preserves the instrumentation, renderer settings and duration.
-Dynamic shader reads stay blocked. See the
+loop at about 1.34 seconds and records five flip-statistics windows, with no import
+stop, CPU-fault report or GPU-watchdog warning. After the deadline, cooperative
+cancellation cannot confirm child exit within its two-second allowance. The footer
+reports unknown child status and supervisor exit 1 after about 32.04 seconds. This
+is a failed stop, not confirmed process termination. The CSV retains 438 complete
+flip records through about 24.80 seconds from its first record, followed by a partial
+row. Presentation records do not establish image correctness or gameplay FPS.
+
+The POSIX sleep/time aliases from the preceding import stop remain corrected.
+Two CPU-only fixtures reproduce blocked cooperative shutdown with a full output
+pipe. The supervisor now drains output during its unchanged two-second exit wait;
+the native cancellation notice is best effort and nonblocking before self-exit.
+This addresses the reproduced failure mechanism, without establishing the cause
+of the native failure or confirming native recovery. Ensure the prior diagnostic
+has closed before another comparison. Preserve statistics, renderer settings and
+duration; dynamic shader reads stay blocked. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |

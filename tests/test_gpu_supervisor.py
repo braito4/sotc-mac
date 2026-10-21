@@ -232,6 +232,58 @@ int main(void) {
         self.assertIn(b'child_returncode=21 exit=21',data)
         self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
 
+    def test_parent_drains_queued_output_during_cooperative_stop(self):
+        log = self.root/'queued-output.log'
+        source = '''import os
+fd=int(os.environ['SOTC_DIAGNOSTIC_CONTROL_FD'])
+os.read(fd,1)
+os.write(1,b'queued synthetic output\\n'*50000)
+os.write(2,b'SYNTHETIC_STOP_FINISHED\\n')
+os._exit(21)
+'''
+        result = subprocess.run([sys.executable,str(RUNNER),'--seconds','1','--log',str(log),
+            '--cooperative-stop','--',sys.executable,'-c',source],capture_output=True,timeout=6)
+        self.assertEqual(result.returncode,21,result.stderr)
+        data = log.read_bytes()
+        self.assertEqual(data.count(b'queued synthetic output\n'),50000)
+        self.assertIn(b'SYNTHETIC_STOP_FINISHED',data)
+        self.assertIn(b'child_returncode=21 exit=21',data)
+        self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
+
+    def test_native_cancellation_exits_with_a_full_output_pipe(self):
+        control_read, control_write = os.pipe()
+        output_read, output_write = os.pipe()
+        # Fill the inherited diagnostic output before launch. No reader drains
+        # it until after the exit assertion, so a blocking stop message deadlocks.
+        os.set_blocking(output_write,False)
+        for size in (4096, 1):
+            try:
+                while True:
+                    os.write(output_write,b'x'*size)
+            except BlockingIOError:
+                pass
+        os.set_blocking(output_write,True)
+        child = subprocess.Popen([str(self.binary)],pass_fds=(control_read,),
+            env=dict(os.environ,SOTC_DIAGNOSTIC_CONTROL_FD=str(control_read)),
+            stdout=subprocess.DEVNULL,stderr=output_write)
+        os.close(control_read)
+        os.close(output_write)
+        try:
+            os.write(control_write,b'S')
+            self.assertEqual(child.wait(timeout=1),21)
+        finally:
+            os.close(control_write)
+            # Release a broken fixture without external signals or leaving a
+            # process behind, including when this regression fails before a fix.
+            os.set_blocking(output_read,False)
+            try:
+                while os.read(output_read,65536):
+                    pass
+            except BlockingIOError:
+                pass
+            child.wait(timeout=3)
+            os.close(output_read)
+
     def test_parent_pipe_closure_stops_native_child(self):
         read_fd, write_fd = os.pipe()
         child = subprocess.Popen([str(self.binary)],pass_fds=(read_fd,),

@@ -14,8 +14,9 @@
 >
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
 > in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
-> only the first logo. The subsequent instrumented run stops at a POSIX sleep import;
-> its image progression has not been reported. The diagnostic reaches the main loop with game
+> only the first logo. The latest instrumented run continues recording flip activity
+> but fails to confirm process exit at its deadline; its image progression has not
+> been reported. The diagnostic reaches the main loop with game
 > GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
@@ -28,9 +29,10 @@
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
 > run reached its 120-second limit. A 30-second native comparison confirmed cooperative
-> child exit. The subsequent flip-statistics run stops at an unresolved POSIX sleep
-> import after about 19.67 seconds. The scoped sleep/time aliases are corrected for
-> the next comparison; renderer stability and gameplay remain unverified.
+> child exit. After correcting a POSIX sleep import, the latest instrumented run
+> reaches its deadline but fails to confirm child exit. A reproduced output-pipe
+> deadlock is corrected using CPU fixtures; this still needs native confirmation.
+> Ensure the previous diagnostic has closed before another GPU comparison.
 > See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
@@ -101,9 +103,10 @@ synchronization. An earlier native run reaches the main loop at about 1.38 secon
 detects a DualSense and continues beyond the save-dialog boundary. It ends at the
 60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
 recorded during that interval. Draw/dispatch counters are not gameplay FPS.
-The subsequent instrumented comparison records 134 flip rows before stopping at
-a POSIX `usleep` import in the original audio module. A record of presentation
-calls does not establish correct image contents or gameplay performance.
+The POSIX `usleep` import from an earlier instrumented run is corrected. The latest
+comparison retains 438 complete flip rows and has no import/fault stop, but its
+deadline cleanup cannot confirm child exit. A record of presentation calls does
+not establish correct image contents or gameplay performance.
 
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/
 metadata failure paths. Full synthetic contracts pass in both CPU modes; private

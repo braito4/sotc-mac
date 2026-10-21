@@ -23,7 +23,13 @@ static void *sotc_diagnostic_control_wait(void *argument) {
     static const char failed[] = "STOP_DIAGNOSTIC_CONTROL: channel read failed\n";
     const char *message = count > 0 ? requested : count == 0 ? closed : failed;
     const size_t size = count > 0 ? sizeof(requested) : count == 0 ? sizeof(closed) : sizeof(failed);
-    (void)write(STDERR_FILENO, message, size - 1);
+    /* A busy renderer can fill the inherited output pipe while its supervisor
+     * is stopping it. The stop notice is best effort: it must never delay exit.
+     * This flag change is confined to cancellation, immediately before _Exit. */
+    const int output_flags = fcntl(STDERR_FILENO, F_GETFL);
+    if (output_flags >= 0 && ((output_flags & O_NONBLOCK) ||
+        !fcntl(STDERR_FILENO, F_SETFL, output_flags | O_NONBLOCK)))
+        (void)write(STDERR_FILENO, message, size - 1);
     _Exit(count < 0 ? 28 : 21);
 }
 
