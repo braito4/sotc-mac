@@ -10,6 +10,14 @@
 #include <uuid/uuid.h>
 static _Atomic size_t safe_area_requests;
 static _Atomic size_t uuid_requests;
+static _Atomic size_t splash_requests;
+static int32_t hide_splash(void) {
+    atomic_fetch_add_explicit(&splash_requests,1,memory_order_relaxed);
+    /* Supplied retail wrapper: no-argument ABI, propagated error when its
+     * launch-control context is absent. The diagnostic has no PS4 launcher
+     * service or splash-control event; do not claim a hidden splash/frame. */
+    return (int32_t)UINT32_C(0x80e30002);
+}
 static int32_t create_uuid(void *out) {
     if (!out) return (int32_t)UINT32_C(0x80020016); /* Original wrapper: EINVAL. */
     uuid_t network;
@@ -38,6 +46,7 @@ static int32_t display_safe_area(void *info) {
 uintptr_t bootstrap_system_resolve(const char *name) {
     if (!strcmp(name, "1n37q1Bvc5Y#a#a")) return (uintptr_t)display_safe_area;
     if (!strcmp(name, "Xjoosiw+XPI#0#F")) return (uintptr_t)create_uuid;
+    if (!strcmp(name, "Vo5V8KAwCmk#a#a")) return (uintptr_t)hide_splash;
     return 0;
 }
 void bootstrap_system_report(void) {
@@ -45,4 +54,6 @@ void bootstrap_system_report(void) {
            atomic_load_explicit(&safe_area_requests, memory_order_relaxed));
     printf("Bootstrap: UUID creations=%zu (host entropy; random v4 profile)\n",
            atomic_load_explicit(&uuid_requests, memory_order_relaxed));
+    printf("Bootstrap: unavailable splash-hide requests=%zu (no PS4 launch-control service)\n",
+           atomic_load_explicit(&splash_requests,memory_order_relaxed));
 }

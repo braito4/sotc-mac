@@ -505,6 +505,26 @@ static void test_unavailable_network(void) {
     assert(!bootstrap_resolve("6MojQ8uFHEI#Bc#D", 0)); /* sceNetInitParam */
     puts("PASS: no-argument network-init guest ABI, repeated unsupported errors, capability/scopes, unchanged buffers/errno and unresolved network services");
 }
+static void check_unavailable_splash(uintptr_t entry) {
+    const uint64_t initial[]={UINT64_C(0x123456789abcdef0),UINT64_C(0x23456789abcdef01)};
+    uint64_t buffer[2];memcpy(buffer,initial,sizeof(buffer));
+    const uint64_t junk[]={1,UINT64_MAX,(uintptr_t)buffer,3,5,7};
+    *runtime_errno()=17;
+    for(unsigned i=0;i<3;++i) {
+        assert((uint32_t)bbcpu_call(entry,0,NULL)==0x80e30002);
+        assert((uint32_t)bbcpu_call(entry,6,junk)==0x80e30002);
+        assert(!memcmp(buffer,initial,sizeof(buffer)) && *runtime_errno()==17);
+    }
+}
+static void test_unavailable_splash(void) {
+    const char *name="Vo5V8KAwCmk#a#a";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));
+    bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("Vo5V8KAwCmk#V#W",0) && !bootstrap_resolve("Vo5V8KAwCmk#0#F",0));
+    check_unavailable_splash(guest_bridge(fn));
+    puts("PASS: splash-hide no-argument guest ABI, absent launch-control error, repeated calls, exact scope/capability and unchanged buffers/errno");
+}
 static void test_unavailable_dialogs(void) {
     const char *common = "uoUpLGNkygk#c#c", *message = "lDqxaY1UbEo#g#g";
     bootstrap_initialize(0);
@@ -588,6 +608,7 @@ int main(void) {
     test_unavailable_share();
     test_unavailable_network();
     test_unavailable_dialogs();
+    test_unavailable_splash();
     bootstrap_initialize(1);
     const char *name = "hHrGoGoNf+s#F#G";
     const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);

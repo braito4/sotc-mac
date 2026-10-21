@@ -326,7 +326,8 @@ CPU modes. Native SDL selects CoreAudio in this tool process, but no default pla
 is visible there. Terminal confirms all three real streams open without failures, including
 the restricted stream, starts sndx_out_thread and passes two GetPortState queries. That
 worker passes the kernel/POSIX thread-self alias and starts the stream scheduler before
-reaching AudioOutOutputs. Real combined PCM submission still needs verification.
+submitting PCM to SDL. Terminal confirms sustained accepted buffers with no output errors;
+main then reaches HideSplashScreen.
 
 Output/Outputs validate the full batch before staging samples: initialized service, 1..25
 16-byte descriptors, live owned non-duplicate handles, equal buffer sizes and readable input.
@@ -345,8 +346,8 @@ one batch cadence and queue/drain failures in both CPU modes. The synthetic grap
 also executes individual and batch submission through dynamically resolved SDL callbacks.
 Private isolated original Output/Outputs comparisons confirm frame returns, null drains,
 raw copies and relevant init/count/pointer/duplicate/size errors with synthetic driver state.
-They do not initialize the original driver. Actual game PCM delivery, audible sound and a
-game frame remain unverified.
+They do not initialize the original driver. Real combined SDL acceptance is now confirmed;
+audible sound and a game frame remain unverified.
 
 The earlier audio configuration SIGBUS is not reproduced in that latest run. Fatal reports
 retain ARM64 ESR/FAR, signal code, host mapping protection and GPU trap flags without touching
@@ -355,6 +356,18 @@ writes cover read-only mappings and writable mappings beyond file backing; specu
 recovery still passes. Bounded AudioOut init/open diagnostics identify preceding errors.
 Re-run the combined command in Terminal and keep the private log and next stop boundary.
 No general memory-fault repair is claimed.
+
+## Launch-splash availability
+
+The scoped no-argument HideSplashScreen call reports the supplied retail wrapper's
+absent launch-control error. The diagnostic owns no PS4 launch-control context or splash
+control event, so it does not claim a splash was dismissed or create a replacement image.
+The game caller discards this result. Synthetic guest tests cover repeated calls, ignored
+stale registers, exact scope/capability, unchanged buffers/errno and continuation through
+the graphics loader in both modes. An isolated supplied original export gives the same
+error with no launch-control context and a supplied SDK lookup, without original module
+initialization. The real combined run reaches this import after sustained PCM submission;
+continuation with the new response still requires Terminal verification.
 
 ## Verified CPU-side display contracts
 
@@ -384,8 +397,8 @@ connection now implements scoped import routing, shared queue ownership, a main-
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization, keyboard pad open, UUID generation, thread-key
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
-passes device-state and thread-self calls, then reaches AudioOutOutputs. Real SDL PCM
-submission is implemented and awaits a combined Terminal run.
+passes device-state and thread-self calls and submits PCM to SDL without output errors.
+Main then reaches HideSplashScreen; the absent launch-control response awaits a combined run.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
