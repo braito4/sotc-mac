@@ -105,6 +105,25 @@ static int32_t retail_capability(int32_t handle, void *output, uint64_t size) {
     pthread_mutex_unlock(&display_lock);
     return result;
 }
+/* Retail compute packet writer. The pinned provider defaults SetShReg to
+ * graphics headers here; bit 1 must select compute for all three register sets.
+ * Only 15 dwords are initialized; the remainder of the 25-dword reservation
+ * belongs to the trailing NOP and must retain its previous contents. */
+static int32_t retail_cs_shader(uint32_t *commands,uint32_t size,
+                               const uint32_t *regs,uint32_t modifier) {
+    if (!commands || size < 25 || !regs || (modifier & UINT32_C(0xfffffc3f))) return -1;
+    uint32_t high;memcpy(&high,(const unsigned char *)regs+4,sizeof(high));
+    if (high) return -1;
+    uint32_t r[7];memcpy(r,regs,sizeof(r));
+    const uint32_t packet[15]={
+        UINT32_C(0xc0027602),0x20c,r[0],0,
+        UINT32_C(0xc0027602),0x212,
+        modifier ? (r[2] & UINT32_C(0xfffffc3f)) | modifier : r[2],r[3],
+        UINT32_C(0xc0037602),0x207,r[4],r[5],r[6],
+        UINT32_C(0xc00a1000),0
+    };
+    memcpy(commands,packet,sizeof(packet));return 0;
+}
 static const char *const graphics_imports[] = {
     /* One provider owns creation, waits, user events and GPU notifications. */
     "D0OdFMjp46I#0#F", "jpFjmgAC5AE#0#F", "fzyMKs9kim0#0#F",
@@ -133,7 +152,7 @@ static const char *const graphics_imports[] = {
     "KXltnCwEJHQ#A#B", "bQVd5YzCal0#A#B", "gAhCn6UiU4Y#A#B",
 };
 static int adapted_operation(const char *name) {
-    return !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
+    return !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
 }
 int bootstrap_graphics_owns(const char *name) {
     if (!graphics_resolver) return 0;
@@ -164,6 +183,7 @@ int bootstrap_graphics_bind(Resolver resolver) {
 }
 uintptr_t bootstrap_graphics_resolve(const char *name) {
     if (!graphics_resolver) return 0;
+    if (!strcmp(name, "Kx-h-nWQJ8A#A#B")) return (uintptr_t)retail_cs_shader;
     if (!strcmp(name, "MTxxrOCeSig#G#H")) return (uintptr_t)retail_window_margins;
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)display_open;
     if (!strcmp(name, "uquVH4-Du78#G#H")) return (uintptr_t)display_close;

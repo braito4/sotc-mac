@@ -643,5 +643,28 @@ for 256 synthetic string lengths, unaligned output guards, 32-bit sizes, argumen
 and errno in both CPU modes. Separate private checks execute the supplied original
 exports and the actual pinned ARM64 GPU library's encoders through the guest ABI against
 the same byte-level expectations. Both match without renderer initialization or GPU
-submission. No upstream source or library rebuild is required. Actual game continuation
-after the marker call still requires Terminal verification; game video remains unverified.
+submission. No upstream source or library rebuild is required. Terminal now passes the marker and reaches sceGnmSetCsShaderWithModifier in a job
+worker; game video remains unverified.
+
+## Compute shader register packets with modifiers
+
+The graphics-only scoped sceGnmSetCsShaderWithModifier import now uses a local
+retail-compatible packet writer. The pinned provider defaults its three SET_SH_REG
+headers to graphics; the supplied original sets the compute bit in each header.
+A private comparison with the actual native GPU encoder confirms this three-bit
+difference. The adapter preserves compute program/resource/thread registers, the
+four-bit modifier mask, zero-modifier behavior and the trailing NOP. It initializes
+only 15 dwords of the minimum 25-dword reservation, preserving the unused NOP tail.
+No upstream source or GPU library rebuild is required.
+
+Guest tests cover 3,072 guarded packets across 64 synthetic register patterns, all
+16 allowed modifiers and three reservation sizes. They check 32-bit argument
+narrowing, unaligned inputs/outputs, unchanged registers/tail/guards/errno, invalid
+masks and sizes, null pointers and a nonzero high shader address. Protected-page
+checks verify rejection after the high address field and exactly seven dwords of
+register input on success. The same expectations pass against the supplied original
+in JIT and interpreter. Headless and wrong-scope imports stay unresolved.
+
+Terminal now passes the debug marker and reaches this compute shader call in a job
+worker after the main loop starts. Continuation after the new adapter requires a
+Terminal run; shader execution, game draws and game video remain unverified.

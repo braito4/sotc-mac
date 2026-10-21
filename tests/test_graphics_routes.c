@@ -57,6 +57,58 @@ static void check_marker_packets(uintptr_t push,uintptr_t pop) {
     for(unsigned i=0;i<3;++i) assert((int32_t)bbcpu_call(pop,2,invalid_pop[i])==-1);
     assert(*runtime_errno()==17);
 }
+/* Independent synthetic PM4 expectations, shared with private original checks. */
+static void check_cs_packets(uintptr_t target) {
+    unsigned char out[160],expected[160],registers[30];
+    uint32_t r[7];*runtime_errno()=17;
+    for (unsigned sample=0;sample<64;++sample) {
+        for(unsigned i=0;i<7;++i) r[i]=UINT32_C(0x9182abcd)*(sample*7+i+1);
+        r[1]=0;memcpy(registers+1,r,sizeof(r));
+        for(unsigned m=0;m<16;++m) {
+            uint32_t modifier=m<<6;
+            uint32_t packet[]={UINT32_C(0xc0027602),0x20c,r[0],0,
+                UINT32_C(0xc0027602),0x212,
+                modifier ? (r[2]&~UINT32_C(0x3c0))|modifier : r[2],r[3],
+                UINT32_C(0xc0037602),0x207,r[4],r[5],r[6],UINT32_C(0xc00a1000),0};
+            memset(expected,0xa5,sizeof(expected));memcpy(expected+1,packet,sizeof(packet));
+            const uint32_t sizes[]={25,26,UINT32_MAX};
+            for(unsigned j=0;j<3;++j) {
+                memset(out,0xa5,sizeof(out));
+                uint64_t args[]={(uintptr_t)(out+1),UINT64_C(0x1234000000000000)|sizes[j],
+                    (uintptr_t)(registers+1),UINT64_C(0x5678000000000000)|modifier};
+                assert((int32_t)bbcpu_call(target,4,args)==0);
+                assert(!memcmp(out,expected,sizeof(out)));
+                assert(!memcmp(registers+1,r,sizeof(r)));
+            }
+        }
+    }
+    const uint64_t invalid[][4]={{0,25,1,0},{1,24,1,0},{1,0,1,0},
+        {1,25,0,0},{1,25,1,1},{1,25,1,UINT32_C(0x80000000)}};
+    for(unsigned i=0;i<sizeof(invalid)/sizeof(*invalid);++i)
+        assert((int32_t)bbcpu_call(target,4,invalid[i])==-1);
+    for(unsigned bit=0;bit<32;++bit) {
+        if(bit>=6 && bit<=9) continue;
+        memset(out,0xa5,sizeof(out));
+        uint64_t args[]={(uintptr_t)(out+1),25,(uintptr_t)(registers+1),UINT32_C(1)<<bit};
+        assert((int32_t)bbcpu_call(target,4,args)==-1);
+        for(unsigned i=0;i<sizeof(out);++i) assert(out[i]==0xa5);
+    }
+    r[1]=1;memcpy(registers+1,r,sizeof(r));memset(out,0xa5,sizeof(out));
+    uint64_t args[]={(uintptr_t)(out+1),25,(uintptr_t)(registers+1),0};
+    assert((int32_t)bbcpu_call(target,4,args)==-1);
+    for(unsigned i=0;i<sizeof(out);++i) assert(out[i]==0xa5);
+    unsigned char *bounded=runtime_low_map(32768,PROT_READ|PROT_WRITE);assert(bounded);
+    assert(!mprotect(bounded+16384,16384,PROT_NONE));
+    /* Bad high address is rejected after eight bytes, before remaining regs. */
+    uint32_t bad[2]={0,1};memcpy(bounded+16376,bad,sizeof(bad));
+    args[2]=(uintptr_t)(bounded+16376);
+    assert((int32_t)bbcpu_call(target,4,args)==-1);
+    /* Valid inputs need exactly seven dwords. */
+    r[1]=0;memcpy(bounded+16356,r,sizeof(r));args[2]=(uintptr_t)(bounded+16356);
+    assert((int32_t)bbcpu_call(target,4,args)==0);
+    assert(!mprotect(bounded+16384,16384,PROT_READ|PROT_WRITE));
+    assert(*runtime_errno()==17);
+}
 static uintptr_t resolver(const char *name) {
     ++calls;
     if(!strcmp(name,"W1Etj-jlW7Y#A#B")) return (uintptr_t)marker_push;
@@ -66,6 +118,7 @@ static uintptr_t resolver(const char *name) {
 }
 int main(void) {
     bootstrap_initialize(1);
+    assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",0));
     assert(!bootstrap_resolve("W1Etj-jlW7Y#A#B",0) && !bootstrap_resolve("7qZVNgEu+SY#A#B",0));
     const uintptr_t original = bootstrap_resolve("D0OdFMjp46I#0#F", 0);
     assert(original && !bootstrap_graphics_owns("D0OdFMjp46I#0#F"));
@@ -113,6 +166,12 @@ int main(void) {
     }
     assert(!bootstrap_resolve("W1Etj-jlW7Y#G#H",0) && !bootstrap_resolve("7qZVNgEu+SY#G#H",0));
     check_marker_packets(markers[0],markers[1]);
+    assert(bootstrap_graphics_owns("Kx-h-nWQJ8A#A#B"));
+    assert(!bootstrap_resolve("Kx-h-nWQJ8A#G#H",0));
+    assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",1));
+    bootstrap_initialize(0);assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",0));bootstrap_initialize(1);
+    check_cs_packets(marker_bridge(bootstrap_resolve("Kx-h-nWQJ8A#A#B",0)));
+    puts("PASS: scoped compute shader modifier packets, compute header bits, all 16 masks, 64 register patterns, 32-bit ABI, untouched NOP tail/guards/errors/errno");
     puts("PASS: scoped push/pop marker guest ABI, exact PM4 headers/payload/padding for 256 lengths, unaligned output guards, 32-bit sizes, invalid arguments and errno");
     puts("PASS: atomic graphics provider activation, strict scopes, queue ownership, ABI exclusions and no headless fallback");
     return 0;
