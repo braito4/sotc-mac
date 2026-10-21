@@ -85,10 +85,48 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
+### Earlier compute stall in the newest capture
+
+The newest owner-run capture has a 30-second wall budget, DMA off, async submission
+off and JIT/statistics/journaling on, but **no `BB_UPSCALE_PRESET=4` override**.
+Output is 1920x1080 and no reduced-scene transition is logged. Do not treat this
+as the preceding 640x360 comparison. Initialization finishes at about 1.13 seconds
+and the main loop starts at about 1.70 seconds. Only keyboard fallback is recorded;
+there is no physical-controller connection in this capture.
+
+The GPU watchdog reports unfinished submitted work after ten seconds. The supervisor
+finishes after about 19.49 seconds with **unknown child status and exit 1**: the
+cancellation notice arrives about 16.68 ms after the request, but child exit is not
+observed within the cooperative allowance. A later targeted PID lookup returns
+ESRCH. This establishes later absence, not a confirmed exit code or exit time.
+The intermediate preceding log ends during GPU initialization without a supervisor
+footer and cannot establish a completed comparison.
+
+The awaited submission's queue call returned success. Its single Metal chunk has
+commit return observed but neither scheduled nor completion callback observed;
+the preceding chunk completed with status 4, error 0. There are no explicit
+wait-semaphore entries, missing buffers, missing notes or missing Metal events.
+The pending batch has 164 metadata notes with a retained 96-note tail: eight guest
+compute dispatch candidates, one three-vertex draw candidate, transfers and helper
+passes. Six guest dispatch notes use a 120x68x1 group grid. The final retained
+compute candidate also appears in 31 buffer-size clamp warnings. This narrows
+resource-provenance and compute investigation, but identifies neither the command
+that executed nor a proven bad descriptor, deadlock or driver failure. The zero
+status/error fields remain unobserved-callback defaults.
+
+There are 50 SRT-walk failures, 42 Phi offset failures and 153 buffer-size clamps.
+No PerVertexKHR, undeclared shared-memory or integer-blit failure appears before
+this earlier stop; their absence does not validate the later 3D paths. No unresolved
+import or CPU-fault report appears. The CSV is empty, so it supplies no presentation
+count or timing. This changed configuration and shorter run cannot establish the
+visual benefit or regression of the pipeline-validity correction below. Keep the
+known low-resolution command in the tracing section for the next single supervised
+comparison; the 120-second default and protective watchdog remain unchanged.
+
 ### Black scene and native submission evidence
 
 **Current result:** the owner reports a black screen where the 3D animation should
-appear. The latest native run uses the same low-resolution, DMA-off, async-off,
+appear. The preceding complete low-resolution native run uses the same DMA-off, async-off,
 JIT/statistics-on settings with the submission journal enabled and a 120-second
 budget. It detects a DualSense, finishes initialization at about 0.94 seconds and
 starts the main loop at about 1.38 seconds. Scene raster remains 640x360, half-size
@@ -763,7 +801,7 @@ archive and diagnostic sources in `work`.
    supervised comparison, inspect it, and do not replay the DMA-on incident.
    Scene entry and introduction video remain later goals; the owner has confirmed
    logos/menu and opening audio.
-2. **MSL fragment interface support.** The latest native log has 118 `PerVertexKHR` conversion
+2. **MSL fragment interface support.** The preceding complete low-resolution log has 118 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does

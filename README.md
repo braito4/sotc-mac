@@ -15,9 +15,10 @@
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
 > in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
 > only the first logo. The owner now reports a black screen where the 3D animation
-> should appear. The latest 640x360 native run detects a DualSense and stops on the
+> should appear. The preceding 640x360 native run detects a DualSense and stops on the
 > GPU watchdog after about 114.91 seconds, with confirmed cooperative process exit.
-> Its pending batch includes indexed indirect draws, while shader pipelines still fail.
+> The newest capture omits the reduced-scene preset and stalls much earlier, after
+> about 19.49 seconds, with compute/transfer work pending and child exit unconfirmed.
 > The diagnostic reaches the main loop with game
 > GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
@@ -30,9 +31,9 @@
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
-> run reached its 120-second limit. The latest low-resolution run instead stops on
+> run reached its 120-second limit. The preceding complete low-resolution run instead stops on
 > the renderer's GPU watchdog before that limit, with confirmed child exit.
-> Earlier short comparisons had both confirmed and unknown exit statuses.
+> The newest 30-second-budget capture also stalls, with unknown child exit status.
 > Integer-format image-copy errors remain, and lower total memory pressure has
 > not been demonstrated.
 > Low-resolution comparisons are authorized, one at a time; see
@@ -108,12 +109,19 @@ synchronization. An earlier native run reaches the main loop at about 1.38 secon
 detects a DualSense and continues beyond the save-dialog boundary. It ends at the
 60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
 recorded during that interval. Draw/dispatch counters are not gameplay FPS.
-The POSIX `usleep` import from an earlier instrumented run is corrected. The latest
-low-resolution run detects a DualSense and stops on the renderer's GPU watchdog
+The POSIX `usleep` import from an earlier instrumented run is corrected. The preceding
+complete low-resolution run detects a DualSense and stops on the renderer's GPU watchdog
 after about 114.91 seconds, with no import stop or CPU-fault report. The child exits
 with status 21; supervisor status 31 preserves the GPU-stall reason. Its CSV retains
 438 complete flip rows; cancellation can discard buffered rows. A record
 of presentation calls does not establish correct image contents or gameplay performance.
+
+The newest capture omits the low-resolution preset and uses a 30-second budget. It
+stops on the GPU watchdog after about 19.49 seconds; the supervisor observes the
+cancellation notice but cannot confirm child exit. A later targeted check finds
+the process absent. Its pending batch includes compute, transfers and one draw in
+the retained tail, and its CSV is empty. This is a different configuration and
+earlier stopping boundary, not evidence that the later scene-rendering errors passed.
 
 The bounded journal now identifies indexed indirect draw candidates in the awaited
 batch, but not the precise executing command. A checked correction rejects invalid

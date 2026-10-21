@@ -4,7 +4,25 @@ Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The owner now reports a black screen instead
-of the expected 3D animation. The latest instrumented low-resolution run detects a
+of the expected 3D animation. The newest capture stops much earlier, after about
+19.49 seconds, on the GPU watchdog. It uses a 30-second budget and omits the
+low-resolution preset; output is 1920x1080 with no reduced-scene transition logged.
+Only keyboard fallback is recorded. Its awaited batch contains compute, transfers
+and one three-vertex draw in the retained tail. The queue call returned success,
+but the committed Metal chunk has neither scheduled nor completion callback
+observed; the preceding chunk completed. The tail retains 96 of 164 metadata notes,
+including eight guest compute dispatch candidates. The final candidate also has
+31 buffer-size clamp warnings; this is a debugging lead, not a proven stall cause.
+
+The supervisor receives the cancellation notice but does not confirm child exit:
+child status is unknown and supervisor exit is 1. A later targeted lookup finds
+the process absent, without recovering its exit code or time. The CSV is empty.
+There are 50 SRT-walk failures, 42 Phi offset failures and 153 buffer-size clamps.
+No import stop or CPU-fault report appears. Later shader/blit failures are not
+reached in this capture; their absence does not demonstrate a rendering fix.
+See the [newest capture analysis](DEVELOPMENT_HANDOFF.md#earlier-compute-stall-in-the-newest-capture).
+
+**Preceding complete low-resolution capture:** this run detects a
 DualSense, starts the main loop at about 1.38 seconds and applies 640x360 scene
 targets. It stops on the GPU watchdog after about 114.91 seconds, with confirmed
 child exit 21 and supervisor exit 31. The pending batch's submit call returned
