@@ -39,6 +39,9 @@ def synthetic_image(path, fault=False):
     code += b'\xff\x15' + struct.pack('<i',272-(len(code)+6))
     code += b'\xff\x15' + struct.pack('<i',304-(len(code)+6))
     code += bytes.fromhex('3d 0200e380 7402 0f0b')  # No PS4 launch-control context.
+    code += bytes.fromhex('31ff 31f6')
+    code += b'\xff\x15' + struct.pack('<i',312-(len(code)+6))
+    code += bytes.fromhex('3d 02005580 7402 0f0b')  # NP init error precedes null-pointer checks.
     code += bytearray.fromhex('bf ff000000 31f6 31d2 31c9')
     code += b'\xff\x15' + struct.pack('<i', 248-(len(code)+6))
     if fault:
@@ -49,17 +52,22 @@ def synthetic_image(path, fault=False):
     assert len(code)<232
     image[:len(code)] = code
     image[3072:11264]=b'\x3f'*8192  # Original synthetic samples, deliberately nonzero.
-    image[512:515] = bytes.fromhex('31c0c3')  # Original synthetic module initializer: return 0.
+    # Original synthetic module initializer queries unavailable NP, then returns zero.
+    initializer=bytes.fromhex('31ff')+b'\xff\x15'+struct.pack('<i',320-(512+8))
+    initializer+=bytes.fromhex('3d 02005580 7402 0f0b 31c0c3')
+    image[512:512+len(initializer)]=initializer
     def words(*values):
         return struct.pack('<'+'Q'*len(values), *values)
-    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 10, 10, 1) +
+    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 12, 12, 1) +
         words(768, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
         words(0, 16384, 5) + b'hv1luiJrqQM#H#I'.ljust(128, b'\0') + b'JfEPXVxhFqA#q#M'.ljust(128, b'\0') +
         b'Up36PTk687E#G#H'.ljust(128, b'\0') + b'ekNvsT22rsY#q#M'.ljust(128,b'\0') +
         b'GrQ9s4IrNaQ#q#M'.ljust(128,b'\0') + b's1--uE9mBFw#q#M'.ljust(128,b'\0') +
         b'w3PdaSTSwGE#q#M'.ljust(128,b'\0') + b'QOQtbeDqsT4#q#M'.ljust(128,b'\0') +
         b'fixture-stop#none'.ljust(128, b'\0') + b'Vo5V8KAwCmk#a#a'.ljust(128,b'\0') +
-        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0,304,1,9,0) + image)
+        b'Ec63y59l9tw#S#T'.ljust(128,b'\0') +
+        b'A2CQ3kgSopQ#S#T'.ljust(128,b'\0') +
+        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0,304,1,9,0,312,1,10,0,320,1,11,0) + image)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and shutil.which('clang') and PROBE.is_file(),
@@ -186,6 +194,8 @@ void bbgpu_window_loop(void) {
                 self.assertEqual(result.stdout.count('FIXTURE_PCM_ACCEPTED'),2)
                 self.assertIn('PCM buffers=2, PCM bytes=16384',result.stdout)
                 self.assertIn('unavailable splash-hide requests=1',result.stdout)
+                self.assertIn('unavailable NP title registrations=1',result.stdout)
+                self.assertIn('unavailable NP content-restriction requests=1',result.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')
                     synthetic_image(fault_boot, fault=True)

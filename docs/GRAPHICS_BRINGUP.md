@@ -327,7 +327,7 @@ is visible there. Terminal confirms all three real streams open without failures
 the restricted stream, starts sndx_out_thread and passes two GetPortState queries. That
 worker passes the kernel/POSIX thread-self alias and starts the stream scheduler before
 submitting PCM to SDL. Terminal confirms sustained accepted buffers with no output errors;
-main then reaches HideSplashScreen.
+main passes HideSplashScreen and then reaches NpSetNpTitleId.
 
 Output/Outputs validate the full batch before staging samples: initialized service, 1..25
 16-byte descriptors, live owned non-duplicate handles, equal buffer sizes and readable input.
@@ -366,8 +366,21 @@ The game caller discards this result. Synthetic guest tests cover repeated calls
 stale registers, exact scope/capability, unchanged buffers/errno and continuation through
 the graphics loader in both modes. An isolated supplied original export gives the same
 error with no launch-control context and a supplied SDK lookup, without original module
-initialization. The real combined run reaches this import after sustained PCM submission;
-continuation with the new response still requires Terminal verification.
+initialization. The real combined run continues after this response while PCM submission
+continues, then reaches NpSetNpTitleId.
+
+## NP availability
+
+The exact-scoped NpSetNpTitleId and adjacent NpSetContentRestriction calls use the supplied
+NP manager's uninitialized path. They return NP NOT_INITIALIZED before inspecting title ID,
+secret, restriction pointer or size. The diagnostic does not initialize NP, inspect/copy/log
+title data or report a successful registration, restriction update or signed-in account.
+The game caller discards these results. Guest tests check the one/two-pointer ABI, repeated
+errors, null/unreadable pointers, unchanged buffers/errno and exact scope/capability in both
+CPU modes. An isolated supplied original manager confirms those paths without initialization;
+the synthetic graphics loader also exercises both responses and continues in both modes.
+The real combined boundary is NpSetNpTitleId; continuation with these responses remains to
+be checked in Terminal.
 
 ## Verified CPU-side display contracts
 
@@ -398,7 +411,8 @@ loop, a guest worker and memory/fault hooks, with synthetic checks. The real com
 passes original gesture initialization, keyboard pad open, UUID generation, thread-key
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
-Main then reaches HideSplashScreen; the absent launch-control response awaits a combined run.
+Main passes the absent launch-control response and reaches NpSetNpTitleId. The scoped NP
+uninitialized responses await a combined run.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.

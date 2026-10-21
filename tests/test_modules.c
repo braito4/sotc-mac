@@ -505,6 +505,49 @@ static void test_unavailable_network(void) {
     assert(!bootstrap_resolve("6MojQ8uFHEI#Bc#D", 0)); /* sceNetInitParam */
     puts("PASS: no-argument network-init guest ABI, repeated unsupported errors, capability/scopes, unchanged buffers/errno and unresolved network services");
 }
+static void check_unavailable_np_title(uintptr_t entry) {
+    unsigned char title[16],secret[128],initial_title[16],initial_secret[128];
+    memset(title,0xa5,sizeof(title));memset(secret,0x5a,sizeof(secret));
+    memcpy(initial_title,title,sizeof(title));memcpy(initial_secret,secret,sizeof(secret));
+    const uint64_t titles[]={0,1,(uintptr_t)title,UINT64_MAX};
+    const uint64_t secrets[]={0,1,(uintptr_t)secret,UINT64_MAX};
+    *runtime_errno()=17;
+    for(unsigned repeat=0;repeat<2;++repeat) for(unsigned a=0;a<4;++a) for(unsigned b=0;b<4;++b) {
+        const uint64_t args[]={titles[a],secrets[b],UINT64_MAX,3,5,7};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0x80550002);
+        assert(!memcmp(title,initial_title,sizeof(title)) && !memcmp(secret,initial_secret,sizeof(secret)));
+        assert(*runtime_errno()==17);
+    }
+}
+static void test_unavailable_np_title(void) {
+    const char *name="Ec63y59l9tw#S#T";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));
+    bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("Ec63y59l9tw#R#S",0) && !bootstrap_resolve("Ec63y59l9tw#0#F",0));
+    assert(!bootstrap_resolve("eQH7nWPcAgc#S#T",0)); /* No fabricated NP user state. */
+    check_unavailable_np_title(guest_bridge(fn));
+    puts("PASS: NP title two-pointer guest ABI, initialization error before pointer validation, repeated calls, scopes/capability and untouched inputs/errno");
+}
+static void check_unavailable_np_restriction(uintptr_t entry) {
+    unsigned char restriction[24],before[24];memset(restriction,0xa5,sizeof(restriction));
+    memcpy(before,restriction,sizeof(before));
+    const uint64_t pointers[]={0,1,(uintptr_t)restriction,UINT64_MAX};
+    *runtime_errno()=17;
+    for(unsigned repeat=0;repeat<3;++repeat) for(unsigned i=0;i<4;++i) {
+        const uint64_t args[]={pointers[i],UINT64_MAX,1,3,5,7};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0x80550002);
+        assert(!memcmp(restriction,before,sizeof(before)) && *runtime_errno()==17);
+    }
+}
+static void test_unavailable_np_restriction(void) {
+    const char *name="A2CQ3kgSopQ#S#T";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("A2CQ3kgSopQ#R#S",0) && !bootstrap_resolve("A2CQ3kgSopQ#0#F",0));
+    check_unavailable_np_restriction(guest_bridge(fn));
+    puts("PASS: NP content-restriction one-pointer guest ABI, init-before-structure/size validation, repeated errors, scopes and unchanged inputs/errno");
+}
 static void check_unavailable_splash(uintptr_t entry) {
     const uint64_t initial[]={UINT64_C(0x123456789abcdef0),UINT64_C(0x23456789abcdef01)};
     uint64_t buffer[2];memcpy(buffer,initial,sizeof(buffer));
@@ -607,6 +650,8 @@ int main(void) {
     test_unavailable_compute_queue();
     test_unavailable_share();
     test_unavailable_network();
+    test_unavailable_np_title();
+    test_unavailable_np_restriction();
     test_unavailable_dialogs();
     test_unavailable_splash();
     bootstrap_initialize(1);
