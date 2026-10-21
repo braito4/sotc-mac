@@ -14,8 +14,8 @@
 >
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
 > in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
-> only the first logo. The latest instrumented run continues recording flip activity
-> but fails to confirm process exit at its deadline; its image progression has not
+> only the first logo. The latest native run confirms reduced scene draws at
+> 640x360 and process exit at its 30-second deadline; image progression has not
 > been reported. The diagnostic reaches the main loop with game
 > GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
@@ -29,12 +29,11 @@
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
 > run reached its 120-second limit. A 30-second native comparison confirmed cooperative
-> child exit. After correcting a POSIX sleep import, the latest instrumented run
-> reaches its deadline and emits its native cancellation notice, but still fails
-> to collect the child exit status. The owner confirms automatic window closure;
-> a later targeted lookup finds that PID absent. Its exact exit timing and code
-> remain unknown. Low-resolution comparisons are authorized, one at a time; see
-> the [prepared scene-preset comparison](docs/DEVELOPMENT_HANDOFF.md#low-resolution-scene-comparison).
+> child exit. The latest low-resolution comparison also confirms child exit after
+> about 30.37 seconds. Integer-format image-copy errors remain, and its sampled
+> Vulkan allocation maximum is higher than in the preceding baseline.
+> Low-resolution comparisons are authorized, one at a time; see
+> the [scene-preset comparison](docs/DEVELOPMENT_HANDOFF.md#low-resolution-scene-comparison).
 > Lower pixel counts do not guarantee lower total memory pressure or host stability.
 > See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).

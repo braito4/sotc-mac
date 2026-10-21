@@ -3,34 +3,30 @@
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
-reported host watchdog kernel panic.** The latest instrumented comparison uses DMA
-off, asynchronous submission off, JIT on and a 30-second budget. It enters the main
-loop at about 1.35 seconds and records five flip-statistics windows, with no import
-stop, CPU-fault report or GPU-watchdog warning. After the deadline, the native
-cancellation notice is observed about 1.47 ms after the request, but child exit remains unobserved within the
-two-second allowance. The footer reports unknown child status and supervisor exit
-1 after about 32.02 seconds. The owner confirms automatic window closure, and a
-later targeted PID lookup returns ESRCH. The process is absent at that later check;
-its exit code and exact timing remain unknown. The CSV retains 438 complete flip
-records through about 25.37 seconds from its first record, followed by a partial
-row. Presentation records do not establish image correctness or gameplay FPS.
+reported host watchdog kernel panic.** The latest native comparison adds only
+scene preset 4 to DMA off, asynchronous submission off, JIT/statistics on and a
+30-second budget. It enters the main loop at about 2.81 seconds, configures scene
+targets at 640x360 and later records 26/26 and 24/24 scene draws at reduced size.
+The deadline request is followed by confirmed child/supervisor exit 21 after about
+30.37 seconds, without a cleanup error, import stop, CPU-fault report or GPU-watchdog
+warning. This confirms that run's exit, not host stability or correct images.
+The CSV retains 240 complete rows through about 18.37 seconds relative to its first
+row; cancellation can discard the final buffered rows.
 
 The POSIX sleep/time aliases from the preceding import stop remain corrected.
 Two CPU-only fixtures reproduce blocked cooperative shutdown with a full output
 pipe. The supervisor now drains output during its unchanged two-second exit wait;
 the native cancellation notice is best effort and nonblocking before self-exit.
-This addresses the reproduced failure mechanism, but the subsequent native run
-still fails to confirm exit. The supervisor now records the child PID and the
-time it observes the native notice, separately from the actual child status.
-No exit delay, driver cause or recovery is inferred from acknowledgement alone.
-Confirm the prior process has ended before another instance, and investigate its
-exit phase. Dynamic shader reads stay blocked. The owner has authorized a separate
-low-resolution comparison: change only the existing host scene preset to 4, which
-requests 640x360 for eligible scenes. The pinned settings loader and target-size
-selection pass a CPU-only check. The supervised Metal prerequisite in this tool
-context returns zero devices/status 24, so no low-resolution game/GPU run was
-launched here. Imported guest memory/native images remain; pressure reduction and
-actual SotC pass eligibility must be measured. See the
+Earlier native runs still had unknown exit status; the latest result does not
+explain those failures or attribute the successful stop to the preset. Dynamic
+shader reads stay blocked. Imported guest memory remains 6592 MiB. The sampled
+Vulkan allocation maximum is 4867 MiB versus 4593 MiB in the preceding baseline;
+these are renderer allocations, not measured total macOS memory pressure. Reduced
+proxies can add images alongside native ones. Two new Metal blit pipeline errors
+reject float4 output for R32Uint/RG32Uint targets; the current implementation omits
+those copies when pipeline creation fails. PerVertexKHR, SRT/Phi, compressed-format
+and sampler-LOD-bias limitations also remain. Image progression is unreported.
+No extra GPU test was launched to analyze this log. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |

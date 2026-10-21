@@ -83,7 +83,50 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the latest instrumented run records its cancellation notice
+**Current result:** the owner's single low-resolution comparison confirms the
+preset was applied: scene raster targets are 640x360 with 320x180 half-resolution
+targets and 1920x1080 UI/output. The last two statistics windows record 26 reduced
+draws/frame out of 26 scene draws, then 24 out of 24. This verifies application to
+some SotC scene passes, not all draws, correct displayed images or gameplay.
+Initialization finishes at about 1.90 seconds and the main loop starts at about
+2.81 seconds. The 30-second stop request is followed by a native cancellation
+notice and confirmed `child_returncode=21 exit=21` after about 30.37 seconds. The
+notice is observed about 0.91 ms after the request. There is no cleanup error,
+import stop, CPU-fault report or GPU-watchdog warning. This confirms the stop in
+this run, without explaining earlier unknown exits or proving system stability.
+
+The CSV retains 240 complete rows spanning about 18.37 seconds from its first row.
+The explicit 120-flip flush and cancellation `_Exit` can discard later buffered
+rows, so this is not a final frame count or the time presentation stopped. Four
+statistics windows report flip rates about 8.0 to 14.9/s; these do not establish
+gameplay FPS or a causal performance change. The initial idle figure exceeds
+100%, so it is not a usable instantaneous GPU-utilization/pressure measurement.
+No physical gamepad detection is recorded in this log; image progression is still
+unreported. Shader/resource failures remain: 54 PerVertexKHR errors, 259 Phi offset
+errors, 267 SRT-walk failures, six compressed-format/usage errors and 3,637 clamps.
+Lower message counts are not evidence of corrected shaders or better output.
+
+Imported guest memory remains 6592 MiB. Sampled Vulkan allocation maxima are
+4867 MiB versus 4593 MiB in the preceding baseline, and Vulkan image maxima are
+797 versus 751 MiB. These different snapshots/progress intervals do not establish
+total macOS memory pressure or isolate a causal preset effect, but they provide
+no evidence that this test reduced total memory. Full-size originals and UI remain
+allocated while reduced proxies add storage. See the source-verified limitations
+in the comparison below.
+
+Two new Metal pipeline errors identify a concrete next renderer target: R32Uint
+and RG32Uint blit destinations reject the generic float4 fragment output. In the
+pinned `renderer_metal/mtl_frame.mm`, `BlitPipeline` chooses only float-color or
+depth shaders, and `BlitImage` returns without copying when the pipeline is nil.
+The failure is cached by destination format, so two messages do not mean only two
+copy operations were affected. A correction needs typed integer reads/outputs and
+nearest-copy semantics that preserve integer values, rather than a float output
+cast or skipped-copy success. Validate pixel formats, rectangles, mip selection
+and representative integer values with synthetic data before another native
+comparison. The new sampler-LOD-bias warning is a separate remaining limitation.
+No renderer patch or extra GPU run was made as part of this log analysis.
+
+**Earlier timed-notice checkpoint:** that instrumented run records its cancellation notice
 about 1.47 ms after the parent stop request, but still ends with unknown child status
 and supervisor exit 1 after about 32.02 seconds. The owner confirms that the window
 closed itself, without manual termination. A subsequent targeted `proc_pidpath`
@@ -153,8 +196,10 @@ such; do not request elevated access or substitute external termination signals.
 
 ### Low-resolution scene comparison
 
-The prepared next single native comparison adds only `BB_UPSCALE_PRESET=4` to the
-preceding 30-second settings. The pinned `BbSettings::Load` accepts this preset;
+The owner has run the single comparison adding only `BB_UPSCALE_PRESET=4` to the
+preceding 30-second settings; its measured result is summarized above. The command
+below records that configuration, not an instruction to rerun automatically.
+The pinned `BbSettings::Load` accepts this preset;
 `SceneResolution::ForPreset` requests 640x360 from the default 1920x1080 output,
 with 320x180 half-resolution effects where eligible. This uses the existing
 host-side raster proxy path. The window, UI/output images and imported guest pools
