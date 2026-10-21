@@ -476,6 +476,27 @@ static void test_unavailable_share(void) {
                 }
     puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
 }
+static void check_unavailable_network_control(uintptr_t entry) {
+    const uint64_t before[]={UINT64_C(0x123456789abcdef0),UINT64_C(0x23456789abcdef01)};
+    uint64_t buffer[2];memcpy(buffer,before,sizeof(buffer));
+    const uint64_t junk[]={1,UINT64_MAX,(uintptr_t)buffer,3,5,7};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) {
+        assert((uint32_t)bbcpu_call(entry,0,NULL)==0x80412109);
+        assert((uint32_t)bbcpu_call(entry,6,junk)==0x80412109);
+        assert(!memcmp(buffer,before,sizeof(buffer)) && *runtime_errno()==17);
+    }
+}
+static void test_unavailable_network_control(void) {
+    const char *name="gky0+oaNM4k#D#E";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("gky0+oaNM4k#V#W",0) && !bootstrap_resolve("gky0+oaNM4k#0#F",0));
+    check_unavailable_network_control(guest_bridge(fn));
+    assert(!bootstrap_resolve("Z4wwCFiBELQ#D#E",0)); /* No successful termination. */
+    assert(!bootstrap_resolve("UJ+Z7Q+4ck0#D#E",0)); /* No callback registry. */
+    puts("PASS: unavailable NetCtl no-argument guest ABI, repeated NOT_AVAIL, ignored stale registers, exact scopes/capability, unchanged buffers and errno");
+}
 static void test_unavailable_network(void) {
     const char *name = "Nlev7Lg8k3A#Bc#D";
     bootstrap_initialize(0);
@@ -678,6 +699,7 @@ int main(void) {
     test_unavailable_compute_queue();
     test_unavailable_share();
     test_unavailable_network();
+    test_unavailable_network_control();
     test_unavailable_np_title();
     test_unavailable_np_restriction();
     test_unavailable_dialogs();

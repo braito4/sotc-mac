@@ -327,7 +327,8 @@ is visible there. Terminal confirms all three real streams open without failures
 the restricted stream, starts sndx_out_thread and passes two GetPortState queries. That
 worker passes the kernel/POSIX thread-self alias and starts the stream scheduler before
 submitting PCM to SDL. Terminal confirms sustained accepted buffers with no output errors;
-main passes HideSplashScreen and the NP title response, then reaches SystemServiceParamGetInt.
+main passes HideSplashScreen and the NP title response, then finishes initialization and
+starts the startup script, reaching NetCtlInit.
 
 Output/Outputs validate the full batch before staging samples: initialized service, 1..25
 16-byte descriptors, live owned non-duplicate handles, equal buffer sizes and readable input.
@@ -367,7 +368,8 @@ stale registers, exact scope/capability, unchanged buffers/errno and continuatio
 the graphics loader in both modes. An isolated supplied original export gives the same
 error with no launch-control context and a supplied SDK lookup, without original module
 initialization. The real combined run continues after this response while PCM submission
-continues through the NP title response, then reaches SystemServiceParamGetInt.
+continues through the NP title response, then finishes initialization and starts the startup
+script, reaching NetCtlInit.
 
 ## NP availability
 
@@ -380,7 +382,8 @@ errors, null/unreadable pointers, unchanged buffers/errno and exact scope/capabi
 CPU modes. An isolated supplied original manager confirms those paths without initialization;
 the synthetic graphics loader also exercises both responses and continues in both modes.
 Terminal confirms continuation after the title response; the optional restriction call was
-not taken. The next boundary is SystemServiceParamGetInt (language).
+not taken. The language query now passes in Terminal; initialization finishes and the startup script
+reaches NetCtlInit.
 
 ## Verified CPU-side display contracts
 
@@ -412,7 +415,7 @@ passes original gesture initialization, keyboard pad open, UUID generation, thre
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
-SystemServiceParamGetInt. The local language profile awaits a combined run.
+the startup script after finishing initialization. Its next boundary is NetCtlInit.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -431,4 +434,16 @@ Only four output bytes are written, including for an unaligned destination. Synt
 guest ABI, ID width, guarded output, errors, scopes and errno checks run in both CPU modes;
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
-Actual game continuation after this language query still requires Terminal verification.
+Terminal confirms five language queries, completed initialization and entry into the startup
+script. The next unresolved import is NetCtlInit; no game frame has been verified.
+
+## Network-control availability
+
+The exact-scoped no-argument sceNetCtlInit returns NetCtl NOT_AVAIL because the diagnostic
+has no PS4 network-control IPC service. It creates no client, callbacks, initialized state
+or apparent connection. Guest tests cover repeated errors, stale argument registers, exact
+scopes/capability and unchanged buffers/errno in both CPU modes. A private supplied-module
+check injects this error at IPC-client creation and confirms that the original initializer
+propagates it, unlocks and leaves the client absent; this is a dependency-failure comparison,
+not a successful original service startup. The synthetic graphics loader also continues
+after this response in both modes. Actual game continuation requires Terminal verification.
