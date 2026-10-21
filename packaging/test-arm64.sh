@@ -120,6 +120,7 @@ contracts() {
         fi
         cat "$trial_log"
     done
+    clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_shaders.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_shaders"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_routes.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_routes"
     clang "${trial_flags[@]}" "$trial_root/tests/test_pad.c" "${trial_sources[@]}" -o "$trial_root/work/test_pad"
     clang "${trial_flags[@]}" "$trial_root/tests/test_audio.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio"
@@ -139,6 +140,7 @@ contracts() {
     [[ "$trial_mode" != --linked-test ]] || trial_contract_arguments+=(--direct-memory)
     for trial_jit in 1 0; do
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_routes"
+        BB_JIT="$trial_jit" "$trial_root/work/test_graphics_shaders"
         BB_JIT="$trial_jit" "$trial_root/work/test_audio"
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --unavailable
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --not-ready

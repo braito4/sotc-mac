@@ -717,8 +717,8 @@ game draws and video remain unverified.
 ## Batched compute bring-up
 
 Import review now batches related compute APIs rather than waiting for each one to
-stop a separate game run. This batch covers six functions; only the workload doorbell
-is the currently observed stop. The others are preventive packet/ABI corrections or
+stop a separate game run. This batch covers six functions; at review time only the workload doorbell
+was the observed stop. The others are preventive packet/ABI corrections or
 reviewed routes, not six independently observed game failures.
 
 | Function | Connection and checked behavior |
@@ -746,3 +746,37 @@ still require Terminal verification. The route forwards to the same provider tha
 owns mapped queues and submission/completion; it does not simulate consumption or
 signal a completed frame. Unknown imports still stop explicitly. No upstream source
 change or GPU rebuild is required.
+
+## Batched pixel/vertex shader and primitive-control encoders
+
+A second batch routes five exact scoped imports to the pinned native provider:
+sceGnmSetPsShader350, sceGnmUpdatePsShader350, sceGnmUpdateVsShader,
+sceGnmSetVgtControl and sceGnmResetVgtControl. The observed Terminal boundary is
+the PS350 setter; the other four are reviewed prospectively. No upstream patch
+or GPU library rebuild is needed.
+
+PS350 set/update accept a null register pointer as a real shader-disable packet
+sequence, with the retail default color mask. Non-null input contains 12 register
+words and requires a zero high shader address. The update API uses the original
+NOP-tagged context updates. Both preserve unused trailing NOP data in the 40-dword
+reservation. VS update reads seven words, applies the six allowed modifier bits
+(with distinct zero-modifier semantics), writes the original context-update tags
+and preserves unused data in its 29-dword reservation. Base-PS4 VGT control validates
+primitive-group and mode ranges, encodes the actual register write and resets to
+the original default; no physical hardware state is claimed from packet generation.
+
+A new synthetic guest fixture runs automatically in both CPU modes. It covers 32
+register patterns, both PS350 null/non-null paths, all 64 VS modifier combinations,
+minimum/oversized/unsigned reservation widths, unaligned guarded buffers, exact
+packet bytes, untouched inputs/NOP tails, parameter failures and errno. Protected
+pages verify early high-address rejection after eight bytes and successful reads
+of exactly 48 PS bytes or 28 VS bytes. Primitive control covers all 256 valid group
+sizes and invalid boundaries/mode values, plus reset and invalid buffer sizes.
+Scope/capability/headless checks and individual missing-export activation failures
+cover all five imports.
+
+Private checks execute the supplied original five exports and actual pinned ARM64
+GPU implementations against the same expectations in JIT and interpreter. All
+match without renderer initialization, shader execution or game command submission.
+Terminal now passes the workload doorbell route and reaches PS350 preparation;
+continuation after this batch, rendered game frames and video require verification.

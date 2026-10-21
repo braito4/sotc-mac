@@ -168,6 +168,9 @@ static const char *const graphics_imports[] = {
     "byXlqupd8cE#A#B",
     /* Reviewed indirect dispatch and doorbell-marker packet writers. */
     "Z43vKp5k7r0#A#B", "wED4ZXCFJT0#A#B", "NfvOrNzy6sk#A#B",
+    /* Reviewed retail pixel/vertex updates and base-PS4 primitive grouping. */
+    "5uFKckiJYRM#A#B", "mLVL7N7BVBg#A#B", "V31V01UiScY#A#B",
+    "cFCp0NX8wf0#A#B", "MYRtYhojKdA#A#B",
     "29oKvKXzEZo#A#B", "ArSg-TGinhk#A#B", "bX5IbRvECXk#A#B",
     "zwY0YV91TTI#A#B", "xbxNatawohc#A#B", "yvZ73uQUqrk#A#B",
     "Idffwf3yh8s#A#B", "QhnyReteJ1M#A#B", "0H2vBYbTLHI#A#B",
