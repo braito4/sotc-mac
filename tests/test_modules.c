@@ -476,6 +476,34 @@ static void test_unavailable_share(void) {
                 }
     puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
 }
+static void check_unavailable_savedata_search(uintptr_t entry) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    unsigned char condition[128],result[256],before[256];
+    memset(condition,0xa5,sizeof(condition));memset(result,0x5a,sizeof(result));memcpy(before,result,sizeof(result));
+    const uint64_t inputs[]={0,1,UINT64_MAX,(uintptr_t)condition,(uintptr_t)protected};
+    const uint64_t outputs[]={0,1,UINT64_MAX,(uintptr_t)result,(uintptr_t)protected};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) for(unsigned i=0;i<5;++i) for(unsigned j=0;j<5;++j) {
+        const uint64_t args[]={inputs[i],outputs[j],UINT64_MAX,1,3,5};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0x809f0001);
+        assert(!memcmp(result,before,sizeof(result)) && *runtime_errno()==17);
+        for(size_t k=0;k<sizeof(condition);++k) assert(condition[k]==0xa5);
+    }
+    assert(!munmap(protected,page));
+}
+static void test_unavailable_savedata_search(void) {
+    const char *name="dyIhnXq-0SM#u#d";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("dyIhnXq-0SM#O#P",0) && !bootstrap_resolve("dyIhnXq-0SM#0#F",0));
+    const uintptr_t entry=guest_bridge(fn);
+    check_unavailable_savedata_search(entry);
+    const uintptr_t init=guest_bridge(bootstrap_resolve("TywrFKCoLGY#u#d",0));
+    const uint64_t args[]={0};assert((uint32_t)bbcpu_call(init,1,args)==0x809f000b);
+    check_unavailable_savedata_search(entry); /* Failed init never creates a search context. */
+    puts("PASS: SaveData directory-search two-pointer guest ABI, init-before-pointer checks, repeated NOT_INITIALIZED before/after failed init, protected/null inputs/outputs, unchanged buffers/errno and exact scopes/capability");
+}
 static void check_unavailable_savedata(uintptr_t entry) {
     const size_t page=(size_t)sysconf(_SC_PAGESIZE);
     void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
@@ -750,6 +778,7 @@ int main(void) {
     test_unavailable_network();
     test_unavailable_network_control();
     test_unavailable_savedata();
+    test_unavailable_savedata_search();
     test_unavailable_np_title();
     test_unavailable_np_restriction();
     test_unavailable_dialogs();

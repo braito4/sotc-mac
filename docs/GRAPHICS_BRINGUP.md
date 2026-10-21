@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-passes numeric thread identity; main passes scePadSetLightBar and passes sceSystemServiceGetStatus and then stops at sceSaveDataInitialize3.
+passes numeric thread identity; main passes scePadSetLightBar and passes sceSystemServiceGetStatus and passes the unavailable SaveDataInitialize3 response; Save Task Thread stops at sceSaveDataDirNameSearch.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, then reaches sceSaveDataInitialize3. No game frame has
+script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread reaches sceSaveDataDirNameSearch. No game frame has
 been verified.
 
 ## Network-control availability
@@ -463,7 +463,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-denial and system-status query; main now reaches sceSaveDataInitialize3.
+denial and system-status query; main passes SaveDataInitialize3; Save Task Thread reaches sceSaveDataDirNameSearch.
 
 ## Keyboard-controller light-bar availability
 
@@ -481,7 +481,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-sceSystemServiceGetStatus, then reaches sceSaveDataInitialize3.
+sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread reaches sceSaveDataDirNameSearch.
 
 ## Standalone system status
 
@@ -500,7 +500,8 @@ wrapper comparison uses synthetic same-foreground-app/empty-event helper depende
 and confirms the same complete output. The graphics-loader fixture verifies every status
 byte after initializing the destination to a nonzero pattern. Actual game continuation
 after this query is confirmed in Terminal, including processing the local login event.
-The next unresolved import is sceSaveDataInitialize3.
+The SaveData initialization failure now returns in Terminal; the next unresolved import is
+sceSaveDataDirNameSearch in Save Task Thread.
 
 ## Savedata availability
 
@@ -515,5 +516,22 @@ Guest tests check the pointer ABI, repeated failure, null/invalid/protected poin
 unchanged buffers/errno and exact scope/capability in both CPU modes. A private supplied
 Initialize3 wrapper comparison injects backend INTERNAL and checks propagation through
 the original error conversion without reading the optional parameter. The synthetic
-graphics loader also continues after the response in both modes. Actual game continuation
-with this failure still requires Terminal verification; no game frame is verified.
+graphics loader also continues after the response in both modes. Terminal confirms actual
+continuation after this initialization failure; Save Task Thread now reaches
+sceSaveDataDirNameSearch. No game frame is verified.
+
+## Uninitialized savedata directory search
+
+The exact-scoped two-pointer sceSaveDataDirNameSearch adapter returns SaveData
+NOT_INITIALIZED before inspecting either search conditions or results, matching the
+supplied original module's absent-context path. A failed Initialize3 does not create
+a context. Output counts, directory entries and buffers are left untouched: no successful
+empty search or filesystem access is fabricated.
+
+Guest tests cover repeated responses before/after failed initialization, null/invalid/
+protected input and output pointers, ignored stale argument registers, untouched buffers/
+errno and exact scopes/capability in both CPU modes. A private supplied original export
+confirms the same uninitialized path without dependency-helper replacement. The synthetic
+graphics loader also continues after this response in both modes. Actual game continuation
+after the search error still requires Terminal verification; save support and game video
+remain unverified.
