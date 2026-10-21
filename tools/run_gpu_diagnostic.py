@@ -56,8 +56,10 @@ def supervise(command, seconds, log_path):
                     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
         child = None
         reason = None
+        cleanup_error = None
+        started = time.monotonic()
         try:
-            deadline = time.monotonic() + seconds
+            deadline = started + seconds
             child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                      bufsize=0, start_new_session=True)
             with selectors.DefaultSelector() as selector:
@@ -66,11 +68,11 @@ def supervise(command, seconds, log_path):
                 eof = False
                 while True:
                     if interrupted:
-                        reason = (128 + interrupted, b'STOP_GPU_CANCELLED: diagnostic interrupted\n')
+                        reason = (128 + interrupted, b'STOP_GPU_CANCELLED: termination requested after interruption\n')
                         break
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
-                        reason = (21, b'STOP_GPU_WALL_TIMEOUT: total diagnostic budget exhausted\n')
+                        reason = (21, b'STOP_GPU_WALL_TIMEOUT: total budget exhausted; termination requested\n')
                         break
                     if eof and child.poll() is not None:
                         break
@@ -83,7 +85,7 @@ def supervise(command, seconds, log_path):
                         emit(data)
                         combined = tail + data
                         if b'GPU watchdog:' in combined:
-                            reason = (31, b'STOP_GPU_STALL: renderer reported a stalled GPU; diagnostic stopped\n')
+                            reason = (31, b'STOP_GPU_STALL: renderer reported a stalled GPU; termination requested\n')
                             break
                         tail = combined[-32:]
                     if reason:
@@ -91,27 +93,48 @@ def supervise(command, seconds, log_path):
         except OSError as error:
             reason = (1, f'STOP_GPU_SUPERVISOR: {error}\n'.encode())
         finally:
+            # Preserve the decision before cleanup, which itself may fail. A
+            # natural child exit has no stop decision; the footer records it.
+            if reason:
+                try:
+                    log.write(reason[1])
+                except OSError as error:
+                    # A failed log write must not skip child termination.
+                    cleanup_error = error
             if child is not None:
-                stop_group(child)
-                # Drain the bounded pipe after termination, without a blocking
-                # read if a kernel-stalled process cannot be killed promptly.
-                os.set_blocking(child.stdout.fileno(), False)
-                while True:
-                    try:
-                        data = os.read(child.stdout.fileno(), 65536)
-                    except BlockingIOError:
-                        break
-                    if not data:
-                        break
-                    emit(data)
-                child.stdout.close()
+                try:
+                    stop_group(child)
+                    # Drain the bounded pipe without blocking if the child
+                    # cannot be killed promptly by the host.
+                    os.set_blocking(child.stdout.fileno(), False)
+                    while True:
+                        try:
+                            data = os.read(child.stdout.fileno(), 65536)
+                        except BlockingIOError:
+                            break
+                        if not data:
+                            break
+                        emit(data)
+                except OSError as error:
+                    cleanup_error = error
+                finally:
+                    child.stdout.close()
             for sig, handler in previous.items():
                 signal.signal(sig, handler)
         if reason:
-            emit(reason[1])
-            return reason[0]
-        result = child.returncode
-        return result if result >= 0 else 128 - result
+            sys.stdout.buffer.write(reason[1])
+            sys.stdout.buffer.flush()
+        child_status = child.returncode if child is not None else None
+        if cleanup_error:
+            emit(f'STOP_GPU_SUPERVISOR_CLEANUP: {cleanup_error}\n'.encode())
+            result = 1
+        elif reason:
+            result = reason[0]
+        else:
+            result = child_status if child_status >= 0 else 128 - child_status
+        emit((f'GPU supervisor: finished elapsed={time.monotonic()-started:.3f}s '
+              f'child_returncode={child_status} exit={result}\n').encode())
+        return result
 
 
 def main():

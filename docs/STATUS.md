@@ -3,11 +3,12 @@
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
-reported host watchdog kernel panic.** The latest native run uses DMA off, reaches
-its 120-second timeout and records no import stop, CPU fault or GPU-watchdog warning.
-The cause of the earlier panic remains unresolved. Dynamic shader reads stay
-blocked. The next comparison is supervised for 30 seconds with asynchronous
-submission disabled; see the [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
+reported host watchdog kernel panic.** The latest 30-second comparison uses DMA off
+and asynchronous submission off. It records GPU activity without an import stop,
+CPU-fault report or GPU-watchdog warning, but lacks a final exit marker. Its exit
+cause remains unknown. The earlier 120-second run ended at its diagnostic timeout.
+Dynamic shader reads stay blocked. See the
+[current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |
 |---|---|
@@ -1251,3 +1252,22 @@ same. A short Metal precheck in automation still reports zero devices and exits
 24 before shader execution, so the combined comparison needs native Terminal.
 Inspect that one log before another experiment; no shader fix or stability result
 is claimed by the new supervisor.
+
+## Asynchronous submission off: log reviewed; exit cause unresolved (2026-10-21)
+
+The native comparison header confirms DMA off, asynchronous submission off and JIT
+on, with a 30-second supervisor. The main loop starts at about 1.36 seconds and five
+Metal activity samples are recorded. There is no import stop, CPU-fault report or
+GPU-watchdog warning in the file. However, it ends in ordinary buffer-clamp output
+without a timeout/stop/completion marker, so its exit cause cannot be established.
+Forty-eight per-vertex errors, 259 Phi offset errors, 267 SRT-walk failures, six
+compressed-texture usage errors and 7,788 clamps remain. Counts are not FPS, unique
+shaders or a controlled rendering-quality comparison.
+
+The supervisor now writes its stop decision before cleanup and records elapsed
+time plus both child and supervisor exit statuses on normal completion paths,
+including natural child exit. Synthetic checks exercise a large-output natural
+exit and a busy child that prints during timeout cleanup, alongside the existing
+signal/status/cancellation tests. This addresses the logging ambiguity; it does
+not identify the cause of the preceding exit or repair shaders. No new GPU run is
+used to verify the change. Keep the same 30-second settings for the next observation.

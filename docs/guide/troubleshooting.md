@@ -26,6 +26,13 @@ boundary, not successful gameplay. The log retains child output and the reason f
 stopping. A normal child stop keeps its original exit status. Never automatically
 retry either stop; inspect the saved log first.
 
+`GPU supervisor: finished` records the child return code, supervisor exit code and
+elapsed time, including natural child exits that have no STOP message. A deadline
+or cancellation decision is written before cleanup. A log with neither a stop
+reason nor a completion footer has an unknown exit cause; do not infer a successful
+timeout from its last-write timestamp. The older incomplete log cannot be repaired
+retrospectively by adding a guessed result.
+
 ## Expected diagnostic stops
 
 `STOP_AT_IMPORT` means the CPU reached a system function outside the implemented contract set.

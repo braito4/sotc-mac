@@ -32,6 +32,50 @@ class GpuSupervisorTests(unittest.TestCase):
         self.assertEqual(log, result.stdout)
         self.assertIn(b'out\0err\n', log)
         self.assertIn(b"['two words', 'literal$`text`']", log)
+        self.assertIn(b'GPU supervisor: finished', log)
+        self.assertIn(b'child_returncode=20 exit=20', log)
+
+    def test_natural_exit_with_large_output_has_a_conclusive_footer(self):
+        result, log, _ = self.run_fixture("import os; os.write(1,b'payload\\n'*150000)")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(log.count(b'payload\n'), 150000)
+        self.assertIn(b'child_returncode=0 exit=0', log)
+        self.assertNotIn(b'STOP_GPU_WALL_TIMEOUT', log)
+
+    def test_wall_stop_is_recorded_before_child_cleanup_output(self):
+        source = '''import os,signal,sys,time
+def stopped(signum,frame):
+    os.write(1,b'CLEANUP_LAST_OUTPUT\\n')
+    sys.exit(7)
+signal.signal(signal.SIGTERM,stopped)
+while True:
+    os.write(1,b'busy output\\n'*300)
+    time.sleep(.005)
+'''
+        result, log, _ = self.run_fixture(source, seconds='1')
+        self.assertEqual(result.returncode, 21, result.stderr)
+        self.assertLess(log.index(b'STOP_GPU_WALL_TIMEOUT'), log.index(b'CLEANUP_LAST_OUTPUT'))
+        self.assertIn(b'child_returncode=7 exit=21', log)
+
+    def test_cleanup_error_is_recorded_with_both_exit_statuses(self):
+        source = '''import sys
+sys.path.insert(0,sys.argv[1])
+import run_gpu_diagnostic as runner
+original=runner.stop_group
+def failed_cleanup(child):
+    original(child)
+    raise OSError('synthetic cleanup error')
+runner.stop_group=failed_cleanup
+raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory)/'cleanup.log'
+            result = subprocess.run([sys.executable,'-c',source,str(ROOT/'tools'),str(log)],
+                                    capture_output=True,timeout=5)
+            self.assertEqual(result.returncode,1,result.stderr)
+            data = log.read_bytes()
+            self.assertIn(b'STOP_GPU_SUPERVISOR_CLEANUP: synthetic cleanup error',data)
+            self.assertIn(b'child_returncode=0 exit=1',data)
 
     def test_silent_child_stops_at_parent_wall_deadline(self):
         result, log, elapsed = self.run_fixture('import time; time.sleep(30)', seconds='1')
@@ -112,6 +156,7 @@ time.sleep(30)
                 result, log, _ = self.run_fixture(source)
                 self.assertEqual(result.returncode, expected, result.stderr)
                 self.assertNotIn(b'STOP_GPU_WALL_TIMEOUT', log)
+                self.assertIn(b'GPU supervisor: finished', log)
 
     def test_invalid_budget_never_launches_child(self):
         for seconds in ('0', '1801', '-1', '', '1.5', ' 1', '\u0661'):

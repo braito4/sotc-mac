@@ -24,9 +24,10 @@
 > [!WARNING]
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
-> reads remain disabled and enabling them is blocked before GPU loading. The latest
-> native run reaches its 120-second limit without a reported GPU stall; this does
-> not establish renderer stability. See the [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
+> reads remain disabled and enabling them is blocked before GPU loading. An earlier
+> run reached its 120-second limit; the latest 30-second comparison lacks a final
+> exit marker. Neither establishes renderer stability. See the
+> [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 <p align="center">
   <a href="docs/guide/installation.md"><strong>Getting started</strong></a>

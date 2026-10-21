@@ -83,7 +83,7 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-The newest native log uses DMA off and a 120-second budget. Initialization completes
+The earlier completed native log uses DMA off and a 120-second budget. Initialization completes
 at about 1.69 seconds and the main loop starts at about 2.33 seconds. The run ends
 at STOP_TIMEOUT without an unresolved import, CPU fault or GPU-watchdog message.
 It records Metal draw/dispatch activity throughout its sampled intervals and detects
@@ -101,12 +101,27 @@ log, and there is no retry. This is an additional user-space stop, not protectio
 against a frozen kernel/driver. The standalone Metal prerequisite uses a separate
 ten-second supervisor. The combined default remains 120 seconds.
 
-The next single comparison uses 30 seconds and disables only asynchronous
-submission (`BB_ASYNC_SUBMIT=0`), keeping DMA off and the same renderer/source pins.
-The preceding native log confirms asynchronous submissions were enabled. The
-pinned scheduler's switch moves submission back to the calling thread; recording
-worker count is unchanged. This tests queue-submission timing, not a claimed fix
-for the panic or the missing shader interfaces. Run once from native Terminal:
+The owner has now run the 30-second comparison with asynchronous submission off
+(`BB_ASYNC_SUBMIT=0`), DMA off, JIT on and the same renderer pins. The header confirms
+the settings and the two recording workers remain. Initialization finishes at
+about 0.924 seconds and the main loop starts at about 1.36 seconds. Five Metal
+samples record draw/dispatch activity, with no import stop, CPU-fault report or
+GPU-watchdog warning in the file. Its last write is near the 30-second boundary,
+but there is no child timeout, supervisor stop or completion footer. Therefore the
+exit cause is unknown; do not classify it as a confirmed timeout or clean exit.
+
+This run records 48 PerVertexKHR errors/skipped-pipeline messages, 259 Phi offset
+errors, 267 SRT-walk failures, six compressed-texture usage errors and 7,788 buffer
+clamps. Its larger command counts and error counts do not establish better FPS,
+worse rendering, scene entry or a causal benefit from the submission setting.
+
+The supervisor now persists a stop decision before cleanup and always records
+the observed child status, supervisor exit code and elapsed time on its normal
+completion paths. Natural exits, busy output, child signal statuses and timeout
+cleanup output are covered with synthetic processes. The earlier missing footer
+cannot be reconstructed retrospectively. No additional GPU test was launched for
+this change. Retain the same settings for the next observed comparison; change no
+other renderer switch. The reference command is:
 
 ```sh
 SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
