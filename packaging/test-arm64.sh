@@ -90,6 +90,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_budget.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_linked_modules.py

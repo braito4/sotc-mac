@@ -72,14 +72,16 @@ On an existing machine with prepared input and GPU dependencies:
 
 ```sh
 bash packaging/build-gpu-arm64.sh
-SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=60 BB_JIT=1 \
+SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=300 BB_JIT=1 \
   bash packaging/test-arm64.sh --graphics-game-test
 ```
 
 Read the newest `logs/graphics-game-*.log` by modification time, not an old filename
 from chat. The script prints the log path. Run the same command with `BB_JIT=0` to
 compare the interpreter, allowing for its slower progress within the same budget.
-`SOTC_DIAGNOSTIC_SECONDS` accepts only 1..60. A timeout is an observation boundary,
+The combined game run now defaults to 300 seconds; headless remains 30.
+`SOTC_DIAGNOSTIC_SECONDS` accepts only 1..1800. Renderer-only initialization retains
+its separate 60-second limit. A timeout is an observation boundary,
 not successful gameplay or evidence that all imports are implemented.
 
 The combined command rebuilds the host diagnostic, prepares a separate linked image,
@@ -117,7 +119,8 @@ Important environment variables:
 | `SOTC_SYSTEM_MODULE_ROOT` | Original gesture/NGS2 modules; default sibling `sys_modules` directory |
 | `SOTC_MEMORY_BACKING=file` | Unlinked temporary-file backing with shared aliases when POSIX shm is unavailable |
 | `BB_JIT=1` / `BB_JIT=0` | ARM64 translation / interpreter |
-| `SOTC_DIAGNOSTIC_SECONDS=60` | Maximum supported bounded game experiment |
+| `SOTC_DIAGNOSTIC_SECONDS=300` | Five-minute combined run; accepts 1..1800, headless defaults to 30 |
+| `BB_DIRECT_MEMORY_ACCESS` | Defaults to 1 for combined runs before GPU loading; explicit 0 keeps the prior comparison |
 | `SOTC_GPU_JOBS` | Isolated build parallelism, 1..8 |
 
 The launch script explicitly selects its bundled Vulkan loader, MoltenVK ICD and
@@ -165,8 +168,9 @@ archive and diagnostic sources in `work`.
 ## Prioritized debugging work
 
 1. **Verify introduction video and scene entry.** Save-dialog startup no longer stops
-   this run; it reaches the 60-second timeout. The owner hears the opening introduction
-   audio. Establish whether the image progresses with that audio and whether a playable
+   the observed run; it reaches its former 60-second timeout. The next diagnostic
+   defaults to five minutes and enables guarded dynamic shader reads. The owner
+   hears the opening introduction audio. Establish whether the image progresses with that audio and whether a playable
    3D scene loads. Investigate the 186 partially GPU-mapped region warnings alongside
    missing pipelines. No save access occurs; do not treat missing UI or save errors as
    successful persistence. Keep observed pictures/audio separate from GPU counters.
@@ -181,7 +185,13 @@ archive and diagnostic sources in `work`.
    `spirv_emit_context.cpp`. Do not remove the decoration or substitute interpolated
    input without preserving the requested vertex selection. The earlier duplicate
    auxiliary location error is absent; not every tessellation path is verified.
-3. **SRT resource tracking.** `flatten_extended_userdata_pass.cpp` fails offset
+3. **SRT resource tracking.** The host now defaults shader direct memory access to
+   enabled before dlopen. The actual SRT/shader-info fixture checks uniform reads,
+   Phi, per-lane and arithmetic offsets with DMA off/on: dynamic resources are
+   selected only when the setting is enabled. This does not execute those accesses
+   on a GPU or validate game resources. The existing walker still logs its static
+   offset failures. Run `python3 tools/check_shader_memory.py` to reproduce the
+   distinction; do not describe the messages as fixed. `flatten_extended_userdata_pass.cpp` fails offset
    computation on `Phi` and then fails its SRT walk. Investigate predecessor/value
    handling and resource provenance in the recompiler. Buffer-size clamps may relate
    to bad descriptors, but their causal link is not established. Do not treat clamps

@@ -91,7 +91,9 @@ recorded during that interval. Draw/dispatch counters are not gameplay FPS.
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/
 metadata failure paths. Full synthetic contracts pass in both CPU modes; private
 comparisons check original validation and injected dependency-error propagation.
-No save storage or completed UI interaction is created.
+No save storage or completed UI interaction is created. The combined diagnostic now
+defaults to five minutes (configurable up to 30), with guarded dynamic shader-memory
+reads enabled for the next rendering experiment. Native visual validation is pending.
 
 The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset
 errors and buffer-size clamps. A matching SotC issue and exact MoltenVK reports are

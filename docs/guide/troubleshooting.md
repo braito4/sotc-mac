@@ -28,7 +28,10 @@ A successful check establishes only an offscreen synthetic draw. See
 [Graphics bring-up](../GRAPHICS_BRINGUP.md).
 
 `STOP_TIMEOUT` remains a failed diagnostic. The default watchdog is 30 seconds;
-`SOTC_DIAGNOSTIC_SECONDS=1..60` changes its bounded duration without disabling it.
+`SOTC_DIAGNOSTIC_SECONDS=1..1800` changes its bounded duration without disabling it.
+Headless probes default to 30 seconds; combined game/graphics runs default to 300.
+If an earlier shell export still selects 60 seconds, explicitly set
+`SOTC_DIAGNOSTIC_SECONDS=300` for the next run.
 
 `STOP_MEMORY_LAYOUT` means a requested mapping could not be satisfied. Do not disable fixed-map
 bounds or overwrite host shared regions to continue. The temporary image mapping still leaves

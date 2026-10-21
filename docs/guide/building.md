@@ -106,8 +106,11 @@ This compiles and runs a synthetic Metal offscreen shader draw/readback check. I
 build the game renderer. No device is exposed to the development tool process; run from a
 native macOS Terminal to establish host access. See [Graphics bring-up](../GRAPHICS_BRINGUP.md).
 
-The initialization probe has a 30-second watchdog. `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
-60 seconds; it cannot disable the watchdog. A timeout still fails the paired test.
+Headless probes default to a 30-second watchdog; the combined graphics/game run now
+defaults to 300 seconds (five minutes). `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
+1800 seconds, including 600 for ten minutes; zero cannot disable the watchdog.
+Renderer-only initialization keeps its independent 60-second budget. A timeout
+still fails the paired test and does not establish successful gameplay.
 
 ## Isolated renderer build
 
@@ -233,8 +236,28 @@ keyboard fallback; reconnection is detected on the next pad query.
 No renderer rebuild is required. The existing command rebuilds the host adapter:
 
 ```sh
-SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=60 BB_JIT=1 bash packaging/test-arm64.sh --graphics-game-test
+SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=300 BB_JIT=1 bash packaging/test-arm64.sh --graphics-game-test
 ```
 
 Synthetic keyboard and gamepad ABI tests are part of `--contracts-test` in both CPU
 modes; no physical controller or game files are needed for those tests.
+
+
+## Dynamic shader-memory reads
+
+The combined game diagnostic defaults `BB_DIRECT_MEMORY_ACCESS` to `1` before loading
+the GPU library. The installed renderer can then execute shader-time `ReadConst`
+accesses through its guarded page-table path, including offsets derived from Phi,
+per-lane values and arithmetic that the CPU resource walker cannot flatten.
+Uniform reads continue to use their verified flattened values. An explicit
+`BB_DIRECT_MEMORY_ACCESS=0` preserves the old configuration for comparisons.
+The private log records the selected value.
+
+`python3 tools/check_shader_memory.py` checks four original synthetic IR cases through
+the actual installed SRT and shader-info passes with DMA off and on. It verifies
+uniform data, dynamic-read flags and page-table/fault-buffer resources without
+initializing a GPU. It requires the isolated renderer build. The existing walker's
+Phi/lane error messages still appear: this change enables the dynamic execution
+route and does not remove the static walker's limitation. PerVertexKHR conversion,
+GPU memory mapping, scene correctness and stability still need native testing.
+No GPU rebuild is required for this host configuration change.

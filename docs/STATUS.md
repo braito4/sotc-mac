@@ -1172,3 +1172,25 @@ records 78 per-vertex conversion messages, 263 unexpected-Phi offset messages an
 pipelines. These are message counts, not distinct shaders, rendered frames or FPS.
 Scene entry and renderer correctness are now the immediate investigation; no
 playable 3D scene or save persistence is established.
+
+
+## Five-minute game diagnostic and guarded shader-memory reads (2026-10-21)
+
+The combined graphics/game run now defaults to five minutes. The watchdog remains
+mandatory and accepts explicit budgets from 1 to 1800 seconds; headless defaults
+stay at 30 seconds and renderer-only startup keeps its 60-second limit. Tests check
+range/error handling, default/override routing and real one-second guest timeouts
+in JIT and interpreter modes.
+
+The host now enables the renderer's existing guarded dynamic-memory path before
+loading its library unless BB_DIRECT_MEMORY_ACCESS is explicitly set. The installed
+SRT walker cannot flatten offsets depending on Phi or per-lane shader execution;
+with DMA disabled, shader-info collection clears the corresponding dynamic resources.
+An actual-renderer synthetic fixture checks four uniform/Phi/lane/arithmetic cases
+with DMA off/on, preserving uniform data and enabling dynamic flags plus page-table/
+fault-buffer resources as appropriate. No GPU or game is used by that fixture.
+
+This is a host configuration correction for the next native experiment, not proof
+of a rendering fix. SRT/Phi diagnostics can still appear; PerVertexKHR and partially
+GPU-mapped regions remain unresolved. No GPU rebuild is needed. Use the new 300-second
+command in the build guide and compare scene progress in native Terminal.

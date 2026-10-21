@@ -181,3 +181,28 @@ Synthetic loader coverage calls both startup exports and reaches its deliberate
 unknown-import stop. Existing status/result/close/progress/termination checks still
 pass after failed startup: no initialized/completed dialog or user selection is
 fabricated. No GPU rebuild is required. Native game continuation remains pending.
+
+
+## Guarded shader reads and extended observation (2026-10-21)
+
+The installed preferred runtime defaults `BB_DIRECT_MEMORY_ACCESS` to false. Its
+SRT walker leaves ReadConst offset zero when it cannot evaluate a Phi/lane-derived
+address on the CPU. Shader-info collection marks those reads as dynamic, but clears
+the dynamic flags/resources when direct memory access is disabled. The SPIR-V emitter
+then uses a flat-buffer load rather than its guarded `read_const_dynamic` function.
+
+The combined SotC host now defaults that existing setting to 1 before dlopen, while
+preserving an explicit user override. No dependency or GPU source is modified. Four
+synthetic IR cases run through the installed SRT and shader-info passes with DMA
+both off and on: uniform values are preserved, and dynamic flags plus page-table/
+fault-buffer resources appear only when needed and enabled. Host callbacks are
+abort-only fixtures; no renderer or GPU is initialized. This validates resource
+selection, not shader execution or game-image correctness. Phi/lane log messages,
+PerVertexKHR conversion and memory mapping remain open investigations.
+
+The combined diagnostic now defaults to 300 seconds instead of 30; explicitly
+configured budgets accept 1..1800 instead of 1..60. Headless defaults remain 30 and
+renderer-only initialization remains capped at 60. CLI tests reject malformed,
+zero and excessive values, and one-second synthetic infinite loops still terminate
+in both CPU modes. Loader tests verify the 300-second default, 1800-second override,
+and preservation of explicit DMA off/on settings without waiting for those budgets.

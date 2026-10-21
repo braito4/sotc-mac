@@ -47,6 +47,16 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
         fputs("STOP_GPU_STATE: BB_GPU_USER_DIR must name an existing writable absolute directory\n", stderr);
         return 28;
     }
+    if (initialize == 2) {
+        /* SotC has shader-time ReadConst offsets (Phi/ReadFirstLane): these
+         * cannot be flattened once on the CPU. Use the existing guarded GPU
+         * memory-read path; an explicit 0 retains the upstream comparison. */
+        if (setenv("BB_DIRECT_MEMORY_ACCESS","1",0)) {
+            perror("STOP_GPU_CONFIG"); return 28;
+        }
+        printf("GPU: shader dynamic memory reads BB_DIRECT_MEMORY_ACCESS=%s\n",
+               getenv("BB_DIRECT_MEMORY_ACCESS"));
+    }
     void *library = dlopen(path, RTLD_NOW | RTLD_LOCAL);
     if (!library) {
         fprintf(stderr, "STOP_GPU_LOAD: %s\n", dlerror());

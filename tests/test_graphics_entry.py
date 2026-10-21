@@ -183,6 +183,8 @@ int bbgpu_init(const Config *c) {
     }
     if (runtime_fault_recover || munmap(page,16384)) abort();
     puts("FIXTURE_FAULT_RECOVERED");
+    const char *dma=getenv("BB_DIRECT_MEMORY_ACCESS");if(!dma) abort();
+    printf("FIXTURE_DMA=%s\\n",dma);
     initialized=1; puts("FIXTURE_MAIN_THREAD_INIT"); return 0;
 }
 static intptr_t video_open(int user, int bus, int index, void *params) {
@@ -225,12 +227,15 @@ void bbgpu_window_loop(void) {
             for mode in ('1', '0'):
                 state = root/('state-'+mode)
                 state.mkdir()
+                baseline=dict(os.environ, BB_JIT=mode, BB_GPU_USER_DIR=str(state),
+                              BB_DMEM_MB='16', BB_DMEM_EXTRA_MB='0', SOTC_DIAGNOSTIC_SECONDS='10')
+                baseline.pop('BB_DIRECT_MEMORY_ACCESS',None)
                 result = subprocess.run([str(PROBE), str(boot), '--bootstrap', '--game-root', str(root),
-                    '--graphics-library', str(library)], capture_output=True, text=True, timeout=15,
-                    env=dict(os.environ, BB_JIT=mode, BB_GPU_USER_DIR=str(state),
-                             BB_DMEM_MB='16', BB_DMEM_EXTRA_MB='0', SOTC_DIAGNOSTIC_SECONDS='10'))
+                    '--graphics-library', str(library)], capture_output=True, text=True, timeout=15,env=baseline)
                 self.assertEqual(result.returncode, 20, result.stdout+result.stderr)
                 self.assertIn('FIXTURE_MAIN_THREAD_INIT', result.stdout)
+                self.assertIn('FIXTURE_DMA=1',result.stdout)
+                self.assertIn('Diagnostic watchdog: 10 seconds',result.stdout)
                 self.assertIn('FIXTURE_FAULT_RECOVERED', result.stdout)
                 self.assertIn('FIXTURE_GUEST_WORKER_OPEN', result.stdout)
                 self.assertIn('Guest first argument: 0x1234', result.stdout)
@@ -257,6 +262,16 @@ void bbgpu_window_loop(void) {
                 self.assertIn('save-dialog startup requests: initialize=1, open=1',result.stdout)
                 self.assertIn('unsupported VideoOut window-margin requests=1',result.stdout)
                 self.assertIn('unavailable network-control initialization requests=1',result.stdout)
+                for policy,seconds in (('0',None),('1','1800')):
+                    override=root/('config-'+mode+'-'+policy);override.mkdir()
+                    env=dict(baseline,BB_DIRECT_MEMORY_ACCESS=policy,BB_GPU_USER_DIR=str(override))
+                    env.pop('SOTC_DIAGNOSTIC_SECONDS',None)
+                    if seconds is not None:env['SOTC_DIAGNOSTIC_SECONDS']=seconds
+                    check=subprocess.run([str(PROBE),str(boot),'--bootstrap','--game-root',str(root),
+                        '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,env=env)
+                    self.assertEqual(check.returncode,20,check.stdout+check.stderr)
+                    self.assertIn('FIXTURE_DMA='+policy,check.stdout)
+                    self.assertIn('Diagnostic watchdog: '+(seconds or '300')+' seconds',check.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')
                     synthetic_image(fault_boot, fault=True)
