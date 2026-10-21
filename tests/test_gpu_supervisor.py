@@ -108,10 +108,12 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
             frames = Path(directory)/'private frames.csv'
             result, log, _ = self.run_fixture(
                 "import os,pathlib; assert os.environ['BB_FRAME_STATS']=='1'; "
+                "assert os.environ['SOTC_GPU_SUBMIT_TRACE']=='1'; "
                 "pathlib.Path(os.environ['BB_FRAME_LOG']).write_text('synthetic flip fixture\\n')",
                 environment={'BB_FRAME_STATS': '1', 'BB_FRAME_LOG': str(frames),
                              'BB_UPSCALE_PRESET': '4', 'BB_RENDER_RES': '',
                              'BB_OUTPUT_RES': '1920x1080',
+                             'SOTC_GPU_SUBMIT_TRACE': '1',
                              'SYNTHETIC_PRIVATE_SECRET': 'must-not-be-in-the-log'})
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(frames.read_text(), 'synthetic flip fixture\n')
@@ -121,6 +123,7 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
             self.assertEqual(settings['BB_UPSCALE_PRESET'], '4')
             self.assertEqual(settings['BB_RENDER_RES'], '')
             self.assertEqual(settings['BB_OUTPUT_RES'], '1920x1080')
+            self.assertEqual(settings['SOTC_GPU_SUBMIT_TRACE'], '1')
             self.assertNotIn(b'must-not-be-in-the-log', log)
 
     def test_stalled_process_group_does_not_leave_a_worker_running(self):

@@ -121,11 +121,76 @@ pipelines. The CSV retains 519 complete rows through about 38.03 seconds relativ
 to its first row, plus a partial row; cancellation buffering prevents treating
 this as the final presentation time or explaining the remainder of the run.
 
-Next work is offline/source diagnosis of the typed-copy failures and the pending
-submission's shader/resource dependencies, with synthetic fixtures before another
-native game comparison. Keep the protective stop and DMA-off setting. No renderer
-patch, dependency update or GPU execution was made to analyze this log. Earlier
-confirmed and unknown stop results below remain separate historical observations.
+The source/log review did not change shader semantics, dependencies or GPU settings.
+Its follow-up submission instrumentation is described below. The typed-copy fixes
+remain pending. Keep the protective stop and DMA-off setting. Earlier confirmed
+and unknown stop results remain separate historical observations.
+
+### Pending submission tracing
+
+The historical log identifies the awaited timeline value and its predecessor, but
+not the draw, dispatch or transfer inside that batch. It explicitly reports that
+`VK_AMD_buffer_marker` is unavailable, so the existing GPU breadcrumbs are disabled.
+The private cache contains compiled shaders and pipelines, not their submission
+membership or execution order. A recently created cache file is not proof that
+its shader ran, and no command list can be recovered retrospectively from it.
+Four compute compilation failures also reference undeclared `shared_mem_u32`;
+they establish a compiler problem, not the cause of the awaited submission.
+
+A local checked overlay now connects the scheduler's logical submission to the
+Metal command buffers it commits. `runtime/src/gpu_submission_trace.h` owns the
+bounded, thread-safe CPU journal. The combined launcher enables
+`SOTC_GPU_SUBMIT_TRACE=1` by default; 0 disables it. Direct library users must opt in.
+The supervisor logs the setting. The journal retains:
+
+- Logical scheduler/tick, wait and signal semaphore values, and whether the queue
+  submission call returned, with its result. A prepared entry is not a submitted
+  or completed GPU operation.
+- Vulkan command API names and guest draw/dispatch shader identities and counts
+  from `RecordCrumb`. These are CPU-recorded candidates. Host helper passes without
+  a guest crumb have API names but may lack shader identities. Indirect argument
+  contents and resource memory are never read by this journal.
+- Actual Metal chunk commit-return, scheduled and completion-callback observations,
+  including partial `CommitChunk` buffers, status and error codes. Scheduled is not
+  proof that an individual shader started. A completion callback is per Metal
+  command buffer, not per draw. Recording generations prevent handle-reuse confusion.
+
+There are at most 256 open buffers, 512 submission records, 1024 Metal chunk records
+and a 96-note tail per recorded buffer/batch. `notes` includes shader metadata and
+API calls; it is not a GPU instruction/draw count. Truncation, missing buffers and
+evictions remain visible. On the ten-second watchdog callback, the awaited and
+last-completed batch snapshots are printed and flushed **before** the existing
+watchdog prefix; otherwise the supervisor could exit before the details arrive.
+No new GPU marker writes, guest-memory access, fence completion or render commands
+are introduced. Callback/journal overhead is unmeasured on a native GPU run.
+
+The ARM64 library compiles and links with the local overlay, and all 46 host imports
+are present. The actual auxiliary SPIR-V regression and full JIT/interpreter
+contracts pass. Native CPU fixtures check dependencies, prepared/returned states,
+recording reuse, bounded tails, concurrency and callbacks. A CPU-only supervised
+fixture proves the dump precedes the watchdog prefix and survives cooperative exit.
+Nineteen offline builder tests cover pristine application, exact previous-set
+migration, unknown/partial rejection and idempotence; twenty supervisor tests pass.
+No native GPU capture of this instrumentation has run in the tool environment.
+
+For the next single owner-run capture, keep the previous low-resolution renderer
+settings and 120-second observation budget; the protective GPU-watchdog stop remains
+active. From the repository root:
+
+```sh
+SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
+  BB_JIT=1 BB_FRAME_STATS=1 BB_UPSCALE_PRESET=4 \
+  SOTC_GPU_SUBMIT_TRACE=1 SOTC_DIAGNOSTIC_SECONDS=120 \
+  bash packaging/test-arm64.sh --graphics-game-test
+```
+
+The local library is already rebuilt. On another checkout, first run
+`python3 tools/build_gpu.py`; an old library cannot implement this journal simply
+because its environment contains the new flag. Inspect the resulting private log
+before another experiment. Submission IDs can change between runs. Even a complete
+CPU list may leave several candidates without per-command GPU execution markers.
+
+### Earlier low-resolution comparisons
 
 **Preceding 30-second repeat:** the owner repeats the low-resolution configuration and reports
 that the window closes when turning on the controller. The only input line records
@@ -561,7 +626,7 @@ The main entry points are:
 | `python3 tools/check_gpu_link.py` | Inspect actual host/library symbol coverage; does not validate ABI or load the library |
 | `bash packaging/test-arm64.sh --gpu-load-check` | Load the library without renderer initialization |
 | `bash packaging/test-arm64.sh --renderer-check` | Initialize the renderer and diagnostic window without guest commands |
-| `bash packaging/test-arm64.sh --graphics-game-test` | One supervised combined experiment; see the current 30-second comparison above |
+| `bash packaging/test-arm64.sh --graphics-game-test` | One supervised combined experiment; see the pending-submission capture above |
 
 Important environment variables:
 
@@ -573,6 +638,7 @@ Important environment variables:
 | `SOTC_MEMORY_BACKING=file` | Unlinked temporary-file backing with shared aliases when POSIX shm is unavailable |
 | `BB_JIT=1` / `BB_JIT=0` | ARM64 translation / interpreter |
 | `SOTC_DIAGNOSTIC_SECONDS` | Accepts 1..1800; combined default 120, headless 30; not protection from a kernel hang |
+| `SOTC_GPU_SUBMIT_TRACE` | Combined diagnostic defaults to 1; 0 disables the bounded CPU submission journal and Metal callbacks; dumps on GPU watchdog |
 | `BB_DIRECT_MEMORY_ACCESS` | Unset or literal 0 only; all other values rejected before GPU loading/prechecks |
 | `BB_ASYNC_SUBMIT=0` | Current single comparison: submit on the calling thread; preserve recording workers |
 | `BB_FRAME_STATS=1` | Opt-in host-side flip/wait statistics for the first-logo investigation; remove the variable for baseline timing |

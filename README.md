@@ -111,8 +111,13 @@ The POSIX `usleep` import from an earlier instrumented run is corrected. The lat
 low-resolution run detects a DualSense and stops on the renderer's GPU watchdog
 after about 112 seconds, with no import stop or CPU-fault report. The child exits
 with status 21; supervisor status 31 preserves the GPU-stall reason. Its CSV retains
-519 complete flip rows, with later rows lost to buffering at cancellation. A record
+519 complete flip rows; cancellation can discard buffered rows. A record
 of presentation calls does not establish correct image contents or gameplay performance.
+
+The log lacks per-submission command history because AMD GPU markers are unavailable.
+A bounded CPU submission journal and Metal completion observations are now built
+into the diagnostic; native GPU verification is pending. See
+[pending-submission tracing](docs/DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
 
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/
 metadata failure paths. Full synthetic contracts pass in both CPU modes; private

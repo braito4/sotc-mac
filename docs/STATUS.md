@@ -24,6 +24,26 @@ attribute the stall to the controller, one shader or memory pressure without
 submission-level evidence. No GPU run was launched for this analysis. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
+The awaited batch cannot be reconstructed from that log: AMD buffer markers are
+unavailable and the shader cache has no command-to-submission history. A local
+checked diagnostic overlay now records CPU command tails, guest shader identities,
+submission waits/signals and actual Metal chunk commit/scheduled/completion callbacks.
+Command-buffer generations prevent reused handles inheriting old callbacks. On a
+watchdog report it snapshots the awaited and last completed batches before printing
+the prefix that triggers supervisor cancellation. Limits and missing records remain
+explicit. These are CPU candidates and command-buffer completion observations,
+not per-command GPU markers or a correction for the stall.
+
+The updated ARM64 library builds, all 46 host imports are present, the auxiliary
+SPIR-V regression passes, and full contracts pass in JIT/interpreter. Nineteen
+offline builder tests, twenty supervisor tests and the native metadata fixture
+(including a real cooperative supervisor stop) pass without GPU execution. The
+combined launcher enables `SOTC_GPU_SUBMIT_TRACE=1` by default, with 0 to disable it;
+the low-resolution settings, DMA guard and budgets are unchanged. No native GPU
+run of this instrumentation has been made. Four additional compute compilation
+errors reference an undeclared `shared_mem_u32`; they are not linked to the awaited
+batch by the existing evidence. See [pending-submission tracing](DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
+
 The preceding native 30-second low-resolution repeat
 ends with the 30-second budget request and a native cancellation notice observed
 about 1.90 ms later. The supervisor does not collect child exit within its two-second

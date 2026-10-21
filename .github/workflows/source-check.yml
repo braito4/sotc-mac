@@ -22,3 +22,5 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_vulkan.py
       - name: Check GPU supervisor without GPU execution
         run: python3 -m unittest discover -s tests -p test_gpu_supervisor.py
+      - name: Check submission metadata on the CPU
+        run: python3 -m unittest discover -s tests -p test_gpu_submission_trace.py

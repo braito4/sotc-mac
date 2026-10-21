@@ -20,9 +20,10 @@ CPU and reference pins remain unchanged.
 | [0e940e96cb08](https://github.com/bloodborne-native/bloodborne-runtime/commit/0e940e96cb08e06e0ea588bd41800dd62b00c659) | Invalidates cached shader binaries generated before location deduplication. Adapted to move our base's version 18 to 21; upstream's immediate predecessor was version 20. This does not import intervening aspect-ratio changes. |
 | [e0348c24d911](https://github.com/bloodborne-native/bloodborne-runtime/commit/e0348c24d9117af5b22de2caa09d17a5e6a3dd07) | Retains shader module/compiled forms and graphics entries through deferred Metal draws and Vulkan handle reuse. Applied unchanged as a renderer lifetime correction. Our queue-overflow log does not prove that this separate lifetime fault occurred locally. |
 
-All patches are GPL-2.0-or-later upstream work, not a new renderer authored here.
+The three patches above are GPL-2.0-or-later upstream work, not a new renderer authored here.
 Patch files and input/output digests live in `tools/gpu_patches`. The build accepts
-only a pristine pinned private checkout or exactly the reviewed complete patch set;
+only a pristine pinned private checkout, the exact previous three-backport state,
+or the complete reviewed set with the local submission diagnostic overlay;
 unknown modifications and partial applications are rejected. Digests verify source
 identity; they are not proof of runtime correctness. `runtime/upstream` stays unchanged.
 
@@ -30,6 +31,15 @@ The isolated builder now applies the backports and records their full commit IDs
 `work/gpu-build.json`. Re-running it verifies/reuses the same patch set. Updating a
 backport requires reviewing its source, manifest, tests and provenance together;
 never relax the digest checks merely to get a build through.
+
+The separate `sotc-submission-trace` overlay is local diagnostic code, not another
+upstream fix. It uses the repository-owned CPU journal to connect recorded shader/API
+notes and semaphore waits to a logical submission, with Metal chunk callback
+observations. It does not use the unavailable AMD marker extension or change shader,
+resource, fence or queue-order semantics. Bounded metadata is dumped before the
+watchdog prefix, preserving the existing supervisor stop. The native ARM64 build,
+CPU fixtures and exact previous-set migration pass; real GPU identification remains
+pending. See [pending-submission tracing](DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
 
 ## What was validated
 

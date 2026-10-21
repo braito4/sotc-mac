@@ -340,6 +340,7 @@ case "$trial_mode" in
         printf 'Experimental graphics initialization; no game frame established. Log: %s\n' "$trial_log"
         if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
+            SOTC_GPU_SUBMIT_TRACE="${SOTC_GPU_SUBMIT_TRACE:-1}" \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \
             --seconds "${SOTC_DIAGNOSTIC_SECONDS:-120}" --log "$trial_log" --cooperative-stop \

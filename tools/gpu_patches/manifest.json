@@ -8,32 +8,72 @@
   "files": {
     "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv_quad_rect.cpp": {
       "before": "fda91b2c2ada2569abde14f352255a7d4ec2388d885536513f267fd35a178a37",
-      "after": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289"
+      "after": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
+      "previous": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
       "before": "d00e9d4f343bcbbbce00f361da8637c378a9441e39932eb4b63035d058f3e4f4",
-      "after": "d554160440bb533dbc2e75fd9213458ea8de7c09ddbee7f99a8d2d807aec8acf"
+      "after": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
+      "previous": "d554160440bb533dbc2e75fd9213458ea8de7c09ddbee7f99a8d2d807aec8acf"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "34e9ff7defc64093897e913d0921d4d51d49e3cb16d3d30affbf4f8c7fa101eb",
-      "after": "0c34ee4e0772db4de5873445c47f361e06a5fbf15e9c04b0adae955e54c98174"
+      "after": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
+      "previous": "0c34ee4e0772db4de5873445c47f361e06a5fbf15e9c04b0adae955e54c98174"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_shadow.h": {
       "before": "96c3c5caccc95c843d225b1598604d82914b4c66fabcdcb251f616f5066f841d",
-      "after": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8"
+      "after": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
+      "previous": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_shadow.mm": {
       "before": "4875d594e973ddd875b728acbf8871b943e3cdd447b4bda4b7a1b68e4a6afcb6",
-      "after": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9"
+      "after": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
+      "previous": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
       "before": "7d44150f1a6471931d3e82457734e84a4d47c35b1a554ca1426984cd6c5761fa",
-      "after": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d"
+      "after": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
+      "previous": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d"
+    },
+    "gpu/CMakeLists.txt": {
+      "before": "b55098b2da8d69e2eb78863bd56e97c3dfe11e944fa797ee10f802e67cec5664",
+      "previous": "b55098b2da8d69e2eb78863bd56e97c3dfe11e944fa797ee10f802e67cec5664",
+      "after": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
+      "before": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
+      "previous": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
+      "after": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
+      "before": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
+      "previous": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
+      "after": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
+      "before": "ff7eca2ce613b01366bc2843ba20394e6c2528ef45f7307bd2b0947f0f79ff0f",
+      "previous": "ff7eca2ce613b01366bc2843ba20394e6c2528ef45f7307bd2b0947f0f79ff0f",
+      "after": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5"
+    },
+    "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
+      "before": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
+      "previous": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
+      "after": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
     }
   },
   "patches": {
     "0e940e96cb08.patch.json": "25f45c3f3f985c68df81c3eaf06e2521025cc216fa4511857ed3a2f1ff8ac43d",
     "e0348c24d911.patch.json": "ed67fd1baef2bfcb04523802cad0d3f05c90df78967a6d10aab13a5975342861",
-    "ef0080bb4331.patch.json": "4b7aa773e484c7219a42febf12ba8f9b9eb57ed3862136529b721f8939906a26"
-  }
+    "ef0080bb4331.patch.json": "4b7aa773e484c7219a42febf12ba8f9b9eb57ed3862136529b721f8939906a26",
+    "sotc-submission-trace.patch.json": "2aa17eab887fbca562bb5554dd52f683b479827501fc0b188c5de7db3d601d2d"
+  },
+  "previous_patches": [
+    "0e940e96cb08.patch.json",
+    "e0348c24d911.patch.json",
+    "ef0080bb4331.patch.json"
+  ],
+  "local_adaptations": [
+    "sotc-submission-trace-v1"
+  ]
 }

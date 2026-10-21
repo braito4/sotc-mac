@@ -55,30 +55,32 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = set()
+    states = {'before', 'previous', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
             raise BuildError('Refusing redirected GPU backport source.')
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        if digest == digests['before']:
-            states.add('before')
-        elif digest == digests['after']:
-            states.add('after')
-        else:
+        matches = {state for state in states if digest == digests.get(state)}
+        if not any(digest == value for value in digests.values()):
             raise BuildError('Unrecognized GPU backport source: ' + name)
-    if len(states) != 1:
+        states &= matches
+    if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return states.pop()
+    return next(state for state in ('after', 'previous', 'before') if state in states)
 
 
 def apply_backports(source):
-    if backport_state(source) == 'after':
+    state = backport_state(source)
+    if state == 'after':
         return
     # JSON lines preserve significant unified-diff blank context without adding
     # trailing whitespace to the public source files.
+    manifest = backport_manifest()
+    names = [name for name in manifest['patches']
+             if state != 'previous' or name not in manifest['previous_patches']]
     patches = ''.join('\n'.join(json.loads((PATCH_DIR / name).read_text())['lines']) + '\n'
-                      for name in backport_manifest()['patches'])
+                      for name in names)
     try:
         subprocess.run(['git', '-C', str(source), 'apply', '--check'], check=True,
                        input=patches, capture_output=True, text=True)
@@ -252,7 +254,10 @@ def verify_source(source):
             raise BuildError('Unexpected GPU source remote; preserving it unchanged.')
         if git_output(source, 'status', '--porcelain', '--untracked-files=no'):
             changed = set(git_output(source, 'diff', '--name-only', 'HEAD', '--').splitlines())
-            if changed != set(backport_manifest()['files']) or backport_state(source) != 'after':
+            state = backport_state(source)
+            expected = {name for name, digests in backport_manifest()['files'].items()
+                        if digests[state] != digests['before']}
+            if state not in ('previous', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -320,6 +325,7 @@ def build(root, runner, jobs, compiler):
     runner.run(['cmake', *PKGCONFIG_CACHE_CLEAR, '-S', source / 'gpu', '-B', output, '-G', 'Ninja',
                 '-DCMAKE_OSX_ARCHITECTURES=arm64', '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                 '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBB_LTO=OFF', '-DBB_PGO=off',
+                '-DSOTC_DIAGNOSTIC_INCLUDE_DIR=' + str(root / 'runtime/src'),
                 '-DCMAKE_PREFIX_PATH=' + str(prefix), '-DGLSLANG_COMPILER=' + str(compiler)], env=env)
     runner.run(['cmake', '--build', output, '--target', 'bbgpu', '--parallel', str(jobs)], env=env)
     library = output / 'libbbgpu.dylib'
@@ -340,6 +346,7 @@ def build(root, runner, jobs, compiler):
                   macos_minimum='15.0',
                   dependency_recipe_sha256=DEPS_SHA256,
                   renderer_backports=backport_manifest()['upstream_commits'],
+                  renderer_local_adaptations=backport_manifest().get('local_adaptations', []),
                   renderer_launched=False, game_frame_verified=False)
     private_path(work, 'gpu-build.json').write_text(json.dumps(report, indent=2) + '\n')
     print(f'GPU library built: {library}\nNo renderer was launched; loader integration and game video are still pending.')
