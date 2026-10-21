@@ -36,6 +36,7 @@ class GpuSupervisorTests(unittest.TestCase):
         self.assertIn(b"['two words', 'literal$`text`']", log)
         self.assertIn(b'GPU supervisor: finished', log)
         self.assertIn(b'child_returncode=20 exit=20', log)
+        self.assertRegex(log, rb'GPU supervisor: child_pid=[0-9]+\n')
 
     def test_natural_exit_with_large_output_has_a_conclusive_footer(self):
         result, log, _ = self.run_fixture("import os; os.write(1,b'payload\\n'*150000)")
@@ -158,6 +159,7 @@ time.sleep(30)
                 stdout=subprocess.PIPE,stderr=subprocess.PIPE)
             try:
                 self.assertIn(b'GPU supervisor:', child.stdout.readline())
+                self.assertRegex(child.stdout.readline(),rb'GPU supervisor: child_pid=[0-9]+\n')
                 self.assertEqual(child.stdout.readline(), b'READY\n')
                 child.send_signal(sig)
                 _, errors = child.communicate(timeout=5)
@@ -230,7 +232,36 @@ int main(void) {
         self.assertIn(b'STOP_GPU_WALL_TIMEOUT',data)
         self.assertIn(b'STOP_DIAGNOSTIC_CONTROL: parent requested termination',data)
         self.assertIn(b'child_returncode=21 exit=21',data)
+        self.assertRegex(data,rb'control_notice_seen=1 control_notice_after_request_ms=[0-9.]+')
         self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
+
+    def test_notice_is_distinct_from_observed_child_exit(self):
+        log = self.root/'notice-with-delayed-exit.log'
+        finished = self.root/'delayed-fixture-finished'
+        source = '''import os,pathlib,sys,time
+fd=int(os.environ['SOTC_DIAGNOSTIC_CONTROL_FD'])
+os.read(fd,1)
+os.write(2,b'STOP_DIAGNOSTIC_CONTROL: parent requested ')
+time.sleep(.02)
+os.write(2,b'termination\\n')
+time.sleep(2.5)
+pathlib.Path(sys.argv[1]).write_text('synthetic child reached self-exit')
+os._exit(21)
+'''
+        result = subprocess.run([sys.executable,str(RUNNER),'--seconds','1','--log',str(log),
+            '--cooperative-stop','--',sys.executable,'-c',source,str(finished)],
+            capture_output=True,timeout=6)
+        self.assertEqual(result.returncode,1,result.stderr)
+        data = log.read_bytes()
+        self.assertIn(b'child_returncode=None exit=1',data)
+        self.assertIn(b'cooperative stop: child exit not observed',data)
+        self.assertRegex(data,rb'control_notice_seen=1 control_notice_after_request_ms=[0-9.]+')
+        # The fixture finishes itself shortly after the supervisor's allowance;
+        # do not signal it or leave a delayed writer behind for another test.
+        deadline = time.monotonic()+3
+        while not finished.exists() and time.monotonic()<deadline:
+            time.sleep(.01)
+        self.assertTrue(finished.exists())
 
     def test_parent_drains_queued_output_during_cooperative_stop(self):
         log = self.root/'queued-output.log'
@@ -304,7 +335,11 @@ os._exit(21)
                     stdout=subprocess.PIPE,stderr=subprocess.PIPE)
                 try:
                     self.assertIn(b'stop_mode=cooperative',parent.stdout.readline())
-                    self.assertIn(b'parent cancellation channel ready',parent.stdout.readline())
+                    for _ in range(4):
+                        ready = parent.stdout.readline()
+                        if b'parent cancellation channel ready' in ready:
+                            break
+                    self.assertIn(b'parent cancellation channel ready',ready)
                     parent.send_signal(sig)
                     _, errors = parent.communicate(timeout=5)
                     self.assertEqual(parent.returncode,128+sig,errors)

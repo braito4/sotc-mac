@@ -84,7 +84,19 @@ def supervise(command, seconds, log_path, cooperative=False):
         interrupted = signum
 
     with open(log_path, 'xb', buffering=0) as log:
+        control_notice_at = None
+        notice_tail = b''
+
         def emit(data):
+            nonlocal control_notice_at, notice_tail
+            if control_notice_at is None:
+                combined = notice_tail + data
+                notices = (b'STOP_DIAGNOSTIC_CONTROL: parent requested termination\n',
+                           b'STOP_DIAGNOSTIC_CONTROL: parent channel closed\n',
+                           b'STOP_DIAGNOSTIC_CONTROL: channel read failed\n')
+                if any(notice in combined for notice in notices):
+                    control_notice_at = time.monotonic()
+                notice_tail = combined[-80:]
             log.write(data)
             sys.stdout.buffer.write(data)
             sys.stdout.buffer.flush()
@@ -101,6 +113,7 @@ def supervise(command, seconds, log_path, cooperative=False):
         control_read = control_write = None
         reason = None
         cleanup_error = None
+        stop_requested_at = None
         started = time.monotonic()
         try:
             deadline = started + seconds
@@ -112,6 +125,7 @@ def supervise(command, seconds, log_path, cooperative=False):
             child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                      bufsize=0, start_new_session=True, env=child_env,
                                      pass_fds=(control_read,) if cooperative else ())
+            emit(f'GPU supervisor: child_pid={child.pid}\n'.encode())
             if control_read is not None:
                 os.close(control_read)
                 control_read = None
@@ -158,6 +172,8 @@ def supervise(command, seconds, log_path, cooperative=False):
                 cleanup_stage = 'cooperative cancellation' if cooperative else 'process-group cancellation'
                 try:
                     if cooperative:
+                        if child.poll() is None:
+                            stop_requested_at = time.monotonic()
                         stop_cooperatively(child, control_write, emit)
                     else:
                         stop_group(child)
@@ -194,8 +210,12 @@ def supervise(command, seconds, log_path, cooperative=False):
             result = reason[0]
         else:
             result = child_status if child_status >= 0 else 128 - child_status
+        notice_delay = ('unknown' if control_notice_at is None or stop_requested_at is None else
+                        f'{(control_notice_at-stop_requested_at)*1000:.3f}')
         emit((f'GPU supervisor: finished elapsed={time.monotonic()-started:.3f}s '
-              f'child_returncode={child_status} exit={result}\n').encode())
+              f'child_returncode={child_status} exit={result} '
+              f'control_notice_seen={int(control_notice_at is not None)} '
+              f'control_notice_after_request_ms={notice_delay}\n').encode())
         return result
 
 

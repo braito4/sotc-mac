@@ -5,22 +5,26 @@ Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The latest instrumented comparison uses DMA
 off, asynchronous submission off, JIT on and a 30-second budget. It enters the main
-loop at about 1.34 seconds and records five flip-statistics windows, with no import
-stop, CPU-fault report or GPU-watchdog warning. After the deadline, cooperative
-cancellation cannot confirm child exit within its two-second allowance. The footer
-reports unknown child status and supervisor exit 1 after about 32.04 seconds. This
+loop at about 1.65 seconds and records five flip-statistics windows, with no import
+stop, CPU-fault report or GPU-watchdog warning. After the deadline, the native
+cancellation notice is now visible, but child exit remains unobserved within the
+two-second allowance. The footer reports unknown child status and supervisor exit
+1 after about 32.02 seconds. This
 is a failed stop, not confirmed process termination. The CSV retains 438 complete
-flip records through about 24.80 seconds from its first record, followed by a partial
+flip records through about 25.23 seconds from its first record, followed by a partial
 row. Presentation records do not establish image correctness or gameplay FPS.
 
 The POSIX sleep/time aliases from the preceding import stop remain corrected.
 Two CPU-only fixtures reproduce blocked cooperative shutdown with a full output
 pipe. The supervisor now drains output during its unchanged two-second exit wait;
 the native cancellation notice is best effort and nonblocking before self-exit.
-This addresses the reproduced failure mechanism, without establishing the cause
-of the native failure or confirming native recovery. Ensure the prior diagnostic
-has closed before another comparison. Preserve statistics, renderer settings and
-duration; dynamic shader reads stay blocked. See the
+This addresses the reproduced failure mechanism, but the subsequent native run
+still fails to confirm exit. The supervisor now records the child PID and the
+time it observes the native notice, separately from the actual child status.
+No exit delay, driver cause or recovery is inferred from acknowledgement alone.
+Confirm the prior process has ended before another instance, and investigate its
+exit phase. Preserve statistics, renderer settings and duration; dynamic shader
+reads stay blocked. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |

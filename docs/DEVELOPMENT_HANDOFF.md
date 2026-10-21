@@ -83,7 +83,49 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** after the POSIX clock-alias correction, the latest instrumented
+**Current result:** the latest run includes the output-backpressure correction and
+now emits `STOP_DIAGNOSTIC_CONTROL: parent requested termination`. The supervisor
+still fails to observe child exit within its two-second allowance. Its footer
+reports `child_returncode=None exit=1` after about 32.02 seconds. This is still a
+failed stop. The notice comes immediately before `_Exit` in our control thread;
+it proves that the reporting point was reached, not that the exit call completed
+or that the OS reaped the child. Neither a driver/kernel teardown cause nor an
+insufficient grace period is established. Do not increase timeouts as a remedy.
+
+The header retains DMA off, asynchronous submission off, JIT on, frame statistics
+on and the same 30-second budget. Initialization finishes at about 1.03 seconds
+and the main loop starts at about 1.65 seconds. There is no unresolved-import stop,
+CPU-fault report or GPU-watchdog warning. Five statistics windows and 438 complete
+CSV rows are retained, through about 25.23 seconds relative to the first row,
+followed by a partial row. Pixel correctness and image progression remain
+unreported. Errors persist: 48 PerVertexKHR errors, 259 Phi offset errors, 267
+SRT-walk failures, six compressed-format/usage errors and 7,423 buffer clamps.
+The DualSense is detected; no final input/audio summary is available.
+
+The supervisor now records `child_pid` before reading child output and appends
+`control_notice_seen` and `control_notice_after_request_ms` to its completion
+footer. The latter is a parent-side observation delay, including output delivery;
+it is not the child's exact cancellation latency, kernel teardown time or an
+exit acknowledgement. The existing child return code remains the exit evidence.
+A split-notice/delayed-self-exit synthetic fixture verifies that observing the
+notice still produces a failed stop while exit remains unknown. GPU settings,
+the wall budget, two-second allowance and no-signal-fallback policy are unchanged.
+No GPU run was launched for these logging changes.
+
+All 20 supervisor tests and four native diagnostic-budget tests pass after the
+logging change, using only synthetic processes/guests. The native control header
+and renderer are unchanged from the preceding backpressure correction.
+
+Before another GPU instance, confirm that the prior `probe_entry_arm64` process
+has ended. Window closure alone is insufficient when the supervisor cannot reap
+it. The next investigation needs the exit-phase process state/stack rather than
+another renderer flag. For a future supervised comparison, the private log's PID
+identifies the owned diagnostic in Activity Monitor. If it remains present after
+the failure, use Sample Process for that specific diagnostic and keep the report
+under ignored `work`. Record a sampling failure or an already-exited process as
+such; do not request elevated access or substitute external termination signals.
+
+**Earlier unacknowledged-stop checkpoint:** after the POSIX clock-alias correction, that instrumented
 run reaches its 30-second deadline without an import stop, CPU-fault report or GPU
 watchdog warning. Initialization finishes at about 0.91 seconds and the main loop
 starts at about 1.34 seconds. DMA and asynchronous submission remain off, with JIT
@@ -254,9 +296,9 @@ message. Keep other renderer settings unchanged and do not turn DMA back on.
 ### First-logo presentation trace
 
 The owner has run the pinned renderer's `BB_FRAME_STATS=1` instrumentation. The
-latest run's stop failure and the CPU-only cancellation correction are summarized
-above. After confirming the previous diagnostic has closed and completing the
-synthetic checks, the next single native Terminal comparison keeps that
+latest acknowledged-but-unconfirmed stop and the CPU-only logging changes are
+summarized above. After confirming the previous process has ended and preparing
+the exit-phase investigation, a future single native Terminal comparison keeps that
 instrumentation, the same 30-second budget, DMA off, asynchronous submission off
 and JIT on:
 
@@ -266,8 +308,8 @@ SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
   bash packaging/test-arm64.sh --graphics-game-test
 ```
 
-No additional GPU run was launched to correct cancellation backpressure. Use a native Terminal only
-after the prior diagnostic window has closed; inspect the resulting log before
+No additional GPU run was launched for the new observation fields. Use a native Terminal only
+after the prior diagnostic process has ended; inspect the resulting log before
 another comparison. The launcher chooses a private `frames.csv` inside this run's
 isolated GPU-state directory unless `BB_FRAME_LOG` is already specified. The
 supervisor records both settings and the CSV path in its header. Remove
@@ -287,8 +329,8 @@ the first logo remains, investigate image/resource contents; if the trace stops,
 investigate the submission/presentation waits. No result alone justifies skipping
 a fence, replacing a shader result with zero, increasing the budget or enabling
 DMA. The retained records establish some flip progress; they do not yet identify
-the cause of the earlier first-logo observation. Confirm the corrected cancellation
-path in one comparison before another renderer change.
+the cause of the earlier first-logo observation. Establish the exit-phase failure
+and confirm actual process termination before another renderer change.
 
 ## First session: inspect without GPU execution
 

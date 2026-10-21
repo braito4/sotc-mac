@@ -30,9 +30,10 @@
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
 > run reached its 120-second limit. A 30-second native comparison confirmed cooperative
 > child exit. After correcting a POSIX sleep import, the latest instrumented run
-> reaches its deadline but fails to confirm child exit. A reproduced output-pipe
-> deadlock is corrected using CPU fixtures; this still needs native confirmation.
-> Ensure the previous diagnostic has closed before another GPU comparison.
+> reaches its deadline and emits its native cancellation notice, but still fails
+> to confirm child exit. The output-pipe correction is insufficient to resolve
+> the whole native stop. Confirm the previous process has ended before another
+> GPU comparison; closing its window alone does not establish process exit.
 > See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
