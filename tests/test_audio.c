@@ -59,10 +59,16 @@ int main(int argc,char **argv) {
     assert((uint32_t)call(open,1,4,0,256,48000,1)==0x8026000a);
     assert((uint32_t)call(open,1,0,1,256,48000,1)==0x8026000a);
     assert((uint32_t)call(open,2,0,0,256,48000,1)==0x8026000a);
+    const int32_t invalid_users[]={-1,0,254,256};
+    for(unsigned i=0;i<sizeof(invalid_users)/sizeof(*invalid_users);++i)
+        assert((uint32_t)call(open,(uint32_t)invalid_users[i],0,0,256,48000,5)==0x8026000a);
     assert(!created);
-    open_fail=1;assert((uint32_t)call(open,1,0,0,256,48000,1)==0x80260010 && !created);open_fail=0;
-    resume_fail=1;assert((uint32_t)call(open,1,0,0,256,48000,1)==0x80260010);
+    open_fail=1;assert((uint32_t)call(open,255,0,0,256,48000,5)==0x80260010 && !created);open_fail=0;
+    resume_fail=1;assert((uint32_t)call(open,255,0,0,256,48000,5)==0x80260010);
     assert(created==1 && destroyed==1);resume_fail=0;
+    int32_t system=call(open,UINT64_C(0x1000000ff),0,0,256,48000,5);
+    assert(system>0 && received.channels==8 && received.format==0x8120 && received.frequency==48000);
+    assert(call(close,(uint32_t)system,0,0,0,0,0)==0);
     for(unsigned format=0;format<8;++format) {
         int32_t handle=call(open,1,0,0,256,48000,format);assert(handle>0);
         static const int channels[]={1,2,8,1,2,8,8,8};
@@ -72,12 +78,12 @@ int main(int argc,char **argv) {
         assert((uint32_t)call(close,(uint32_t)handle,0,0,0,0,0)==0x80260003);
     }
     int32_t handles[9];
-    for(int i=0;i<9;++i) { handles[i]=call(open,1,i==8,0,256,48000,1);assert(handles[i]>0); }
-    assert((uint32_t)call(open,1,0,0,256,48000,1)==0x80260005);
+    for(int i=0;i<9;++i) { handles[i]=call(open,i%2 ? 1:255,i==8,0,256,48000,1);assert(handles[i]>0); }
+    assert((uint32_t)call(open,255,0,0,256,48000,1)==0x80260005);
     assert((uint32_t)call(open,1,1,0,256,48000,1)==0x80260005);
     for(int i=0;i<9;++i) assert(call(close,(uint32_t)handles[i],0,0,0,0,0)==0);
     int32_t again=call(open,1,0,0,UINT64_C(0x100000100),UINT64_C(0x10000bb80),UINT64_C(0x100000001));
     assert(again>0 && again!=handles[0]);assert(call(close,(uint32_t)again,0,0,0,0,0)==0);
     assert(created==destroyed && *runtime_errno()==77);
-    puts("PASS: AudioOut guest init/open/close ABI, format negotiation, scope/validation, provider failures, capacity, stale handles and stream ownership contract");
+    puts("PASS: AudioOut guest init/open/close ABI, local/system users, format negotiation, scope/validation, provider failures, shared capacity, stale handles and stream ownership contract");
 }

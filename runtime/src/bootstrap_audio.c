@@ -42,7 +42,9 @@ static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frame
         : !frames || frames>2048 || (frames&255) ? AUDIO_ERROR(6)
         : freq!=48000 ? AUDIO_ERROR(8)
         : param>7 ? AUDIO_ERROR(7)
-        : user!=1 || type<0 || type>1 || index ? AUDIO_ERROR(0xa) : 0;
+        /* Main/BGM output may belong to the console system user (0xff),
+         * independently of the keyboard profile's signed-in local user. */
+        : (user!=1 && user!=255) || type<0 || type>1 || index ? AUDIO_ERROR(0xa) : 0;
     int slot=-1;
     if (!result) {
         for(int i=0;i<PORTS;++i) if (!ports[i].stream && ((type==0 && i<8)||(type==1 && i==8))) { slot=i;break; }

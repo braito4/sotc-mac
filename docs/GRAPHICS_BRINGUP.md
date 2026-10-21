@@ -290,7 +290,7 @@ thread starts before the unresolved AudioOut initialization call. No game frame 
 
 The next adapter connects only three scoped AudioOut calls: Init, Open and Close. SDL audio
 subsystem setup stays on the renderer main thread; only a ready CoreAudio backend is accepted.
-The guest service has checked one-time initialization, local-user main/BGM port validation,
+The guest service has checked one-time initialization, local/system-user main/BGM port validation,
 48 kHz formats and bounded stream capacity. Open must create/resume an actual SDL playback
 stream before returning a positive opaque handle; failure releases partial resources. Close
 owns stream destruction, and handles are not reused. There is no timer-only or dummy-device
@@ -313,6 +313,16 @@ the existing speculative-read recovery still passes. Audio initialization and th
 sixteen port-open attempts also report their arguments/results before a possible fatal exit.
 These are diagnostics, not a memory or audio repair. Re-run the command above in Terminal;
 keep its private log, including any AudioOut lines and the complete fatal report.
+
+The resulting Terminal report confirms Init succeeds, then Open rejects the system user
+(the pinned UserService header defines system ID 0xff). That restriction in the adapter was
+incorrect: global main/BGM streams now accept either the supported local user or the system
+user. Both identities share the existing port capacity and CoreAudio device requirements;
+other IDs remain outside this profile. Guest regression checks exercise a system-owned
+eight-channel floating-point stream, failed open/resume, close and shared mixed-user limits
+in JIT and interpreter. The subsequent faulting page has no host permissions and no GPU
+trap flags. The corrected open validation still needs a real combined run to establish
+whether startup proceeds; no memory protection is bypassed and no game frame is claimed.
 
 ## Verified CPU-side display contracts
 
