@@ -20,11 +20,22 @@ using `--contracts-test` for CPU/synthetic verification. See the
 [current comparison](../DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 `STOP_GPU_STALL` (exit 31) means the external supervisor saw a renderer
-`GPU watchdog:` message and stopped the process group. `STOP_GPU_WALL_TIMEOUT`
+`GPU watchdog:` message and requested termination. `STOP_GPU_WALL_TIMEOUT`
 (exit 21) is its wall deadline, including renderer startup; it is an observation
 boundary, not successful gameplay. The log retains child output and the reason for
 stopping. A normal child stop keeps its original exit status. Never automatically
 retry either stop; inspect the saved log first.
+
+`STOP_GPU_SUPERVISOR_CLEANUP` with `Operation not permitted` is a failed cleanup,
+not evidence that the game exited. A `child_returncode=None` footer means no exit
+status was observed. Do not start another instance while the previous diagnostic
+window is still open. The owned probe and Metal check now use `--cooperative-stop`:
+an inherited cancellation pipe asks a native host thread to exit its own process.
+It is established before GPU initialization and also reacts to parent-channel
+closure. This mode does not send external process signals or seek elevated
+permissions. If cooperative confirmation fails, the supervisor reports failure;
+it does not retry the denied signal path. System/driver hangs remain outside its
+guarantees. Generic process-group mode remains for synthetic process fixtures.
 
 `GPU supervisor: finished` records the child return code, supervisor exit code and
 elapsed time, including natural child exits that have no STOP message. A deadline

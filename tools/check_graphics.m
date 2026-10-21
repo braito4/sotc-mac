@@ -5,12 +5,14 @@
 #import <Metal/Metal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../runtime/src/diagnostic_control.h"
 static int unavailable(const char *stage, NSError *error) {
     fprintf(stderr, "STOP_HOST_GRAPHICS: %s%s%s\n", stage, error ? ": " : "",
             error ? error.localizedDescription.UTF8String : "");
     return 24;
 }
 int main(void) {
+    if (sotc_diagnostic_control_start()) return 28;
     @autoreleasepool {
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
         if (!device) {

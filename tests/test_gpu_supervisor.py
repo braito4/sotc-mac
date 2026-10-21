@@ -2,6 +2,7 @@
 from pathlib import Path
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -74,7 +75,8 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
                                     capture_output=True,timeout=5)
             self.assertEqual(result.returncode,1,result.stderr)
             data = log.read_bytes()
-            self.assertIn(b'STOP_GPU_SUPERVISOR_CLEANUP: synthetic cleanup error',data)
+            self.assertIn(b'STOP_GPU_SUPERVISOR_CLEANUP:',data)
+            self.assertIn(b'process-group cancellation: synthetic cleanup error',data)
             self.assertIn(b'child_returncode=0 exit=1',data)
 
     def test_silent_child_stops_at_parent_wall_deadline(self):
@@ -175,6 +177,84 @@ time.sleep(30)
             self.assertEqual(result.returncode,1,result.stderr)
             self.assertEqual(log.read_bytes(),b'keep previous evidence\n')
             self.assertNotIn(b'MUST_NOT_RUN',result.stdout)
+
+
+@unittest.skipUnless(os.name == 'posix' and shutil.which('cc'), 'native C compiler required')
+class CooperativeDiagnosticTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temporary = tempfile.TemporaryDirectory(prefix='cooperative native fixture ')
+        cls.root = Path(cls.temporary.name)
+        source = cls.root/'fixture.c'
+        cls.binary = cls.root/'fixture'
+        source.write_text('''#include "diagnostic_control.h"
+#include <signal.h>
+int main(void) {
+    if (sotc_diagnostic_control_start()) return 28;
+    signal(SIGTERM,SIG_IGN);
+    for (;;) pause();
+}
+''')
+        subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-pthread',
+            '-I'+str(ROOT/'runtime/src'),str(source),'-o',str(cls.binary)],
+            check=True,capture_output=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temporary.cleanup()
+
+    def test_native_child_accepts_cooperative_deadline_despite_ignored_term(self):
+        log = self.root/'deadline.log'
+        result = subprocess.run([sys.executable,str(RUNNER),'--seconds','1','--log',str(log),
+            '--cooperative-stop','--',str(self.binary)],capture_output=True,timeout=5)
+        self.assertEqual(result.returncode,21,result.stderr)
+        data = log.read_bytes()
+        self.assertIn(b'stop_mode=cooperative',data)
+        self.assertIn(b'STOP_GPU_WALL_TIMEOUT',data)
+        self.assertIn(b'STOP_DIAGNOSTIC_CONTROL: parent requested termination',data)
+        self.assertIn(b'child_returncode=21 exit=21',data)
+        self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
+
+    def test_parent_pipe_closure_stops_native_child(self):
+        read_fd, write_fd = os.pipe()
+        child = subprocess.Popen([str(self.binary)],pass_fds=(read_fd,),
+            env=dict(os.environ,SOTC_DIAGNOSTIC_CONTROL_FD=str(read_fd)),
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        os.close(read_fd)
+        os.close(write_fd)
+        _, errors = child.communicate(timeout=5)
+        self.assertEqual(child.returncode,21,errors)
+        self.assertIn(b'parent channel closed',errors)
+
+    def test_native_child_handles_parent_cancellation(self):
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            with self.subTest(signal=sig):
+                log = self.root/('cancel-'+str(sig)+'.log')
+                parent = subprocess.Popen([sys.executable,str(RUNNER),'--seconds','5',
+                    '--log',str(log),'--cooperative-stop','--',str(self.binary)],
+                    stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                try:
+                    self.assertIn(b'stop_mode=cooperative',parent.stdout.readline())
+                    self.assertIn(b'parent cancellation channel ready',parent.stdout.readline())
+                    parent.send_signal(sig)
+                    _, errors = parent.communicate(timeout=5)
+                    self.assertEqual(parent.returncode,128+sig,errors)
+                    data = log.read_bytes()
+                    self.assertIn(b'parent requested termination',data)
+                    self.assertIn(f'child_returncode=21 exit={128+sig}'.encode(),data)
+                    self.assertNotIn(b'STOP_GPU_SUPERVISOR_CLEANUP',data)
+                finally:
+                    if parent.poll() is None:
+                        parent.kill()
+                    parent.communicate(timeout=5)
+
+    def test_invalid_control_fd_fails_before_startup(self):
+        for value in ('','0','1','2','-1','bad','2147483648','99999999999999999999'):
+            with self.subTest(value=value):
+                result = subprocess.run([str(self.binary)],capture_output=True,timeout=5,
+                    env=dict(os.environ,SOTC_DIAGNOSTIC_CONTROL_FD=value))
+                self.assertEqual(result.returncode,28,result.stderr)
+                self.assertIn(b'STOP_DIAGNOSTIC_CONTROL: invalid cancellation pipe',result.stderr)
 
 
 if __name__ == '__main__':

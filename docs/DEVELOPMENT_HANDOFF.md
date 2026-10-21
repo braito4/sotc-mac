@@ -93,9 +93,13 @@ SRT-walk failures and 996 buffer clamps remain; message counts are not distinct
 shaders and cannot be compared as performance or correctness improvements.
 
 `tools/run_gpu_diagnostic.py` now supervises the combined process in a separate
-session. Its wall budget includes renderer startup. On any `GPU watchdog:` message,
-it stops the child group (exit 31); deadline expiration returns 21. Cancellation
-is forwarded and recorded. TERM escalates to KILL after a short grace period.
+session. Its wall budget includes renderer startup. Owned diagnostics now receive
+cancellation through an inherited pipe and exit themselves from a native monitor
+thread. The channel is validated/started before renderer initialization. A GPU
+watchdog stop returns 31; deadline expiration returns 21 after confirming child exit.
+Parent cancellation or parent-pipe closure also requests self-exit. The launcher
+uses `--cooperative-stop` and never escalates to external signals in this mode.
+Generic process-group signaling remains available for synthetic process fixtures.
 The child exit status is otherwise preserved, output is mirrored into a new private
 log, and there is no retry. This is an additional user-space stop, not protection
 against a frozen kernel/driver. The standalone Metal prerequisite uses a separate
@@ -115,13 +119,30 @@ errors, 267 SRT-walk failures, six compressed-texture usage errors and 7,788 buf
 clamps. Its larger command counts and error counts do not establish better FPS,
 worse rendering, scene entry or a causal benefit from the submission setting.
 
-The supervisor now persists a stop decision before cleanup and always records
+The supervisor persists a stop decision before cleanup and records
 the observed child status, supervisor exit code and elapsed time on its normal
 completion paths. Natural exits, busy output, child signal statuses and timeout
 cleanup output are covered with synthetic processes. The earlier missing footer
 cannot be reconstructed retrospectively. No additional GPU test was launched for
-this change. Retain the same settings for the next observed comparison; change no
-other renderer switch. The reference command is:
+this change.
+
+The next native log now confirms the deadline decision at 30 seconds, followed by
+`STOP_GPU_SUPERVISOR_CLEANUP: Operation not permitted`. Its footer reports child
+status unknown and supervisor exit 1 after about 30.56 seconds. This establishes a
+cleanup failure, not confirmed child termination. It again reaches the main loop
+(about 1.38 seconds), with no import stop, CPU-fault report or GPU-watchdog message.
+The GPU shader/resource failures remain. The earlier generic error did not identify
+the exact cleanup syscall; stage-specific errors are now recorded as well.
+
+The owned probe and Metal check use the cooperative channel to avoid depending on
+external signal permission. This does not elevate privileges, retry denied signals
+through another API or guarantee recovery from a kernel/driver hang. CPU-only
+native fixtures check deadlines despite ignored TERM, parent cancellation, parent
+channel closure and invalid descriptors. Synthetic infinite guests verify the
+actual probe's channel in JIT and interpreter before its longer own alarm.
+No new GPU run is used for this change. Child exit under real GPU load still needs
+native verification. Ensure the preceding diagnostic window has closed before one
+more run; retain these exact settings and change no renderer switch:
 
 ```sh
 SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
@@ -211,6 +232,7 @@ precheck in that process is not evidence that the user's GPU is unsupported.
 | Build/test orchestration | `packaging/test-arm64.sh`; compiler flags, source lists, isolated modes, log capture |
 | Input preparation | `tools/prepare_game.py`, `tools/prepare_linked_arm64.py`; private BBPROBE images and original module/TLS metadata |
 | Host entry and stops | `runtime/src/probe_entry_arm64.c`; image mapping, relocations, initializer order, watchdog, import/fault reporting |
+| Cooperative cancellation | `tools/run_gpu_diagnostic.py`, `runtime/src/diagnostic_control.h`; owned pipe, native child monitor, self-exit and parent status confirmation |
 | Import policy | `runtime/src/bootstrap_contracts.c`; scoped namespace mappings and capability gates |
 | CPU context and vector support | `bootstrap_cpu_context.c`, `bootstrap_cpu_vector.c`; pinned bbcpu adapters and explicit extensions |
 | Threads/TLS/fibers | `bootstrap_threads.c`, `bootstrap_tls.c`, `bootstrap_keys.c`, `bootstrap_fibers.c` |

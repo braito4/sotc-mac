@@ -46,3 +46,23 @@ class DiagnosticBudgetTests(unittest.TestCase):
                     self.assertEqual(result.returncode,21,result.stdout+result.stderr)
                     self.assertIn('Diagnostic watchdog: 1 seconds',result.stdout)
                     self.assertIn('STOP_TIMEOUT: diagnostic budget exhausted',result.stderr)
+
+    def test_parent_cooperatively_stops_real_guest_before_its_own_alarm(self):
+        with tempfile.TemporaryDirectory(prefix='cooperative guest ') as directory:
+            root = Path(directory)
+            boot = root/'loop.bin'
+            image = bytes.fromhex('ebfe')+bytes(16382)
+            boot.write_bytes(struct.pack('<8s9Q',b'BBPROBE2',16384,0,1,0,0,0,0,16384,5)+image)
+            for mode in ('0','1'):
+                with self.subTest(mode=mode):
+                    log = root/('jit'+mode+'.log')
+                    result = subprocess.run([os.sys.executable,str(ROOT/'tools/run_gpu_diagnostic.py'),
+                        '--seconds','1','--log',str(log),'--cooperative-stop','--',str(PROBE),str(boot)],
+                        capture_output=True,text=True,timeout=6,
+                        env=dict(os.environ,SOTC_DIAGNOSTIC_SECONDS='10',BB_JIT=mode,
+                                 BB_DMEM_MB='16',BB_DMEM_EXTRA_MB='0'))
+                    self.assertEqual(result.returncode,21,result.stdout+result.stderr)
+                    data = log.read_text()
+                    self.assertIn('STOP_DIAGNOSTIC_CONTROL: parent requested termination',data)
+                    self.assertIn('child_returncode=21 exit=21',data)
+                    self.assertNotIn('STOP_TIMEOUT: diagnostic budget exhausted',data)

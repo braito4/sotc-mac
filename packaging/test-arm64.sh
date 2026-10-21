@@ -291,7 +291,7 @@ case "$trial_mode" in
         mkdir -p "$trial_root/work" "$trial_root/logs"
         clang -arch arm64 -O2 -Wall -Wextra -Werror -fobjc-arc -framework Foundation -framework Metal \
             "$trial_root/tools/check_graphics.m" -o "$trial_root/work/check_graphics"
-        python3 "$trial_root/tools/run_gpu_diagnostic.py" --seconds 10 \
+        python3 "$trial_root/tools/run_gpu_diagnostic.py" --seconds 10 --cooperative-stop \
             --log "$trial_root/logs/metal-smoke-$(date -u +%Y%m%dT%H%M%SZ).log" \
             -- "$trial_root/work/check_graphics"
         ;;
@@ -334,7 +334,7 @@ case "$trial_mode" in
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \
-            --seconds "${SOTC_DIAGNOSTIC_SECONDS:-120}" --log "$trial_log" \
+            --seconds "${SOTC_DIAGNOSTIC_SECONDS:-120}" --log "$trial_log" --cooperative-stop \
             -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
             --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib"
         then trial_status=0; else trial_status=$?; fi

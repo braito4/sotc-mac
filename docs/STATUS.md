@@ -5,9 +5,11 @@ Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The latest 30-second comparison uses DMA off
 and asynchronous submission off. It records GPU activity without an import stop,
-CPU-fault report or GPU-watchdog warning, but lacks a final exit marker. Its exit
-cause remains unknown. The earlier 120-second run ended at its diagnostic timeout.
-Dynamic shader reads stay blocked. See the
+CPU-fault report or GPU-watchdog warning. Its footer now confirms a deadline followed
+by an OS refusal during external cleanup; child exit is unconfirmed. Owned
+diagnostics now use cooperative cancellation, verified with CPU-only fixtures.
+The earlier 120-second run ended at its diagnostic timeout. Dynamic shader reads
+stay blocked. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 | Area | Verified scope |
@@ -1271,3 +1273,29 @@ exit and a busy child that prints during timeout cleanup, alongside the existing
 signal/status/cancellation tests. This addresses the logging ambiguity; it does
 not identify the cause of the preceding exit or repair shaders. No new GPU run is
 used to verify the change. Keep the same 30-second settings for the next observation.
+
+## Cleanup denial observed; cooperative cancellation added (2026-10-21)
+
+The newest native log retains DMA off, asynchronous submission off and the
+30-second budget. The main loop starts at about 1.38 seconds with a DualSense and
+Metal activity. No unresolved import, CPU-fault report or GPU-watchdog warning is
+recorded. The footer now shows the wall deadline, cleanup failure with Operation
+not permitted, unknown child status and supervisor exit 1 after about 30.56 seconds.
+This confirms failed cleanup rather than successful termination. It does not prove
+the preceding incomplete log had the same cause. Shader/resource errors remain.
+
+Owned diagnostics now validate an inherited cancellation pipe before starting the
+renderer. A detached native host thread waits on that pipe; a parent request or
+channel closure makes the child exit itself, preserving the existing immediate
+diagnostic-exit policy. The parent waits for status and reports failure if it
+cannot confirm exit. Cooperative mode does not send external signals, elevate
+privileges or fall back to denied signaling. Errors now identify the cleanup stage.
+Process-group mode remains available for synthetic process fixtures.
+
+CPU-only native tests cover a deadline despite ignored TERM, parent cancellation,
+parent-channel closure and invalid descriptors. Actual synthetic infinite guests
+exit through the new channel in JIT and interpreter before their own longer alarm.
+The full runtime contracts pass. No new GPU run is used for validation, and neither
+this channel nor an alarm guarantees recovery from a kernel/driver hang. Confirm
+that the preceding window has closed before one further identical 30-second
+observation; no renderer flag or dependency pin changed.

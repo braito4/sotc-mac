@@ -7,6 +7,7 @@
  */
 #include "bbcpu.h"
 #include "bootstrap_contracts.h"
+#include "diagnostic_control.h"
 #include "platform.h"
 #include "runtime.h"
 #include <inttypes.h>
@@ -175,6 +176,7 @@ static void *run_guest(void *opaque) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    if (sotc_diagnostic_control_start()) return 28;
     /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
     if (argc == 3 && !strcmp(argv[1], "--gpu-load-check"))
         return bootstrap_gpu_load_check(argv[2]);
