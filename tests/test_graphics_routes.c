@@ -1,17 +1,72 @@
 /* Synthetic provider routing/ownership checks; no renderer or game input. */
 #include "bootstrap_contracts.h"
+#include "bbcpu.h"
+#include "runtime.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 static int missing_wait, calls;
 static void marker(void) {}
+/* Synthetic provider packet writers; public PM4 NOP debug-marker layout.
+ * Actual pinned renderer/original-module comparisons are separate checks. */
+static int32_t marker_push(uint32_t *out,uint32_t size,const char *label) {
+    if (!out || !label) return -1;
+    size_t len=strlen(label);uint32_t payload=(uint32_t)(((len+8)>>2)+((len+12)>>3)*2);
+    if(size!=payload+2) return -1;
+    uint32_t head[2]={UINT32_C(0xc0001000)|(payload<<16),UINT32_C(0x68750001)};
+    memcpy(out,head,8);memcpy((unsigned char *)out+8,label,len+1);
+    memset((unsigned char *)out+9+len,0,payload*4-len-1);return 0;
+}
+static int32_t marker_pop(uint32_t *out,uint32_t size) {
+    if(!out || size!=6) return -1;
+    const uint32_t packet[6]={UINT32_C(0xc0041000),UINT32_C(0x68750002),0,0,0,0};
+    memcpy(out,packet,sizeof(packet));return 0;
+}
+static uintptr_t marker_bridge(uintptr_t target) {
+    unsigned char *code=runtime_low_map(16384,PROT_READ|PROT_WRITE);assert(code);
+    code[0]=0x48;code[1]=0xb8;memcpy(code+2,&target,8);code[10]=0xff;code[11]=0xe0;
+    bbcpu_add_guest_code((uintptr_t)code,16384);return (uintptr_t)code;
+}
+static void check_marker_packets(uintptr_t push,uintptr_t pop) {
+    unsigned char output[2048],expected[2048];char label[256];
+    *runtime_errno()=17;
+    for(unsigned len=0;len<256;++len) {
+        for(unsigned i=0;i<len;++i) label[i]=(char)('A'+i%26);
+        label[len]=0;
+        const uint32_t payload=((len+8)>>2)+((len+12)>>3)*2,size=payload+2;
+        memset(expected,0xa5,sizeof(expected));
+        uint32_t header=UINT32_C(0xc0001000)|(payload<<16),tag=UINT32_C(0x68750001);
+        memcpy(expected+1,&header,4);memcpy(expected+5,&tag,4);
+        memset(expected+9,0,payload*4);memcpy(expected+9,label,len+1);
+        memset(output,0xa5,sizeof(output));
+        uint64_t args[]={(uintptr_t)(output+1),UINT64_C(0x1234000000000000)|size,(uintptr_t)label};
+        assert((int32_t)bbcpu_call(push,3,args)==0 && !memcmp(output,expected,sizeof(output)));
+        memset(output,0xa5,sizeof(output));args[1]=size+1;
+        assert((int32_t)bbcpu_call(push,3,args)==-1);
+        for(unsigned i=0;i<sizeof(output);++i) assert(output[i]==0xa5);
+    }
+    const uint64_t invalid_push[][3]={{0,6,1},{1,6,0}};
+    for(unsigned i=0;i<2;++i) assert((int32_t)bbcpu_call(push,3,invalid_push[i])==-1);
+    memset(output,0xa5,sizeof(output));memset(expected,0xa5,sizeof(expected));
+    const uint32_t packet[6]={UINT32_C(0xc0041000),UINT32_C(0x68750002),0,0,0,0};
+    memcpy(expected+1,packet,sizeof(packet));
+    const uint64_t args[]={(uintptr_t)(output+1),UINT64_C(0x1234000000000006),1,3,5,7};
+    assert((int32_t)bbcpu_call(pop,6,args)==0 && !memcmp(output,expected,sizeof(output)));
+    const uint64_t invalid_pop[][2]={{0,6},{1,5},{1,7}};
+    for(unsigned i=0;i<3;++i) assert((int32_t)bbcpu_call(pop,2,invalid_pop[i])==-1);
+    assert(*runtime_errno()==17);
+}
 static uintptr_t resolver(const char *name) {
     ++calls;
+    if(!strcmp(name,"W1Etj-jlW7Y#A#B")) return (uintptr_t)marker_push;
+    if(!strcmp(name,"7qZVNgEu+SY#A#B")) return (uintptr_t)marker_pop;
     if (missing_wait && !strcmp(name, "fzyMKs9kim0#0#F")) return 0;
     return (uintptr_t)marker;
 }
 int main(void) {
     bootstrap_initialize(1);
+    assert(!bootstrap_resolve("W1Etj-jlW7Y#A#B",0) && !bootstrap_resolve("7qZVNgEu+SY#A#B",0));
     const uintptr_t original = bootstrap_resolve("D0OdFMjp46I#0#F", 0);
     assert(original && !bootstrap_graphics_owns("D0OdFMjp46I#0#F"));
     assert(bootstrap_graphics_bind(NULL) == -1);
@@ -49,5 +104,16 @@ int main(void) {
     assert(bootstrap_resolve("kGVLc3htQE8#G#H", 0) != (uintptr_t)marker);
     missing_wait = 1;
     assert(!bootstrap_resolve("fzyMKs9kim0#0#F", 0)); /* Never fall back to CPU queues. */
+    const char *marker_names[]={"W1Etj-jlW7Y#A#B","7qZVNgEu+SY#A#B"};uintptr_t markers[2];
+    for(unsigned i=0;i<2;++i) {
+        assert(bootstrap_graphics_owns(marker_names[i]));
+        assert(!bootstrap_resolve(marker_names[i],1));
+        bootstrap_initialize(0);assert(!bootstrap_resolve(marker_names[i],0));bootstrap_initialize(1);
+        markers[i]=marker_bridge(bootstrap_resolve(marker_names[i],0));
+    }
+    assert(!bootstrap_resolve("W1Etj-jlW7Y#G#H",0) && !bootstrap_resolve("7qZVNgEu+SY#G#H",0));
+    check_marker_packets(markers[0],markers[1]);
+    puts("PASS: scoped push/pop marker guest ABI, exact PM4 headers/payload/padding for 256 lengths, unaligned output guards, 32-bit sizes, invalid arguments and errno");
     puts("PASS: atomic graphics provider activation, strict scopes, queue ownership, ABI exclusions and no headless fallback");
+    return 0;
 }

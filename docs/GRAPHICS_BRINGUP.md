@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and reaches VideoOutSetWindowModeMargins.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and passes the window-margin response and reaches GnmInsertPushMarker in a job worker.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and reaches VideoOutSetWindowModeMargins.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and passes the window-margin response and reaches GnmInsertPushMarker in a job worker.
 been verified.
 
 ## Network-control availability
@@ -463,7 +463,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and reaches VideoOutSetWindowModeMargins.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and passes the window-margin response and reaches GnmInsertPushMarker in a job worker.
 
 ## Keyboard-controller light-bar availability
 
@@ -481,7 +481,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and reaches VideoOutSetWindowModeMargins.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and passes the vibration denial and passes the window-margin response and reaches GnmInsertPushMarker in a job worker.
 
 ## Standalone system status
 
@@ -501,7 +501,7 @@ and confirms the same complete output. The graphics-loader fixture verifies ever
 byte after initializing the destination to a nonzero pattern. Actual game continuation
 after this query is confirmed in Terminal, including processing the local login event.
 The SaveData initialization failure now returns in Terminal; the next unresolved import is
-sceVideoOutSetWindowModeMargins on main after the save-dialog NONE query and vibration denial.
+sceGnmInsertPushMarker in a job worker after the window-margin response.
 
 ## Savedata availability
 
@@ -518,7 +518,7 @@ Initialize3 wrapper comparison injects backend INTERNAL and checks propagation t
 the original error conversion without reading the optional parameter. The synthetic
 graphics loader also continues after the response in both modes. Terminal confirms actual
 continuation after this initialization failure; Save Task Thread now reaches
-VideoOutSetWindowModeMargins after the save-dialog NONE query and vibration denial. No game frame is verified.
+GnmInsertPushMarker after the window-margin response. No game frame is verified.
 
 ## Uninitialized savedata directory search
 
@@ -555,7 +555,7 @@ uninitialized result and continues in both modes. Actual game continuation after
 context-creation response is confirmed in Terminal. Only context creation was called there;
 the other five paths remain synthetic/original checks. The next boundary is
 AppContent initialization, which now also returns in Terminal. The current boundary is
-sceVideoOutSetWindowModeMargins after the vibration denial; game video is unverified.
+sceGnmInsertPushMarker after the window-margin response; game video is unverified.
 
 ## AppContent module availability
 
@@ -573,7 +573,7 @@ module availability in both CPU modes. A private comparison executes both suppli
 original exports with absent module references and no dependency-helper replacement,
 confirming the same paths. The graphics-loader fixture continues after the initialization
 error in both modes. Terminal confirms actual continuation after initialization; the add-on
-list was not called. Terminal also passes SaveDataDialogGetStatus (NONE); the vibration denial also returns; the next boundary is VideoOutSetWindowModeMargins.
+list was not called. Terminal also passes SaveDataDialogGetStatus (NONE); the vibration denial also returns; the window-margin response also returns; the next boundary is GnmInsertPushMarker.
 No game frame is verified.
 
 ## Absent save-dialog status
@@ -590,7 +590,7 @@ the supplied original status exports with an absent instance and native serializ
 dependencies; their status logic is unchanged and gives the same result. The synthetic
 graphics loader also continues after both queries in both modes. Actual game continuation
 after GetStatus is confirmed in Terminal; UpdateStatus was not called there. The next
-unresolved import is now sceVideoOutSetWindowModeMargins after the vibration denial; game video remains unverified.
+unresolved import is now sceGnmInsertPushMarker after the window-margin response; game video remains unverified.
 
 ## Keyboard-controller vibration availability
 
@@ -607,7 +607,7 @@ stale handles/registers, capability/scope and unchanged input/errno in both CPU 
 private supplied-wrapper comparison checks exact two-byte reads and motor byte ordering
 and propagation of an injected device-output denial. Actual game continuation after this
 new adapter is confirmed in Terminal; one request returns without output. The next boundary
-is sceVideoOutSetWindowModeMargins; no game frame is verified.
+is sceGnmInsertPushMarker after the window-margin response; no game frame is verified.
 
 ## Unsupported output-window margins
 
@@ -625,4 +625,23 @@ calls to a synthetic success stub in both modes. A private supplied-module compa
 uses a controlled main-port lookup with margin support disabled and confirms unsupported
 precedence, handle errors and port release without any output ioctl. The graphics-loader
 fixture also checks rejection before a display has opened. Actual game continuation with
-this response still requires Terminal verification; no game frame is verified.
+this response is confirmed in Terminal. The next unresolved import is sceGnmInsertPushMarker
+in a job worker; no game frame is verified.
+
+## GNM debug-scope packet writers
+
+The graphics-only allowlist now routes the exact scoped sceGnmInsertPushMarker and
+sceGnmInsertPopMarker imports to the pinned renderer's existing typed implementations.
+These write actual PM4 NOP debug-scope packets into the caller's command buffer; they
+do not submit work, draw, compile a shader or signal a flip. Push uses its required
+length-dependent packet size, string terminator and zero padding; Pop requires six dwords.
+Invalid required pointers or sizes preserve the provider's failure return. Headless mode
+continues to leave these imports unresolved.
+
+Guest routing tests check scope/capability gating, exact packet headers/tags/payload/padding
+for 256 synthetic string lengths, unaligned output guards, 32-bit sizes, argument failures
+and errno in both CPU modes. Separate private checks execute the supplied original
+exports and the actual pinned ARM64 GPU library's encoders through the guest ABI against
+the same byte-level expectations. Both match without renderer initialization or GPU
+submission. No upstream source or library rebuild is required. Actual game continuation
+after the marker call still requires Terminal verification; game video remains unverified.

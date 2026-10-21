@@ -123,6 +123,8 @@ static const char *const graphics_imports[] = {
     "N1bEoJ4SRw4#G#H",
     /* Real compute mapping, command encoding, submission and completion.
      * Retail resource registration retains its existing checked failure path. */
+    /* Pure PM4 debug-scope packet writers, not successful submissions/draws. */
+    "W1Etj-jlW7Y#A#B", "7qZVNgEu+SY#A#B",
     "29oKvKXzEZo#A#B", "ArSg-TGinhk#A#B", "bX5IbRvECXk#A#B",
     "zwY0YV91TTI#A#B", "xbxNatawohc#A#B", "yvZ73uQUqrk#A#B",
     "Idffwf3yh8s#A#B", "QhnyReteJ1M#A#B", "0H2vBYbTLHI#A#B",
