@@ -39,12 +39,12 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| AudioOut streams/state/PCM | Scoped lifecycle, live SDL device-state queries and single/batch PCM submission; synthetic byte/channel ordering, batch ABI/errors, cadence, bounded queues/drains and loader integration pass in both modes; Terminal opens three real streams and passes state/self calls; Terminal accepts sustained PCM submissions without output errors; initialization finishes and the startup script reaches NetCtlInit; audible playback unverified |
+| AudioOut streams/state/PCM | Scoped lifecycle, live SDL device-state queries and single/batch PCM submission; synthetic byte/channel ordering, batch ABI/errors, cadence, bounded queues/drains and loader integration pass in both modes; Terminal opens three real streams and passes state/self calls; Terminal accepts sustained PCM submissions without output errors; initialization and the startup script pass NetCtlInit; the main loop begins; audible playback unverified |
 | Launch-splash availability | Scoped no-argument HideSplashScreen returns the supplied original module's absent launch-control error; repeated calls, ignored stale arguments, scopes, buffers/errno and loader continuation pass in both modes; Terminal continues after the response; no splash dismissal or game frame claimed |
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
-| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker submits PCM to SDL without errors and starts the stream scheduler; main passes the absent launch-control and NP title responses, finishes initialization and starts the startup script, reaching NetCtlInit; the unavailable network-control response is now covered |
+| Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker submits PCM to SDL without errors and starts the stream scheduler; main passes the absent launch-control and NP title responses, finishes initialization and starts the main loop and Shadow Game Update after the unavailable NetCtl response; SoundSystemSndx reaches Getthreadid |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -91,7 +91,7 @@ read, stored or logged, and no online/account state is fabricated. Synthetic gue
 loader tests pass in both modes; isolated supplied original exports confirm the same
 uninitialized paths without original module initialization. Terminal confirms title-response
 continuation; the optional restriction branch was not taken. The language query now passes
-in Terminal; initialization finishes and the startup script reaches NetCtlInit. This run no longer reproduces the audio configuration SIGBUS.
+in Terminal; initialization and the startup script pass NetCtlInit; the main loop begins. This run no longer reproduces the audio configuration SIGBUS.
 
 The new scoped state adapter queries the actual SDL device bound to a live owned stream.
 It reports the logical primary route and available channel count, with the retail main/BGM
@@ -397,10 +397,11 @@ threads, passes original gesture initialization and opens the keyboard-backed co
 then starts save/trophy tasks, creates/uses a thread key and passes UUID generation. The
 latest run loads NGS2, opens three real audio streams, passes two device-state queries and
 the thread-self alias, then starts the stream scheduler and submits PCM to SDL before stopping
-at NetCtlInit after finishing initialization and starting the startup script.
+at scePthreadGetthreadid in SoundSystemSndx after world loading begins, the main loop starts
+and Shadow Game Update is created.
 Title and adjacent content-restriction uninitialized paths pass guest/original/loader checks;
-the optional restriction branch was not taken in Terminal. No keyboard sample, audible sound
-or game frame has been verified. The private graphics image preserves original executable bytes;
+the optional restriction branch was not taken in Terminal. Four keyboard samples are recorded; audible sound
+and game frames remain unverified. The private graphics image preserves original executable bytes;
 unsupported sensors, vibration and physical gamepads remain unresolved.
 
 The combined path passes synthetic JIT/interpreter checks, including linked initialization,
@@ -443,7 +444,8 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script. The next unresolved import is NetCtlInit; no game frame has been verified.
+script and main loop. SoundSystemSndx then reaches scePthreadGetthreadid; no game frame has
+been verified.
 
 ## Network-control availability
 
@@ -454,4 +456,18 @@ scopes/capability and unchanged buffers/errno in both CPU modes. A private suppl
 check injects this error at IPC-client creation and confirms that the original initializer
 propagates it, unlocks and leaves the client absent; this is a dependency-failure comparison,
 not a successful original service startup. The synthetic graphics loader also continues
-after this response in both modes. Actual game continuation requires Terminal verification.
+after this response in both modes. Terminal confirms actual continuation through world-load
+progress into the main loop, creation of Shadow Game Update and four keyboard samples.
+
+## Numeric thread identity
+
+The exact kernel-scoped scePthreadGetthreadid adapter returns a positive 32-bit numeric
+identity for the current native-backed guest thread. IDs are assigned once, remain stable
+through waits and destructor callbacks, differ between concurrent threads and are never
+reused within the process. They are separate from ScePthread handles and macOS thread IDs;
+no pointer or 64-bit host ID is truncated. Exhaustion stops explicitly instead of wrapping.
+The supplied original export confirms a no-argument ABI and a 32-bit descriptor ID read.
+Synthetic guest tests cover main/worker identity, stale registers, concurrent uniqueness,
+post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
+This does not change CPU context switching or make guest handles into original kernel
+structures. Actual game continuation after this import requires Terminal verification.

@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 static uintptr_t code;
+static uint64_t main_numeric_id;
 static uintptr_t host(const char *name) { uintptr_t result = bootstrap_resolve(name, 0); assert(result); return result; }
 typedef int32_t (*Create)(void **, void **, uintptr_t, void *, const char *);
 typedef int32_t (*Join)(void *, void **);
@@ -42,6 +43,7 @@ static void *join_competitor(void *opaque) {
 }
 static void initialize_fixture(ThreadFixture *f, ThreadShared *shared, uint64_t tag) {
     *f = (ThreadFixture){
+        .numeric_id_fn=host("EI-5-jlq2dE#0#F"),
         .tls_fn = host("vNe1w4diLCs#0#F"), .self_fn = host("EotR8a3ASf4#0#F"),
         .join_fn = (uintptr_t)join, .exit_fn = host("3kg7rT0NQIs#0#F"),
         .errno_fn = host("9BcDykPmo1I#0#F"), .lock_fn = (uintptr_t)lock_guest,
@@ -54,6 +56,8 @@ static void initialize_fixture(ThreadFixture *f, ThreadShared *shared, uint64_t 
     };
 }
 static void check_fixture(const ThreadFixture *f, void *handle) {
+    assert(f->numeric_id_start>0 && f->numeric_id_start<=INT32_MAX);
+    assert(f->numeric_id_start==f->numeric_id_end && f->numeric_id_start!=main_numeric_id);
     assert(!f->errors && f->self == (uintptr_t)handle && f->tcb && f->dtv && f->dtv_valid);
     assert(f->tcb < (UINT64_C(1) << 40) && f->tls < (UINT64_C(1) << 40));
     assert(f->stack_pointer < (UINT64_C(1) << 40));
@@ -87,6 +91,9 @@ int main(int argc, char **argv) {
     assert(!bootstrap_resolve("6UgtwV+0zb4#1#u", 0) && !bootstrap_resolve("6UgtwV+0zb4#0#F", 1));
     assert(bootstrap_resolve("geDaqgH9lTg#0#F", 0));
     assert(!bootstrap_resolve("EotR8a3ASf4#1#u",0) && !bootstrap_resolve("EotR8a3ASf4#0#F",1));
+    bootstrap_initialize(0);assert(!bootstrap_resolve("EI-5-jlq2dE#0#F",0));bootstrap_initialize(1);
+    assert(!bootstrap_resolve("EI-5-jlq2dE#1#u",0) && !bootstrap_resolve("EI-5-jlq2dE#0#F",1));
+    assert(!bootstrap_resolve("EI-5-jlq2dE#p#F",0)); /* Kernel scope only. */
     static const uint64_t main_tls[4] = {0, 0, 0x1122334455667788ULL, 0};
     static const uint64_t libc_tls = 0xaabbccddeeff0011ULL;
     static const uint32_t fios_tls = 0x13572468;
@@ -110,6 +117,10 @@ int main(int argc, char **argv) {
     code = (uintptr_t)runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(code);
     assert(sizeof(thread_fixture_code) < 16384); memcpy((void *)code, thread_fixture_code, sizeof(thread_fixture_code));
     bbcpu_add_guest_code(code, sizeof(thread_fixture_code));
+    const uint64_t numeric_argument[]={host("EI-5-jlq2dE#0#F")};
+    main_numeric_id=bbcpu_call(code+thread_numeric_identity_offset,1,numeric_argument);
+    assert(main_numeric_id>0 && main_numeric_id<=INT32_MAX && *runtime_errno()==77);
+    assert(bbcpu_call(code+thread_numeric_identity_offset,1,numeric_argument)==main_numeric_id);
     const char *self_names[]={"EotR8a3ASf4#0#F","EotR8a3ASf4#p#F","aI+OeCz8xrQ#0#F"};
     const uintptr_t parent_identity=(uintptr_t)((void *(*)(void))host("aI+OeCz8xrQ#0#F"))();
     assert(parent_identity);
@@ -148,6 +159,7 @@ int main(int argc, char **argv) {
     assert(lock_guest(&shared.mutex) == 0);
     while (shared.ready < 2) assert(wait_guest(&shared.condition, &shared.mutex) == 0);
     assert(bootstrap_tls_live_blocks() == 6 && bootstrap_threads_live() == 2);
+    assert(a.numeric_id_start!=b.numeric_id_start);
     assert(a.tls != b.tls && a.tcb != b.tcb && a.dtv != b.dtv && a.other_tls != b.other_tls);
     assert(a.tls != (uintptr_t)parent_tls && a.other_tls != (uintptr_t)parent_other && a.tcb != parent.tcb);
     shared.release = 1;
@@ -162,6 +174,7 @@ int main(int argc, char **argv) {
     BbCpu after; bootstrap_cpu_save(&after);
     assert(after.tcb == parent.tcb && after.mxcsr == parent.mxcsr);
 
+    const uint64_t retired_ids[]={a.numeric_id_start,b.numeric_id_start};
     /* POSIX entry points and detached completion use the same checked backend. */
     int32_t (*posix_create)(void **, void **, uintptr_t, void *) = (void *)host("OxhIB8LB-PQ#p#F");
     Join posix_join = (Join)host("h9CcP3J0oVM#p#F");
@@ -170,6 +183,7 @@ int main(int argc, char **argv) {
     assert(posix_create(&one, NULL, code + thread_worker_offset, &a) == 0);
     assert(posix_join(one, &result) == 0 && (uintptr_t)result == 303 + 0x2000);
     check_fixture(&a, one);
+    assert(a.numeric_id_start!=retired_ids[0] && a.numeric_id_start!=retired_ids[1]);
     int32_t (*detach)(void *) = (void *)host("4qGrR6eoP9Y#0#F");
     shared.ready = 0; shared.release = 0; initialize_fixture(&a, &shared, 404);
     assert(create(&one, NULL, code + thread_worker_offset, &a, "fixture-detach") == 0);
@@ -204,5 +218,5 @@ int main(int argc, char **argv) {
     bootstrap_unmount_game_root(); assert(unlink(path) == 0 && rmdir(root) == 0);
     assert(key_delete(key) == 0);
     alarm(0);
-    puts("PASS: guest threads return/exit/join/detach, kernel/POSIX self aliases and handle identity, independent TLS/keys/errno, guest key destructors with live TLS and four-pass rearming, DTV, low stacks, inherited FPU, synchronization and read-only I/O");
+    puts("PASS: guest threads return/exit/join/detach, kernel/POSIX self aliases, handle identity and stable unique numeric IDs (main/workers/destructors), independent TLS/keys/errno, guest key destructors with live TLS and four-pass rearming, DTV, low stacks, inherited FPU, synchronization and read-only I/O");
 }

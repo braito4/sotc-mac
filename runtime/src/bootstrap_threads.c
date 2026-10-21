@@ -118,6 +118,26 @@ static ABI int32_t checked_posix_create_name(GuestThread **t, ThreadAttr **a, Gu
     return posix(checked_create(t, a, e, arg, name));
 }
 static ABI int32_t checked_posix_join(GuestThread *t, void **result) { return posix(checked_join(t, result)); }
+/* Numeric thread IDs are distinct from opaque ScePthread handles. The retail
+ * no-argument export returns a 32-bit current-thread ID. Allocate positive,
+ * process-unique guest IDs; never truncate a pointer or macOS's 64-bit ID.
+ * IDs follow the native-backed guest thread, survive callbacks/fiber switches
+ * on that thread and are never recycled during this process. */
+static uint64_t next_numeric_id=1;
+static _Thread_local int32_t numeric_id;
+static ABI int32_t thread_numeric_id(void) {
+    (void)runtime_thread_current();
+    if (!numeric_id) {
+        pthread_mutex_lock(&lock);
+        if (next_numeric_id>INT32_MAX) {
+            fputs("STOP: diagnostic guest thread ID space exhausted\n",stderr);
+            _Exit(23);
+        }
+        numeric_id=(int32_t)next_numeric_id++;
+        pthread_mutex_unlock(&lock);
+    }
+    return numeric_id;
+}
 uintptr_t runtime_thread_resolve(const char *name) {
     const uintptr_t key = bootstrap_keys_resolve(name);
     if (key) return key;
@@ -126,6 +146,7 @@ uintptr_t runtime_thread_resolve(const char *name) {
          * SotC's #0#F scope normalizes to #p#J; share the guest thread identity
          * with both existing self exports, never return native pthread_t. */
         {"EotR8a3ASf4#p#J", thread_self},
+        {"EI-5-jlq2dE#p#J", thread_numeric_id},
         {"6UgtwV+0zb4#p#J", checked_create}, {"onNY9Byn-W8#p#J", checked_join},
         {"4qGrR6eoP9Y#p#J", checked_detach}, {"3kg7rT0NQIs#p#J", checked_exit},
         {"OxhIB8LB-PQ#I#J", checked_posix_create}, {"Jmi+9w9u0E4#I#J", checked_posix_create_name},

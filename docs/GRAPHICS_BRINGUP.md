@@ -328,7 +328,7 @@ the restricted stream, starts sndx_out_thread and passes two GetPortState querie
 worker passes the kernel/POSIX thread-self alias and starts the stream scheduler before
 submitting PCM to SDL. Terminal confirms sustained accepted buffers with no output errors;
 main passes HideSplashScreen and the NP title response, then finishes initialization and
-starts the startup script, reaching NetCtlInit.
+starts the main loop and Shadow Game Update after world-loading progress.
 
 Output/Outputs validate the full batch before staging samples: initialized service, 1..25
 16-byte descriptors, live owned non-duplicate handles, equal buffer sizes and readable input.
@@ -369,7 +369,7 @@ the graphics loader in both modes. An isolated supplied original export gives th
 error with no launch-control context and a supplied SDK lookup, without original module
 initialization. The real combined run continues after this response while PCM submission
 continues through the NP title response, then finishes initialization and starts the startup
-script, reaching NetCtlInit.
+script and reaches the main loop after world-loading progress.
 
 ## NP availability
 
@@ -383,7 +383,7 @@ CPU modes. An isolated supplied original manager confirms those paths without in
 the synthetic graphics loader also exercises both responses and continues in both modes.
 Terminal confirms continuation after the title response; the optional restriction call was
 not taken. The language query now passes in Terminal; initialization finishes and the startup script
-reaches NetCtlInit.
+passes NetCtlInit and reaches the main loop.
 
 ## Verified CPU-side display contracts
 
@@ -415,7 +415,8 @@ passes original gesture initialization, keyboard pad open, UUID generation, thre
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
-the startup script after finishing initialization. Its next boundary is NetCtlInit.
+the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
+then stops at scePthreadGetthreadid.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -435,7 +436,8 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script. The next unresolved import is NetCtlInit; no game frame has been verified.
+script and main loop. SoundSystemSndx then reaches scePthreadGetthreadid; no game frame has
+been verified.
 
 ## Network-control availability
 
@@ -446,4 +448,18 @@ scopes/capability and unchanged buffers/errno in both CPU modes. A private suppl
 check injects this error at IPC-client creation and confirms that the original initializer
 propagates it, unlocks and leaves the client absent; this is a dependency-failure comparison,
 not a successful original service startup. The synthetic graphics loader also continues
-after this response in both modes. Actual game continuation requires Terminal verification.
+after this response in both modes. Terminal confirms actual continuation through world-load
+progress into the main loop, creation of Shadow Game Update and four keyboard samples.
+
+## Numeric thread identity
+
+The exact kernel-scoped scePthreadGetthreadid adapter returns a positive 32-bit numeric
+identity for the current native-backed guest thread. IDs are assigned once, remain stable
+through waits and destructor callbacks, differ between concurrent threads and are never
+reused within the process. They are separate from ScePthread handles and macOS thread IDs;
+no pointer or 64-bit host ID is truncated. Exhaustion stops explicitly instead of wrapping.
+The supplied original export confirms a no-argument ABI and a 32-bit descriptor ID read.
+Synthetic guest tests cover main/worker identity, stale registers, concurrent uniqueness,
+post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
+This does not change CPU context switching or make guest handles into original kernel
+structures. Actual game continuation after this import requires Terminal verification.

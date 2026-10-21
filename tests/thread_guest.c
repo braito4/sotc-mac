@@ -3,7 +3,13 @@
 typedef int (*Lock)(void **);
 typedef int (*Wait)(void **, void **);
 TWord thread_identity(TWord self_fn) { return ((TWord (*)(void))self_fn)(); }
+TWord thread_numeric_identity(TWord fn) {
+    int first=((int (*)(void))fn)();
+    int again=((int (*)(TWord,TWord,TWord,TWord,TWord,TWord))fn)(1,~0ULL,3,5,7,9);
+    return first>0 && first==again ? (TWord)first : 0;
+}
 void thread_key_destructor(ThreadFixture *f) {
+    f->destructor_errors |= thread_numeric_identity(f->numeric_id_fn)!=f->numeric_id_start;
     if (!f->destructor_limit) {
         ((void (*)(void *))f->exit_fn)((void *)0xdead);
         __asm__ volatile("ud2");
@@ -29,6 +35,8 @@ void *thread_worker(ThreadFixture *f) {
     __asm__ volatile("movq %%fs:-16, %0" : "=r"(f->initial_static));
     __asm__ volatile("movq %%rsp, %0" : "=r"(f->stack_pointer));
     __asm__ volatile("stmxcsr %0" : "=m"(f->inherited_mxcsr));
+    f->numeric_id_start=thread_numeric_identity(f->numeric_id_fn);
+    f->errors |= !f->numeric_id_start;
     f->self = (TWord)((void *(*)(void))f->self_fn)();
     f->self_join_error = (unsigned int)((int (*)(void *, void **))f->join_fn)((void *)f->self, (void **)0);
     TWord index[] = {2, 0};
@@ -53,6 +61,8 @@ void *thread_worker(ThreadFixture *f) {
     f->errors |= ((Lock)f->signal_fn)(&f->shared->condition) != 0;
     while (!f->shared->release)
         f->errors |= ((Wait)f->wait_fn)(&f->shared->condition, &f->shared->mutex) != 0;
+    f->numeric_id_end=thread_numeric_identity(f->numeric_id_fn);
+    f->errors |= f->numeric_id_end!=f->numeric_id_start;
     f->errors |= *tls != f->tag || *other_tls != f->tag + 200 || *error != (int)f->tag;
     __asm__ volatile("movq %%fs:-16, %0" : "=r"(f->final_static));
     f->errors |= ((Lock)f->unlock_fn)(&f->shared->mutex) != 0;
