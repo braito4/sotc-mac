@@ -12,6 +12,19 @@ static _Atomic size_t safe_area_requests;
 static _Atomic size_t uuid_requests;
 static _Atomic size_t splash_requests;
 static _Atomic size_t language_requests;
+static _Atomic size_t status_requests;
+static int32_t system_status(void *out) {
+    atomic_fetch_add_explicit(&status_requests,1,memory_order_relaxed);
+    if (!out) return (int32_t)UINT32_C(0x80a10003);
+    /* Standalone logical application profile: no PS4 system events, shell
+     * overlay, background-execution mode, CPU mode 7, broadcast or VR area.
+     * This describes the diagnostic profile, not host window focus, the
+     * renderer overlay or a connection to PS4 shell/launch-control services.
+     * Retail clears the entire 136-byte status, including reserved storage. */
+    const unsigned char status[136]={0};
+    memcpy(out,status,sizeof(status));
+    return 0;
+}
 static int32_t system_param(int32_t id, int32_t *out) {
     /* Narrow local profile: English (US), matching the retail language
      * fallback. No PS4 settings service or host-language inference. Other
@@ -57,11 +70,14 @@ static int32_t display_safe_area(void *info) {
 uintptr_t bootstrap_system_resolve(const char *name) {
     if (!strcmp(name, "1n37q1Bvc5Y#a#a")) return (uintptr_t)display_safe_area;
     if (!strcmp(name, "Xjoosiw+XPI#0#F")) return (uintptr_t)create_uuid;
+    if (!strcmp(name, "rPo6tV8D9bM#a#a")) return (uintptr_t)system_status;
     if (!strcmp(name, "fZo48un7LK4#a#a")) return (uintptr_t)system_param;
     if (!strcmp(name, "Vo5V8KAwCmk#a#a")) return (uintptr_t)hide_splash;
     return 0;
 }
 void bootstrap_system_report(void) {
+    printf("Bootstrap: system status queries=%zu (standalone foreground profile; no PS4 shell/events)\n",
+           atomic_load_explicit(&status_requests,memory_order_relaxed));
     printf("Bootstrap: system language queries=%zu (local English-US profile; other settings unsupported)\n",
            atomic_load_explicit(&language_requests,memory_order_relaxed));
     printf("Bootstrap: logical display safe-area queries=%zu (ratio=1.0; no host display)\n",

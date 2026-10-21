@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-passes numeric thread identity; main then stops at scePadSetLightBar.
+passes numeric thread identity; main passes scePadSetLightBar and then stops at sceSystemServiceGetStatus.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. Numeric thread identity now passes; main reaches scePadSetLightBar. No game frame has
+script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and reaches sceSystemServiceGetStatus. No game frame has
 been verified.
 
 ## Network-control availability
@@ -462,8 +462,8 @@ The supplied original export confirms a no-argument ABI and a 32-bit descriptor 
 Synthetic guest tests cover main/worker identity, stale registers, concurrent uniqueness,
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
-structures. Terminal confirms continuation after numeric thread identity; main now reaches
-scePadSetLightBar.
+structures. Terminal confirms continuation after numeric thread identity and the light-bar
+denial; main now reaches sceSystemServiceGetStatus.
 
 ## Keyboard-controller light-bar availability
 
@@ -480,4 +480,23 @@ unreadable input, 32-bit handle width, stale extra arguments, initialization/nul
 ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU modes.
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
-actual continuation with the new adapter still requires Terminal verification.
+Terminal confirms continuation after the light-bar denial. The next import is
+sceSystemServiceGetStatus.
+
+## Standalone system status
+
+The exact-scoped one-pointer sceSystemServiceGetStatus adapter describes the diagnostic's
+standalone foreground application profile: no PS4 system-event queue, shell overlay,
+background-execution mode, CPU mode 7, broadcast or VR play-area state. It does not infer
+host window focus or treat the renderer menu as PS4 system UI. This local metadata does
+not initialize PS4 shell or launch-control services, dismiss a splash or establish video.
+
+The supplied retail status wrapper initializes **136 bytes**, including reserved storage;
+the reference port's shorter 12-byte write is not used. The adapter writes the complete
+zero profile and returns PARAMETER for null output. Synthetic guest tests cover repeated
+calls, exact output/reserved bytes, unaligned and protected-page boundaries, extra stale
+arguments, null error, scope/capability and errno in both CPU modes. A private supplied
+wrapper comparison uses synthetic same-foreground-app/empty-event helper dependencies
+and confirms the same complete output. The graphics-loader fixture verifies every status
+byte after initializing the destination to a nonzero pattern. Actual game continuation
+after this import requires Terminal verification.

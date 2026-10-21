@@ -569,6 +569,34 @@ static void test_unavailable_np_restriction(void) {
     check_unavailable_np_restriction(guest_bridge(fn));
     puts("PASS: NP content-restriction one-pointer guest ABI, init-before-structure/size validation, repeated errors, scopes and unchanged inputs/errno");
 }
+static void check_system_status(uintptr_t entry) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *guard=mmap(NULL,page*3,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);
+    assert(guard!=MAP_FAILED && !mprotect(guard+page,page,PROT_READ|PROT_WRITE));
+    *runtime_errno()=17;
+    const size_t offsets[]={page+1,page*2-136};
+    for(unsigned round=0;round<3;++round) for(unsigned slot=0;slot<2;++slot) {
+        memset(guard+page,0xa5,page);
+        const uint64_t args[]={(uintptr_t)(guard+offsets[slot]),UINT64_MAX,1,3,5,7};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0);
+        for(size_t i=page;i<page*2;++i)
+            assert(guard[i]==(i>=offsets[slot] && i<offsets[slot]+136 ? 0 : 0xa5));
+        assert(*runtime_errno()==17);
+    }
+    assert(!munmap(guard,page*3));
+}
+static void test_system_status(void) {
+    const char *name="rPo6tV8D9bM#a#a";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("rPo6tV8D9bM#V#W",0) && !bootstrap_resolve("rPo6tV8D9bM#0#F",0));
+    const uintptr_t entry=guest_bridge(fn);
+    const uint64_t args[]={0};
+    *runtime_errno()=17;
+    assert((uint32_t)bbcpu_call(entry,1,args)==0x80a10003 && *runtime_errno()==17);
+    check_system_status(entry);
+    puts("PASS: standalone system-status one-pointer guest ABI, exact 136-byte profile/reserved output, unaligned/guarded boundaries, null error, scopes and errno");
+}
 static void check_system_language(uintptr_t entry) {
     unsigned char buffer[12], before[12];
     memset(before,0xa5,sizeof(before));
@@ -705,6 +733,7 @@ int main(void) {
     test_unavailable_dialogs();
     test_unavailable_splash();
     test_system_language();
+    test_system_status();
     bootstrap_initialize(1);
     const char *name = "hHrGoGoNf+s#F#G";
     const uintptr_t fn = bootstrap_resolve(name, 0); assert(fn);
