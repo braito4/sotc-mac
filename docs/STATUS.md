@@ -1044,3 +1044,32 @@ All four forms reject an undefined range explicitly in each mode. Existing SSE4a
 CPUID advertisement is retained. No x86 hardware oracle or Rosetta is used.
 Only the host diagnostic needs rebuilding; the existing GPU library is unchanged.
 A Terminal rerun must establish the next boundary and any actual visible output.
+
+## SSE4a range compatibility and isolated fragment diagnosis
+
+The next Terminal run passes the formerly unsupported EXTRQ instructions and reaches
+our strict range guard instead. It enters the main loop at 1.3778 seconds and reports
+a 612-draw/2,366-dispatch per-second sample plus 151 compiled pipelines. The queue
+overflow and duplicate-location errors remain absent in this run. None of these
+counters verifies game pixels or FPS.
+
+AMD leaves fields extending beyond bit 63 undefined. The adapter now follows QEMU
+v10.1.0's explicit shift/mask/truncate policy for EXTRQ and INSERTQ instead of stopping
+on those controls. All host shifts remain defined, including zero length (64) and
+nonzero indices. This is a compatibility decision, not a claim about original Jaguar
+hardware behavior. The bit-by-bit scalar regression now covers every six-bit control
+combination: 524,288 cases per mode. A private comparison against QEMU's actual helper
+functions matches in both modes. Native CPU checks and full contracts pass. No GPU
+rebuild is required for this host change.
+
+A separate public synthetic fragment diagnostic uses the installed Sirit/SPIRV-Cross
+libraries without a GPU or game. Ordinary fragment input converts; raw per-vertex
+input selecting vertex one reproduces the known PerVertexKHR rejection (exit 2).
+This isolates a compiler/interface limitation; it does not correct it. Advertised
+Vulkan barycentric support cannot be taken as proof that this MSL conversion is
+supported. The shader's vertex-selection semantics must be preserved in a future
+solution. SRT, texture usage and visible-frame verification remain open.
+
+The user's preferred upstream reference is bloodborne-mac and its runtime/recomp
+projects; this policy is recorded in AGENTS.md and the development handoff. Existing
+source pins remain unchanged.

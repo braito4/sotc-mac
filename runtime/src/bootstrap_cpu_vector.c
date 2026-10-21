@@ -16,8 +16,11 @@
  * https://docs.amd.com/v/u/en-US/26568_3.27_APM_Vol4_PUB
  * Zydis describes the written destination as 64 bits, not an entire XMM.
  * Preserve undefined bits 64..127 as a deterministic diagnostic choice and
- * preserve the architectural legacy-SSE upper YMM half. Undefined bit ranges
- * stop explicitly; do not rely on undefined C shifts to implement them. */
+ * preserve the architectural legacy-SSE upper YMM half. For ranges extending
+ * past bit 63, use QEMU v10.1.0's shift/mask/truncate compatibility policy:
+ * https://github.com/qemu/qemu/blob/v10.1.0/target/i386/ops_sse.h
+ * AMD leaves these results undefined; this is not a hardware guarantee.
+ * All host shifts remain defined (index < 64 and full-width masks special-cased). */
 static void sse4a_field(BbCpu *cpu, const BbInsn *in) {
     const int insert = in->mnemonic == ZYDIS_MNEMONIC_INSERTQ;
     const int immediate = in->count == (insert ? 4 : 3);
@@ -47,7 +50,6 @@ static void sse4a_field(BbCpu *cpu, const BbInsn *in) {
         index = source.b[byte+1] & 63;
     }
     if (!length) length = 64;
-    if (index + length > 64) bbcpu_fatal(cpu, in, "undefined SSE4a bit range");
     const uint64_t mask = length == 64 ? UINT64_MAX : (UINT64_C(1) << length) - 1;
     cpu->v[dst->reg].q[0] = insert ?
         (original.q[0] & ~(mask << index)) | ((source.q[0] & mask) << index) :

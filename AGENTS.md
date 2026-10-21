@@ -3,6 +3,7 @@
 This repository develops a native ARM64 macOS diagnostic for Shadow of the Colossus PS4.
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
 Use docs/DEVELOPMENT_HANDOFF.md for the current reproduction steps, stopping boundary and debugging priorities; keep it current when those change.
+Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred upstream reference when resolving doubts. Follow its runtime/recomp links and review relevant changes against our pins; do not assume Bloodborne-specific layouts apply to SotC or silently update dependencies.
 
 - Maintain code in runtime/src, tests, tools and packaging. work, game and logs are private
   local output/input; never promote their generated content into Git.

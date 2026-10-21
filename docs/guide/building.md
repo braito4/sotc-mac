@@ -53,8 +53,8 @@ alongside the runtime contracts. These include guest user-event queues with leve
 notifications, timeouts and concurrent deletion. Neither command needs game files or Rosetta.
 
 Both commands also run synthetic EXTRQ/INSERTQ register/immediate checks in JIT and
-interpreter, covering every defined six-bit field range and explicit rejection of
-undefined ranges. These use a scalar bit oracle, not native x86 hardware execution.
+interpreter, covering every six-bit control pair, including the explicit QEMU-compatible policy
+for architecturally undefined overrunning fields. These use a scalar bit oracle, not native x86 hardware execution.
 
 The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
 lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters
@@ -183,3 +183,16 @@ next combined run must verify the newly connected SDL CoreAudio Init/Open/Close 
 The adapter requires an actual stream for a successful open and has no silent fallback.
 Downstream PCM submission is still unresolved; sound remains unverified. No save/trophy
 operation or keyboard sample has been verified by merely starting those task threads.
+
+## Isolating the raw per-vertex fragment limitation
+
+After the isolated GPU dependencies are built, run:
+
+```sh
+python3 tools/check_fragment_interface.py
+```
+
+This uses Sirit and the installed SPIRV-Cross MSL compiler without a GPU or game.
+Exit 0 means both synthetic interfaces convert; exit 2 reproduces the currently known
+PerVertexKHR limitation after ordinary-input conversion succeeds. Other failures are
+errors. It does not validate driver compilation, pixels or a semantic workaround.

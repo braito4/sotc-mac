@@ -16,21 +16,22 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run completes initialization at 926.8211 milliseconds and
-enters the main loop at 1.3763 seconds. Metal reports a sample of 1,017 draws and
-3,145 dispatches per second. These are renderer activity counters, not FPS or correct
-pixels. Neither the previous queue overflow nor duplicate `locn0` error appears in
-this run. Execution now stops at an unsupported EXTRQ CPU instruction.
+The last native Terminal run completes initialization at 946.4805 milliseconds and
+enters the main loop at 1.3778 seconds. Metal reports a sample of 612 draws and 2,366
+dispatches per second, and a cache write reports 151 compiled pipelines. These are
+activity counters, not FPS or correct pixels. Neither the previous queue overflow
+nor duplicate `locn0` error appears. The next stop is our strict EXTRQ range guard,
+not an unsupported instruction: the game requests a field extending beyond bit 63.
 
-EXTRQ and INSERTQ are now implemented through the existing ARM64-compiled interpreter
-fallback used by the JIT. Both register and immediate forms have synthetic coverage;
-continuation after this CPU fix still needs Terminal verification. The GPU backports
-remain in place; no additional GPU rebuild is required for this CPU change. See the
-[upstream review](UPSTREAM_REVIEW.md) for provenance and its follow-up observation.
+The CPU adapter now uses QEMU v10.1.0's shift/mask/truncate policy for those EXTRQ and
+INSERTQ ranges. AMD leaves them undefined; this is an explicit compatibility choice,
+not a hardware guarantee. Both modes cover all six-bit controls. Continuation after
+this policy adjustment needs another Terminal run. No GPU rebuild is needed.
 
-A new renderer error reports `PerVertexKHR decoration is not supported in MSL` and
-skips affected pipelines. SRT Phi offset failures, buffer clamps and compressed
-texture usage errors also persist. Correct game pixels remain unverified.
+The renderer still reports `PerVertexKHR decoration is not supported in MSL`, skips
+affected pipelines, and has SRT Phi, buffer-clamp and compressed-texture errors.
+The new isolated fragment-interface diagnostic reproduces the MSL compiler limitation
+without game data or a GPU. Correct pixels remain unverified.
 
 ## First session: reproduce the boundary
 
@@ -141,20 +142,24 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Verify continuation after the SSE4a batch.** The latest stop was EXTRQ, not an
-   unresolved import. The scoped vector extension now covers EXTRQ and INSERTQ in
-   register/immediate forms through the existing fallback. The native suite and
-   full contracts check 266,240 defined cases per mode against a bit-by-bit oracle,
-   including aliasing, high registers, controls, flags and full-width fields. AMD
-   leaves bits 64..127 undefined; this diagnostic preserves them. Undefined ranges
-   stop explicitly. No hardware x86 oracle is claimed. Do not hide the existing
-   SSE4a CPUID feature merely to skip game code.
+1. **Verify continuation after the SSE4a compatibility adjustment.** The last stop
+   was our explicit range guard. EXTRQ/INSERTQ now match QEMU v10.1.0 for truncated
+   out-of-range fields as well as AMD-defined ranges. Tests cover 524,288 cases per
+   mode against a bit-by-bit oracle; a private comparison also executes QEMU's actual
+   scalar helpers. No native x86/AMD hardware oracle is claimed. Preserve architectural
+   flags and upper YMM state; upper XMM quadword preservation remains a diagnostic
+   choice for bits AMD leaves undefined.
 2. **MSL fragment interface support.** The newest log has 31 `PerVertexKHR` conversion
-   failures and skips affected pipelines. Trace why the fragment input receives that
-   decoration and whether its semantic contract can be represented on Metal. Do not
-   just remove the decoration to make compilation succeed. The earlier duplicate
-   auxiliary tessellation location error is absent in this run, and its synthetic
-   regression remains available. This does not prove every tessellation path works.
+   failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
+   installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
+   reading vertex one fails. Exit 2 means the known limitation is reproduced; it does
+   not mean shader support passed. Neither case initializes a GPU. The Vulkan device
+   advertises fragment barycentrics, but this alone does not prove the selected MSL
+   conversion path supports raw vertex arrays. Trace `V_INTERP_MOV_F32` and
+   `Qualifier::PerVertex` through `vector_interpolation.cpp` and
+   `spirv_emit_context.cpp`. Do not remove the decoration or substitute interpolated
+   input without preserving the requested vertex selection. The earlier duplicate
+   auxiliary location error is absent; not every tessellation path is verified.
 3. **SRT resource tracking.** `flatten_extended_userdata_pass.cpp` fails offset
    computation on `Phi` and then fails its SRT walk. Investigate predecessor/value
    handling and resource provenance in the recompiler. Buffer-size clamps may relate
@@ -220,7 +225,7 @@ release of 257 real aliases, 8,193 mixed FIFO events, callbacks outside the regi
 lock, reentry, reuse, count rollback, absent hooks and explicit allocation/capacity
 failure. `tests/test_prepare_memory.py` checks the restricted transformation and
 rejection of changed upstream input. The SSE4a fixture is `tests/test_cpu_sse4a.c`, run by both `--test` and
-`--contracts-test`, including explicit undefined-range exits in all four forms.
+`--contracts-test`, including the documented QEMU-compatible truncation policy in all four forms.
 The GPU-only auxiliary emitter regression is `python3 tools/check_tessellation.py`;
 it needs the isolated build but neither a GPU device nor game data. Backport source
 checks are part of `tests/test_gpu_build.py`. Other graphics regressions are split across
@@ -252,4 +257,17 @@ with this repository. Keep game content read-only and do not access saves.
 Update this page when the observed stopping boundary or reproduction command changes.
 Separate what was seen in Terminal, what synthetic tests establish, what is only a
 hypothesis and what remains unverified. A successful next run should replace the
-queue-overflow boundary above with its actual result, including any timeout.
+current EXTRQ range-guard boundary above with its actual result, including any timeout.
+
+## Preferred upstream reference
+
+The user explicitly selected [bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac/)
+as the reference when resolving development doubts. Start there and follow its
+[runtime](https://github.com/bloodborne-native/bloodborne-runtime) and
+[recomp](https://github.com/bloodborne-native/bloodborne-recomp) sources for the actual
+implementation. Check relevant current commits against our pins before adapting code.
+Keep source provenance and tests, and reject Bloodborne-specific object/layout
+assumptions for SotC. This preference does not authorize unreviewed dependency bumps.
+When the reference lacks an implementation, document another primary source explicitly;
+the SSE4a overrun policy here follows
+[QEMU v10.1.0](https://github.com/qemu/qemu/blob/v10.1.0/target/i386/ops_sse.h).

@@ -1,7 +1,9 @@
 /* Synthetic SSE4a machine code and independent bit-by-bit scalar oracle.
  * AMD APM volume 4 revision 3.27, EXTRQ/INSERTQ. No hardware x86 oracle,
  * game bytes or Rosetta. Undefined upper XMM bits are checked only against
- * this diagnostic's explicit preservation policy, not an architectural value. */
+ * this diagnostic's explicit preservation policy, not an architectural value.
+ * Overrunning ranges use QEMU v10.1.0's shift/mask/truncate compatibility policy;
+ * the bit oracle clips individual bit accesses without reproducing its shifts. */
 #include "bootstrap_contracts.h"
 #include "cpu_internal.h"
 #include "runtime.h"
@@ -77,7 +79,7 @@ static uint64_t oracle(void) {
     memcpy(&source,current.initial[sources[current.pair]],8);
     const unsigned length=current.length ? current.length : 64;
     uint64_t result=current.form>=2 ? destination : 0;
-    for (unsigned bit=0;bit<length;++bit) {
+    for (unsigned bit=0;bit<length && current.index+bit<64;++bit) {
         if (current.form>=2) {
             const uint64_t target=UINT64_C(1)<<(current.index+bit);
             if ((source>>bit)&1) result|=target; else result&=~target;
@@ -85,7 +87,7 @@ static uint64_t oracle(void) {
     }
     return result;
 }
-int main(int argc,char **argv) {
+int main(void) {
     bootstrap_initialize(1); bbcpu_set_trap_handler(trap);
     const size_t slots=FORMS*PAIRS*64*64, bytes=slots*STRIDE+16384;
     unsigned char *code=runtime_low_map(bytes,PROT_READ|PROT_WRITE); assert(code);
@@ -99,17 +101,9 @@ int main(int argc,char **argv) {
     const unsigned char cpuid[]={0xb8,1,0,0,0x80,0x31,0xc9,0x0f,0xa2,0x89,0xc8,0xc3};
     memcpy(code+slots*STRIDE,cpuid,sizeof(cpuid));
     assert(bbcpu_call((uintptr_t)code+slots*STRIDE,0,NULL)&(1u<<6));
-    if (argc==3 && !strcmp(argv[1],"--undefined")) {
-        current.form=(unsigned)strtoul(argv[2],NULL,10); assert(current.form<FORMS);
-        current.length=0; current.index=1;
-        const size_t slot=current.form*PAIRS*64*64+1;
-        current.entry=(uintptr_t)code+slot*STRIDE; current.end=current.entry+ends[slot];
-        bbcpu_call(current.entry,0,NULL); return 1;
-    }
     size_t checked=0;
     for (unsigned f=0;f<FORMS;++f) for (unsigned p=0;p<PAIRS;++p)
         for (unsigned l=0;l<64;++l) for (unsigned i=0;i<64;++i) {
-            if ((l ? l : 64)+i>64) continue;
             const size_t slot=(((f*PAIRS+p)*64+l)*64+i);
             current.form=f; current.pair=p; current.length=l; current.index=i;
             current.entry=(uintptr_t)code+slot*STRIDE; current.end=current.entry+ends[slot];
@@ -131,6 +125,6 @@ int main(int argc,char **argv) {
                 assert(!memcmp(selected,current.selected,sizeof(selected))); ++checked;
             }
         }
-    printf("PASS: %zu synthetic EXTRQ/INSERTQ cases: all defined 6-bit ranges, register/immediate forms, high control bits, aliases/high XMM, full-width fields, untouched vectors/MXCSR/flags and translated flag consumers; SSE4a CPUID retained\n",checked);
+    printf("PASS: %zu synthetic EXTRQ/INSERTQ cases: all 6-bit controls, defined ranges plus QEMU-compatible overrun truncation, register/immediate forms, high control bits, aliases/high XMM, full-width fields, untouched vectors/MXCSR/flags and translated flag consumers; SSE4a CPUID retained\n",checked);
     return 0;
 }
