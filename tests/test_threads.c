@@ -42,7 +42,7 @@ static void *join_competitor(void *opaque) {
 }
 static void initialize_fixture(ThreadFixture *f, ThreadShared *shared, uint64_t tag) {
     *f = (ThreadFixture){
-        .tls_fn = host("vNe1w4diLCs#0#F"), .self_fn = host("aI+OeCz8xrQ#0#F"),
+        .tls_fn = host("vNe1w4diLCs#0#F"), .self_fn = host("EotR8a3ASf4#0#F"),
         .join_fn = (uintptr_t)join, .exit_fn = host("3kg7rT0NQIs#0#F"),
         .errno_fn = host("9BcDykPmo1I#0#F"), .lock_fn = (uintptr_t)lock_guest,
         .unlock_fn = (uintptr_t)unlock_guest, .wait_fn = (uintptr_t)wait_guest,
@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
     bootstrap_initialize(1);
     assert(!bootstrap_resolve("6UgtwV+0zb4#1#u", 0) && !bootstrap_resolve("6UgtwV+0zb4#0#F", 1));
     assert(bootstrap_resolve("geDaqgH9lTg#0#F", 0));
+    assert(!bootstrap_resolve("EotR8a3ASf4#1#u",0) && !bootstrap_resolve("EotR8a3ASf4#0#F",1));
     static const uint64_t main_tls[4] = {0, 0, 0x1122334455667788ULL, 0};
     static const uint64_t libc_tls = 0xaabbccddeeff0011ULL;
     static const uint32_t fios_tls = 0x13572468;
@@ -109,6 +110,14 @@ int main(int argc, char **argv) {
     code = (uintptr_t)runtime_low_map(16384, PROT_READ | PROT_WRITE); assert(code);
     assert(sizeof(thread_fixture_code) < 16384); memcpy((void *)code, thread_fixture_code, sizeof(thread_fixture_code));
     bbcpu_add_guest_code(code, sizeof(thread_fixture_code));
+    const char *self_names[]={"EotR8a3ASf4#0#F","EotR8a3ASf4#p#F","aI+OeCz8xrQ#0#F"};
+    const uintptr_t parent_identity=(uintptr_t)((void *(*)(void))host("aI+OeCz8xrQ#0#F"))();
+    assert(parent_identity);
+    for(unsigned i=0;i<sizeof(self_names)/sizeof(*self_names);++i) {
+        const uint64_t argument[]={host(self_names[i])};
+        assert(bbcpu_call(code+thread_identity_offset,1,argument)==parent_identity);
+        assert(*runtime_errno()==77);
+    }
     key_get = host("0-KXaS70xy4#p#F"); key_set = host("WrOLvHU0yQM#p#F");
     int32_t (*key_create)(uint32_t *, uintptr_t) = (void *)host("mqULNdimTn0#p#F");
     int32_t (*key_delete)(uint32_t) = (void *)host("6BpEZuDT7YI#p#F");
@@ -195,5 +204,5 @@ int main(int argc, char **argv) {
     bootstrap_unmount_game_root(); assert(unlink(path) == 0 && rmdir(root) == 0);
     assert(key_delete(key) == 0);
     alarm(0);
-    puts("PASS: guest threads return/exit/join/detach, independent TLS/keys/errno, guest key destructors with live TLS and four-pass rearming, DTV, low stacks, inherited FPU, synchronization and read-only I/O");
+    puts("PASS: guest threads return/exit/join/detach, kernel/POSIX self aliases and handle identity, independent TLS/keys/errno, guest key destructors with live TLS and four-pass rearming, DTV, low stacks, inherited FPU, synchronization and read-only I/O");
 }

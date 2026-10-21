@@ -122,6 +122,10 @@ uintptr_t runtime_thread_resolve(const char *name) {
     const uintptr_t key = bootstrap_keys_resolve(name);
     if (key) return key;
     static const struct { const char *name; void *fn; } overrides[] = {
+        /* The linked NGS2 module imports the POSIX self NID through libkernel.
+         * SotC's #0#F scope normalizes to #p#J; share the guest thread identity
+         * with both existing self exports, never return native pthread_t. */
+        {"EotR8a3ASf4#p#J", thread_self},
         {"6UgtwV+0zb4#p#J", checked_create}, {"onNY9Byn-W8#p#J", checked_join},
         {"4qGrR6eoP9Y#p#J", checked_detach}, {"3kg7rT0NQIs#p#J", checked_exit},
         {"OxhIB8LB-PQ#I#J", checked_posix_create}, {"Jmi+9w9u0E4#I#J", checked_posix_create_name},

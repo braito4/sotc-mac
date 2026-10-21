@@ -2,6 +2,7 @@
 #include "thread_fixture.h"
 typedef int (*Lock)(void **);
 typedef int (*Wait)(void **, void **);
+TWord thread_identity(TWord self_fn) { return ((TWord (*)(void))self_fn)(); }
 void thread_key_destructor(ThreadFixture *f) {
     if (!f->destructor_limit) {
         ((void (*)(void *))f->exit_fn)((void *)0xdead);

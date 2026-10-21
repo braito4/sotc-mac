@@ -20,7 +20,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | DiscMap | Bitmap queries report unloaded tables; request-location checks cover six-argument ABI, signed ranges, namespaces, 64-bit failure outputs and errno preservation in both modes |
 | UUID generation | Scoped sceKernelUuidCreate uses macOS random v4 UUIDs in the native 16-byte uuidgen field layout; guest guards, errors, errno and concurrent non-repeating samples tested in both modes; real combined run passes UUID generation |
 | Thread-specific keys | 255 process-wide keys with per-thread generation-tagged values; scoped POSIX/kernel APIs, deletion/reuse, errors and four-pass guest destructors tested in both modes; real combined run confirms one key created and two sets |
-| Guest threads | Synthetic return/exit/join/detach, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
+| Guest threads | Synthetic return/exit/join/detach, kernel/POSIX self aliases with matching main/worker identities, competing joins, separate TCB/static/module TLS and errno, DTV, low stacks, inherited FPU, condition waits and concurrent read-only I/O pass in both modes |
 | User-event queues | Native lifecycle, level/edge triggers, coalescing, batching, getters, polling, const microsecond timeouts, blocked deletion and errno pass through the guest ABI in both modes; no graphics/timer filters |
 | Event flags | Synthetic FIFO/single/multiple waits, 64-bit AND/OR patterns, clear modes, cancellation/deletion with blocked waiters, stale handles, timeout units and errno pass in both modes |
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
@@ -38,11 +38,11 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| AudioOut stream lifecycle/state | Scoped init/open/close and live SDL device-state queries; guest ABI, reserved-byte preservation, errors and lifecycle pass in both CPU modes and through the graphics loader; Terminal opens three real streams including a restricted one and starts sndx_out_thread; next observed boundary is GetPortState; PCM output unverified |
+| AudioOut stream lifecycle/state | Scoped init/open/close and live SDL device-state queries; guest ABI, reserved-byte preservation, errors and lifecycle pass in both CPU modes and through the graphics loader; Terminal opens three real streams including a restricted one and starts sndx_out_thread; Terminal passes two device-state queries; next observed boundary is a libkernel pthread_self alias; PCM output unverified |
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker reaches GetPortState; device-state adapter awaits combined verification |
+| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker passes two device-state queries and reaches a libkernel pthread_self alias; that alias now connects to existing guest-thread identity support |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -74,8 +74,13 @@ Game Render, passes original touch-recognizer initialization and opens the keybo
 controller. Save and trophy task threads then start; one thread key is created and set
 twice, and UUID generation now passes. The latest real combined run loads the original
 NGS2 module, opens three actual AudioOut streams (normal main, restricted main and BGM)
-without failures, and starts the sound-output worker. It reaches the previously unresolved
-`sceAudioOutGetPortState`; that run no longer reproduces the audio configuration SIGBUS.
+without failures, starts the sound-output worker and passes two device-state queries. It
+then reaches a POSIX `pthread_self` NID imported through libkernel by NGS2; the exact scoped
+alias now maps to the existing guest-thread identity function. Main-thread guest calls agree
+across the kernel/POSIX self exports, and concurrent workers return the handles created by
+the thread service, with self-join rejection and TLS/errno isolation checked in both modes.
+Other scopes and data imports remain unresolved. This run no longer reproduces the audio
+configuration SIGBUS; the alias still needs a combined Terminal run.
 
 The new scoped state adapter queries the actual SDL device bound to a live owned stream.
 It reports the logical primary route and available channel count, with the retail main/BGM
@@ -87,8 +92,8 @@ closed streams in both CPU modes.
 The private isolated original export matches the main/BGM format/channel matrix, defined
 fields, reserved bytes and null/init/handle error order in both modes, using synthetic port
 tables without original driver initialization. The actual graphics loader exercises open/state/close
-through dynamically resolved SDL callbacks in both modes. The state adapter still needs a
-combined Terminal run; PCM submission remains unresolved.
+through dynamically resolved SDL callbacks in both modes. Terminal confirms the state
+adapter runs; PCM submission remains unresolved.
 
 Fatal diagnostics retain ARM64 syndrome, signal code, host mapping protection and lock-free
 GPU trap flags in either mode. Synthetic guest writes verify read-only-page faults and SIGBUS

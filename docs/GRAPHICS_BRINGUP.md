@@ -324,8 +324,13 @@ synthetic graphics loader executes restricted Open/GetPortState/Close through ac
 SDL symbol resolution, including the main-thread setup and guest-worker callbacks, in both
 CPU modes. Native SDL selects CoreAudio in this tool process, but no default playback device
 is visible there. Terminal confirms all three real streams open without failures, including
-the restricted stream, and starts sndx_out_thread before the unresolved GetPortState call.
-The new state adapter needs combined verification; no PCM output or game frame is verified.
+the restricted stream, starts sndx_out_thread and passes two GetPortState queries. That
+worker then reaches a POSIX pthread_self NID imported through libkernel by NGS2. The exact
+scoped alias now reuses the existing guest-thread identity service, rather than exposing a
+native pthread_t. Guest tests compare main-thread self exports and concurrent worker-created
+handles, including self-join rejection, isolated TLS/errno and normal return/exit in both
+CPU modes. Other scopes and data imports remain unresolved. The alias needs combined
+verification; no PCM output or game frame is verified.
 
 The earlier audio configuration SIGBUS is not reproduced in that latest run. Fatal reports
 retain ARM64 ESR/FAR, signal code, host mapping protection and GPU trap flags without touching
@@ -363,7 +368,8 @@ connection now implements scoped import routing, shared queue ownership, a main-
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
 passes original gesture initialization, keyboard pad open, UUID generation, thread-key
 use, original NGS2 loading and three AudioOut stream opens. The sound-output worker now
-reaches GetPortState. The live device-state adapter awaits a combined Terminal run.
+passes two device-state queries and reaches a libkernel pthread_self alias. That alias
+now connects to the tested guest-thread identity backend and awaits a combined Terminal run.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
