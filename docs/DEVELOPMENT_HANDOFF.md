@@ -9,20 +9,27 @@ older boundaries, not the present state.
 ## Goal and current evidence
 
 The goal is native Apple Silicon execution of the PS4 game through bbcpu and the
-pinned renderer, ultimately producing correct game video. There is no playable app,
-verified game frame, save backend or gameplay FPS result yet.
+pinned renderer. The owner has visually confirmed game logos and the menu on Apple M1.
+Entering a playable 3D scene, gameplay stability, save persistence and gameplay FPS
+remain unverified; there is no packaged playable application.
 
 Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS on
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run completes initialization at about 0.92 seconds and
-enters the main loop at about 1.37 seconds. It passes the vector widening batch and
+The last native Terminal run completes initialization at about 1.03 seconds and
+enters the main loop at about 1.48 seconds. It passes the vector widening batch and
 stops at `sceSaveDataMount2` on the Save Task Thread after a dirty-profile save request.
 No unsupported CPU instruction, notification overflow or duplicate `locn0` appears.
 GPU samples include thousands of draws and dispatches per second; these are command
-counts, not gameplay FPS or verification of correct pixels. The pipeline archive
-reports 209 pipelines. Correct game video remains unverified.
+counts, not gameplay FPS or verification of an in-game scene. The owner's visual
+observation confirms the logos/menu, not the correctness of every rendering path.
+
+The mount/cleanup/metadata error batch now handles eight related SaveData calls with
+NOT_INITIALIZED and untouched outputs. Full contracts and comparisons against the
+supplied original module pass in both CPU modes. The native game response after this
+change is pending; no save filesystem was added. This tool process exposes no Metal
+device, and Terminal automation is unavailable, so use the native command below.
 
 The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (70
 reported errors in the last run), and has SRT Phi and compressed-texture usage errors.
@@ -32,9 +39,10 @@ or a GPU. IT_GET_LOD_STATS also remains unimplemented.
 Physical SDL3 gamepad input now complements the keyboard fallback. See
 [DualShock input](guide/building.md#dualshock-input) for connection and logging.
 Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
-hotplug, output errors and synthetic callback dispatch in both CPU modes. Hardware input,
-Bluetooth/USB output and game behavior still need a connected-controller Terminal run.
-No GPU rebuild is needed for this host adapter change.
+hotplug, output errors and synthetic callback dispatch in both CPU modes. The latest
+native log detects a DualSense and records 1,018 physical samples, 507 accepted LED
+requests and 508 accepted rumble requests without disconnection. It does not identify
+the connection transport or prove the physical output effect. No GPU rebuild is needed.
 
 ## First session: reproduce the boundary
 
@@ -146,11 +154,12 @@ archive and diagnostic sources in `work`.
 ## Prioritized debugging work
 
 1. **Save mounting and physical input verification.** The current explicit stop is
-   `sceSaveDataMount2`. SaveData initialization and directory searches already report
-   unavailable/not initialized, so implement and test the corresponding mount failure
-   contract before considering any persistence backend. No save access is authorized
-   by this adapter. Test DualShock input in native Terminal with a connected controller;
-   distinguish accepted SDL callbacks from confirmed physical output. The completed
+   `sceSaveDataMount2`. The corresponding failure batch is now implemented and checked
+   against the original module: mount, mount2, unmount, backup unmount, mount info,
+   set parameter, save icon and delete. Run native Terminal to observe the game's
+   handling of NOT_INITIALIZED after the profile-save request. No save access occurs.
+   Try entering the game from the menu and distinguish actual scene progress from
+   continued menu rendering. Keep LED/rumble acceptance separate from physical output. The completed
    widening and SSE4a fixtures remain in the CPU regression suite.
 2. **MSL fragment interface support.** The newest log has 70 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual

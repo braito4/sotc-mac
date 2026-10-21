@@ -1117,3 +1117,24 @@ The latest native Terminal log passes the widening batch and stops at
 pixels, game FPS and a playable application remain unverified. See the
 [development handoff](DEVELOPMENT_HANDOFF.md) for the current boundary and
 [connection instructions](guide/building.md#dualshock-input).
+
+
+## Logos/menu confirmed and SaveData failure batch (2026-10-21)
+
+The owner visually confirms the game logos and menu on Apple M1. The latest native
+run enters the main loop at about 1.48 seconds and reads a physical DualSense without
+disconnections (1,018 samples). SDL accepts 507 LED and 508 rumble operations; the
+actual physical effects and connection transport are not established by the log.
+A playable 3D scene, gameplay stability, audible sound and save persistence remain
+unverified.
+
+The explicit import stop is SaveData Mount2 during a profile-save request. Eight
+related mount/cleanup/metadata exports now return the original module's
+NOT_INITIALIZED failure before inspecting any guest pointer. Full synthetic runtime
+contracts, loader routing and private original-module comparisons pass in both CPU
+modes. There is still no save backend or save access. Game continuation requires
+another native Terminal run; no renderer rebuild is needed.
+
+A GitHub search found an exact SotC SRT/Phi report and exact MoltenVK per-vertex
+converter reports. The AMD-specific workaround reported in the SotC issue was not
+applied to M1. See [review and sources](UPSTREAM_REVIEW.md#matching-public-error-reports-and-mount-failure-batch-2026-10-21).

@@ -16,5 +16,5 @@ Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
   runtime changes and native CPU checks when changing the CPU context bridge.
-- Renderer-only initialization is confirmed; combined game rendering, a playable app and save support remain unverified. Keep claims tied to measured tests.
+- The owner has visually confirmed game logos and the menu. In-game 3D scenes, gameplay stability, a playable app and save support remain unverified. Keep claims tied to measured tests.
 - Check the target remote before pushing. Keep private local state and archives ignored.

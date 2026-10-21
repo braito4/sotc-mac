@@ -10,12 +10,12 @@
 </p>
 
 > [!IMPORTANT]
-> **Early development: CPU diagnostics and renderer bring-up. The game is not playable.**
+> **Early development: game logos and the menu are visible on Apple M1. Gameplay is unverified.**
 >
-> The original executable reaches part of its initialization through the ARM64 translator
-> and through its interpreter. The original libc and Fios2 modules initialize successfully.
-> Game rendering, audio, a playable launcher and save support are not yet verified or supported.
-> There is no downloadable game app or gameplay performance result.
+> The owner has visually confirmed the logos and menu in a native Terminal run.
+> The diagnostic reaches the main loop with game GPU commands and a physical controller.
+> Entering a playable 3D scene, audible output, save persistence and gameplay stability
+> remain unverified. There is no downloadable game app or gameplay performance result.
 >
 > The goal is to run Shadow of the Colossus on Apple Silicon without Rosetta. The current
 > method translates PS4 x86-64 instructions to ARM64 at runtime; it is not a source rebuild
@@ -48,6 +48,8 @@
 - **User-event queues:** native level/edge notifications, polling, timed/blocking waits and
   safe deletion with blocked consumers; no synthetic GPU notifications.
 - **Read-only content access:** a narrow file API tested with synthetic fixtures; no save mount.
+- **SDL3 input:** physical gamepad buttons, sticks, triggers, touch, LED/rumble forwarding,
+  hotplug and keyboard fallback; guest ABI and error contracts tested in both CPU modes.
 - **Guest fibers:** suspension, resumption and switching preserve guest CPU state and stacks.
   Synthetic checks also cover resuming on another host thread.
 - **Guest threads:** native pthread workers with separate guest stacks, static/module TLS,
@@ -78,76 +80,23 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 ## Status
 
-**Experimental, not playable.** The tool environment can now run the linked diagnostic
-using explicit temporary-file backing, preserving shared physical aliases. Both CPU modes
-complete the original module initializers, create Fios2's three workers, four game job
-workers, a resource-loading worker, RenderFlip and Game Render, and reach the same
-unresolved `scePadInit` call. Both have 19 event flags, one event queue with a blocked wait,
-160 fibers and 164 fiber runs. The latest interpreter run records 1,109 direct switches and
-429 reads (81,536,320 bytes); JIT records 1,073 switches and 426 reads (81,529,921 bytes).
-Both open 17 content files without writes. Counters depend on worker scheduling. VideoOut
-prepares gamma, buffer attributes and mode data, while device operations explicitly fail.
-No rendered frame or gameplay is established.
+**Experimental: logos and menu visually confirmed by the owner on Apple M1.**
+The latest native Terminal log reaches the main loop in about 1.48 seconds and detects
+a DualSense controller. It records 1,018 physical input samples and accepted SDL LED/
+rumble requests; the actual output effect and connection transport are unverified.
+Game draw/dispatch activity is present. These counters are not gameplay FPS.
 
-The new `--graphics-check` builds a real Metal prerequisite test. The development tool process
-currently sees zero GPU devices, but the user reports that this same check passes on Apple M1
-in Terminal. Host GPU access is established there. The isolated renderer library has now
-compiled and linked as ARM64 with its required loader exports verified. The builder handles
-dependency paths containing spaces, including FFmpeg metadata and CMake cache recovery.
-The library passes native load/export/unload checks. The user confirmed renderer initialization
-and Metal command-buffer processing in Terminal; that isolated run submitted no game draws.
-An optional `--graphics-game-test` now connects a reviewed subset of graphics imports, shares
-kernel queue ownership, and moves game entry to a worker while the main thread pumps the
-window. Synthetic tests pass in both CPU modes. The real combined game/renderer run passes display setup, starts its render threads and
-passes the original gesture initialization and opens the keyboard-backed controller. Save
-and trophy task threads start; a thread-specific key is created and set before the next
-UUID generation. The original NGS2 module now loads, the earlier null audio-object fault is
-no longer observed, and a sound-loader thread starts before `sceAudioOutInit`. Checked SDL
-CoreAudio initialization and stream open/close are implemented for the next Terminal run.
-PCM submission and sound playback remain unverified. No game frame has been verified. See [Graphics bring-up](docs/GRAPHICS_BRINGUP.md).
+The observed run stops at `sceSaveDataMount2` when saving the user profile. Eight
+related mount, cleanup and metadata calls now return the measured NOT_INITIALIZED
+error, preserving outputs and avoiding save access. Full synthetic contracts and
+original-module failure-path comparisons pass in both CPU modes. A new native Terminal
+run must establish the game's response; this change does not implement persistence.
 
-Guest fibers and the narrow system-module registry are implemented. Fiber synthetic tests pass
-in both modes, including direct and PLT calls, stack/register/FPU preservation, contextless
-restart and host-thread migration. Non-timed kernel read/write locks pass synthetic lifecycle,
-ownership and concurrency tests in both modes. Checked thread creation and lifecycle operations
-now pass synthetic tests with isolated per-thread TLS and concurrent read-only fixture I/O.
-The DiscMap profile and five-argument internal loader pass synthetic guest ABI and error
-tests in both modes. The new request-location errors and 64-bit failure outputs were also
-checked against the supplied original DiscMap module with empty mapping tables. FIFO event
-flags now pass synthetic lifecycle and contention tests, including cancellation and deletion
-with blocked waiters. The new PCMPISTRM/VPCMPISTRM CPU extension passes 61,440 synthetic
-cases per mode and native JIT fault checks. The diagnostic now reports explicit unavailable
-dialog errors: CommonDialog is unsupported, so message-dialog initialization lacks its system
-dependency. Normal Terminal confirms one CommonDialog request and no message-dialog request
-before VideoOut open. Network initialization returns the explicit libSceNet
-EOPNOTSUPP error; no network backend is initialized. Normal Terminal confirms subsequent
-content reads in both modes. A process-local UserService profile now provides initialization,
-termination, user queries and one-shot login events, with synthetic guest ABI and concurrency
-checks in both modes. Normal Terminal confirms successful initialization in both modes with priority 700.
-ShareUtility Ex2 now returns checked early validation/resource errors without initializing
-a sharing service; normal Terminal confirms progress past it in both modes.
-GNM owner/resource registration now reproduces the retail fixed-error behavior, without
-creating graphics state. Both modes now pass three owner-registration requests.
-Compute-queue mapping validates the retail argument contract and reports an explicit
-backend failure; normal Terminal confirms seven such requests in each mode. A fixed
-logical safe-area query writes ratio 1.0 while preserving reserved bytes; normal Terminal
-confirms one query per mode. VideoOut open now reports an explicit no-device failure
-for the main output; normal Terminal confirms progress past it in both modes. This policy
-creates no display port or window. The retail gamma helper now prepares three channels in
-12/16-byte structures with its explicit size argument and original range behavior. Guest ABI
-and original-module checks pass in both modes; normal Terminal confirms progress to color
-application. That call now rejects the invalid display handle before reading settings.
-Tool runs now also pass flip-rate and capability queries through explicit invalid-handle
-errors. Native user-event queues now pass lifecycle, level/edge notification, timeout and
-concurrent deletion tests; paired linked runs create one queue and reach buffer-attribute
-preparation after an explicit rejection of flip-event registration. Buffer attributes and
-mode preparation now match isolated original-module checks in both CPU modes; the game
-starts its render-related threads and reaches controller initialization.
-
-**Major remaining work:** the game's packed static pointers require a suitable address model;
-the diagnostic's temporary high image mapping does not solve that. Game-level multithreading,
-additional system services, archive/asset decoding and graphics integration
-still need validation.
+The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset
+errors and buffer-size clamps. A matching SotC issue and exact MoltenVK reports are
+linked in the [upstream review](docs/UPSTREAM_REVIEW.md). Correct in-game scenes and
+stability remain unverified. The current reproduction steps and stopping boundary
+are in the [developer handoff](docs/DEVELOPMENT_HANDOFF.md).
 
 See [Development status](docs/STATUS.md) for the measured scope and next checks.
 

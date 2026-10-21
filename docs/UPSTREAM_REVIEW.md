@@ -122,3 +122,33 @@ providers in both CPU modes, including all 65,536 signed axis inputs. The instal
 SDL library exposes all required and optional callbacks; a native headless SDL
 initialization/enumeration check found no connected gamepad. Physical USB/Bluetooth
 input, rumble and LED behavior are not yet verified.
+
+
+## Matching public error reports and mount failure batch (2026-10-21)
+
+| Local symptom | Primary GitHub evidence | Applicability |
+|---|---|---|
+| SRT `ComputeOffset` rejects `Phi` | [SotC issue 41](https://github.com/AjncSystem/ShadowOfTheColossus-PC/issues/41) reports the same error during transition from menus/cinematic to asset loading | Same message and game; different Windows/Vega hardware. The reported wave32 improvement targets AMD GCN, not Apple M1, and does not establish that Phi is repaired. |
+| PerVertexKHR-to-MSL conversion failure | [MoltenVK issue 2258](https://github.com/KhronosGroup/MoltenVK/issues/2258) and [2059](https://github.com/KhronosGroup/MoltenVK/issues/2059) | Exact converter error. An advertised barycentric feature does not prove support for raw per-vertex input arrays. Our isolated fragment diagnostic reproduces the installed compiler boundary. |
+| Proposed Metal 4 per-vertex support | [SPIRV-Cross issue 2569](https://github.com/KhronosGroup/SPIRV-Cross/issues/2569) | Closed as not planned on 2026-10-16, not evidence of a merged fix. Metal language capability alone does not validate this installed compiler or the M1 path. |
+| Resource-walker runtime reads | [Pink-shadPS4 commit 33da14d5a500860f3b87bbd89796a18c84d87c52](https://github.com/luizgustavs/Pink-shadPS4/commit/33da14d5a500860f3b87bbd89796a18c84d87c52) recognizes runtime offsets | Candidate for further review. Its Xbyak walker differs from our ARM64 portable walker; skipping compile-time reads requires working dynamic shader reads and cannot be copied as a log suppression. |
+
+The local SaveData stop is an unresolved import, not a returned mount error. The
+preferred runtime at `22923f08022909b7e22f7ae8c02ad4c3f6554bfd` implements host-directory
+persistence; that implementation was reviewed but not enabled in this read-only
+content diagnostic. Its mount wrappers check a null parameter before reaching the
+initialization check, whereas the supplied retail exports check the context first.
+The local adapter follows the measured retail failure path.
+
+Eight related calls now return NOT_INITIALIZED: Mount, Mount2, Umount,
+UmountWithBackup, GetMountInfo, SetParam, SaveIcon and Delete. Inputs and output
+buffers remain untouched, including null/protected pointers and full-width sizes.
+No initializer succeeds and no save storage, mount point, backup or metadata is
+created. The original-module comparison executes only uninitialized error paths;
+its private harness/binary remain outside Git. Full contracts and the original
+comparison pass with both JIT and interpreter. The synthetic real-loader fixture
+also resolves and calls all eight exports before its deliberate unknown-import stop.
+Native Terminal continuation after this change remains to be observed.
+
+The owner separately reports seeing logos and the menu. This is direct visual
+evidence of game video, while in-game scene rendering and playability are pending.

@@ -608,6 +608,46 @@ static void test_unavailable_trophy(void) {
     check_unavailable_trophy(entries);
     puts("PASS: six scoped typed trophy uninitialized paths, guest ABI, init-before-handle/options/pointer checks, 64-bit flags, protected/null outputs, repeated errors and unchanged buffers/errno");
 }
+enum { SAVE_MOUNT_COUNT=8 };
+static const char *const savedata_mount_names[SAVE_MOUNT_COUNT]={
+    "32HQAQdwM2o#u#d","0z45PIH+SNI#u#d","BMR4F-Uek3E#u#d","VwadwBBBJ80#u#d",
+    "65VH0Qaaz6s#u#d","85zul--eGXs#u#d","c88Yy54Mx0w#u#d","S1GkePI17zQ#u#d",
+};
+static void check_unavailable_savedata_mounts(const uintptr_t entries[SAVE_MOUNT_COUNT]) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    unsigned char input[128],output[256],before[256];
+    memset(input,0xa5,sizeof(input));memset(output,0x5a,sizeof(output));memcpy(before,output,sizeof(output));
+    const uint64_t pointers[]={0,1,UINT64_MAX,(uintptr_t)input,(uintptr_t)output,(uintptr_t)protected};
+    const uint64_t scalars[]={0,1,UINT32_MAX,UINT64_MAX,UINT64_C(0x8000000000000000)};
+    *runtime_errno()=17;
+    for(unsigned op=0;op<SAVE_MOUNT_COUNT;++op)
+        for(unsigned round=0;round<2;++round) for(unsigned i=0;i<6;++i) for(unsigned j=0;j<6;++j)
+            for(unsigned k=0;k<5;++k) {
+                const uint64_t args[]={pointers[i],op==5 ? scalars[k] : pointers[j],pointers[j],scalars[k],UINT64_MAX,1};
+                assert((uint32_t)bbcpu_call(entries[op],6,args)==0x809f0001);
+                assert(!memcmp(output,before,sizeof(output)) && *runtime_errno()==17);
+                for(size_t n=0;n<sizeof(input);++n) assert(input[n]==0xa5);
+            }
+    assert(!munmap(protected,page));
+}
+static void test_unavailable_savedata_mounts(void) {
+    uintptr_t entries[SAVE_MOUNT_COUNT];
+    for(unsigned i=0;i<SAVE_MOUNT_COUNT;++i) {
+        const char *name=savedata_mount_names[i];
+        bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+        const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+        char wrong[64];snprintf(wrong,sizeof(wrong),"%.11s#O#P",name);assert(!bootstrap_resolve(wrong,0));
+        snprintf(wrong,sizeof(wrong),"%.11s#u#e",name);assert(!bootstrap_resolve(wrong,0));
+        entries[i]=guest_bridge(fn);
+    }
+    check_unavailable_savedata_mounts(entries);
+    const uint64_t args[]={0};
+    const uintptr_t init=guest_bridge(bootstrap_resolve("TywrFKCoLGY#u#d",0));
+    assert((uint32_t)bbcpu_call(init,1,args)==0x809f000b);
+    check_unavailable_savedata_mounts(entries);
+    puts("PASS: eight SaveData mount/cleanup/metadata failure contracts, typed guest ABI, init-before-pointer checks, null/protected inputs/outputs, 64-bit sizes, unchanged buffers/errno and exact scope/capability before/after failed initialization");
+}
 static void check_unavailable_savedata_search(uintptr_t entry) {
     const size_t page=(size_t)sysconf(_SC_PAGESIZE);
     void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
@@ -912,6 +952,7 @@ int main(void) {
     test_unavailable_network_control();
     test_unavailable_savedata();
     test_unavailable_savedata_search();
+    test_unavailable_savedata_mounts();
     test_unavailable_trophy();
     test_unavailable_appcontent();
     test_absent_save_dialog();
