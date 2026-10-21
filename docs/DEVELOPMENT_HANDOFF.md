@@ -17,9 +17,10 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run completes initialization at about 1.03 seconds and
-enters the main loop at about 1.48 seconds. It passes the vector widening batch and
-stops at `sceSaveDataMount2` on the Save Task Thread after a dirty-profile save request.
+The last native Terminal run completes initialization at about 0.93 seconds and
+enters the main loop at about 1.37 seconds. It passes the vector widening batch and
+passes `sceSaveDataMount2` with NOT_INITIALIZED, then stops at
+`sceSaveDataDialogInitialize` on the Save Task Thread during a dirty-profile save request.
 No unsupported CPU instruction, notification overflow or duplicate `locn0` appears.
 GPU samples include thousands of draws and dispatches per second; these are command
 counts, not gameplay FPS or verification of an in-game scene. The owner's visual
@@ -27,11 +28,18 @@ observation confirms the logos/menu, not the correctness of every rendering path
 
 The mount/cleanup/metadata error batch now handles eight related SaveData calls with
 NOT_INITIALIZED and untouched outputs. Full contracts and comparisons against the
-supplied original module pass in both CPU modes. The native game response after this
-change is pending; no save filesystem was added. This tool process exposes no Metal
-device, and Terminal automation is unavailable, so use the native command below.
+supplied original module pass in both CPU modes. The native game handles this mount
+failure and attempts a save dialog. No save filesystem was added.
 
-The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (70
+The two remaining save-dialog startup exports are now scoped: Initialize returns
+NOT_SYSTEM_INITIALIZED because CommonDialog is unavailable, and Open validates its
+base header/address cookie/reserved bytes and outer size before reporting no instance.
+The initializer policy and its injected dependency-error comparison are distinct from
+Open's original-module validation comparison. The game response after this dialog
+change is pending. This tool process exposes no Metal device, and Terminal automation
+is unavailable, so use the native command below.
+
+The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (54
 reported errors in the last run), and has SRT Phi and compressed-texture usage errors.
 The isolated fragment diagnostic reproduces the compiler limitation without game data
 or a GPU. IT_GET_LOD_STATS also remains unimplemented.
@@ -40,8 +48,8 @@ Physical SDL3 gamepad input now complements the keyboard fallback. See
 [DualShock input](guide/building.md#dualshock-input) for connection and logging.
 Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
 hotplug, output errors and synthetic callback dispatch in both CPU modes. The latest
-native log detects a DualSense and records 1,018 physical samples, 507 accepted LED
-requests and 508 accepted rumble requests without disconnection. It does not identify
+native log detects a DualSense and records 778 physical samples, 387 accepted LED
+requests and 388 accepted rumble requests without disconnection. It does not identify
 the connection transport or prove the physical output effect. No GPU rebuild is needed.
 
 ## First session: reproduce the boundary
@@ -153,15 +161,17 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Save mounting and physical input verification.** The current explicit stop is
-   `sceSaveDataMount2`. The corresponding failure batch is now implemented and checked
-   against the original module: mount, mount2, unmount, backup unmount, mount info,
-   set parameter, save icon and delete. Run native Terminal to observe the game's
-   handling of NOT_INITIALIZED after the profile-save request. No save access occurs.
-   Try entering the game from the menu and distinguish actual scene progress from
-   continued menu rendering. Keep LED/rumble acceptance separate from physical output. The completed
-   widening and SSE4a fixtures remain in the CPU regression suite.
-2. **MSL fragment interface support.** The newest log has 70 `PerVertexKHR` conversion
+1. **Verify the save-dialog continuation.** The latest explicit stop is
+   `sceSaveDataDialogInitialize`, after the game handled the mount failure. Scoped
+   initialization/open failures are now implemented, with synthetic loader routing,
+   guarded guest ABI tests and private original-module comparisons in both CPU modes.
+   All nine save-dialog exports used by this diagnostic are covered; no dialog is
+   created and no choice is made on the user's behalf. Run native Terminal and try
+   entering the game from the menu. Record whether it continues, retries a failed
+   service, stalls or reaches another import. No save access occurs. Keep LED/rumble
+   acceptance separate from physical output. The completed widening and SSE4a
+   fixtures remain in the CPU regression suite.
+2. **MSL fragment interface support.** The newest log has 54 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does
@@ -271,7 +281,7 @@ with this repository. Keep game content read-only and do not access saves.
 Update this page when the observed stopping boundary or reproduction command changes.
 Separate what was seen in Terminal, what synthetic tests establish, what is only a
 hypothesis and what remains unverified. A successful next run should replace the
-current SaveData mount boundary above with its actual result, including any timeout.
+current SaveData dialog boundary above with its actual result, including any timeout.
 
 ## Preferred upstream reference
 

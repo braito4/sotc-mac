@@ -81,16 +81,18 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 **Experimental: logos and menu visually confirmed by the owner on Apple M1.**
-The latest native Terminal log reaches the main loop in about 1.48 seconds and detects
-a DualSense controller. It records 1,018 physical input samples and accepted SDL LED/
+The latest native Terminal log reaches the main loop in about 1.37 seconds and detects
+a DualSense controller. It records 778 physical input samples and accepted SDL LED/
 rumble requests; the actual output effect and connection transport are unverified.
 Game draw/dispatch activity is present. These counters are not gameplay FPS.
 
-The observed run stops at `sceSaveDataMount2` when saving the user profile. Eight
-related mount, cleanup and metadata calls now return the measured NOT_INITIALIZED
-error, preserving outputs and avoiding save access. Full synthetic contracts and
-original-module failure-path comparisons pass in both CPU modes. A new native Terminal
-run must establish the game's response; this change does not implement persistence.
+The observed run handles the explicit SaveData mount failure, then stops at
+`sceSaveDataDialogInitialize` while processing a profile-save request. Save-dialog
+initialization/open error contracts now complement the eight mount/cleanup/metadata
+failure paths. Full synthetic contracts pass in both CPU modes; private comparisons
+check original validation and injected dependency-error propagation. No save storage
+or completed UI interaction is created. A new native Terminal run must establish
+the game's response after this change.
 
 The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset
 errors and buffer-size clamps. A matching SotC issue and exact MoltenVK reports are

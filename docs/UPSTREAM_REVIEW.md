@@ -152,3 +152,32 @@ Native Terminal continuation after this change remains to be observed.
 
 The owner separately reports seeing logos and the menu. This is direct visual
 evidence of game video, while in-game scene rendering and playability are pending.
+
+
+## Save-dialog startup continuation (2026-10-21)
+
+The next native run passes SaveData Mount2's explicit NOT_INITIALIZED result and
+stops at SaveDataDialog Initialize. The preferred runtime's `runtime_services.c`
+at [`22923f08022909b7e22f7ae8c02ad4c3f6554bfd`](https://github.com/bloodborne-native/bloodborne-runtime/blob/22923f08022909b7e22f7ae8c02ad4c3f6554bfd/src/runtime_services.c)
+was reviewed against our pin. Its immediate dialog-completion behavior was not
+adopted: this diagnostic has no CommonDialog session or save dialog UI.
+
+Initialize has a zero-argument ABI and returns NOT_SYSTEM_INITIALIZED under the
+same missing-dependency policy as MsgDialog. It never creates a dialog object. A
+private fixture checks that the supplied original Initialize wrapper propagates
+an injected NOT_SYSTEM_INITIALIZED dependency error, including object cleanup.
+This checks error propagation, not successful original platform initialization.
+
+Open has a one-pointer ABI. Comparisons use both the supplied original Open export
+and the original CommonDialog base-parameter validator. The observed order is null
+pointer, 48-byte base header (64-bit size, address-dependent cookie, 36 reserved zero
+bytes), signed 32-bit outer size of 152, then the absent-instance error. Nested mode,
+user and save pointers remain opaque on this failure path. The local adapter also
+safely rejects unreadable pointers and missing size bytes; these guards deliberately
+replace original memory faults rather than claim identical malformed-pointer behavior.
+
+Full contracts and original-module comparisons pass in JIT and interpreter modes.
+Synthetic loader coverage calls both startup exports and reaches its deliberate
+unknown-import stop. Existing status/result/close/progress/termination checks still
+pass after failed startup: no initialized/completed dialog or user selection is
+fabricated. No GPU rebuild is required. Native game continuation remains pending.

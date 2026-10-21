@@ -1138,3 +1138,20 @@ another native Terminal run; no renderer rebuild is needed.
 A GitHub search found an exact SotC SRT/Phi report and exact MoltenVK per-vertex
 converter reports. The AMD-specific workaround reported in the SotC issue was not
 applied to M1. See [review and sources](UPSTREAM_REVIEW.md#matching-public-error-reports-and-mount-failure-batch-2026-10-21).
+
+
+## Save-dialog initialization and Open contracts (2026-10-21)
+
+The latest native log confirms that Mount2 returns the implemented NOT_INITIALIZED
+error and execution proceeds to SaveDataDialog Initialize on the save worker. The
+main loop starts at about 1.37 seconds; the DualSense remains connected (778 samples,
+387 accepted LED requests, 388 accepted rumble requests). No execution fault appears.
+The known SRT/Phi, PerVertexKHR and buffer-clamp errors remain.
+
+Initialize and Open now complete the nine scoped save-dialog exports used by this
+diagnostic. Initialization reports its missing CommonDialog dependency. Open follows
+the original base-header/cookie/reserved/size validation before reporting no instance,
+with additional safe unreadable-pointer guards. No dialog UI, completed interaction,
+user selection or save access is created. Full contracts and private original-module
+comparisons pass in both CPU modes; the initializer comparison uses an injected
+platform-dependency failure. The actual game response requires another native run.

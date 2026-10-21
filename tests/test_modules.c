@@ -517,6 +517,76 @@ static void check_absent_save_lifecycle(const uintptr_t entries[5]) {
     }
     assert(!munmap(protected,page));
 }
+static void save_dialog_header(unsigned char *parameter,uint64_t base_size,int32_t size) {
+    memset(parameter,0,52);memcpy(parameter,&base_size,8);memcpy(parameter+48,&size,4);
+    uint32_t cookie=(uint32_t)((uintptr_t)parameter+UINT32_C(0xc0d1a109));
+    memcpy(parameter+44,&cookie,4);
+}
+static void check_save_dialog_start(const uintptr_t entries[2],int guards) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    unsigned char *memory=mmap(NULL,page*3,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);assert(memory!=MAP_FAILED);
+    assert(!mprotect(memory+page,page,PROT_NONE));
+    unsigned char params[168],before[168];unsigned char *p=params+1;
+    memset(params,0xa5,sizeof(params));save_dialog_header(p,48,152);
+    const uint64_t junk[]={1,UINT64_MAX,(uintptr_t)(memory+page),(uintptr_t)p,3,5};
+    *runtime_errno()=17;
+    for(unsigned repeat=0;repeat<4;++repeat) {
+        memcpy(before,params,sizeof(params));
+        assert((uint32_t)bbcpu_call(entries[0],0,NULL)==0x80b80001);
+        assert((uint32_t)bbcpu_call(entries[0],6,junk)==0x80b80001);
+        assert(!memcmp(params,before,sizeof(params)) && *runtime_errno()==17);
+        const uint64_t null[]={0};assert((uint32_t)bbcpu_call(entries[1],1,null)==0x80b8000d);
+        /* Nested fields deliberately remain nonzero/opaque. */
+        const uint64_t valid[]={(uintptr_t)p,UINT64_MAX,1,3,5,7};
+        assert((uint32_t)bbcpu_call(entries[1],6,valid)==0x80b80003);
+        assert(!memcmp(params,before,sizeof(params)) && *runtime_errno()==17);
+    }
+    /* Independent corruption of each reserved byte and both header fields. */
+    for(unsigned byte=8;byte<44;++byte) {
+        save_dialog_header(p,48,152);p[byte]=0x80;
+        memcpy(before,params,sizeof(params));const uint64_t a[]={(uintptr_t)p};
+        assert((uint32_t)bbcpu_call(entries[1],1,a)==0x80b8000a && !memcmp(params,before,sizeof(params)));
+    }
+    const uint64_t base_sizes[]={0,47,49,UINT32_MAX,UINT64_MAX,UINT64_C(0x100000030)};
+    const int32_t sizes[]={0,-1,48,151,153,INT32_MIN,INT32_MAX};
+    for(unsigned i=0;i<sizeof(base_sizes)/sizeof(*base_sizes);++i) {
+        save_dialog_header(p,base_sizes[i],152);const uint64_t a[]={(uintptr_t)p};
+        assert((uint32_t)bbcpu_call(entries[1],1,a)==0x80b8000a);
+    }
+    for(unsigned i=0;i<sizeof(sizes)/sizeof(*sizes);++i) {
+        save_dialog_header(p,48,sizes[i]);const uint64_t a[]={(uintptr_t)p};
+        assert((uint32_t)bbcpu_call(entries[1],1,a)==0x80b8000a);
+    }
+    for(unsigned bit=0;bit<32;++bit) {
+        save_dialog_header(p,48,152);uint32_t cookie;memcpy(&cookie,p+44,4);cookie^=UINT32_C(1)<<bit;memcpy(p+44,&cookie,4);
+        const uint64_t a[]={(uintptr_t)p};assert((uint32_t)bbcpu_call(entries[1],1,a)==0x80b8000a);
+    }
+    /* A valid 52-byte prefix immediately before a protected page is enough:
+     * this failure path never reads the rest of the 152-byte parameter. */
+    unsigned char *edge=memory+page-52;save_dialog_header(edge,48,152);
+    const uint64_t e[]={(uintptr_t)edge};assert((uint32_t)bbcpu_call(entries[1],1,e)==0x80b80003);
+    unsigned char *base_only=memory+page-48;save_dialog_header(p,48,152);memcpy(base_only,p,48);
+    /* Cookie belongs to the original address: reject it without reading size. */
+    const uint64_t b[]={(uintptr_t)base_only};assert((uint32_t)bbcpu_call(entries[1],1,b)==0x80b8000a);
+    if(guards) {
+        uint32_t cookie=(uint32_t)((uintptr_t)base_only+UINT32_C(0xc0d1a109));memcpy(base_only+44,&cookie,4);
+        assert((uint32_t)bbcpu_call(entries[1],1,b)==0x80b8000d);
+        const uint64_t bad[]={1,UINT64_MAX,(uintptr_t)(memory+page),(uintptr_t)(memory+page-47)};
+        for(unsigned i=0;i<4;++i) {const uint64_t a[]={bad[i]};assert((uint32_t)bbcpu_call(entries[1],1,a)==0x80b8000d);}
+    }
+    assert(*runtime_errno()==17 && !munmap(memory,page*3));
+}
+static void test_save_dialog_start(void) {
+    const char *names[]={"s9e3+YpRnzw#v#f","4tPhsP6FpDI#v#f"};uintptr_t entries[2];
+    for(unsigned i=0;i<2;++i) {
+        bootstrap_initialize(0);assert(!bootstrap_resolve(names[i],0));bootstrap_initialize(1);
+        const uintptr_t fn=bootstrap_resolve(names[i],0);assert(fn && !bootstrap_resolve(names[i],1));
+        char wrong[64];snprintf(wrong,sizeof(wrong),"%.11s#g#g",names[i]);assert(!bootstrap_resolve(wrong,0));
+        entries[i]=guest_bridge(fn);
+    }
+    check_save_dialog_start(entries,1);
+    puts("PASS: save-dialog init dependency failure and Open header validation before absent instance, zero/one-pointer guest ABI, address cookie, reserved bytes, 64-bit base/signed outer sizes, opaque nested fields, exact guarded reads, repeat errors and unchanged buffers/errno");
+}
 static void test_absent_save_dialog(void) {
     const char *names[]={"ERKzksauAJA#v#f","KK3Bdg1RWK0#v#f"};uintptr_t entries[2];
     for(unsigned i=0;i<2;++i) {
@@ -536,7 +606,8 @@ static void test_absent_save_dialog(void) {
         absent[i]=guest_bridge(target);
     }
     check_absent_save_lifecycle(absent);check_absent_save_dialog(entries);
-    assert(!bootstrap_resolve("s9e3+YpRnzw#v#f",0) && !bootstrap_resolve("4tPhsP6FpDI#v#f",0));
+    test_save_dialog_start();
+    check_absent_save_lifecycle(absent);check_absent_save_dialog(entries);
     puts("PASS: five absent save-dialog lifecycle calls preserve original uninitialized/null-result precedence, typed guest ABI, protected/unchanged outputs, repeated errors, scopes and errno; no UI or save access");
     puts("PASS: absent save-dialog GetStatus/UpdateStatus no-argument guest ABI, repeated NONE, ignored stale/protected pointers, scopes/capability and unchanged buffers/errno; no initialized or completed dialog");
 }
