@@ -15,12 +15,14 @@ ROOT = Path(__file__).parents[1]
 PROBE = ROOT / 'work/probe_entry_arm64'
 
 
-def synthetic_image(path):
+def synthetic_image(path, fault=False):
     image = bytearray(16384)
     code = bytearray(b'\xff\x15' + struct.pack('<i', 232-6))  # Initialize the keyboard and audio adapters.
     code += b'\xff\x15' + struct.pack('<i', 240-(len(code)+6))
     code += bytearray.fromhex('bf ff000000 31f6 31d2 31c9')
     code += b'\xff\x15' + struct.pack('<i', 248-(len(code)+6))
+    if fault:
+        code += bytes.fromhex('c700 03000000')  # Guest writes to the provider's protected/EOF page.
     code += b'\x48\x89\xc7'
     code += b'\xff\x15' + struct.pack('<i', 256-(len(code)+6))
     code += b'\x0f\x0b'
@@ -51,6 +53,7 @@ class GraphicsEntryTests(unittest.TestCase):
 #include <string.h>
 #include <setjmp.h>
 #include <sys/mman.h>
+#include <fcntl.h>
 extern __thread sigjmp_buf *runtime_fault_recover;
 typedef struct { const char *title, *serial, *user_dir; unsigned sdk, attributes; int width, height; } Config;
 #include <stdbool.h>
@@ -83,8 +86,24 @@ int bbgpu_init(const Config *c) {
     puts("FIXTURE_FAULT_RECOVERED");
     initialized=1; puts("FIXTURE_MAIN_THREAD_INIT"); return 0;
 }
-static int video_open(int user, int bus, int index, void *params) {
+static intptr_t video_open(int user, int bus, int index, void *params) {
     if (!initialized || pthread_main_np() || user!=255 || bus || index || params) abort();
+    const char *fault=getenv("SOTC_FIXTURE_FAULT");
+    if (fault) {
+        if (!strcmp(fault,"protected")) {
+            void *page=mmap(NULL,16384,PROT_READ,MAP_PRIVATE|MAP_ANON,-1,0);
+            if (page==MAP_FAILED) abort();
+            return (intptr_t)page;
+        }
+        /* A shared mapping can be writable yet SIGBUS on an absent backing
+           page. Exercise that distinction without a GPU or game content. */
+        char path[]="/tmp/sotc-fault-fixture-XXXXXX";
+        int fd=mkstemp(path);
+        if (fd<0 || unlink(path) || ftruncate(fd,16384)) abort();
+        char *page=mmap(NULL,32768,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
+        if (page==MAP_FAILED || close(fd)) abort();
+        return (intptr_t)(page+16384);
+    }
     puts("FIXTURE_GUEST_WORKER_OPEN"); return 0x1234;
 }
 static void unexpected_call(void) { abort(); }
@@ -120,6 +139,21 @@ void bbgpu_window_loop(void) {
                 self.assertIn('Linked module 0 initializer returned 0', result.stdout)
                 self.assertIn('keyboard backend ready; initialized=1', result.stdout)
                 self.assertIn('AudioOut: SDL ready=1, initialized=1',result.stdout)
+                for fault, permissions in (('protected','r--'), ('backing','rw-')):
+                    fault_boot=root/('fault-'+fault+'.bin')
+                    synthetic_image(fault_boot, fault=True)
+                    failed=subprocess.run([str(PROBE),str(fault_boot),'--bootstrap','--game-root',str(root),
+                        '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,
+                        env=dict(os.environ,BB_JIT=mode,BB_GPU_USER_DIR=str(state),
+                                 BB_DMEM_MB='16',BB_DMEM_EXTRA_MB='0',SOTC_DIAGNOSTIC_SECONDS='10',
+                                 SOTC_FIXTURE_FAULT=fault))
+                    self.assertIn(failed.returncode,(138,139),failed.stdout+failed.stderr)
+                    self.assertIn('STOP_EXECUTION_FAULT:',failed.stderr)
+                    self.assertRegex(failed.stderr,r'signal code=0x[0-9a-f]+ esr=0x[1-9a-f][0-9a-f]* far=0x')
+                    self.assertIn('gpu traps=0x0',failed.stderr)
+                    self.assertRegex(failed.stderr,r'host mapping: [0-9a-f]+-[0-9a-f]+ '+permissions)
+                    if fault=='backing':
+                        self.assertIn('STOP_EXECUTION_FAULT: SIGBUS',failed.stderr)
             state = root/'unavailable-input-state'
             state.mkdir()
             rejected = subprocess.run([str(PROBE), str(boot), '--bootstrap', '--game-root', str(root),

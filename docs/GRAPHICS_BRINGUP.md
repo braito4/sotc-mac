@@ -303,6 +303,17 @@ playback device is visible there. The next Terminal run must verify real stream 
 PCM submission, volume/state queries and downstream AJM services are still unresolved; no
 samples are submitted, recorded or replaced with fabricated silence by this adapter.
 
+The latest Terminal execution faults at an audio configuration write to non-null direct
+memory in both CPU modes. A matching interpreter fault rules out a failure exclusive to
+JIT emission; it does not identify the underlying cause. Fatal reports now include ARM64
+ESR/FAR, signal code, host mapping protection and GPU trap flags, without reading the
+faulting bytes, acquiring the guest VMA lock or changing protection. Synthetic guest writes
+exercise read-only mappings and writable mappings beyond file backing in both modes, while
+the existing speculative-read recovery still passes. Audio initialization and the first
+sixteen port-open attempts also report their arguments/results before a possible fatal exit.
+These are diagnostics, not a memory or audio repair. Re-run the command above in Terminal;
+keep its private log, including any AudioOut lines and the complete fatal report.
+
 ## Verified CPU-side display contracts
 
 - Buffer attributes write the exact 40-byte layout. Pitch is the seventh integer argument on
@@ -329,10 +340,10 @@ is generated because no output port or rendering submission has succeeded.
 The pinned library and its renderer-only initialization are verified. The optional game
 connection now implements scoped import routing, shared queue ownership, a main-thread event
 loop, a guest worker and memory/fault hooks, with synthetic checks. The real combined run
-passes original gesture initialization and keyboard pad open, then stops at
-`sceAudioOutInit` after UUID generation, thread-key use and original NGS2 loading. The
-previous null audio-object fault is no longer observed. The new CoreAudio stream lifecycle
-adapter is ready for the next Terminal run. Additional retail ABI adapters, system imports and GNM operations will be
+passes original gesture initialization, keyboard pad open, UUID generation, thread-key
+use and original NGS2 loading, then faults on a non-null audio configuration write in both
+CPU modes. Fatal mapping/syndrome and bounded AudioOut diagnostics await a Terminal run.
+Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
 

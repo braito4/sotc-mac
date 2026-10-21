@@ -16,7 +16,7 @@ static BootstrapAudioBackend backend;
 static int configured, ready, initialized;
 static uint32_t sequence;
 static struct { int32_t handle; int type; void *stream; } ports[PORTS];
-static uint64_t init_requests, opened, closed, failures;
+static uint64_t init_requests, open_requests, opened, closed, failures;
 int bootstrap_audio_bind(const BootstrapAudioBackend *input) {
     pthread_mutex_lock(&audio_lock);
     if (configured) { pthread_mutex_unlock(&audio_lock); return -1; }
@@ -31,10 +31,13 @@ static int32_t audio_init(void) {
     pthread_mutex_lock(&audio_lock);++init_requests;
     int32_t result = !ready ? AUDIO_ERROR(0x10) : initialized ? AUDIO_ERROR(0xe) : 0;
     if (!result) initialized=1;
+    if (init_requests<=2)
+        fprintf(stderr,"AudioOut: init result=0x%08x (SDL ready=%d)\n",(uint32_t)result,ready);
     pthread_mutex_unlock(&audio_lock);return result;
 }
 static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frames,uint32_t freq,uint32_t param) {
     pthread_mutex_lock(&audio_lock);
+    ++open_requests;
     int32_t result = !initialized ? AUDIO_ERROR(0xf)
         : !frames || frames>2048 || (frames&255) ? AUDIO_ERROR(6)
         : freq!=48000 ? AUDIO_ERROR(8)
@@ -58,6 +61,9 @@ static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frame
             ports[slot].handle=result;ports[slot].type=type;ports[slot].stream=stream;++opened;
         }
     }
+    if (open_requests<=16)
+        fprintf(stderr,"AudioOut: open user=%d type=%d index=%d frames=%u frequency=%u parameter=0x%x result=0x%08x\n",
+            user,type,index,frames,freq,param,(uint32_t)result);
     pthread_mutex_unlock(&audio_lock);return result;
 }
 static int32_t audio_close(int32_t handle) {

@@ -38,7 +38,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | GPU native loading | Actual ARM64 library load, six API exports and unload pass; all 46 runtime/CPU imports present; guest callbacks and clock/statistics adapters tested; no game renderer integration |
 | Vulkan surface prerequisite | Bundled MoltenVK manifest and SDL loader selected explicitly; native enumeration exposes 19 extensions including Vulkan/Metal surfaces; five tests pass, including a real missing-driver regression |
 | Renderer initialization | User confirms native Terminal initialization, guest-memory residency, four cached Metal pipelines and Metal command-buffer processing; no game draws/dispatches in this isolated check |
-| AudioOut stream lifecycle | Three scoped init/open/close APIs use initialized SDL CoreAudio and real device streams; guest ABI, provider failures, formats and capacity pass in both modes; native tool sees no default playback device; combined use pending |
+| AudioOut stream lifecycle | Three scoped init/open/close APIs use initialized SDL CoreAudio and real device streams; guest ABI, provider failures, formats and capacity pass in both modes; bounded init/open diagnostics identify preceding service errors; real playback unverified |
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; six scoped pad APIs implement a keyboard-backed logical controller; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization and open; reads remain unverified |
@@ -74,8 +74,14 @@ Game Render, passes original touch-recognizer initialization and opens the keybo
 controller. Save and trophy task threads then start; one thread key is created and set
 twice, and UUID generation now passes. The latest real combined run loads the original
 NGS2 module and creates its sound-loader thread; the earlier null audio-object fault is
-no longer observed. The new boundary is `sceAudioOutInit`. A checked SDL CoreAudio service
-and actual stream open/close adapter now cover this stage, with combined use still pending.
+no longer observed. A checked SDL CoreAudio service and actual stream open/close adapter now
+cover the subsequent AudioOut imports. The latest combined Terminal runs instead fault on
+an audio configuration write to a non-null direct-memory address in both JIT and interpreter.
+This does not establish a translator-specific failure or successful audio initialization.
+Fatal diagnostics now include the ARM64 syndrome, signal code, host mapping protection and
+lock-free GPU trap flags in either mode. Synthetic guest writes verify both read-only-page
+faults and SIGBUS from a writable mapping beyond its file backing; recovered faults stay silent.
+The actual fault's memory protections and backing cause still require a Terminal run.
 Starting a save/trophy task does not establish save access or trophy support. No game frame is verified.
 See [Graphics bring-up](GRAPHICS_BRINGUP.md) for the remaining loader integration.
 

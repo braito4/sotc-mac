@@ -18,6 +18,21 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <sys/ucontext.h>
+
+/* This metadata lookup is lock-free; never take the VMA registry lock from a
+ * signal handler (the interrupted thread may already own it). */
+extern unsigned runtime_memory_trap_reasons(uintptr_t address);
+static size_t fault_hex(char *out, const char *label, uint64_t value) {
+    size_t n=0;
+    while (*label) out[n++]=*label++;
+    int started=0;
+    for (int shift=60; shift>=0; shift-=4) {
+        const unsigned digit=(unsigned)((value>>shift)&15);
+        if (digit || started || !shift) { out[n++]="0123456789abcdef"[digit]; started=1; }
+    }
+    return n;
+}
 
 static char (*imports)[128];
 static uint64_t import_count;
@@ -101,6 +116,29 @@ static void fault(int sig, siginfo_t *info, void *context) {
     }
     header[length++] = '\n';
     (void)write(STDERR_FILENO, header, length);
+    /* Keep these fields available in interpreter mode too. ESR distinguishes
+     * alignment/access faults; VM protection distinguishes a GPU write trap
+     * from a missing/read-only mapping or a fault in shared backing storage.
+     * Do not touch the faulting bytes or change their protection. */
+    char detail[256];
+    size_t used=fault_hex(detail,"  signal code=0x",(uint32_t)info->si_code);
+#if defined(__APPLE__) && defined(__aarch64__)
+    const ucontext_t *uc=context;
+    used+=fault_hex(detail+used," esr=0x",uc->uc_mcontext->__es.__esr);
+    used+=fault_hex(detail+used," far=0x",uc->uc_mcontext->__es.__far);
+    used+=fault_hex(detail+used," host pc=0x",uc->uc_mcontext->__ss.__pc);
+#endif
+    used+=fault_hex(detail+used," gpu traps=0x",runtime_memory_trap_reasons(address));
+    detail[used++]='\n';
+    (void)write(STDERR_FILENO,detail,used);
+    const char mapping_label[]="  host mapping: ";
+    (void)write(STDERR_FILENO,mapping_label,sizeof(mapping_label)-1);
+    if (bb_describe_mapping(address,detail,sizeof(detail)))
+        (void)write(STDERR_FILENO,detail,strnlen(detail,sizeof(detail)));
+    else {
+        const char missing[]="unmapped or unavailable\n";
+        (void)write(STDERR_FILENO,missing,sizeof(missing)-1);
+    }
     char description[2048];
     if (bbcpu_describe_fault(context, description, sizeof(description)))
         (void)write(STDERR_FILENO, description, strnlen(description, sizeof(description)));
