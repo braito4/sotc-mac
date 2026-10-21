@@ -30,6 +30,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
+| GNM submission permission | Scoped query forwards the real provider lock state; allowed/blocked original/native guest comparisons, ignored arguments, errno/scopes and missing-export activation checks pass in both modes; no submission or frame |
 | GNM default compute state | Scoped base-PS4 provider writes real register/barrier/NOP packets; byte-level original/native comparisons and short-size/guard/ABI checks pass in both modes; no submission or game frame |
 | GNM compute shader packets | Scoped local modifier encoder preserves retail compute headers, register/mask semantics and untouched NOP tail; 3,072 guarded synthetic packets and original-module comparisons pass in both modes; no shader execution or draw |
 | GNM debug markers | Scoped push/pop route to real pinned PM4 encoders; 256 synthetic lengths, byte-level packets/guards/errors and guest ABI match supplied originals and actual native GPU functions in both modes; no submission or draw |
@@ -49,7 +50,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; eight scoped pad APIs implement keyboard input and explicit light-bar/vibration unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmDispatchInitDefaultHardwareState; no game frame verified |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmAreSubmitsAllowed; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -702,5 +703,27 @@ The regular contracts command now also runs graphics routing checks in both mode
 Headless, data and wrong-scope imports remain unresolved; no GPU rebuild is required.
 
 Terminal passes the compute shader modifier adapter and now reaches default compute
-state preparation in a job worker. Continuation after this new route requires a
-Terminal run; game draws and video remain unverified.
+state preparation in a job worker. Terminal passes this route and reaches sceGnmAreSubmitsAllowed; game draws and
+video remain unverified.
+
+## Submission permission query
+
+The graphics-only allowlist now routes the exact scoped sceGnmAreSubmitsAllowed
+import to the pinned provider's no-argument query. It returns the provider's actual
+submission-lock state: one when clear, zero when set. The same provider owns command
+submission, SubmitDone and completion/idle release; the adapter never substitutes an
+unconditional permission result. A permission query is neither a submission nor a
+verified frame. Headless, data and wrong-scope imports remain unresolved. Missing
+query support rejects provider activation before any graphics routes are published.
+
+Guest tests check repeated allowed/blocked transitions, ignored stale arguments,
+untouched buffers/errno/lock contents, scopes, capability gating and missing-export
+activation. Private comparisons execute the supplied original with a controlled lock
+pointer and the actual pinned native query with its isolated clear/set state. Both
+pass in JIT and interpreter without renderer initialization or submissions. The
+native white-box test uses only the provider lifecycle's zero/one states and restores
+the initial clear state; no production lock manipulation or GPU rebuild is added.
+
+Terminal passes default compute state preparation and now stops at this permission
+query in a job worker. Continuation after routing the query requires a Terminal run;
+GPU submissions, game draws and video remain unverified.

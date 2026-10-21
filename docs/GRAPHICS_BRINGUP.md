@@ -689,5 +689,27 @@ The regular contracts command now also runs graphics routing checks in both mode
 Headless, data and wrong-scope imports remain unresolved; no GPU rebuild is required.
 
 Terminal passes the compute shader modifier adapter and now reaches default compute
-state preparation in a job worker. Continuation after this new route requires a
-Terminal run; game draws and video remain unverified.
+state preparation in a job worker. Terminal passes this route and reaches sceGnmAreSubmitsAllowed; game draws and
+video remain unverified.
+
+## Submission permission query
+
+The graphics-only allowlist now routes the exact scoped sceGnmAreSubmitsAllowed
+import to the pinned provider's no-argument query. It returns the provider's actual
+submission-lock state: one when clear, zero when set. The same provider owns command
+submission, SubmitDone and completion/idle release; the adapter never substitutes an
+unconditional permission result. A permission query is neither a submission nor a
+verified frame. Headless, data and wrong-scope imports remain unresolved. Missing
+query support rejects provider activation before any graphics routes are published.
+
+Guest tests check repeated allowed/blocked transitions, ignored stale arguments,
+untouched buffers/errno/lock contents, scopes, capability gating and missing-export
+activation. Private comparisons execute the supplied original with a controlled lock
+pointer and the actual pinned native query with its isolated clear/set state. Both
+pass in JIT and interpreter without renderer initialization or submissions. The
+native white-box test uses only the provider lifecycle's zero/one states and restores
+the initial clear state; no production lock manipulation or GPU rebuild is added.
+
+Terminal passes default compute state preparation and now stops at this permission
+query in a job worker. Continuation after routing the query requires a Terminal run;
+GPU submissions, game draws and video remain unverified.

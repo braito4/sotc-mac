@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
-static int missing_wait, calls;
+static int missing_wait, missing_permission, calls;
+static uint32_t submit_lock;
+static int32_t submits_allowed(void) {return submit_lock==0;}
 static void marker(void) {}
 /* Synthetic provider packet writers; public PM4 NOP debug-marker layout.
  * Actual pinned renderer/original-module comparisons are separate checks. */
@@ -145,8 +147,26 @@ static void check_dispatch_packets(uintptr_t target) {
     }
     assert(*runtime_errno()==17);
 }
+/* Shared with private original/native state comparisons; no GPU work. */
+static void check_submit_permission(uintptr_t target,uint32_t *lock) {
+    /* The provider lock lifecycle uses only clear/set states. */
+    const uint32_t states[]={0,1,0,1,1,0};
+    unsigned char ignored[64];memset(ignored,0xa5,sizeof(ignored));
+    const uint64_t stale[]={1,UINT64_MAX,(uintptr_t)ignored,3,5,7};
+    *runtime_errno()=17;
+    for(unsigned i=0;i<sizeof(states)/sizeof(*states);++i) {
+        *lock=states[i];
+        for(unsigned repeat=0;repeat<3;++repeat) {
+            assert((int32_t)bbcpu_call(target,6,stale)==(states[i]==0));
+            assert(*lock==states[i]);
+            for(unsigned j=0;j<sizeof(ignored);++j) assert(ignored[j]==0xa5);
+            assert(*runtime_errno()==17);
+        }
+    }
+}
 static uintptr_t resolver(const char *name) {
     ++calls;
+    if(!strcmp(name,"b08AgtPlHPg#A#B")) return missing_permission ? 0 : (uintptr_t)submits_allowed;
     if(!strcmp(name,"nF6bFRUBRAU#A#B")) return (uintptr_t)dispatch_init;
     if(!strcmp(name,"W1Etj-jlW7Y#A#B")) return (uintptr_t)marker_push;
     if(!strcmp(name,"7qZVNgEu+SY#A#B")) return (uintptr_t)marker_pop;
@@ -157,6 +177,7 @@ int main(void) {
     bootstrap_initialize(1);
     assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",0));
     assert(!bootstrap_resolve("nF6bFRUBRAU#A#B",0));
+    assert(!bootstrap_resolve("b08AgtPlHPg#A#B",0));
     assert(!bootstrap_resolve("W1Etj-jlW7Y#A#B",0) && !bootstrap_resolve("7qZVNgEu+SY#A#B",0));
     const uintptr_t original = bootstrap_resolve("D0OdFMjp46I#0#F", 0);
     assert(original && !bootstrap_graphics_owns("D0OdFMjp46I#0#F"));
@@ -165,6 +186,7 @@ int main(void) {
     assert(bootstrap_graphics_bind(resolver) == -1);
     assert(bootstrap_resolve("D0OdFMjp46I#0#F", 0) == original);
     missing_wait = 0;
+    missing_permission=1;assert(bootstrap_graphics_bind(resolver)==-1);missing_permission=0;
     int32_t (*create)(uintptr_t *, const char *) = (void *)original;
     int32_t (*destroy)(uintptr_t) = (void *)bootstrap_resolve("jpFjmgAC5AE#0#F", 0);
     uintptr_t handle = 0;
@@ -212,6 +234,12 @@ int main(void) {
     assert(!bootstrap_resolve("nF6bFRUBRAU#G#H",0));
     assert(!bootstrap_resolve("nF6bFRUBRAU#A#B",1));
     bootstrap_initialize(0);assert(!bootstrap_resolve("nF6bFRUBRAU#A#B",0));bootstrap_initialize(1);
+    assert(bootstrap_graphics_owns("b08AgtPlHPg#A#B"));
+    assert(!bootstrap_resolve("b08AgtPlHPg#G#H",0));
+    assert(!bootstrap_resolve("b08AgtPlHPg#A#B",1));
+    bootstrap_initialize(0);assert(!bootstrap_resolve("b08AgtPlHPg#A#B",0));bootstrap_initialize(1);
+    check_submit_permission(marker_bridge(bootstrap_resolve("b08AgtPlHPg#A#B",0)),&submit_lock);
+    puts("PASS: scoped no-argument submit permission preserves allowed/blocked provider transitions, stale arguments, buffers/errno and atomic activation");
     check_dispatch_packets(marker_bridge(bootstrap_resolve("nF6bFRUBRAU#A#B",0)));
     puts("PASS: scoped compute default-state guest packets, register/barrier/NOP semantics, short-buffer rejection, 32-bit size, unaligned guards, untouched tail and errno");
     check_cs_packets(marker_bridge(bootstrap_resolve("Kx-h-nWQJ8A#A#B",0)));
