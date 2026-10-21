@@ -38,7 +38,7 @@ static BootstrapKeyboard keyboard;
 static int bound, initialized, opened, handle, next_handle = 1;
 static uint8_t connection_count, touch_id;
 static int last_touch;
-static uint64_t touch_since, reads, lightbar_requests;
+static uint64_t touch_since, reads, lightbar_requests, vibration_requests;
 static const struct { const char *key; uint32_t button; } bindings[] = {
     {"Space",0x4000}, {"Left Shift",0x2000}, {"E",0x8000}, {"Q",0x1000},
     {"1",0x400}, {"3",0x800}, {"R",0x100}, {"F",0x200},
@@ -146,6 +146,20 @@ static int32_t controller_info(int32_t id, ControllerInfo *out) {
     }
     pthread_mutex_unlock(&pad_lock); return result;
 }
+static int32_t set_vibration(int32_t id,const void *param) {
+    pthread_mutex_lock(&pad_lock);
+    ++vibration_requests;
+    /* Retail: initialization, null parameter, handle, then two motor bytes.
+     * The keyboard controller owns no motors. NOT_PERMITTED is an explicit
+     * diagnostic policy, including zero intensities; no output is simulated. */
+    int32_t result=!initialized ? PAD_ERROR(5) : !param ? PAD_ERROR(1)
+        : !opened || id!=handle ? PAD_ERROR(3) : 0;
+    unsigned char motors[2];
+    if (!result) result=bb_read_memory(motors,(uintptr_t)param,sizeof(motors))!=sizeof(motors)
+        ? PAD_ERROR(1) : PAD_ERROR(0x101);
+    pthread_mutex_unlock(&pad_lock);
+    return result;
+}
 static int32_t set_lightbar(int32_t id, const void *param) {
     pthread_mutex_lock(&pad_lock);
     ++lightbar_requests;
@@ -169,7 +183,7 @@ uintptr_t bootstrap_pad_resolve(const char *name) {
     static const struct { const char *name; void *fn; } exports[] = {
         {"hv1luiJrqQM#H#I",pad_init}, {"xk0AcarP3V4#H#I",pad_open},
         {"6ncge5+l5Qs#H#I",pad_close}, {"YndgXqQVV7c#H#I",read_state},
-        {"RR4novUEENY#H#I",set_lightbar},
+        {"RR4novUEENY#H#I",set_lightbar}, {"yFVnOdGxvZY#H#I",set_vibration},
         {"q1cHNfGycLI#H#I",read_buffered}, {"gjP9-KQzoUk#H#I",controller_info},
     };
     for (size_t i=0; i<sizeof(exports)/sizeof(*exports); ++i)
@@ -178,7 +192,7 @@ uintptr_t bootstrap_pad_resolve(const char *name) {
 }
 void bootstrap_pad_report(void) {
     pthread_mutex_lock(&pad_lock);
-    if (bound) printf("Input: keyboard backend ready; initialized=%d, open=%d, samples=%llu, unavailable light-bar requests=%llu\n",
-                     initialized,opened,(unsigned long long)reads,(unsigned long long)lightbar_requests);
+    if (bound) printf("Input: keyboard backend ready; initialized=%d, open=%d, samples=%llu, unavailable light-bar requests=%llu, unavailable vibration requests=%llu\n",
+                     initialized,opened,(unsigned long long)reads,(unsigned long long)lightbar_requests,(unsigned long long)vibration_requests);
     pthread_mutex_unlock(&pad_lock);
 }

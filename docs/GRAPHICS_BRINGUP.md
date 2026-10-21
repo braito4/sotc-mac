@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and reaches PadSetVibration.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and reaches PadSetVibration.
 been verified.
 
 ## Network-control availability
@@ -463,7 +463,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and reaches PadSetVibration.
 
 ## Keyboard-controller light-bar availability
 
@@ -481,7 +481,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
+Terminal passes the unavailable save, trophy-context and AppContent responses and passes SaveDataDialogGetStatus (NONE) and reaches PadSetVibration.
 
 ## Standalone system status
 
@@ -501,7 +501,7 @@ and confirms the same complete output. The graphics-loader fixture verifies ever
 byte after initializing the destination to a nonzero pattern. Actual game continuation
 after this query is confirmed in Terminal, including processing the local login event.
 The SaveData initialization failure now returns in Terminal; the next unresolved import is
-sceSaveDataDialogGetStatus on main after the savedata, trophy-context and AppContent failures.
+scePadSetVibration on main after the save-dialog NONE query.
 
 ## Savedata availability
 
@@ -518,7 +518,7 @@ Initialize3 wrapper comparison injects backend INTERNAL and checks propagation t
 the original error conversion without reading the optional parameter. The synthetic
 graphics loader also continues after the response in both modes. Terminal confirms actual
 continuation after this initialization failure; Save Task Thread now reaches
-SaveDataDialogGetStatus after the savedata, trophy-context and AppContent failures. No game frame is verified.
+PadSetVibration after the save-dialog NONE query. No game frame is verified.
 
 ## Uninitialized savedata directory search
 
@@ -555,7 +555,7 @@ uninitialized result and continues in both modes. Actual game continuation after
 context-creation response is confirmed in Terminal. Only context creation was called there;
 the other five paths remain synthetic/original checks. The next boundary is
 AppContent initialization, which now also returns in Terminal. The current boundary is
-sceSaveDataDialogGetStatus; game video is unverified.
+scePadSetVibration after the save-dialog NONE query; game video is unverified.
 
 ## AppContent module availability
 
@@ -573,7 +573,8 @@ module availability in both CPU modes. A private comparison executes both suppli
 original exports with absent module references and no dependency-helper replacement,
 confirming the same paths. The graphics-loader fixture continues after the initialization
 error in both modes. Terminal confirms actual continuation after initialization; the add-on
-list was not called. The next boundary is SaveDataDialogGetStatus; no game frame is verified.
+list was not called. Terminal also passes SaveDataDialogGetStatus (NONE); the next boundary is PadSetVibration.
+No game frame is verified.
 
 ## Absent save-dialog status
 
@@ -588,4 +589,21 @@ unchanged buffers/errno and scope/capability in both CPU modes. A private compar
 the supplied original status exports with an absent instance and native serialized lock
 dependencies; their status logic is unchanged and gives the same result. The synthetic
 graphics loader also continues after both queries in both modes. Actual game continuation
-after the new status query requires Terminal verification; game video remains unverified.
+after GetStatus is confirmed in Terminal; UpdateStatus was not called there. The next
+unresolved import is scePadSetVibration; game video remains unverified.
+
+## Keyboard-controller vibration availability
+
+The exact-scoped two-argument scePadSetVibration validates initialization, null parameter
+and the live handle before reading exactly two motor-intensity bytes, following the
+supplied original wrapper. For the keyboard-backed logical controller, readable parameters
+return NOT_PERMITTED because no physical motors exist. This explicit policy also applies
+to zero intensities: no physical stop or vibration is claimed. Unreadable input returns
+INVALID_ARG without a host fault; stale handles remain invalid.
+
+Guest tests cover validation order, 32-bit handle width, zero/minimum/intermediate/maximum
+intensities, unaligned and protected-page input boundaries, partial/unreadable buffers,
+stale handles/registers, capability/scope and unchanged input/errno in both CPU modes. A
+private supplied-wrapper comparison checks exact two-byte reads and motor byte ordering
+and propagation of an injected device-output denial. Actual game continuation after this
+new adapter still requires Terminal verification; no game frame is verified.

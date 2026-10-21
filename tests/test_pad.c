@@ -46,9 +46,14 @@ int main(void) {
     assert(!bootstrap_resolve("rIZnR6eSpvk#H#I",0)); /* Unsupported sensor API stays unresolved. */
     bootstrap_initialize(0);assert(!bootstrap_resolve("RR4novUEENY#H#I",0));bootstrap_initialize(1);
     assert(!bootstrap_resolve("RR4novUEENY#A#B",0));
+    assert(!bootstrap_resolve("yFVnOdGxvZY#A#B",0));
+    bootstrap_initialize(0);assert(!bootstrap_resolve("yFVnOdGxvZY#H#I",0));bootstrap_initialize(1);
+    const uintptr_t vibration=bridge("yFVnOdGxvZY#H#I");
     const uintptr_t lightbar=bridge("RR4novUEENY#H#I");
     *runtime_errno()=17;
     assert((uint32_t)call(lightbar,1,0,0,0)==0x80920005);
+    assert((uint32_t)call(vibration,1,0,0,0)==0x80920005);
+    assert((uint32_t)call(vibration,UINT64_MAX,1,0,0)==0x80920005);
     assert((uint32_t)call(lightbar,UINT64_MAX,1,0,0)==0x80920005);
     const uintptr_t init=bridge("hv1luiJrqQM#H#I"),open=bridge("xk0AcarP3V4#H#I");
     const uintptr_t close=bridge("6ncge5+l5Qs#H#I"),read=bridge("YndgXqQVV7c#H#I");
@@ -67,6 +72,20 @@ int main(void) {
     const size_t page=(size_t)sysconf(_SC_PAGESIZE);
     unsigned char *guard=mmap(NULL,page*2,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
     assert(guard!=MAP_FAILED && !mprotect(guard+page,page,PROT_NONE));
+    assert((uint32_t)call(vibration,UINT64_MAX,0,0,0)==0x80920001);
+    assert((uint32_t)call(vibration,UINT64_MAX,1,0,0)==0x80920003);
+    assert((uint32_t)call(vibration,handle,1,0,0)==0x80920001);
+    const unsigned char intensities[]={0,1,127,255};
+    for(unsigned offset=2;offset<=3;++offset) {
+        unsigned char *motors=guard+page-offset;
+        for(unsigned a=0;a<4;++a) for(unsigned b=0;b<4;++b) {
+            motors[0]=intensities[a];motors[1]=intensities[b];
+            assert((uint32_t)call(vibration,UINT64_C(0x1234000000000000)|(uint32_t)handle,(uintptr_t)motors,1,UINT64_MAX)==0x80920101);
+            assert(motors[0]==intensities[a] && motors[1]==intensities[b] && *runtime_errno()==17);
+        }
+    }
+    assert((uint32_t)call(vibration,handle,(uintptr_t)(guard+page-1),0,0)==0x80920001);
+    assert((uint32_t)call(vibration,handle,(uintptr_t)(guard+page),0,0)==0x80920001);
     unsigned char *rgb=guard+page-3;
     for(unsigned r=0;r<=13;++r) for(unsigned g=0;g<=13;++g) for(unsigned b=0;b<=13;++b) {
         rgb[0]=(unsigned char)r;rgb[1]=(unsigned char)g;rgb[2]=(unsigned char)b;
@@ -113,12 +132,14 @@ int main(void) {
     assert((uint32_t)call(read,handle,(uintptr_t)(packet+1),0,0)==0x80920005 && !memcmp(expected,packet,sizeof(packet)));
     available=1; assert(call(close,handle,0,0,0)==0);
     const int previous_calls=key_calls;
+    assert((uint32_t)call(vibration,handle,1,0,0)==0x80920003);
     assert((uint32_t)call(lightbar,handle,1,0,0)==0x80920003);
     assert((uint32_t)call(read,handle,1,0,0)==0x80920003 && key_calls==previous_calls);
     assert((uint32_t)call(info,handle,1,0,0)==0x80920003);
     int32_t next=call(open,1,0,0,0); assert(next>0 && next!=handle);
     assert((uint32_t)call(read,handle,1,0,0)==0x80920003);
     assert((uint32_t)call(lightbar,handle,1,0,0)==0x80920003);
+    assert((uint32_t)call(vibration,handle,1,0,0)==0x80920003);
     assert(call(close,next,0,0,0)==0);
-    puts("PASS: keyboard pad guest ABI, initialization/lifecycle, provider key samples, overlay capture, touch transitions, exact layouts, buffer guards, stale handles and unavailable light-bar validation/three-byte guarded RGB/errno");
+    puts("PASS: keyboard pad guest ABI, initialization/lifecycle, provider key samples, overlay capture, touch transitions, exact layouts, buffer guards, stale handles and unavailable light-bar validation/three-byte guarded RGB, unavailable vibration/two-byte motor parameters/errno");
 }
