@@ -30,6 +30,8 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
+| Combined Metal activity | Terminal records one draw and 61 dispatches in a sample; shader-resource and BC1 format/usage errors remain; correct game image and presentation unverified |
+| Save-dialog absent lifecycle | Five scoped exports preserve original NOT_INITIALIZED/null-result precedence and untouched outputs; guest/original checks pass in both modes; no dialog or save access |
 | Flip wait and marker batch | Real VideoOut label query feeds checked retail wait packets; SetMarker native route and two corrected color encoders pass original/guest matrices in both modes; no completed wait or game frame verified |
 | Graphics submission adapters | Four scoped submit/flip variants share retail preflight and actual backend calls; 5/6/9/10-argument guest routing, errors and original controlled-transport checks pass in both modes; real graphics submission/frame still requires Terminal verification |
 | Batched graphics shader review | Five PS350/VS-update/VGT encoders match original and native GPU packet/ABI matrices in both modes, including null shader disable and register read bounds; actual shader execution/frame unverified |
@@ -54,7 +56,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; eight scoped pad APIs implement keyboard input and explicit light-bar/vibration unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmInsertWaitFlipDone; no game frame verified |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Metal sample: one draw and 61 dispatches; current observed boundary: SaveDataDialogTerminate; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -881,3 +883,33 @@ a completed wait, host presentation or frame rendering.
 Terminal passes graphics workload submission and now reaches the flip-wait packet
 builder. Continuation after this batch and game video still require Terminal testing.
 No upstream source change or GPU library rebuild is required.
+
+## Latest combined run and absent save-dialog lifecycle
+
+The latest Terminal log passes the flip-wait route and records Metal activity of
+one draw and 61 dispatches in a per-second sample. This verifies encoded renderer
+work, not correct game pixels, presentation or playability. The run also reports
+SRT resource-offset failures involving Phi instructions, unflattened resource
+sources, oversized buffer clamps, nonuniform wave-lane warnings and an unsupported
+BC1 image format/usage combination. These are unresolved renderer issues; no shader,
+texture or primitive-restart fix is claimed here. The explicit stop is now
+sceSaveDataDialogTerminate in the save worker.
+
+Five scoped absent-instance lifecycle calls are implemented together. Terminate,
+Close, IsReadyToDisplay and ProgressBarSetValue return the original NOT_INITIALIZED
+error. Close checks the absent instance before any parameter access; progress ignores
+its two 32-bit values in that state. GetResult checks a null output first and returns
+the original null-argument error, otherwise NOT_INITIALIZED without reading or writing
+the output. Readiness returns an error code, not Boolean true. Existing GetStatus and
+UpdateStatus remain NONE before and after repeated lifecycle failures. No dialog,
+completed interaction, file, save backend or persistent state is created; Initialize
+and Open remain unresolved.
+
+Guest tests cover repeated calls, null/invalid/protected/unaligned output pointers,
+stale extra arguments, unchanged buffers/errno, result-error precedence and strict
+scope/capability gates. A private supplied-module comparison uses the original empty
+instance and native serialized mutex dependencies, checking the same cases plus
+unchanged status and instance state. The comparison and full contracts pass in JIT
+and interpreter. Separate counters report all five unavailable lifecycle requests.
+Continuation after this response, further renderer diagnosis and game video require
+another Terminal run; logs are read directly from the local diagnostic directory.

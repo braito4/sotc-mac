@@ -502,6 +502,21 @@ static void check_absent_save_dialog(const uintptr_t entries[2]) {
     }
     assert(!munmap(protected,page));
 }
+static void check_absent_save_lifecycle(const uintptr_t entries[5]) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    unsigned char output[128],before[128];memset(output,0xa5,sizeof(output));memcpy(before,output,sizeof(output));
+    const uint64_t pointers[]={0,1,(uintptr_t)protected,(uintptr_t)(output+1),UINT64_MAX};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) for(unsigned p=0;p<5;++p) for(unsigned op=0;op<5;++op) {
+        const uint64_t args[]={pointers[p],UINT64_C(0x1234000080000000)|round,
+            (uintptr_t)protected,(uintptr_t)output,3,UINT64_MAX};
+        const uint32_t expected=op==2 && !pointers[p] ? UINT32_C(0x80b8000d) : UINT32_C(0x80b80003);
+        assert((uint32_t)bbcpu_call(entries[op],6,args)==expected);
+        assert(!memcmp(output,before,sizeof(output)) && *runtime_errno()==17);
+    }
+    assert(!munmap(protected,page));
+}
 static void test_absent_save_dialog(void) {
     const char *names[]={"ERKzksauAJA#v#f","KK3Bdg1RWK0#v#f"};uintptr_t entries[2];
     for(unsigned i=0;i<2;++i) {
@@ -512,7 +527,17 @@ static void test_absent_save_dialog(void) {
         entries[i]=guest_bridge(fn);
     }
     check_absent_save_dialog(entries);
-    assert(!bootstrap_resolve("s9e3+YpRnzw#v#f",0) && !bootstrap_resolve("yEiJ-qqr6Cg#v#f",0));
+    const char *lifecycle[]={"YuH2FA7azqQ#v#f","fH46Lag88XY#v#f","yEiJ-qqr6Cg#v#f",
+        "en7gNVnh878#v#f","hay1CfTmLyA#v#f"};uintptr_t absent[5];
+    for(unsigned i=0;i<5;++i) {
+        bootstrap_initialize(0);assert(!bootstrap_resolve(lifecycle[i],0));bootstrap_initialize(1);
+        const uintptr_t target=bootstrap_resolve(lifecycle[i],0);assert(target && !bootstrap_resolve(lifecycle[i],1));
+        char wrong[64];snprintf(wrong,sizeof(wrong),"%.11s#g#g",lifecycle[i]);assert(!bootstrap_resolve(wrong,0));
+        absent[i]=guest_bridge(target);
+    }
+    check_absent_save_lifecycle(absent);check_absent_save_dialog(entries);
+    assert(!bootstrap_resolve("s9e3+YpRnzw#v#f",0) && !bootstrap_resolve("4tPhsP6FpDI#v#f",0));
+    puts("PASS: five absent save-dialog lifecycle calls preserve original uninitialized/null-result precedence, typed guest ABI, protected/unchanged outputs, repeated errors, scopes and errno; no UI or save access");
     puts("PASS: absent save-dialog GetStatus/UpdateStatus no-argument guest ABI, repeated NONE, ignored stale/protected pointers, scopes/capability and unchanged buffers/errno; no initialized or completed dialog");
 }
 static void check_unavailable_appcontent(const uintptr_t entries[2]) {
