@@ -30,6 +30,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
+| Graphics submission adapters | Four scoped submit/flip variants share retail preflight and actual backend calls; 5/6/9/10-argument guest routing, errors and original controlled-transport checks pass in both modes; real graphics submission/frame still requires Terminal verification |
 | Batched graphics shader review | Five PS350/VS-update/VGT encoders match original and native GPU packet/ABI matrices in both modes, including null shader disable and register read bounds; actual shader execution/frame unverified |
 | Batched compute review | Workload doorbell plus five related APIs reviewed together; scoped native routes and retail packet corrections pass guest/original checks in both modes; nonzero GPU queue execution remains unverified |
 | GNM submission permission | Scoped query forwards the real provider lock state; allowed/blocked original/native guest comparisons, ignored arguments, errno/scopes and missing-export activation checks pass in both modes; no submission or frame |
@@ -52,7 +53,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; eight scoped pad APIs implement keyboard input and explicit light-bar/vibration unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmSetPsShader350; no game frame verified |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmSubmitCommandBuffersForWorkload; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -796,3 +797,44 @@ GPU implementations against the same expectations in JIT and interpreter. All
 match without renderer initialization, shader execution or game command submission.
 Terminal now passes the workload doorbell route and reaches PS350 preparation;
 continuation after this batch, rendered game frames and video require verification.
+
+## Batched graphics submission and flip adapters
+
+Four scoped submit imports now use checked adapters around the native provider:
+sceGnmSubmitCommandBuffers, sceGnmSubmitCommandBuffersForWorkload,
+sceGnmSubmitAndFlipCommandBuffers and sceGnmSubmitAndFlipCommandBuffersForWorkload.
+The two workload variants are newly connected; the existing plain variants share
+the same validation and provider-owned submission/flip paths. No synthetic completion,
+frame, workload lifecycle or successful backend result is substituted.
+
+For a nonempty batch, validation checks required DCB pointer/size arrays, then the
+conditional CCB pointer requirement, before reading size entries. It checks every
+DCB size against the original nonzero/maximum rule and every supplied CCB size against
+the maximum. Errors leave the backend uncalled. This repairs the native non-flip
+variant's missing CCB prerequisite check. Retail accepts a zero-count non-flip
+submission without inspecting arrays: the adapter supplies safe empty storage to
+the native path and returns its actual backend result. A zero-count flip is explicitly
+rejected with the submission-argument error before either implementation can select
+an invalid final buffer; this is a deliberate safety guard, not an original-module
+behavior claim. Valid flip submissions still require the provider's supported final
+prepare-flip packet and a real VideoOut port/buffer.
+
+A new synthetic guest fixture exercises all four adapters with 5, 6, 9 and 10
+arguments. Original x86 fixture thunks place arguments seven through ten in actual
+SysV stack slots. Tests verify the unchanged host bridge delivers 32-bit port/index/
+mode values and full signed 64-bit flip data to native registers/stack in both modes.
+They also check multi-buffer validation, CCB-before-size precedence, upper argument
+bits, unchanged metadata, backend error propagation, empty submissions, scopes,
+capability/headless exclusion and missing-provider activation rejection.
+
+Private checks execute the original workload exports with their full preflight code
+intact and controlled mutex/readiness/transport/flip-patch dependencies. They confirm
+validation, count-zero non-flip behavior, six/ten-argument routing and backend/flip
+error propagation without GPU transport. An overlapping early-rejection matrix also
+passes against the actual pinned native library in JIT and interpreter. Real command
+execution, flip patching/presentation and game frames still require Terminal testing.
+
+Terminal now passes PS350 preparation and reaches the workload graphics submission
+call after entering the main loop. It also reaches the provider's shader compiler
+warning path; this does not verify a rendered frame. The float32 denormal-flush warning
+is not the import stop. No upstream change or GPU library rebuild is required.

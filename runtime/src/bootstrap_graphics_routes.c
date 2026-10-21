@@ -140,6 +140,55 @@ static int32_t retail_compute_wait(uint32_t *commands,uint32_t size,uintptr_t ad
     /* The first NOP's two padding dwords are not initialized by retail. */
     memcpy(commands,packet,8);memcpy((unsigned char *)commands+16,packet+4,36);return 0;
 }
+typedef int32_t (*Submit)(uint32_t,uint32_t,const uint32_t *const *,const uint32_t *,
+                           const uint32_t *const *,const uint32_t *);
+typedef int32_t (*SubmitFlip)(uint32_t,uint32_t,const uint32_t *const *,const uint32_t *,
+                               const uint32_t *const *,const uint32_t *,uint32_t,uint32_t,
+                               uint32_t,int64_t);
+static Submit graphics_submit;
+static SubmitFlip graphics_submit_flip;
+static int32_t submit_arguments(uint32_t count,const uint32_t *const *dcb,const uint32_t *sizes,
+                                 const uint32_t *const *ccb,const uint32_t *csizes) {
+    if(!count) return 0; /* Retail checks pointers only for nonempty submissions. */
+    if(!dcb || !sizes || (csizes && !ccb)) return (int32_t)UINT32_C(0x80d11000);
+    for(uint32_t i=0;i<count;++i) {
+        uint32_t n;memcpy(&n,(const unsigned char *)sizes+i*4ULL,4);
+        if(!n || n>UINT32_C(0x3ffffc)) return (int32_t)UINT32_C(0x80d11000);
+        if(csizes) {
+            memcpy(&n,(const unsigned char *)csizes+i*4ULL,4);
+            if(n>UINT32_C(0x3ffffc)) return (int32_t)UINT32_C(0x80d11000);
+        }
+    }
+    return 0;
+}
+static int32_t retail_submit(uint32_t workload,uint32_t count,const uint32_t *const *dcb,
+                              const uint32_t *sizes,const uint32_t *const *ccb,const uint32_t *csizes) {
+    int32_t error=submit_arguments(count,dcb,sizes,ccb,csizes);if(error) return error;
+    /* Native HLE rejects null arrays even for count zero. It does not inspect
+     * entries in that case; provide real empty storage while keeping its backend
+     * initialization/submission path and actual return value. */
+    const uint32_t *empty=NULL;const uint32_t zero=0;
+    if(!count) return graphics_submit(workload,0,&empty,&zero,NULL,NULL);
+    return graphics_submit(workload,count,dcb,sizes,ccb,csizes);
+}
+static int32_t retail_submit_plain(uint32_t count,const uint32_t *const *dcb,const uint32_t *sizes,
+                                    const uint32_t *const *ccb,const uint32_t *csizes) {
+    return retail_submit(count,count,dcb,sizes,ccb,csizes);
+}
+static int32_t retail_submit_flip(uint32_t workload,uint32_t count,const uint32_t *const *dcb,
+                                   const uint32_t *sizes,const uint32_t *const *ccb,const uint32_t *csizes,
+                                   uint32_t handle,uint32_t index,uint32_t mode,int64_t argument) {
+    int32_t error=submit_arguments(count,dcb,sizes,ccb,csizes);if(error) return error;
+    /* Neither flip implementation can select a final DCB from an empty list.
+     * Reject it explicitly before the native count-minus-one access. */
+    if(!count) return (int32_t)UINT32_C(0x80d11000);
+    return graphics_submit_flip(workload,count,dcb,sizes,ccb,csizes,handle,index,mode,argument);
+}
+static int32_t retail_submit_flip_plain(uint32_t count,const uint32_t *const *dcb,const uint32_t *sizes,
+                                         const uint32_t *const *ccb,const uint32_t *csizes,
+                                         uint32_t handle,uint32_t index,uint32_t mode,int64_t argument) {
+    return retail_submit_flip(count,count,dcb,sizes,ccb,csizes,handle,index,mode,argument);
+}
 static const char *const graphics_imports[] = {
     /* One provider owns creation, waits, user events and GPU notifications. */
     "D0OdFMjp46I#0#F", "jpFjmgAC5AE#0#F", "fzyMKs9kim0#0#F",
@@ -171,6 +220,7 @@ static const char *const graphics_imports[] = {
     /* Reviewed retail pixel/vertex updates and base-PS4 primitive grouping. */
     "5uFKckiJYRM#A#B", "mLVL7N7BVBg#A#B", "V31V01UiScY#A#B",
     "cFCp0NX8wf0#A#B", "MYRtYhojKdA#A#B",
+    "jRcI8VcgTz4#A#B", "Ga6r7H6Y0RI#A#B",
     "29oKvKXzEZo#A#B", "ArSg-TGinhk#A#B", "bX5IbRvECXk#A#B",
     "zwY0YV91TTI#A#B", "xbxNatawohc#A#B", "yvZ73uQUqrk#A#B",
     "Idffwf3yh8s#A#B", "QhnyReteJ1M#A#B", "0H2vBYbTLHI#A#B",
@@ -179,7 +229,7 @@ static const char *const graphics_imports[] = {
     "KXltnCwEJHQ#A#B", "bQVd5YzCal0#A#B", "gAhCn6UiU4Y#A#B",
 };
 static int adapted_operation(const char *name) {
-    return !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
+    return !strcmp(name, "jRcI8VcgTz4#A#B") || !strcmp(name, "Ga6r7H6Y0RI#A#B") || !strcmp(name, "zwY0YV91TTI#A#B") || !strcmp(name, "xbxNatawohc#A#B") || !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
 }
 int bootstrap_graphics_owns(const char *name) {
     if (!graphics_resolver) return 0;
@@ -199,7 +249,10 @@ int bootstrap_graphics_bind(Resolver resolver) {
     const uintptr_t open = resolver("Up36PTk687E#G#H");
     const uintptr_t close = resolver("uquVH4-Du78#G#H");
     const uintptr_t status = resolver("SbU3dwp80lQ#G#H");
-    if (!adjust || !capability || !open || !close || !status) return -1;
+    const uintptr_t submit=resolver("jRcI8VcgTz4#A#B"),submit_flip=resolver("Ga6r7H6Y0RI#A#B");
+    if (!adjust || !capability || !open || !close || !status || !submit || !submit_flip) return -1;
+    graphics_submit = (Submit)submit;
+    graphics_submit_flip = (SubmitFlip)submit_flip;
     graphics_open = (void *)open;
     graphics_close = (void *)close;
     graphics_flip_status = (void *)status;
@@ -210,6 +263,10 @@ int bootstrap_graphics_bind(Resolver resolver) {
 }
 uintptr_t bootstrap_graphics_resolve(const char *name) {
     if (!graphics_resolver) return 0;
+    if (!strcmp(name, "jRcI8VcgTz4#A#B")) return (uintptr_t)retail_submit;
+    if (!strcmp(name, "Ga6r7H6Y0RI#A#B")) return (uintptr_t)retail_submit_flip;
+    if (!strcmp(name, "zwY0YV91TTI#A#B")) return (uintptr_t)retail_submit_plain;
+    if (!strcmp(name, "xbxNatawohc#A#B")) return (uintptr_t)retail_submit_flip_plain;
     if (!strcmp(name, "ffrNQOshows#A#B")) return (uintptr_t)retail_compute_wait;
     if (!strcmp(name, "KXltnCwEJHQ#A#B")) return (uintptr_t)retail_cs_shader_plain;
     if (!strcmp(name, "Kx-h-nWQJ8A#A#B")) return (uintptr_t)retail_cs_shader;

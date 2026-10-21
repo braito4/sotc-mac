@@ -780,3 +780,44 @@ GPU implementations against the same expectations in JIT and interpreter. All
 match without renderer initialization, shader execution or game command submission.
 Terminal now passes the workload doorbell route and reaches PS350 preparation;
 continuation after this batch, rendered game frames and video require verification.
+
+## Batched graphics submission and flip adapters
+
+Four scoped submit imports now use checked adapters around the native provider:
+sceGnmSubmitCommandBuffers, sceGnmSubmitCommandBuffersForWorkload,
+sceGnmSubmitAndFlipCommandBuffers and sceGnmSubmitAndFlipCommandBuffersForWorkload.
+The two workload variants are newly connected; the existing plain variants share
+the same validation and provider-owned submission/flip paths. No synthetic completion,
+frame, workload lifecycle or successful backend result is substituted.
+
+For a nonempty batch, validation checks required DCB pointer/size arrays, then the
+conditional CCB pointer requirement, before reading size entries. It checks every
+DCB size against the original nonzero/maximum rule and every supplied CCB size against
+the maximum. Errors leave the backend uncalled. This repairs the native non-flip
+variant's missing CCB prerequisite check. Retail accepts a zero-count non-flip
+submission without inspecting arrays: the adapter supplies safe empty storage to
+the native path and returns its actual backend result. A zero-count flip is explicitly
+rejected with the submission-argument error before either implementation can select
+an invalid final buffer; this is a deliberate safety guard, not an original-module
+behavior claim. Valid flip submissions still require the provider's supported final
+prepare-flip packet and a real VideoOut port/buffer.
+
+A new synthetic guest fixture exercises all four adapters with 5, 6, 9 and 10
+arguments. Original x86 fixture thunks place arguments seven through ten in actual
+SysV stack slots. Tests verify the unchanged host bridge delivers 32-bit port/index/
+mode values and full signed 64-bit flip data to native registers/stack in both modes.
+They also check multi-buffer validation, CCB-before-size precedence, upper argument
+bits, unchanged metadata, backend error propagation, empty submissions, scopes,
+capability/headless exclusion and missing-provider activation rejection.
+
+Private checks execute the original workload exports with their full preflight code
+intact and controlled mutex/readiness/transport/flip-patch dependencies. They confirm
+validation, count-zero non-flip behavior, six/ten-argument routing and backend/flip
+error propagation without GPU transport. An overlapping early-rejection matrix also
+passes against the actual pinned native library in JIT and interpreter. Real command
+execution, flip patching/presentation and game frames still require Terminal testing.
+
+Terminal now passes PS350 preparation and reaches the workload graphics submission
+call after entering the main loop. It also reaches the provider's shader compiler
+warning path; this does not verify a rendered frame. The float32 denormal-flush warning
+is not the import stop. No upstream change or GPU library rebuild is required.
