@@ -12,10 +12,10 @@
 > [!IMPORTANT]
 > **Early development: game logos and the menu are visible on Apple M1. Gameplay is unverified.**
 >
-> The owner has visually confirmed the logos and menu in a native Terminal run.
-> The diagnostic reaches the main loop with game GPU commands and a physical controller.
-> Entering a playable 3D scene, audible output, save persistence and gameplay stability
-> remain unverified. There is no downloadable game app or gameplay performance result.
+> The owner has visually confirmed the logos/menu and heard the opening introduction audio
+> in native Terminal. The diagnostic reaches the main loop with game GPU commands and a
+> physical controller. Introduction video correctness, entering a playable 3D scene,
+> save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
 > The goal is to run Shadow of the Colossus on Apple Silicon without Rosetta. The current
 > method translates PS4 x86-64 instructions to ARM64 at runtime; it is not a source rebuild
@@ -81,18 +81,17 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 **Experimental: logos and menu visually confirmed by the owner on Apple M1.**
-The latest native Terminal log reaches the main loop in about 1.37 seconds and detects
-a DualSense controller. It records 778 physical input samples and accepted SDL LED/
-rumble requests; the actual output effect and connection transport are unverified.
-Game draw/dispatch activity is present. These counters are not gameplay FPS.
+The owner also confirms hearing the opening of the game's introduction. This
+establishes audible game output, without proving full audio coverage or audiovisual
+synchronization. The latest native run reaches the main loop at about 1.38 seconds,
+detects a DualSense and continues beyond the save-dialog boundary. It ends at the
+60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
+recorded during that interval. Draw/dispatch counters are not gameplay FPS.
 
-The observed run handles the explicit SaveData mount failure, then stops at
-`sceSaveDataDialogInitialize` while processing a profile-save request. Save-dialog
-initialization/open error contracts now complement the eight mount/cleanup/metadata
-failure paths. Full synthetic contracts pass in both CPU modes; private comparisons
-check original validation and injected dependency-error propagation. No save storage
-or completed UI interaction is created. A new native Terminal run must establish
-the game's response after this change.
+Save-dialog initialization/open error contracts complement the eight mount/cleanup/
+metadata failure paths. Full synthetic contracts pass in both CPU modes; private
+comparisons check original validation and injected dependency-error propagation.
+No save storage or completed UI interaction is created.
 
 The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset
 errors and buffer-size clamps. A matching SotC issue and exact MoltenVK reports are

@@ -1155,3 +1155,20 @@ with additional safe unreadable-pointer guards. No dialog UI, completed interact
 user selection or save access is created. Full contracts and private original-module
 comparisons pass in both CPU modes; the initializer comparison uses an injected
 platform-dependency failure. The actual game response requires another native run.
+
+
+## Opening audio confirmed; run reaches diagnostic timeout (2026-10-21)
+
+The owner hears the beginning of the game's introduction, in addition to the
+previously confirmed logos and menu. This is direct confirmation of audible game
+output; full audio coverage, audiovisual synchronization and correct introduction
+video remain unverified.
+
+The latest run starts its main loop at about 1.38 seconds, detects the DualSense,
+and continues after the profile-save request. It has no unresolved-import stop or
+CPU execution fault before STOP_TIMEOUT at the configured 60-second budget. It
+records 78 per-vertex conversion messages, 263 unexpected-Phi offset messages and
+186 warnings about partly GPU-mapped regions. Some draws are skipped for missing
+pipelines. These are message counts, not distinct shaders, rendered frames or FPS.
+Scene entry and renderer correctness are now the immediate investigation; no
+playable 3D scene or save persistence is established.

@@ -9,7 +9,9 @@ older boundaries, not the present state.
 ## Goal and current evidence
 
 The goal is native Apple Silicon execution of the PS4 game through bbcpu and the
-pinned renderer. The owner has visually confirmed game logos and the menu on Apple M1.
+pinned renderer. On Apple M1, the owner has visually confirmed game logos/menu and
+heard the opening introduction audio. This confirms audible game output, but not
+full audio coverage, audiovisual synchronization or correct introduction video.
 Entering a playable 3D scene, gameplay stability, save persistence and gameplay FPS
 remain unverified; there is no packaged playable application.
 
@@ -17,14 +19,13 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run completes initialization at about 0.93 seconds and
-enters the main loop at about 1.37 seconds. It passes the vector widening batch and
-passes `sceSaveDataMount2` with NOT_INITIALIZED, then stops at
-`sceSaveDataDialogInitialize` on the Save Task Thread during a dirty-profile save request.
-No unsupported CPU instruction, notification overflow or duplicate `locn0` appears.
-GPU samples include thousands of draws and dispatches per second; these are command
-counts, not gameplay FPS or verification of an in-game scene. The owner's visual
-observation confirms the logos/menu, not the correctness of every rendering path.
+The latest native run completes initialization at about 0.94 seconds and enters
+the main loop at about 1.38 seconds. It continues past the save/dialog import stops,
+then ends at the 60-second diagnostic budget. There is no unresolved-import stop or
+CPU execution fault recorded in that interval. GPU activity continues after the
+profile-save request. A timeout does not establish stable gameplay or rule out a
+stall. The owner's observation confirms logos/menu and opening audio, not correct
+rendering of an in-game scene. Draw/dispatch counters are not gameplay FPS.
 
 The mount/cleanup/metadata error batch now handles eight related SaveData calls with
 NOT_INITIALIZED and untouched outputs. Full contracts and comparisons against the
@@ -35,11 +36,12 @@ The two remaining save-dialog startup exports are now scoped: Initialize returns
 NOT_SYSTEM_INITIALIZED because CommonDialog is unavailable, and Open validates its
 base header/address cookie/reserved bytes and outer size before reporting no instance.
 The initializer policy and its injected dependency-error comparison are distinct from
-Open's original-module validation comparison. The game response after this dialog
-change is pending. This tool process exposes no Metal device, and Terminal automation
-is unavailable, so use the native command below.
+Open's original-module validation comparison. The subsequent native run continues
+until timeout; the next work is renderer diagnosis and verifying scene entry.
+This tool process exposes no Metal device, and Terminal automation is unavailable,
+so use the native command below.
 
-The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (54
+The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (78
 reported errors in the last run), and has SRT Phi and compressed-texture usage errors.
 The isolated fragment diagnostic reproduces the compiler limitation without game data
 or a GPU. IT_GET_LOD_STATS also remains unimplemented.
@@ -48,9 +50,10 @@ Physical SDL3 gamepad input now complements the keyboard fallback. See
 [DualShock input](guide/building.md#dualshock-input) for connection and logging.
 Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
 hotplug, output errors and synthetic callback dispatch in both CPU modes. The latest
-native log detects a DualSense and records 778 physical samples, 387 accepted LED
-requests and 388 accepted rumble requests without disconnection. It does not identify
-the connection transport or prove the physical output effect. No GPU rebuild is needed.
+run detects a DualSense. An earlier complete summary records 778 physical samples,
+387 accepted LED requests and 388 accepted rumble requests without disconnection;
+the timeout run has no final input summary. These counters do not identify the
+connection transport or prove the physical output effect.
 
 ## First session: reproduce the boundary
 
@@ -161,17 +164,13 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Verify the save-dialog continuation.** The latest explicit stop is
-   `sceSaveDataDialogInitialize`, after the game handled the mount failure. Scoped
-   initialization/open failures are now implemented, with synthetic loader routing,
-   guarded guest ABI tests and private original-module comparisons in both CPU modes.
-   All nine save-dialog exports used by this diagnostic are covered; no dialog is
-   created and no choice is made on the user's behalf. Run native Terminal and try
-   entering the game from the menu. Record whether it continues, retries a failed
-   service, stalls or reaches another import. No save access occurs. Keep LED/rumble
-   acceptance separate from physical output. The completed widening and SSE4a
-   fixtures remain in the CPU regression suite.
-2. **MSL fragment interface support.** The newest log has 54 `PerVertexKHR` conversion
+1. **Verify introduction video and scene entry.** Save-dialog startup no longer stops
+   this run; it reaches the 60-second timeout. The owner hears the opening introduction
+   audio. Establish whether the image progresses with that audio and whether a playable
+   3D scene loads. Investigate the 186 partially GPU-mapped region warnings alongside
+   missing pipelines. No save access occurs; do not treat missing UI or save errors as
+   successful persistence. Keep observed pictures/audio separate from GPU counters.
+2. **MSL fragment interface support.** The newest log has 78 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does
@@ -281,7 +280,7 @@ with this repository. Keep game content read-only and do not access saves.
 Update this page when the observed stopping boundary or reproduction command changes.
 Separate what was seen in Terminal, what synthetic tests establish, what is only a
 hypothesis and what remains unverified. A successful next run should replace the
-current SaveData dialog boundary above with its actual result, including any timeout.
+current timeout/renderer boundary above with its actual result, including any timeout.
 
 ## Preferred upstream reference
 
