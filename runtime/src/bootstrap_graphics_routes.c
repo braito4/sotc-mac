@@ -174,6 +174,19 @@ static int32_t retail_push_color(uint32_t *c,uint32_t s,const char *label,uint32
 static int32_t retail_set_color(uint32_t *c,uint32_t s,const char *label,uint32_t color) {
     return retail_color_marker(c,s,label,color,UINT32_C(0x6875000f));
 }
+typedef int32_t (*IndirectDraw)(uint32_t *,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t);
+static IndirectDraw graphics_indirect_draw,graphics_index_indirect_draw;
+static int32_t retail_indirect_draw(uint32_t *out,uint32_t size,uint32_t offset,uint32_t stage,
+                                     uint32_t vertex,uint32_t instance,uint32_t flags) {
+    /* Retail accepts VS/ES/LS only; the pinned simple encoders accept all stages. */
+    if(stage!=2 && stage!=4 && stage!=6) return -1;
+    return graphics_indirect_draw(out,size,offset,stage,vertex,instance,flags);
+}
+static int32_t retail_index_indirect_draw(uint32_t *out,uint32_t size,uint32_t offset,uint32_t stage,
+                                           uint32_t vertex,uint32_t instance,uint32_t flags) {
+    if(stage!=2 && stage!=4 && stage!=6) return -1;
+    return graphics_index_indirect_draw(out,size,offset,stage,vertex,instance,flags);
+}
 typedef int32_t (*Submit)(uint32_t,uint32_t,const uint32_t *const *,const uint32_t *,
                            const uint32_t *const *,const uint32_t *);
 typedef int32_t (*SubmitFlip)(uint32_t,uint32_t,const uint32_t *const *,const uint32_t *,
@@ -255,6 +268,7 @@ static const char *const graphics_imports[] = {
     "5uFKckiJYRM#A#B", "mLVL7N7BVBg#A#B", "V31V01UiScY#A#B",
     "cFCp0NX8wf0#A#B", "MYRtYhojKdA#A#B",
     "jRcI8VcgTz4#A#B", "Ga6r7H6Y0RI#A#B",
+    "4v+otIIdjqg#A#B", "ED9-Fjr8Ta4#A#B", "oYM+YzfCm2Y#A#B", "thbPcG7E7qk#A#B",
     "29oKvKXzEZo#A#B", "ArSg-TGinhk#A#B", "bX5IbRvECXk#A#B",
     "zwY0YV91TTI#A#B", "xbxNatawohc#A#B", "yvZ73uQUqrk#A#B",
     "Idffwf3yh8s#A#B", "QhnyReteJ1M#A#B", "0H2vBYbTLHI#A#B",
@@ -263,7 +277,7 @@ static const char *const graphics_imports[] = {
     "KXltnCwEJHQ#A#B", "bQVd5YzCal0#A#B", "gAhCn6UiU4Y#A#B",
 };
 static int adapted_operation(const char *name) {
-    return !strcmp(name, "1qXLHIpROPE#A#B") || !strcmp(name, "aPIZJTXC+cU#A#B") || !strcmp(name, "aj3L-iaFmyk#A#B") || !strcmp(name, "jRcI8VcgTz4#A#B") || !strcmp(name, "Ga6r7H6Y0RI#A#B") || !strcmp(name, "zwY0YV91TTI#A#B") || !strcmp(name, "xbxNatawohc#A#B") || !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
+    return !strcmp(name, "4v+otIIdjqg#A#B") || !strcmp(name, "ED9-Fjr8Ta4#A#B") || !strcmp(name, "1qXLHIpROPE#A#B") || !strcmp(name, "aPIZJTXC+cU#A#B") || !strcmp(name, "aj3L-iaFmyk#A#B") || !strcmp(name, "jRcI8VcgTz4#A#B") || !strcmp(name, "Ga6r7H6Y0RI#A#B") || !strcmp(name, "zwY0YV91TTI#A#B") || !strcmp(name, "xbxNatawohc#A#B") || !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
 }
 int bootstrap_graphics_owns(const char *name) {
     if (!graphics_resolver) return 0;
@@ -283,9 +297,12 @@ int bootstrap_graphics_bind(Resolver resolver) {
     const uintptr_t open = resolver("Up36PTk687E#G#H");
     const uintptr_t close = resolver("uquVH4-Du78#G#H");
     const uintptr_t status = resolver("SbU3dwp80lQ#G#H");
+    const uintptr_t indirect=resolver("4v+otIIdjqg#A#B"),index_indirect=resolver("ED9-Fjr8Ta4#A#B");
     const uintptr_t labels=resolver("OcQybQejHEY#G#H");
     const uintptr_t submit=resolver("jRcI8VcgTz4#A#B"),submit_flip=resolver("Ga6r7H6Y0RI#A#B");
-    if (!adjust || !capability || !open || !close || !status || !labels || !submit || !submit_flip) return -1;
+    if (!adjust || !capability || !open || !close || !status || !indirect || !index_indirect || !labels || !submit || !submit_flip) return -1;
+    graphics_indirect_draw=(IndirectDraw)indirect;
+    graphics_index_indirect_draw=(IndirectDraw)index_indirect;
     graphics_labels=(void *)labels;
     graphics_submit = (Submit)submit;
     graphics_submit_flip = (SubmitFlip)submit_flip;
@@ -299,6 +316,8 @@ int bootstrap_graphics_bind(Resolver resolver) {
 }
 uintptr_t bootstrap_graphics_resolve(const char *name) {
     if (!graphics_resolver) return 0;
+    if (!strcmp(name, "4v+otIIdjqg#A#B")) return (uintptr_t)retail_indirect_draw;
+    if (!strcmp(name, "ED9-Fjr8Ta4#A#B")) return (uintptr_t)retail_index_indirect_draw;
     if (!strcmp(name, "1qXLHIpROPE#A#B")) return (uintptr_t)retail_wait_flip;
     if (!strcmp(name, "aPIZJTXC+cU#A#B")) return (uintptr_t)retail_push_color;
     if (!strcmp(name, "aj3L-iaFmyk#A#B")) return (uintptr_t)retail_set_color;

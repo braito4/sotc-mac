@@ -120,6 +120,7 @@ contracts() {
         fi
         cat "$trial_log"
     done
+    clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_draw.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_draw"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_present.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_present"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_submit.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_submit"
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_shaders.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_shaders"
@@ -145,6 +146,7 @@ contracts() {
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_shaders"
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_submit"
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_present"
+        BB_JIT="$trial_jit" "$trial_root/work/test_graphics_draw"
         BB_JIT="$trial_jit" "$trial_root/work/test_audio"
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --unavailable
         BB_JIT="$trial_jit" "$trial_root/work/test_audio" --not-ready

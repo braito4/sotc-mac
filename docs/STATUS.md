@@ -1,6 +1,6 @@
 # Development status
 
-Updated 2026-10-21. **CPU bootstrap research; not playable.**
+Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 | Area | Verified scope |
 |---|---|
@@ -30,6 +30,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
+| Indirect draw batch | Four scoped encoders match original/native packet matrices in both modes; two stage guards repair native over-acceptance; 5/7/9-argument guest ABI and 64-bit count addresses checked, no new game frame verified |
 | Combined Metal activity | Terminal records one draw and 61 dispatches in a sample; shader-resource and BC1 format/usage errors remain; correct game image and presentation unverified |
 | Save-dialog absent lifecycle | Five scoped exports preserve original NOT_INITIALIZED/null-result precedence and untouched outputs; guest/original checks pass in both modes; no dialog or save access |
 | Flip wait and marker batch | Real VideoOut label query feeds checked retail wait packets; SetMarker native route and two corrected color encoders pass original/guest matrices in both modes; no completed wait or game frame verified |
@@ -56,7 +57,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; eight scoped pad APIs implement keyboard input and explicit light-bar/vibration unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Metal sample: one draw and 61 dispatches; current observed boundary: SaveDataDialogTerminate; no game frame verified |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. JIT reaches the main loop at 1.63 seconds and records a sample of 43 draws/303 dispatches; current observed boundary: GnmDrawIndirect; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -913,3 +914,38 @@ unchanged status and instance state. The comparison and full contracts pass in J
 and interpreter. Separate counters report all five unavailable lifecycle requests.
 Continuation after this response, further renderer diagnosis and game video require
 another Terminal run; logs are read directly from the local diagnostic directory.
+
+## JIT progression and batched indirect draw encoders
+
+A new native Terminal JIT run finishes initialization at 1.0367 seconds and enters
+the main loop at 1.6307 seconds. The preceding interpreter run entered at 28.5705
+seconds. These are two diagnostic timing samples, not a gameplay FPS benchmark.
+The JIT run records a Metal sample of 43 draws and 303 dispatches per second and
+reaches sceGnmDrawIndirect in a job worker before the budget expires. The preceding
+run's absence of an import stop only described that interpreter execution; it did
+not establish complete import coverage. SRT resource-offset errors and buffer clamps
+persist; no correct game image or presentation is verified.
+
+Four exact scoped draw encoders are now connected together: sceGnmDrawIndirect,
+sceGnmDrawIndexIndirect, sceGnmDrawIndexOffset and
+sceGnmDrawIndexIndirectCountMulti. The two simple indirect variants use a checked
+stage guard before forwarding to native packet generation. The supplied retail
+module only accepts VS/ES/LS, whereas the pinned native simple encoders also accept
+other stages. The guard preserves the original failure without changing the output.
+The offset and indexed-count variants use their compatible native implementations.
+No successful GPU draw is substituted for generating a command packet.
+
+A synthetic guest fixture checks 4,504 operand combinations plus malformed buffer
+cases. It covers valid/invalid shader stages, zero and boundary SGPR indices, their
+stage-specific register offsets, predicate flags and ignored base-PS4 flag bits,
+indexed/auto-index/count packet fields, zero/full-width 64-bit count addresses,
+32-bit argument narrowing and untouched NOP padding/guards/errno. Original x86
+fixture thunks exercise real stack slots for the 5-, 7- and 9-argument variants.
+Scope/capability/headless exclusions and missing-export activation cover all four.
+
+Private checks execute the supplied original functions and the actual pinned native
+GPU encoders through the checked stage guards against the same matrix in JIT and
+interpreter. Both match; the actual native invalid-stage acceptance is also reproduced
+in isolation to establish the need for the guard. These checks initialize no renderer
+and submit no GPU work. The full contracts pass in both modes. No upstream edit or
+GPU rebuild is required. Game continuation after this batch requires Terminal testing.

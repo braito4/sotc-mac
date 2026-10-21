@@ -893,3 +893,38 @@ unchanged status and instance state. The comparison and full contracts pass in J
 and interpreter. Separate counters report all five unavailable lifecycle requests.
 Continuation after this response, further renderer diagnosis and game video require
 another Terminal run; logs are read directly from the local diagnostic directory.
+
+## JIT progression and batched indirect draw encoders
+
+A new native Terminal JIT run finishes initialization at 1.0367 seconds and enters
+the main loop at 1.6307 seconds. The preceding interpreter run entered at 28.5705
+seconds. These are two diagnostic timing samples, not a gameplay FPS benchmark.
+The JIT run records a Metal sample of 43 draws and 303 dispatches per second and
+reaches sceGnmDrawIndirect in a job worker before the budget expires. The preceding
+run's absence of an import stop only described that interpreter execution; it did
+not establish complete import coverage. SRT resource-offset errors and buffer clamps
+persist; no correct game image or presentation is verified.
+
+Four exact scoped draw encoders are now connected together: sceGnmDrawIndirect,
+sceGnmDrawIndexIndirect, sceGnmDrawIndexOffset and
+sceGnmDrawIndexIndirectCountMulti. The two simple indirect variants use a checked
+stage guard before forwarding to native packet generation. The supplied retail
+module only accepts VS/ES/LS, whereas the pinned native simple encoders also accept
+other stages. The guard preserves the original failure without changing the output.
+The offset and indexed-count variants use their compatible native implementations.
+No successful GPU draw is substituted for generating a command packet.
+
+A synthetic guest fixture checks 4,504 operand combinations plus malformed buffer
+cases. It covers valid/invalid shader stages, zero and boundary SGPR indices, their
+stage-specific register offsets, predicate flags and ignored base-PS4 flag bits,
+indexed/auto-index/count packet fields, zero/full-width 64-bit count addresses,
+32-bit argument narrowing and untouched NOP padding/guards/errno. Original x86
+fixture thunks exercise real stack slots for the 5-, 7- and 9-argument variants.
+Scope/capability/headless exclusions and missing-export activation cover all four.
+
+Private checks execute the supplied original functions and the actual pinned native
+GPU encoders through the checked stage guards against the same matrix in JIT and
+interpreter. Both match; the actual native invalid-stage acceptance is also reproduced
+in isolation to establish the need for the guard. These checks initialize no renderer
+and submit no GPU work. The full contracts pass in both modes. No upstream edit or
+GPU rebuild is required. Game continuation after this batch requires Terminal testing.
