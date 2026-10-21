@@ -476,6 +476,36 @@ static void test_unavailable_share(void) {
                 }
     puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
 }
+static const char *const trophy_names[]={
+    "XbkjbobZlCY#O#P","q7U6tEAQf7c#O#P","E1Wrwd07Lr8#O#P",
+    "GNcF4oidY0Y#O#P","TJCAxto9SEU#O#P","28xmRUFao68#O#P",
+};
+static void check_unavailable_trophy(const uintptr_t entries[6]) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    uint64_t output[4],before[4];memset(output,0xa5,sizeof(output));memcpy(before,output,sizeof(output));
+    const uint64_t values[]={0,1,UINT32_MAX,UINT64_MAX,UINT64_C(0x8000000000000000),(uintptr_t)output,(uintptr_t)protected};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) for(unsigned op=0;op<6;++op)
+        for(unsigned i=0;i<7;++i) for(unsigned j=0;j<7;++j) {
+            const uint64_t args[]={values[i],values[j],values[(i+3)%7],values[(j+4)%7],UINT64_MAX,1};
+            assert((uint32_t)bbcpu_call(entries[op],6,args)==0x80551601);
+            assert(!memcmp(output,before,sizeof(output)) && *runtime_errno()==17);
+        }
+    assert(!munmap(protected,page));
+}
+static void test_unavailable_trophy(void) {
+    uintptr_t entries[6];
+    for(unsigned i=0;i<6;++i) {
+        bootstrap_initialize(0);assert(!bootstrap_resolve(trophy_names[i],0));bootstrap_initialize(1);
+        const uintptr_t fn=bootstrap_resolve(trophy_names[i],0);assert(fn && !bootstrap_resolve(trophy_names[i],1));
+        char wrong[64];snprintf(wrong,sizeof(wrong),"%.11s#0#F",trophy_names[i]);assert(!bootstrap_resolve(wrong,0));
+        snprintf(wrong,sizeof(wrong),"%.11s#l#m",trophy_names[i]);assert(!bootstrap_resolve(wrong,0));
+        entries[i]=guest_bridge(fn);
+    }
+    check_unavailable_trophy(entries);
+    puts("PASS: six scoped typed trophy uninitialized paths, guest ABI, init-before-handle/options/pointer checks, 64-bit flags, protected/null outputs, repeated errors and unchanged buffers/errno");
+}
 static void check_unavailable_savedata_search(uintptr_t entry) {
     const size_t page=(size_t)sysconf(_SC_PAGESIZE);
     void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
@@ -779,6 +809,7 @@ int main(void) {
     test_unavailable_network_control();
     test_unavailable_savedata();
     test_unavailable_savedata_search();
+    test_unavailable_trophy();
     test_unavailable_np_title();
     test_unavailable_np_restriction();
     test_unavailable_dialogs();

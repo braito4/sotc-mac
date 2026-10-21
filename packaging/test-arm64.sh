@@ -52,6 +52,7 @@ build_diagnostic() {
         "$trial_root/runtime/src/bootstrap_dialogs.c"
         "$trial_root/runtime/src/bootstrap_network.c"
         "$trial_root/runtime/src/bootstrap_savedata.c"
+        "$trial_root/runtime/src/bootstrap_trophy.c"
         "$trial_root/runtime/src/bootstrap_users.c"
         "$trial_root/runtime/src/bootstrap_share.c"
         "$trial_root/runtime/src/bootstrap_gnm.c"

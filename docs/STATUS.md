@@ -26,6 +26,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Dialog availability | No-argument CommonDialog/MsgDialog calls return explicit unsupported/dependency errors; no UI, module activation or completed dialog is claimed |
 | Network availability | No-argument sceNetInit returns an explicit EOPNOTSUPP error; guest ABI, scopes, repeated errors and kernel/libc errno preservation tested in both modes |
 | NP availability | Scoped title/content-restriction setters return NP NOT_INITIALIZED before inspecting input pointers; supplied original comparisons, guest ABI/errors, untouched buffers/errno and graphics-loader continuation pass in both modes; no title data read or online state created |
+| Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
@@ -397,7 +398,7 @@ threads, passes original gesture initialization and opens the keyboard-backed co
 then starts save/trophy tasks, creates/uses a thread key and passes UUID generation. The
 latest run loads NGS2, opens three real audio streams, passes two device-state queries and
 the thread-self alias, then starts the stream scheduler and submits PCM to SDL before stopping
-at sceSaveDataDirNameSearch in Save Task Thread after numeric thread identity passes, world loading begins and the main loop starts
+at sceNpTrophyCreateContext on main after numeric thread identity passes, world loading begins and the main loop starts
 and Shadow Game Update is created.
 Title and adjacent content-restriction uninitialized paths pass guest/original/loader checks;
 the optional restriction branch was not taken in Terminal. Four keyboard samples are recorded; audible sound
@@ -444,7 +445,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread reaches sceSaveDataDirNameSearch. No game frame has
+script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main reaches sceNpTrophyCreateContext. No game frame has
 been verified.
 
 ## Network-control availability
@@ -471,7 +472,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-denial and system-status query; main passes SaveDataInitialize3; Save Task Thread reaches sceSaveDataDirNameSearch.
+denial and system-status query; main passes SaveDataInitialize3; Save Task Thread passes sceSaveDataDirNameSearch; main reaches sceNpTrophyCreateContext.
 
 ## Keyboard-controller light-bar availability
 
@@ -489,7 +490,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread reaches sceSaveDataDirNameSearch.
+sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main reaches sceNpTrophyCreateContext.
 
 ## Standalone system status
 
@@ -509,7 +510,7 @@ and confirms the same complete output. The graphics-loader fixture verifies ever
 byte after initializing the destination to a nonzero pattern. Actual game continuation
 after this query is confirmed in Terminal, including processing the local login event.
 The SaveData initialization failure now returns in Terminal; the next unresolved import is
-sceSaveDataDirNameSearch in Save Task Thread.
+sceNpTrophyCreateContext on main after the savedata search failure.
 
 ## Savedata availability
 
@@ -526,7 +527,7 @@ Initialize3 wrapper comparison injects backend INTERNAL and checks propagation t
 the original error conversion without reading the optional parameter. The synthetic
 graphics loader also continues after the response in both modes. Terminal confirms actual
 continuation after this initialization failure; Save Task Thread now reaches
-sceSaveDataDirNameSearch. No game frame is verified.
+the trophy-context call after the directory search returns NOT_INITIALIZED. No game frame is verified.
 
 ## Uninitialized savedata directory search
 
@@ -540,6 +541,24 @@ Guest tests cover repeated responses before/after failed initialization, null/in
 protected input and output pointers, ignored stale argument registers, untouched buffers/
 errno and exact scopes/capability in both CPU modes. A private supplied original export
 confirms the same uninitialized path without dependency-helper replacement. The synthetic
-graphics loader also continues after this response in both modes. Actual game continuation
-after the search error still requires Terminal verification; save support and game video
-remain unverified.
+graphics loader also continues after this response in both modes. Terminal confirms actual
+continuation after the search error; main then reaches sceNpTrophyCreateContext. Save support
+and game video remain unverified.
+
+## Uninitialized trophy-service paths
+
+The six exact-scoped trophy imports use separate typed adapters for context creation,
+handle creation, context destruction, handle destruction, context registration and trophy
+unlock. Each returns Trophy NOT_INITIALIZED before inspecting handles, user IDs, service
+labels, options or pointers, matching its supplied original export's initialization guard.
+The trophy module is not initialized in this diagnostic. No contexts, handles, registration,
+unlocks, progress, notifications or files are created; output IDs and platinum results
+remain untouched rather than being set to fabricated sentinels.
+
+Guest tests cover all six exports, repeated failure, null/unreadable/protected outputs,
+64-bit option patterns, invalid handle/user/label values, ignored extra registers, scopes/
+capability and unchanged buffers/errno in both CPU modes. A private comparison executes
+all six supplied original exports without initialization or dependency-helper replacement
+and confirms the same behavior. The synthetic graphics loader checks context creation's
+uninitialized result and continues in both modes. Actual game continuation after the
+context-creation response still requires Terminal verification; game video is unverified.
