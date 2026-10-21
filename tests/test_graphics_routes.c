@@ -109,8 +109,45 @@ static void check_cs_packets(uintptr_t target) {
     assert(!mprotect(bounded+16384,16384,PROT_READ|PROT_WRITE));
     assert(*runtime_errno()==17);
 }
+/* Synthetic base-PS4 provider: packet semantics, not hardware initialization. */
+static uint32_t dispatch_init(uint32_t *out,uint32_t size) {
+    if(size<256) return 0;
+    const uint32_t packet[]={UINT32_C(0xc0017602),0x216,UINT32_MAX,
+        UINT32_C(0xc0017602),0x217,UINT32_MAX,
+        UINT32_C(0xc0017602),0x215,0x170,
+        UINT32_C(0xc0055800),UINT32_C(0x28000000),0,0,0,0,10,
+        UINT32_C(0xc0ee1000),0};
+    memcpy(out,packet,sizeof(packet));return 256;
+}
+static void check_dispatch_packets(uintptr_t target) {
+    unsigned char output[1152],expected[1152];*runtime_errno()=17;
+    for(unsigned size=0;size<256;++size) {
+        const uint64_t args[]={size&1 ? 0 : 1,UINT64_C(0x1234000000000000)|size};
+        assert((uint32_t)bbcpu_call(target,2,args)==0);
+    }
+    const uint32_t sizes[]={256,257,1024,UINT32_MAX};
+    for(unsigned fill=0;fill<3;++fill) {
+        for(unsigned i=0;i<sizeof(output);++i)
+            expected[i]=fill==0 ? 0 : fill==1 ? 0xa5 : (unsigned char)(i*37+11);
+        uint32_t packets[]={UINT32_C(0xc0017602),0x216,UINT32_MAX,
+            UINT32_C(0xc0017602),0x217,UINT32_MAX,
+            UINT32_C(0xc0017602),0x215,0x170,
+            UINT32_C(0xc0055800),UINT32_C(0x28000000),0,0,0,0,10,
+            UINT32_C(0xc0ee1000),0};
+        for(unsigned j=0;j<4;++j) {
+            memcpy(output,expected,sizeof(output));
+            unsigned char wanted[sizeof(output)];memcpy(wanted,expected,sizeof(wanted));
+            memcpy(wanted+1,packets,sizeof(packets));
+            const uint64_t args[]={(uintptr_t)(output+1),UINT64_C(0x5678000000000000)|sizes[j],1,3};
+            assert((uint32_t)bbcpu_call(target,4,args)==256);
+            assert(!memcmp(output,wanted,sizeof(output)));
+        }
+    }
+    assert(*runtime_errno()==17);
+}
 static uintptr_t resolver(const char *name) {
     ++calls;
+    if(!strcmp(name,"nF6bFRUBRAU#A#B")) return (uintptr_t)dispatch_init;
     if(!strcmp(name,"W1Etj-jlW7Y#A#B")) return (uintptr_t)marker_push;
     if(!strcmp(name,"7qZVNgEu+SY#A#B")) return (uintptr_t)marker_pop;
     if (missing_wait && !strcmp(name, "fzyMKs9kim0#0#F")) return 0;
@@ -119,6 +156,7 @@ static uintptr_t resolver(const char *name) {
 int main(void) {
     bootstrap_initialize(1);
     assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",0));
+    assert(!bootstrap_resolve("nF6bFRUBRAU#A#B",0));
     assert(!bootstrap_resolve("W1Etj-jlW7Y#A#B",0) && !bootstrap_resolve("7qZVNgEu+SY#A#B",0));
     const uintptr_t original = bootstrap_resolve("D0OdFMjp46I#0#F", 0);
     assert(original && !bootstrap_graphics_owns("D0OdFMjp46I#0#F"));
@@ -170,6 +208,12 @@ int main(void) {
     assert(!bootstrap_resolve("Kx-h-nWQJ8A#G#H",0));
     assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",1));
     bootstrap_initialize(0);assert(!bootstrap_resolve("Kx-h-nWQJ8A#A#B",0));bootstrap_initialize(1);
+    assert(bootstrap_graphics_owns("nF6bFRUBRAU#A#B"));
+    assert(!bootstrap_resolve("nF6bFRUBRAU#G#H",0));
+    assert(!bootstrap_resolve("nF6bFRUBRAU#A#B",1));
+    bootstrap_initialize(0);assert(!bootstrap_resolve("nF6bFRUBRAU#A#B",0));bootstrap_initialize(1);
+    check_dispatch_packets(marker_bridge(bootstrap_resolve("nF6bFRUBRAU#A#B",0)));
+    puts("PASS: scoped compute default-state guest packets, register/barrier/NOP semantics, short-buffer rejection, 32-bit size, unaligned guards, untouched tail and errno");
     check_cs_packets(marker_bridge(bootstrap_resolve("Kx-h-nWQJ8A#A#B",0)));
     puts("PASS: scoped compute shader modifier packets, compute header bits, all 16 masks, 64 register patterns, 32-bit ABI, untouched NOP tail/guards/errors/errno");
     puts("PASS: scoped push/pop marker guest ABI, exact PM4 headers/payload/padding for 256 lengths, unaligned output guards, 32-bit sizes, invalid arguments and errno");

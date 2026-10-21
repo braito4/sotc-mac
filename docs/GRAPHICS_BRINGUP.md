@@ -666,5 +666,28 @@ register input on success. The same expectations pass against the supplied origi
 in JIT and interpreter. Headless and wrong-scope imports stay unresolved.
 
 Terminal now passes the debug marker and reaches this compute shader call in a job
-worker after the main loop starts. Continuation after the new adapter requires a
-Terminal run; shader execution, game draws and game video remain unverified.
+worker after the main loop starts. Terminal passes the new adapter and reaches sceGnmDispatchInitDefaultHardwareState;
+shader execution, game draws and game video remain unverified.
+
+## Default compute hardware-state packets
+
+The graphics-only allowlist now routes the exact scoped
+sceGnmDispatchInitDefaultHardwareState import to the pinned native provider.
+Its shim explicitly selects base PS4, matching the supplied original and the
+current game profile. The encoder reserves/returns 256 dwords, initializes 18
+with compute static-thread management, resource limits, an ACQUIRE_MEM barrier
+and a trailing NOP, and preserves the remaining NOP payload. Reservations below
+256 dwords return zero before touching the destination. This is command encoding;
+it does not initialize a physical GPU, submit work or verify a game frame.
+
+Synthetic guest tests cover all 256 short sizes with null/inaccessible destinations,
+four sufficient sizes including unsigned extremes, 32-bit narrowing, unaligned
+guarded output, three prior buffer patterns, unchanged tail and errno. Private
+comparisons execute both the supplied original and the actual pinned ARM64 encoder
+against the same expectations in JIT and interpreter, without renderer initialization.
+The regular contracts command now also runs graphics routing checks in both modes.
+Headless, data and wrong-scope imports remain unresolved; no GPU rebuild is required.
+
+Terminal passes the compute shader modifier adapter and now reaches default compute
+state preparation in a job worker. Continuation after this new route requires a
+Terminal run; game draws and video remain unverified.

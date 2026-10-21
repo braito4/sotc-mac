@@ -30,6 +30,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
+| GNM default compute state | Scoped base-PS4 provider writes real register/barrier/NOP packets; byte-level original/native comparisons and short-size/guard/ABI checks pass in both modes; no submission or game frame |
 | GNM compute shader packets | Scoped local modifier encoder preserves retail compute headers, register/mask semantics and untouched NOP tail; 3,072 guarded synthetic packets and original-module comparisons pass in both modes; no shader execution or draw |
 | GNM debug markers | Scoped push/pop route to real pinned PM4 encoders; 256 synthetic lengths, byte-level packets/guards/errors and guest ABI match supplied originals and actual native GPU functions in both modes; no submission or draw |
 | GNM registration availability | Retail fixed failures for owner/resource registration, with unchanged outputs and errno; no graphics state |
@@ -48,7 +49,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; eight scoped pad APIs implement keyboard input and explicit light-bar/vibration unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmSetCsShaderWithModifier; no game frame verified |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmDispatchInitDefaultHardwareState; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -678,5 +679,28 @@ register input on success. The same expectations pass against the supplied origi
 in JIT and interpreter. Headless and wrong-scope imports stay unresolved.
 
 Terminal now passes the debug marker and reaches this compute shader call in a job
-worker after the main loop starts. Continuation after the new adapter requires a
-Terminal run; shader execution, game draws and game video remain unverified.
+worker after the main loop starts. Terminal passes the new adapter and reaches sceGnmDispatchInitDefaultHardwareState;
+shader execution, game draws and game video remain unverified.
+
+## Default compute hardware-state packets
+
+The graphics-only allowlist now routes the exact scoped
+sceGnmDispatchInitDefaultHardwareState import to the pinned native provider.
+Its shim explicitly selects base PS4, matching the supplied original and the
+current game profile. The encoder reserves/returns 256 dwords, initializes 18
+with compute static-thread management, resource limits, an ACQUIRE_MEM barrier
+and a trailing NOP, and preserves the remaining NOP payload. Reservations below
+256 dwords return zero before touching the destination. This is command encoding;
+it does not initialize a physical GPU, submit work or verify a game frame.
+
+Synthetic guest tests cover all 256 short sizes with null/inaccessible destinations,
+four sufficient sizes including unsigned extremes, 32-bit narrowing, unaligned
+guarded output, three prior buffer patterns, unchanged tail and errno. Private
+comparisons execute both the supplied original and the actual pinned ARM64 encoder
+against the same expectations in JIT and interpreter, without renderer initialization.
+The regular contracts command now also runs graphics routing checks in both modes.
+Headless, data and wrong-scope imports remain unresolved; no GPU rebuild is required.
+
+Terminal passes the compute shader modifier adapter and now reaches default compute
+state preparation in a job worker. Continuation after this new route requires a
+Terminal run; game draws and video remain unverified.
