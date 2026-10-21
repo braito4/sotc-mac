@@ -711,5 +711,38 @@ native white-box test uses only the provider lifecycle's zero/one states and res
 the initial clear state; no production lock manipulation or GPU rebuild is added.
 
 Terminal passes default compute state preparation and now stops at this permission
-query in a job worker. Continuation after routing the query requires a Terminal run;
-GPU submissions, game draws and video remain unverified.
+query in a job worker. Terminal passes this query and reaches sceGnmDingDongForWorkload; GPU submissions,
+game draws and video remain unverified.
+
+## Batched compute bring-up
+
+Import review now batches related compute APIs rather than waiting for each one to
+stop a separate game run. This batch covers six functions; only the workload doorbell
+is the currently observed stop. The others are preventive packet/ABI corrections or
+reviewed routes, not six independently observed game failures.
+
+| Function | Connection and checked behavior |
+|---|---|
+| sceGnmDingDongForWorkload | Real provider-owned compute queue notification; void ABI with two 32-bit arguments and a 64-bit workload value. Both original and provider ignore the workload value here. |
+| sceGnmDispatchIndirect | Native encoder; predicate/ordered-append flags, 32-bit offset, exact size and trailing NOP. |
+| sceGnmDispatchIndirectOnMec | Native encoder; nonzero aligned 64-bit address, predicate/flags, exact size and preserved NOP tail. |
+| sceGnmInsertDingDongMarker | Native four-dword NOP packet with exact size and null-output rejection. |
+| sceGnmComputeWaitOnAddress | Local retail packet encoder; register/memory address selection, 48-bit clipping, comparison/mask/reference and untouched NOP padding. The pinned HLE retains more high address bits. |
+| sceGnmSetCsShader | Local retail adapter using the checked zero-modifier path; correct compute headers instead of the pinned HLE's default graphics headers. |
+
+Synthetic guest tests check scope/capability/headless exclusions, missing-doorbell
+activation rejection, argument widths, full-width workload forwarding, flags, errors,
+byte-level packets, unaligned guards, untouched padding and errno in both modes.
+The packet matrix includes nine address profiles and 32 flag values for four encoders.
+Private original-module comparisons exercise the same packet expectations, including
+full-width wait-address clipping and the plain shader path. A controlled original
+workload-doorbell fixture checks mutex ordering, notification operands/counter and
+32-bit guarded doorbell writes, without a kernel GPU transport. The actual native
+library matches the indirect/marker encoders and representable wait-address profiles;
+its workload doorbell's queue-zero no-op passes through the guest ABI in both modes.
+
+Nonzero native queue notification, ring wrapping, command execution and game frames
+still require Terminal verification. The route forwards to the same provider that
+owns mapped queues and submission/completion; it does not simulate consumption or
+signal a completed frame. Unknown imports still stop explicitly. No upstream source
+change or GPU rebuild is required.

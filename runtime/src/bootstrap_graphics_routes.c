@@ -124,6 +124,22 @@ static int32_t retail_cs_shader(uint32_t *commands,uint32_t size,
     };
     memcpy(commands,packet,sizeof(packet));return 0;
 }
+static int32_t retail_cs_shader_plain(uint32_t *commands,uint32_t size,const uint32_t *regs) {
+    return retail_cs_shader(commands,size,regs,0);
+}
+/* Retail WAIT_REG_MEM uses a 48-bit address field; preserve NOP padding. */
+static int32_t retail_compute_wait(uint32_t *commands,uint32_t size,uintptr_t address,
+                                   uint32_t mask,uint32_t compare,uint32_t reference) {
+    if (!commands || size!=14) return -1;
+    uint32_t memory=address>UINT32_C(0xffff);
+    uint32_t packet[13]={UINT32_C(0xc0021000),0,0,0,
+        UINT32_C(0xc0053c00),(memory<<4)|(compare&7),
+        (uint32_t)address & (memory ? UINT32_C(0xfffffffc) : UINT32_C(0xffff)),
+        (uint32_t)(address>>32)&UINT32_C(0xffff),reference,mask,10,
+        UINT32_C(0xc0011000),0};
+    /* The first NOP's two padding dwords are not initialized by retail. */
+    memcpy(commands,packet,8);memcpy((unsigned char *)commands+16,packet+4,36);return 0;
+}
 static const char *const graphics_imports[] = {
     /* One provider owns creation, waits, user events and GPU notifications. */
     "D0OdFMjp46I#0#F", "jpFjmgAC5AE#0#F", "fzyMKs9kim0#0#F",
@@ -148,6 +164,10 @@ static const char *const graphics_imports[] = {
     "nF6bFRUBRAU#A#B",
     /* Query the same provider lock used by submission/completion. */
     "b08AgtPlHPg#A#B",
+    /* Notify the provider-owned mapped compute ring; void, three arguments. */
+    "byXlqupd8cE#A#B",
+    /* Reviewed indirect dispatch and doorbell-marker packet writers. */
+    "Z43vKp5k7r0#A#B", "wED4ZXCFJT0#A#B", "NfvOrNzy6sk#A#B",
     "29oKvKXzEZo#A#B", "ArSg-TGinhk#A#B", "bX5IbRvECXk#A#B",
     "zwY0YV91TTI#A#B", "xbxNatawohc#A#B", "yvZ73uQUqrk#A#B",
     "Idffwf3yh8s#A#B", "QhnyReteJ1M#A#B", "0H2vBYbTLHI#A#B",
@@ -156,7 +176,7 @@ static const char *const graphics_imports[] = {
     "KXltnCwEJHQ#A#B", "bQVd5YzCal0#A#B", "gAhCn6UiU4Y#A#B",
 };
 static int adapted_operation(const char *name) {
-    return !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
+    return !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
 }
 int bootstrap_graphics_owns(const char *name) {
     if (!graphics_resolver) return 0;
@@ -187,6 +207,8 @@ int bootstrap_graphics_bind(Resolver resolver) {
 }
 uintptr_t bootstrap_graphics_resolve(const char *name) {
     if (!graphics_resolver) return 0;
+    if (!strcmp(name, "ffrNQOshows#A#B")) return (uintptr_t)retail_compute_wait;
+    if (!strcmp(name, "KXltnCwEJHQ#A#B")) return (uintptr_t)retail_cs_shader_plain;
     if (!strcmp(name, "Kx-h-nWQJ8A#A#B")) return (uintptr_t)retail_cs_shader;
     if (!strcmp(name, "MTxxrOCeSig#G#H")) return (uintptr_t)retail_window_margins;
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)display_open;

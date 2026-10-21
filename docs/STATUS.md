@@ -30,6 +30,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Trophy availability | Six typed scoped exports return the supplied original uninitialized error before arguments/outputs; guest/original checks pass in both modes; no trophy contexts, handles, progress or files |
 | Share availability | Ex2 mode/heap-size validation and explicit service resource failure; no capture, sharing UI or initialized state |
 | Compute queue availability | Five-argument retail validation order and widths, then explicit backend failure; no queue created or read-pointer update |
+| Batched compute review | Workload doorbell plus five related APIs reviewed together; scoped native routes and retail packet corrections pass guest/original checks in both modes; nonzero GPU queue execution remains unverified |
 | GNM submission permission | Scoped query forwards the real provider lock state; allowed/blocked original/native guest comparisons, ignored arguments, errno/scopes and missing-export activation checks pass in both modes; no submission or frame |
 | GNM default compute state | Scoped base-PS4 provider writes real register/barrier/NOP packets; byte-level original/native comparisons and short-size/guard/ABI checks pass in both modes; no submission or game frame |
 | GNM compute shader packets | Scoped local modifier encoder preserves retail compute headers, register/mask semantics and untouched NOP tail; 3,072 guarded synthetic packets and original-module comparisons pass in both modes; no shader execution or draw |
@@ -50,7 +51,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; eight scoped pad APIs implement keyboard input and explicit light-bar/vibration unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmAreSubmitsAllowed; no game frame verified |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current observed boundary: GnmDingDongForWorkload; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -725,5 +726,38 @@ native white-box test uses only the provider lifecycle's zero/one states and res
 the initial clear state; no production lock manipulation or GPU rebuild is added.
 
 Terminal passes default compute state preparation and now stops at this permission
-query in a job worker. Continuation after routing the query requires a Terminal run;
-GPU submissions, game draws and video remain unverified.
+query in a job worker. Terminal passes this query and reaches sceGnmDingDongForWorkload; GPU submissions,
+game draws and video remain unverified.
+
+## Batched compute bring-up
+
+Import review now batches related compute APIs rather than waiting for each one to
+stop a separate game run. This batch covers six functions; only the workload doorbell
+is the currently observed stop. The others are preventive packet/ABI corrections or
+reviewed routes, not six independently observed game failures.
+
+| Function | Connection and checked behavior |
+|---|---|
+| sceGnmDingDongForWorkload | Real provider-owned compute queue notification; void ABI with two 32-bit arguments and a 64-bit workload value. Both original and provider ignore the workload value here. |
+| sceGnmDispatchIndirect | Native encoder; predicate/ordered-append flags, 32-bit offset, exact size and trailing NOP. |
+| sceGnmDispatchIndirectOnMec | Native encoder; nonzero aligned 64-bit address, predicate/flags, exact size and preserved NOP tail. |
+| sceGnmInsertDingDongMarker | Native four-dword NOP packet with exact size and null-output rejection. |
+| sceGnmComputeWaitOnAddress | Local retail packet encoder; register/memory address selection, 48-bit clipping, comparison/mask/reference and untouched NOP padding. The pinned HLE retains more high address bits. |
+| sceGnmSetCsShader | Local retail adapter using the checked zero-modifier path; correct compute headers instead of the pinned HLE's default graphics headers. |
+
+Synthetic guest tests check scope/capability/headless exclusions, missing-doorbell
+activation rejection, argument widths, full-width workload forwarding, flags, errors,
+byte-level packets, unaligned guards, untouched padding and errno in both modes.
+The packet matrix includes nine address profiles and 32 flag values for four encoders.
+Private original-module comparisons exercise the same packet expectations, including
+full-width wait-address clipping and the plain shader path. A controlled original
+workload-doorbell fixture checks mutex ordering, notification operands/counter and
+32-bit guarded doorbell writes, without a kernel GPU transport. The actual native
+library matches the indirect/marker encoders and representable wait-address profiles;
+its workload doorbell's queue-zero no-op passes through the guest ABI in both modes.
+
+Nonzero native queue notification, ring wrapping, command execution and game frames
+still require Terminal verification. The route forwards to the same provider that
+owns mapped queues and submission/completion; it does not simulate consumption or
+signal a completed frame. Unknown imports still stop explicitly. No upstream source
+change or GPU rebuild is required.
