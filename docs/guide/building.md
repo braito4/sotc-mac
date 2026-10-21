@@ -4,6 +4,12 @@ Use an ARM64 macOS Terminal. `uname -m` must print `arm64`. Rosetta is not requi
 workflow. The official upstream comparison suite uses an x86 reference; it is not part of
 these native-only checks.
 
+> [!WARNING]
+> Real GPU testing is paused after a reported host watchdog kernel panic and an
+> earlier stalled GPU submission. Use CPU/synthetic contracts while investigating.
+> The GPU commands below document existing interfaces; do not run them to reproduce
+> this incident. See the [incident handoff](../DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
+
 ## Sources
 
 Clone this repository from its GitHub page, enter its directory and initialize the required
@@ -106,11 +112,13 @@ This compiles and runs a synthetic Metal offscreen shader draw/readback check. I
 build the game renderer. No device is exposed to the development tool process; run from a
 native macOS Terminal to establish host access. See [Graphics bring-up](../GRAPHICS_BRINGUP.md).
 
-Headless probes default to a 30-second watchdog; the combined graphics/game run now
-defaults to 300 seconds (five minutes). `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
+Headless probes default to a 30-second watchdog; the combined graphics/game default
+is 120 seconds at the owner's request. `SOTC_DIAGNOSTIC_SECONDS` accepts 1 through
 1800 seconds, including 600 for ten minutes; zero cannot disable the watchdog.
 Renderer-only initialization keeps its independent 60-second budget. A timeout
-still fails the paired test and does not establish successful gameplay.
+still fails the paired test and does not establish successful gameplay. A user-space
+timer cannot guarantee recovery from a kernel/driver hang. Longer budgets are not
+a remedy for the reported incident; GPU testing remains paused.
 
 ## Isolated renderer build
 
@@ -233,11 +241,8 @@ physical samples, and accepted LED/rumble operations. Accepted operations do not
 prove that a motor moved or a light changed. After disconnection a log message confirms
 keyboard fallback; reconnection is detected on the next pad query.
 
-No renderer rebuild is required. The existing command rebuilds the host adapter:
-
-```sh
-SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=300 BB_JIT=1 bash packaging/test-arm64.sh --graphics-game-test
-```
+No renderer rebuild is required for host adapter changes. The combined command
+rebuilds that adapter, but real GPU runs are currently paused after the host incident.
 
 Synthetic keyboard and gamepad ABI tests are part of `--contracts-test` in both CPU
 modes; no physical controller or game files are needed for those tests.
@@ -245,19 +250,21 @@ modes; no physical controller or game files are needed for those tests.
 
 ## Dynamic shader-memory reads
 
-The combined game diagnostic defaults `BB_DIRECT_MEMORY_ACCESS` to `1` before loading
-the GPU library. The installed renderer can then execute shader-time `ReadConst`
-accesses through its guarded page-table path, including offsets derived from Phi,
-per-lane values and arithmetic that the CPU resource walker cannot flatten.
-Uniform reads continue to use their verified flattened values. An explicit
-`BB_DIRECT_MEMORY_ACCESS=0` preserves the old configuration for comparisons.
-The private log records the selected value.
+The default-on `BB_DIRECT_MEMORY_ACCESS=1` experiment has been withdrawn after the
+reported host watchdog panic. The loader forces the previous setting, 0, and rejects
+any explicit value other than literal `0` before loading the library. The script
+also rejects it before Vulkan discovery or the Metal precheck. This applies to
+combined, renderer-only and load-only modes. It does not establish that DMA caused
+the panic or that the old configuration is safe: the preceding run already logged
+a stalled GPU submission.
 
-`python3 tools/check_shader_memory.py` checks four original synthetic IR cases through
-the actual installed SRT and shader-info passes with DMA off and on. It verifies
+The earlier offline `tools/check_shader_memory.py` fixture checks four original
+synthetic IR cases through the actual installed SRT and shader-info passes with
+DMA off and on. It verifies
 uniform data, dynamic-read flags and page-table/fault-buffer resources without
 initializing a GPU. It requires the isolated renderer build. The existing walker's
-Phi/lane error messages still appear: this change enables the dynamic execution
-route and does not remove the static walker's limitation. PerVertexKHR conversion,
-GPU memory mapping, scene correctness and stability still need native testing.
-No GPU rebuild is required for this host configuration change.
+Phi/lane error messages still appear. That result only verifies compiler resource
+selection, not hardware execution, system stability or game-image correctness.
+Do not rerun real-library experiments during incident containment. No GPU rebuild
+is required for the host rollback. PerVertexKHR conversion and GPU memory mapping
+remain unresolved source-analysis tasks.

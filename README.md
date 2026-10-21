@@ -21,6 +21,13 @@
 > method translates PS4 x86-64 instructions to ARM64 at runtime; it is not a source rebuild
 > of the game's engine.
 
+> [!WARNING]
+> **GPU experiments are paused after a reported macOS watchdog kernel panic.**
+> A preceding run also reported a stalled GPU submission. The cause is unresolved.
+> Automatic dynamic shader reads have been withdrawn and enabling them is blocked
+> before GPU loading. This rollback does not establish renderer stability. Use
+> CPU/synthetic contracts while investigating; do not repeat the graphics test.
+
 <p align="center">
   <a href="docs/guide/installation.md"><strong>Getting started</strong></a>
   · <a href="docs/README.md">Documentation</a>
@@ -83,7 +90,7 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 **Experimental: logos and menu visually confirmed by the owner on Apple M1.**
 The owner also confirms hearing the opening of the game's introduction. This
 establishes audible game output, without proving full audio coverage or audiovisual
-synchronization. The latest native run reaches the main loop at about 1.38 seconds,
+synchronization. An earlier native run reaches the main loop at about 1.38 seconds,
 detects a DualSense and continues beyond the save-dialog boundary. It ends at the
 60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
 recorded during that interval. Draw/dispatch counters are not gameplay FPS.
@@ -91,9 +98,11 @@ recorded during that interval. Draw/dispatch counters are not gameplay FPS.
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/
 metadata failure paths. Full synthetic contracts pass in both CPU modes; private
 comparisons check original validation and injected dependency-error propagation.
-No save storage or completed UI interaction is created. The combined diagnostic now
-defaults to five minutes (configurable up to 30), with guarded dynamic shader-memory
-reads enabled for the next rendering experiment. Native visual validation is pending.
+No save storage or completed UI interaction is created. Following the reported host
+panic, dynamic shader-memory reads are disabled and nonzero overrides are rejected.
+The combined default budget is 120 seconds at the owner's request; the user-space
+timer cannot protect against a kernel/driver hang. Real GPU testing is paused. See the
+[current incident and handoff](docs/DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
 
 The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset
 errors and buffer-size clamps. A matching SotC issue and exact MoltenVK reports are

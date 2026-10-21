@@ -185,6 +185,9 @@ fabricated. No GPU rebuild is required. Native game continuation remains pending
 
 ## Guarded shader reads and extended observation (2026-10-21)
 
+**The runtime experiment described in this section was subsequently withdrawn.
+Real GPU testing is paused; see the host incident below.**
+
 The installed preferred runtime defaults `BB_DIRECT_MEMORY_ACCESS` to false. Its
 SRT walker leaves ReadConst offset zero when it cannot evaluate a Phi/lane-derived
 address on the CPU. Shader-info collection marks those reads as dynamic, but clears
@@ -206,3 +209,19 @@ renderer-only initialization remains capped at 60. CLI tests reject malformed,
 zero and excessive values, and one-second synthetic infinite loops still terminate
 in both CPU modes. Loader tests verify the 300-second default, 1800-second override,
 and preservation of explicit DMA off/on settings without waiting for those budgets.
+
+## Host watchdog incident: DMA experiment withdrawn (2026-10-21)
+
+The owner reported a host kernel watchdog panic. The newest private log selects
+DMA but ends during renderer initialization before guest entry. The preceding run
+already logs an unfinished GPU submission with DMA at its former default. This
+does not establish which path caused the panic. The offline IR fixture above
+cannot validate hardware execution or system stability.
+
+The host again selects the pinned renderer's default-off DMA setting, and rejects
+nonzero or malformed explicit overrides before loading the library or running
+launch prechecks. The combined default budget is 120 seconds at the owner's request;
+accepted explicit budgets remain 1..1800. No upstream source, dependency pin or shader
+semantics changed in this rollback. GPU tests are paused; only CPU/synthetic
+contracts and read-only source/log review are used during containment. A user-space
+timeout cannot guarantee recovery from a kernel/driver hang.

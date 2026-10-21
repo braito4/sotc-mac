@@ -2,6 +2,13 @@
 
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
+**Current incident: real GPU testing is paused after a reported host watchdog
+kernel panic.** A preceding run also reported a stalled GPU submission. The cause
+is unresolved. Dynamic shader reads are disabled and enabling them is rejected
+before GPU loading/prechecks; the combined default budget is 120 seconds at the
+owner's request. This rollback does not establish renderer stability. Use CPU/synthetic contracts
+and the [incident handoff](DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
+
 | Area | Verified scope |
 |---|---|
 | Host CPU | ARM64-only diagnostic and bbcpu library; no Rosetta |
@@ -1176,6 +1183,8 @@ playable 3D scene or save persistence is established.
 
 ## Five-minute game diagnostic and guarded shader-memory reads (2026-10-21)
 
+**Withdrawn after the subsequent host incident; see the current entry below.**
+
 The combined graphics/game run now defaults to five minutes. The watchdog remains
 mandatory and accepts explicit budgets from 1 to 1800 seconds; headless defaults
 stay at 30 seconds and renderer-only startup keeps its 60-second limit. Tests check
@@ -1194,3 +1203,24 @@ This is a host configuration correction for the next native experiment, not proo
 of a rendering fix. SRT/Phi diagnostics can still appear; PerVertexKHR and partially
 GPU-mapped regions remain unresolved. No GPU rebuild is needed. Use the new 300-second
 command in the build guide and compare scene progress in native Terminal.
+
+## Host watchdog report and experiment rollback (2026-10-21)
+
+The owner reported a kernel panic because watchdogd did not check in for 90 seconds.
+The latest private log selects dynamic shader reads and ends during renderer
+initialization, after shared guest-memory imports and worker preparation. It never
+records renderer readiness or guest entry. The preceding complete run uses the
+former configuration, reaches the main loop, records a GPU submission unfinished
+for more than ten seconds, and exits at its 60-second timeout. The panic's triggering
+path is unresolved; neither DMA, memory pressure nor the controller is established
+as the cause.
+
+The automatic DMA setting is withdrawn. Unset selects 0; all explicit values other
+than literal 0 fail before dlopen and before script Vulkan/Metal prechecks. The
+unvalidated 300-second default is withdrawn; after the incident the owner requested
+a 120-second combined budget. Explicit 1..1800 budgets remain supported. A process
+alarm cannot guarantee recovery from a kernel/driver hang. GPU experiments are
+paused, with no attempt to reproduce the
+panic. CPU/synthetic tests cover configuration rejection, library-constructor
+isolation, launch-precheck ordering, timeout routing and the runtime ABI. No real
+GPU library is loaded by this verification. Raw logs and panic details stay private.

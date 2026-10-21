@@ -19,7 +19,7 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The latest native run completes initialization at about 0.94 seconds and enters
+An earlier native run completes initialization at about 0.94 seconds and enters
 the main loop at about 1.38 seconds. It continues past the save/dialog import stops,
 then ends at the 60-second diagnostic budget. There is no unresolved-import stop or
 CPU execution fault recorded in that interval. GPU activity continues after the
@@ -37,12 +37,12 @@ NOT_SYSTEM_INITIALIZED because CommonDialog is unavailable, and Open validates i
 base header/address cookie/reserved bytes and outer size before reporting no instance.
 The initializer policy and its injected dependency-error comparison are distinct from
 Open's original-module validation comparison. The subsequent native run continues
-until timeout; the next work is renderer diagnosis and verifying scene entry.
-This tool process exposes no Metal device, and Terminal automation is unavailable,
-so use the native command below.
+until timeout. Real GPU testing is now paused following the host incident below.
+This tool process exposes no Metal device; current verification uses CPU/synthetic
+contracts without loading the real GPU library.
 
 The renderer still skips pipelines because of PerVertexKHR-to-MSL conversion (78
-reported errors in the last run), and has SRT Phi and compressed-texture usage errors.
+reported errors in an earlier run), and has SRT Phi and compressed-texture usage errors.
 The isolated fragment diagnostic reproduces the compiler limitation without game data
 or a GPU. IT_GET_LOD_STATS also remains unimplemented.
 
@@ -50,12 +50,39 @@ Physical SDL3 gamepad input now complements the keyboard fallback. See
 [DualShock input](guide/building.md#dualshock-input) for connection and logging.
 Guest ABI tests cover the entire stick/trigger domain, buttons, two touch identities,
 hotplug, output errors and synthetic callback dispatch in both CPU modes. The latest
-run detects a DualSense. An earlier complete summary records 778 physical samples,
+completed game run detects a DualSense. An earlier complete summary records 778 physical samples,
 387 accepted LED requests and 388 accepted rumble requests without disconnection;
 the timeout run has no final input summary. These counters do not identify the
 connection transport or prove the physical output effect.
 
-## First session: reproduce the boundary
+## Host watchdog incident
+
+The owner reported a macOS kernel panic with no watchdogd check-ins for 90 seconds.
+The most recent private graphics log ends during renderer initialization, after
+importing approximately 6.4 GiB of guest memory and preparing rendering workers.
+It does not reach the renderer-ready line, linked-module initialization or guest
+entry. Its selected dynamic-memory setting is 1. The preceding complete graphics
+log uses the former configuration, reaches the main loop, reports a GPU submission
+unfinished for more than ten seconds and then exits at the 60-second diagnostic
+timeout. Neither log identifies the cause of the kernel panic. The earlier GPU
+stall means the new dynamic-read setting cannot be the only suspected path.
+
+The unvalidated default-on dynamic-read experiment is withdrawn. The loader now
+sets `BB_DIRECT_MEMORY_ACCESS=0` and rejects every other explicitly supplied value
+before `dlopen`, including load-only and renderer-only modes. The launch script
+rejects those values before Vulkan/Metal prechecks. The unvalidated 300-second
+default is withdrawn; the owner requested a 120-second combined budget after the
+incident. Explicit 1..1800-second budgets remain supported, but a
+user-space alarm cannot guarantee recovery from a kernel/driver hang. Do not
+increase timeouts as a remedy or treat DMA off as evidence of safe GPU execution.
+
+Real GPU tests are paused. Do not ask the owner to reproduce this incident or
+automatically launch a renderer, game run or Metal prerequisite check. Continue
+with read-only log/source analysis and CPU/synthetic tests. The normalized evidence
+above is sufficient for the public handoff; panic reports, device identifiers,
+addresses and execution logs remain private.
+
+## First session: inspect without GPU execution
 
 Run commands from the repository root in a native macOS Terminal. Quote absolute
 paths containing spaces. Keep stdout/stderr and generated reports private.
@@ -68,18 +95,10 @@ git submodule status --recursive
 bash packaging/test-arm64.sh --contracts-test
 ```
 
-On an existing machine with prepared input and GPU dependencies:
-
-```sh
-bash packaging/build-gpu-arm64.sh
-SOTC_MEMORY_BACKING=file SOTC_DIAGNOSTIC_SECONDS=300 BB_JIT=1 \
-  bash packaging/test-arm64.sh --graphics-game-test
-```
-
 Read the newest `logs/graphics-game-*.log` by modification time, not an old filename
-from chat. The script prints the log path. Run the same command with `BB_JIT=0` to
-compare the interpreter, allowing for its slower progress within the same budget.
-The combined game run now defaults to 300 seconds; headless remains 30.
+from chat. Compare its final lines with the preceding completed run. No new GPU
+run is needed for this inspection. The combined game default is 120 seconds;
+headless remains 30.
 `SOTC_DIAGNOSTIC_SECONDS` accepts only 1..1800. Renderer-only initialization retains
 its separate 60-second limit. A timeout is an observation boundary,
 not successful gameplay or evidence that all imports are implemented.
@@ -108,7 +127,7 @@ The main entry points are:
 | `python3 tools/check_gpu_link.py` | Inspect actual host/library symbol coverage; does not validate ABI or load the library |
 | `bash packaging/test-arm64.sh --gpu-load-check` | Load the library without renderer initialization |
 | `bash packaging/test-arm64.sh --renderer-check` | Initialize the renderer and diagnostic window without guest commands |
-| `bash packaging/test-arm64.sh --graphics-game-test` | Bounded combined experiment; inspect the result rather than assuming success |
+| `bash packaging/test-arm64.sh --graphics-game-test` | Combined experiment; currently paused after the host watchdog incident |
 
 Important environment variables:
 
@@ -119,8 +138,8 @@ Important environment variables:
 | `SOTC_SYSTEM_MODULE_ROOT` | Original gesture/NGS2 modules; default sibling `sys_modules` directory |
 | `SOTC_MEMORY_BACKING=file` | Unlinked temporary-file backing with shared aliases when POSIX shm is unavailable |
 | `BB_JIT=1` / `BB_JIT=0` | ARM64 translation / interpreter |
-| `SOTC_DIAGNOSTIC_SECONDS=300` | Five-minute combined run; accepts 1..1800, headless defaults to 30 |
-| `BB_DIRECT_MEMORY_ACCESS` | Defaults to 1 for combined runs before GPU loading; explicit 0 keeps the prior comparison |
+| `SOTC_DIAGNOSTIC_SECONDS` | Accepts 1..1800; combined default 120, headless 30; not protection from a kernel hang |
+| `BB_DIRECT_MEMORY_ACCESS` | Unset or literal 0 only; all other values rejected before GPU loading/prechecks |
 | `SOTC_GPU_JOBS` | Isolated build parallelism, 1..8 |
 
 The launch script explicitly selects its bundled Vulkan loader, MoltenVK ICD and
@@ -130,7 +149,7 @@ The builder repairs generated FFmpeg/pkg-config metadata for prefixes with space
 Do not move the repository merely to conceal a quoting regression.
 
 A restricted automation process can compile and run CPU contracts while exposing
-no Metal device. Use native Terminal for real renderer experiments. A failed device
+no Metal device. Real renderer experiments are currently paused. A failed device
 precheck in that process is not evidence that the user's GPU is unsupported.
 
 ## Code ownership and execution path
@@ -167,14 +186,13 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Verify introduction video and scene entry.** Save-dialog startup no longer stops
-   the observed run; it reaches its former 60-second timeout. The next diagnostic
-   defaults to five minutes and enables guarded dynamic shader reads. The owner
-   hears the opening introduction audio. Establish whether the image progresses with that audio and whether a playable
-   3D scene loads. Investigate the 186 partially GPU-mapped region warnings alongside
-   missing pipelines. No save access occurs; do not treat missing UI or save errors as
-   successful persistence. Keep observed pictures/audio separate from GPU counters.
-2. **MSL fragment interface support.** The newest log has 78 `PerVertexKHR` conversion
+1. **Investigate the host watchdog incident without reproducing it.** Read the latest
+   initialization-only log and the earlier GPU-stall log together. Review renderer
+   startup, shared guest-memory residency, queue progress and the pinned upstream
+   sources. The cause is unresolved; do not assume DMA, memory pressure or the
+   controller is responsible. Leave GPU testing paused. Scene entry and introduction
+   video remain later goals; the owner has confirmed logos/menu and opening audio.
+2. **MSL fragment interface support.** An earlier game log has 78 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does
@@ -185,13 +203,15 @@ archive and diagnostic sources in `work`.
    `spirv_emit_context.cpp`. Do not remove the decoration or substitute interpolated
    input without preserving the requested vertex selection. The earlier duplicate
    auxiliary location error is absent; not every tessellation path is verified.
-3. **SRT resource tracking.** The host now defaults shader direct memory access to
-   enabled before dlopen. The actual SRT/shader-info fixture checks uniform reads,
+3. **SRT resource tracking.** Shader direct memory access is disabled and enabling it
+   is blocked after the host incident. The earlier SRT/shader-info fixture checks
+   uniform reads,
    Phi, per-lane and arithmetic offsets with DMA off/on: dynamic resources are
    selected only when the setting is enabled. This does not execute those accesses
    on a GPU or validate game resources. The existing walker still logs its static
-   offset failures. Run `python3 tools/check_shader_memory.py` to reproduce the
-   distinction; do not describe the messages as fixed. `flatten_extended_userdata_pass.cpp` fails offset
+   offset failures. Its result is offline compiler evidence, not hardware validation;
+   do not rerun real-library experiments during incident containment or describe
+   the messages as fixed. `flatten_extended_userdata_pass.cpp` fails offset
    computation on `Phi` and then fails its SRT walk. Investigate predecessor/value
    handling and resource provenance in the recompiler. Buffer-size clamps may relate
    to bad descriptors, but their causal link is not established. Do not treat clamps

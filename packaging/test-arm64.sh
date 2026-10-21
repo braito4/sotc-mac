@@ -234,6 +234,14 @@ contracts() {
     done
 }
 require_arm64
+# Reject the withdrawn setting before Vulkan discovery, the Metal precheck or
+# any library loading. The native loader independently checks direct invocation.
+case "$trial_mode" in
+    --gpu-load-check|--renderer-check|--graphics-game-test)
+        [[ "${BB_DIRECT_MEMORY_ACCESS-0}" == 0 ]] ||
+            fail 'STOP_GPU_CONFIG: BB_DIRECT_MEMORY_ACCESS must be unset or 0; dynamic shader reads are suspended after a host watchdog panic'
+        ;;
+esac
 case "$trial_mode" in
     --check)
         printf 'System: %s / %s\n' "$(uname -s)" "$(uname -m)"

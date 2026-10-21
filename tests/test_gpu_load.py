@@ -17,7 +17,7 @@ class GpuLoadTests(unittest.TestCase):
     def check(self, path):
         state = Path(path).parent / 'private GPU state'
         state.mkdir(exist_ok=True)
-        env = dict(os.environ, BB_GPU_USER_DIR=str(state))
+        env = dict(os.environ, BB_GPU_USER_DIR=str(state), BB_DIRECT_MEMORY_ACCESS='0')
         return subprocess.run([str(PROBE), '--gpu-load-check', str(path)], env=env, capture_output=True, text=True)
 
     def test_missing_file(self):
@@ -33,6 +33,43 @@ class GpuLoadTests(unittest.TestCase):
                                 env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 28)
         self.assertIn('STOP_GPU_STATE', result.stderr)
+
+    def test_withdrawn_dma_rejected_before_library_constructors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            state=root/'state';state.mkdir()
+            source=root/'must-not-load.c';library=root/'must-not-load.dylib'
+            source.write_text('#include <stdlib.h>\n'
+                              '__attribute__((constructor)) static void loaded(void) { abort(); }\n')
+            subprocess.run(['clang','-arch','arm64','-dynamiclib',str(source),'-o',str(library)],
+                           check=True,capture_output=True)
+            for mode in ('--gpu-load-check','--renderer-check'):
+                for value in ('1','true','false','','00',' 0','0 '):
+                    with self.subTest(mode=mode,value=value):
+                        result=subprocess.run([str(PROBE),mode,str(library)],capture_output=True,
+                            text=True,timeout=5,env=dict(os.environ,BB_GPU_USER_DIR=str(state),
+                                                       BB_DIRECT_MEMORY_ACCESS=value))
+                        self.assertEqual(result.returncode,28,result.stdout+result.stderr)
+                        self.assertIn('STOP_GPU_CONFIG',result.stderr)
+
+    def test_shell_rejects_dma_before_gpu_prechecks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            # If orchestration regresses, these stubs prevent touching a real
+            # GPU, compiler or Vulkan loader and make the regression visible.
+            for tool in ('clang','python3'):
+                stub=root/tool
+                stub.write_text('#!/bin/sh\necho UNEXPECTED_GPU_PRECHECK >&2\nexit 99\n')
+                stub.chmod(0o755)
+            for mode in ('--gpu-load-check','--renderer-check','--graphics-game-test'):
+                for value in ('1','true',''):
+                    with self.subTest(mode=mode,value=value):
+                        result=subprocess.run(['/bin/bash',str(ROOT/'packaging/test-arm64.sh'),mode],
+                            capture_output=True,text=True,timeout=5,env=dict(os.environ,
+                            BB_DIRECT_MEMORY_ACCESS=value,PATH=str(root)+':/usr/bin:/bin'))
+                        self.assertEqual(result.returncode,1,result.stdout+result.stderr)
+                        self.assertIn('STOP_GPU_CONFIG',result.stderr)
+                        self.assertNotIn('UNEXPECTED_GPU_PRECHECK',result.stderr)
 
     def fixture(self, directory, exports, unresolved=False):
         root = Path(directory)
@@ -87,7 +124,7 @@ void bbgpu_window_loop(void) { puts("FIXTURE_WINDOW_LOOP"); fflush(NULL); _Exit(
         state = Path(path).parent / 'private renderer state'
         state.mkdir()
         return subprocess.run([str(PROBE), '--renderer-check', str(path)],
-                              env=dict(os.environ, BB_GPU_USER_DIR=str(state)),
+                              env=dict(os.environ, BB_GPU_USER_DIR=str(state), BB_DIRECT_MEMORY_ACCESS='0'),
                               capture_output=True, text=True, timeout=10)
 
     def test_renderer_configuration_and_main_thread_event_loop(self):

@@ -17,4 +17,5 @@ Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
   runtime changes and native CPU checks when changing the CPU context bridge.
 - The owner has visually confirmed game logos/menu and heard the opening introduction audio. Correct introduction video and audiovisual synchronization remain unverified. In-game 3D scenes, gameplay stability, a playable app and save support remain unverified. Keep claims tied to measured tests.
+- A host watchdog kernel panic has been reported. Real GPU experiments are paused; use CPU/synthetic contracts only while investigating. Do not reproduce the hang autonomously. Dynamic shader reads are disabled and nonzero overrides are rejected before GPU loading; this does not establish that the renderer is safe.
 - Check the target remote before pushing. Keep private local state and archives ignored.

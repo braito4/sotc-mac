@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -47,13 +48,19 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
         fputs("STOP_GPU_STATE: BB_GPU_USER_DIR must name an existing writable absolute directory\n", stderr);
         return 28;
     }
+    /* Withdraw the unvalidated DMA experiment after a reported host watchdog
+     * panic. Reject inherited overrides before library constructors can run.
+     * DMA off is a rollback, not proof that renderer startup cannot hang. */
+    const char *dma = getenv("BB_DIRECT_MEMORY_ACCESS");
+    if (dma && strcmp(dma, "0")) {
+        fputs("STOP_GPU_CONFIG: BB_DIRECT_MEMORY_ACCESS must be unset or 0; "
+              "dynamic shader reads are suspended after a host watchdog panic\n", stderr);
+        return 28;
+    }
+    if (setenv("BB_DIRECT_MEMORY_ACCESS", "0", 1)) {
+        perror("STOP_GPU_CONFIG"); return 28;
+    }
     if (initialize == 2) {
-        /* SotC has shader-time ReadConst offsets (Phi/ReadFirstLane): these
-         * cannot be flattened once on the CPU. Use the existing guarded GPU
-         * memory-read path; an explicit 0 retains the upstream comparison. */
-        if (setenv("BB_DIRECT_MEMORY_ACCESS","1",0)) {
-            perror("STOP_GPU_CONFIG"); return 28;
-        }
         printf("GPU: shader dynamic memory reads BB_DIRECT_MEMORY_ACCESS=%s\n",
                getenv("BB_DIRECT_MEMORY_ACCESS"));
     }

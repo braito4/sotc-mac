@@ -1,5 +1,21 @@
 # Troubleshooting
 
+## Host watchdog kernel panic
+
+Real GPU testing is paused after the owner reported no watchdogd check-ins for
+90 seconds. The latest private game log ends during renderer initialization,
+before guest execution. The preceding complete run already reports a GPU
+submission unfinished for more than ten seconds, then the diagnostic timeout.
+These observations do not identify the cause of the system panic.
+
+Dynamic shader reads are disabled; every explicitly supplied value other than
+`BB_DIRECT_MEMORY_ACCESS=0` is rejected before library loading and launch prechecks.
+The combined default is 120 seconds at the owner's request. The rollback does not
+prove the renderer is safe. The user-space watchdog cannot guarantee recovery from a
+kernel/driver hang; do not extend it or repeat GPU tests to diagnose this incident.
+Continue with read-only inspection and `--contracts-test`, which uses CPU execution
+and synthetic GPU doubles. See the [handoff](../DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
+
 ## Expected diagnostic stops
 
 `STOP_AT_IMPORT` means the CPU reached a system function outside the implemented contract set.
@@ -29,9 +45,9 @@ A successful check establishes only an offscreen synthetic draw. See
 
 `STOP_TIMEOUT` remains a failed diagnostic. The default watchdog is 30 seconds;
 `SOTC_DIAGNOSTIC_SECONDS=1..1800` changes its bounded duration without disabling it.
-Headless probes default to 30 seconds; combined game/graphics runs default to 300.
-If an earlier shell export still selects 60 seconds, explicitly set
-`SOTC_DIAGNOSTIC_SECONDS=300` for the next run.
+Headless probes default to 30 seconds; the combined game/graphics default is 120.
+Explicit budgets remain accepted, but increasing them does not resolve a GPU stall
+or protect against the reported system watchdog panic. Real GPU tests are paused.
 
 `STOP_MEMORY_LAYOUT` means a requested mapping could not be satisfied. Do not disable fixed-map
 bounds or overwrite host shared regions to continue. The temporary image mapping still leaves

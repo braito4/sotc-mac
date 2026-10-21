@@ -234,7 +234,7 @@ void bbgpu_window_loop(void) {
                     '--graphics-library', str(library)], capture_output=True, text=True, timeout=15,env=baseline)
                 self.assertEqual(result.returncode, 20, result.stdout+result.stderr)
                 self.assertIn('FIXTURE_MAIN_THREAD_INIT', result.stdout)
-                self.assertIn('FIXTURE_DMA=1',result.stdout)
+                self.assertIn('FIXTURE_DMA=0',result.stdout)
                 self.assertIn('Diagnostic watchdog: 10 seconds',result.stdout)
                 self.assertIn('FIXTURE_FAULT_RECOVERED', result.stdout)
                 self.assertIn('FIXTURE_GUEST_WORKER_OPEN', result.stdout)
@@ -262,22 +262,29 @@ void bbgpu_window_loop(void) {
                 self.assertIn('save-dialog startup requests: initialize=1, open=1',result.stdout)
                 self.assertIn('unsupported VideoOut window-margin requests=1',result.stdout)
                 self.assertIn('unavailable network-control initialization requests=1',result.stdout)
-                for policy,seconds in (('0',None),('1','1800')):
-                    override=root/('config-'+mode+'-'+policy);override.mkdir()
-                    env=dict(baseline,BB_DIRECT_MEMORY_ACCESS=policy,BB_GPU_USER_DIR=str(override))
+                for seconds in (None,'1800'):
+                    override=root/('config-'+mode+'-'+str(seconds));override.mkdir()
+                    env=dict(baseline,BB_DIRECT_MEMORY_ACCESS='0',BB_GPU_USER_DIR=str(override))
                     env.pop('SOTC_DIAGNOSTIC_SECONDS',None)
                     if seconds is not None:env['SOTC_DIAGNOSTIC_SECONDS']=seconds
                     check=subprocess.run([str(PROBE),str(boot),'--bootstrap','--game-root',str(root),
                         '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,env=env)
                     self.assertEqual(check.returncode,20,check.stdout+check.stderr)
-                    self.assertIn('FIXTURE_DMA='+policy,check.stdout)
-                    self.assertIn('Diagnostic watchdog: '+(seconds or '300')+' seconds',check.stdout)
+                    self.assertIn('FIXTURE_DMA=0',check.stdout)
+                    self.assertIn('Diagnostic watchdog: '+(seconds or '120')+' seconds',check.stdout)
+                rejected_dma=subprocess.run([str(PROBE),str(boot),'--bootstrap','--game-root',str(root),
+                    '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,
+                    env=dict(baseline,BB_DIRECT_MEMORY_ACCESS='1'))
+                self.assertEqual(rejected_dma.returncode,1,rejected_dma.stdout+rejected_dma.stderr)
+                self.assertIn('STOP_GPU_CONFIG',rejected_dma.stderr)
+                self.assertNotIn('FIXTURE_MAIN_THREAD_INIT',rejected_dma.stdout)
+                self.assertNotIn('Starting linked module',rejected_dma.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')
                     synthetic_image(fault_boot, fault=True)
                     failed=subprocess.run([str(PROBE),str(fault_boot),'--bootstrap','--game-root',str(root),
                         '--graphics-library',str(library)],capture_output=True,text=True,timeout=15,
-                        env=dict(os.environ,BB_JIT=mode,BB_GPU_USER_DIR=str(state),
+                        env=dict(baseline,BB_JIT=mode,BB_GPU_USER_DIR=str(state),
                                  BB_DMEM_MB='16',BB_DMEM_EXTRA_MB='0',SOTC_DIAGNOSTIC_SECONDS='10',
                                  SOTC_FIXTURE_FAULT=fault))
                     self.assertIn(failed.returncode,(138,139),failed.stdout+failed.stderr)
@@ -291,7 +298,7 @@ void bbgpu_window_loop(void) {
             state.mkdir()
             rejected = subprocess.run([str(PROBE), str(boot), '--bootstrap', '--game-root', str(root),
                 '--graphics-library', str(library)], capture_output=True, text=True, timeout=15,
-                env=dict(os.environ, BB_GPU_USER_DIR=str(state), SOTC_FIXTURE_NO_INPUT='1'))
+                env=dict(baseline, BB_GPU_USER_DIR=str(state), SOTC_FIXTURE_NO_INPUT='1'))
             self.assertEqual(rejected.returncode, 28, rejected.stdout+rejected.stderr)
             self.assertIn('STOP_INPUT_BACKEND', rejected.stderr)
             self.assertNotIn('Starting linked module', rejected.stdout)

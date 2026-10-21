@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
         }
     } else if (argc != 2) fail("usage: probe_entry_arm64 IMAGE [--bootstrap [--game-root DIR]]");
     if (gpu_library && (!bootstrap || !game_root)) fail("graphics requires linked bootstrap and a read-only game root");
-    unsigned budget = gpu_library ? 300 : 30;
+    unsigned budget = gpu_library ? 120 : 30;
     const char *configured_budget = getenv("SOTC_DIAGNOSTIC_SECONDS");
     if (configured_budget) {
         const size_t length = strlen(configured_budget);
