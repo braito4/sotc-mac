@@ -17,6 +17,40 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
+    def backport_fixture(self, root):
+        for name in gpu.backport_manifest()['files']:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((gpu.ROOT / 'runtime/upstream' / name).read_bytes())
+
+    def test_backports_match_reviewed_outputs_and_are_idempotent(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            self.assertEqual(gpu.backport_state(source), 'before')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source), 'after')
+            once = {name: (source / name).read_bytes() for name in gpu.backport_manifest()['files']}
+            gpu.apply_backports(source)
+            self.assertEqual(once, {name: (source / name).read_bytes() for name in once})
+
+    def test_backports_reject_unknown_or_partial_sources_without_writing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            name = next(iter(gpu.backport_manifest()['files']))
+            path = source / name
+            path.write_bytes(path.read_bytes() + b'\n')
+            before = {n: (source / n).read_bytes() for n in gpu.backport_manifest()['files']}
+            with self.assertRaises(gpu.BuildError):
+                gpu.apply_backports(source)
+            self.assertEqual(before, {n: (source / n).read_bytes() for n in before})
+            self.backport_fixture(source)
+            gpu.apply_backports(source)
+            path.write_bytes((gpu.ROOT / 'runtime/upstream' / name).read_bytes())
+            with self.assertRaisesRegex(gpu.BuildError, 'Incomplete'):
+                gpu.apply_backports(source)
+
     def test_checked_recipe_is_portable_and_excludes_app_runtimes(self):
         original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
         recipe = gpu.prepare_recipe(original)

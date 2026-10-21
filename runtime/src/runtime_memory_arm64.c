@@ -1,5 +1,5 @@
 /* SotC additions to bloodborne-native/bloodborne-runtime memory backend
- * 3170535f59cadbe5ce9c38e6bb961ed5fd215194. Include the unchanged backend so
+ * 3170535f59cadbe5ce9c38e6bb961ed5fd215194. Include a checked private build copy so
  * the extra query shares its actual physical blocks and lock; no parallel
  * allocation ledger or copy of the allocator is maintained.
  * Largest-free-range query adapted from AjncSystem/ShadowOfTheColossus-PC
@@ -7,7 +7,7 @@
  * Foundations: deadinside28/bbport and shadPS4.
  */
 #define runtime_memory_resolve sotc_upstream_memory_resolve
-#include "../upstream/src/runtime_memory.c"
+#include "runtime_memory_diagnostic.c"
 #undef runtime_memory_resolve
 
 /* The PS4 ABI returns the largest aligned contiguous gap in [low, high),

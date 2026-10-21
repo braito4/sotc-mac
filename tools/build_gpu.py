@@ -1,6 +1,7 @@
 """Build the pinned GPU library in private work output, without game input.
 
-Uses bloodborne-native/bloodborne-runtime's unchanged renderer and a checked
+Uses bloodborne-native/bloodborne-runtime's pinned renderer with reviewed, checked
+upstream backports and a checked
 adaptation of its dependency recipes (bbport and shadPS4; GPL-2.0-or-later). The prepared recipe
 omits app-bundle Bash/Python and x86-only assembler prerequisites on ARM64.
 It does not launch the renderer or claim a game frame.
@@ -34,10 +35,59 @@ PKGCONFIG_CACHE_CLEAR = tuple(
     item for name in ('FFMPEG', 'SDL3', 'XXHASH') for item in ('-U', '*' + name + '*')
 )
 TOOLS = ('git', 'clang', 'clang++', 'cmake', 'ninja', 'pkg-config', 'curl', 'make', 'lipo', 'nm')
+PATCH_DIR = Path(__file__).resolve().parent / 'gpu_patches'
 
 
 class BuildError(RuntimeError):
     pass
+
+
+def backport_manifest():
+    manifest = json.loads((PATCH_DIR / 'manifest.json').read_text())
+    if manifest['base_revision'] != REVISION:
+        raise BuildError('GPU backports do not match the pinned base.')
+    for name, digest in manifest['patches'].items():
+        path = PATCH_DIR / name
+        if path.parent != PATCH_DIR or path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise BuildError('GPU backport patch failed its digest check.')
+    return manifest
+
+
+def backport_state(source):
+    manifest = backport_manifest()
+    states = set()
+    for name, digests in manifest['files'].items():
+        path = source / name
+        if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
+            raise BuildError('Refusing redirected GPU backport source.')
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest == digests['before']:
+            states.add('before')
+        elif digest == digests['after']:
+            states.add('after')
+        else:
+            raise BuildError('Unrecognized GPU backport source: ' + name)
+    if len(states) != 1:
+        raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
+    return states.pop()
+
+
+def apply_backports(source):
+    if backport_state(source) == 'after':
+        return
+    # JSON lines preserve significant unified-diff blank context without adding
+    # trailing whitespace to the public source files.
+    patches = ''.join('\n'.join(json.loads((PATCH_DIR / name).read_text())['lines']) + '\n'
+                      for name in backport_manifest()['patches'])
+    try:
+        subprocess.run(['git', '-C', str(source), 'apply', '--check'], check=True,
+                       input=patches, capture_output=True, text=True)
+        subprocess.run(['git', '-C', str(source), 'apply'], check=True,
+                       input=patches, capture_output=True, text=True)
+    except subprocess.CalledProcessError as error:
+        raise BuildError('Checked GPU backports could not be applied: ' + error.stderr) from error
+    if backport_state(source) != 'after':
+        raise BuildError('GPU backport output did not match the reviewed digest.')
 
 
 def prepare_recipe(data):
@@ -201,7 +251,9 @@ def verify_source(source):
         if git_output(source, 'remote', 'get-url', 'origin') != REPOSITORY:
             raise BuildError('Unexpected GPU source remote; preserving it unchanged.')
         if git_output(source, 'status', '--porcelain', '--untracked-files=no'):
-            raise BuildError('GPU checkout has tracked modifications; preserving it unchanged.')
+            changed = set(git_output(source, 'diff', '--name-only', 'HEAD', '--').splitlines())
+            if changed != set(backport_manifest()['files']) or backport_state(source) != 'after':
+                raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
     # A gitlink marked uninitialized is not a complete source checkout.
@@ -236,6 +288,7 @@ def build(root, runner, jobs, compiler):
     work = root / 'work'
     source = private_path(work, 'gpu-source')
     fetch_source(work, source, runner)
+    apply_backports(source)
     generated = private_path(work, 'gpu-dependencies.sh')
     for name in ('deps', 'deps/macos-arm64', 'deps/build-arm64'):
         if (source / name).is_symlink():
@@ -278,6 +331,7 @@ def build(root, runner, jobs, compiler):
     if any('_' + name not in symbols for name in REQUIRED_EXPORTS):
         raise BuildError('Built GPU library does not export the required loader ABI.')
     verify_source(source)
+    runner.run([sys.executable, root / 'tools/check_tessellation.py'])
     undefined = subprocess.check_output(['nm', '-u', library], text=True)
     runtime_symbols = sorted({line.split()[-1] for line in undefined.splitlines() if line.split()
                               and line.split()[-1].startswith(('_runtime_', '_bbcpu_', '_bb_image_base'))})
@@ -285,6 +339,7 @@ def build(root, runner, jobs, compiler):
                   library=str(library), dependencies=str(prefix), jobs=jobs, runtime_symbols=runtime_symbols,
                   macos_minimum='15.0',
                   dependency_recipe_sha256=DEPS_SHA256,
+                  renderer_backports=backport_manifest()['upstream_commits'],
                   renderer_launched=False, game_frame_verified=False)
     private_path(work, 'gpu-build.json').write_text(json.dumps(report, indent=2) + '\n')
     print(f'GPU library built: {library}\nNo renderer was launched; loader integration and game video are still pending.')

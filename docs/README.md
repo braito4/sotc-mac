@@ -3,6 +3,9 @@
 Start with [Installation](guide/installation.md) and [Building from source](guide/building.md).
 This is a developer diagnostic, not a playable macOS application.
 
+For continuing development, start with the [development handoff](DEVELOPMENT_HANDOFF.md).
+It records the current boundary, reproduction commands, code map and prioritized debugging work.
+
 | Guide | Contents |
 |---|---|
 | [Game files](guide/game-files.md) | Your own input, supported version, preparation |
@@ -12,5 +15,6 @@ This is a developer diagnostic, not a playable macOS application.
 | [Development status](STATUS.md) | Confirmed milestones and remaining work |
 | [Reference review](REFERENCE_REVIEW.md) | Supplied snapshot findings, independent content/address checks and file backing |
 | [Graphics bring-up](GRAPHICS_BRINGUP.md) | Confirmed Apple M1 prerequisite, isolated renderer build and remaining integration |
+| [Upstream review](UPSTREAM_REVIEW.md) | Selected renderer fixes, provenance, reproducible backports and verification limits |
 | [Credits](CREDITS.md) | Upstream projects, licenses and pinned revisions |
 | [Publishing](guide/publishing.md) | Maintainer-only GitHub creation and push |

@@ -57,6 +57,16 @@ lifecycle boundaries. A private build copy of the mutex backend makes only diagn
 atomic. The source checkout is not patched. Synthetic tests now also start concurrent guest
 workers and test condition waits, isolated TLS, thread completion and serialized read-only I/O.
 
+The memory adapter includes a checked private build copy of the pinned backend. Its GPU
+notification storage grows instead of stopping at 64 entries; the preparation script checks
+the full source digest and changes only the storage declaration and capacity guard. The
+upstream allocator, locking and hook dispatch remain intact. Contracts cover replay/release
+of 257 real aliases, mixed bursts beyond 8,000 events and explicit storage failure.
+
+For the current game/renderer boundary and a debugging roadmap, use the
+[development handoff](../DEVELOPMENT_HANDOFF.md). Later sections here describe earlier
+integration milestones and are not a statement of the latest observed import stop.
+
 ## Optional game initialization probe
 
 Prepare [your own game files](game-files.md), then run `--linked-test` in a normal Terminal.
@@ -107,6 +117,13 @@ build; generated FFmpeg metadata and cached dependency paths are repaired for sp
 A successful build checks ARM64 architecture and API exports and records the host runtime
 symbols it needs. It does not launch the game. See [Graphics bring-up](../GRAPHICS_BRINGUP.md)
 for stages, prerequisites and remaining loader integration.
+
+The builder also applies a digest-checked set of reviewed upstream renderer backports
+to the private checkout. It rejects unknown or partially applied modifications. See
+the [upstream review](../UPSTREAM_REVIEW.md) for the exact changes. A successful GPU
+build now also runs `python3 tools/check_tessellation.py`, which checks the actual
+auxiliary SPIR-V emitter without initializing a GPU. Keep this separate from the
+native Terminal visual verification.
 
 Before attempting loader integration, run `python3 tools/check_gpu_link.py` on the Mac after
 building the diagnostic and GPU library. It reports missing host symbols without loading the

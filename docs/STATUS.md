@@ -973,3 +973,47 @@ scope/capability gates. A private comparison against the supplied original four
 functions passes the same cases in JIT and interpreter using real host clock reads.
 The full contracts also pass in both CPU modes. No GPU rebuild is required; game
 continuation after this batch still requires a Terminal run.
+
+## GPU notification queue growth and developer handoff
+
+The next Terminal run passes RTC, enters the main loop at 1.6131 seconds and reports
+a Metal sample of 486 draws/1,985 dispatches per second. It stops at the host memory
+backend's fixed 64-entry GPU notification queue, then reports secondary termination
+errors. No correct game image is verified. A tessellation pipeline fails MSL
+compilation because of duplicate output locations; SRT Phi offset failures, buffer
+clamps and BC texture usage problems remain open.
+
+The diagnostic now uses growable notification storage in a digest-checked private
+copy of the pinned memory backend. Only storage and its capacity guard change;
+allocator logic, count rollback, locks and callback dispatch remain upstream.
+Events are neither dropped nor merged. Allocation/capacity exhaustion stops explicitly
+instead of claiming a successful notification. The pinned checkout and GPU library
+are unchanged; only the host diagnostic needs rebuilding.
+
+Full contracts pass in JIT and interpreter. Regression coverage includes registering
+hooks over 257 actual shared aliases, releasing those aliases through the guest ABI,
+8,193 mixed events in FIFO order, callback reentry outside the region write lock,
+count rollback, reuse, absent hooks and explicit allocation/capacity failure. This
+checks local queue behavior, not GPU completion or global callback completion ordering
+across competing flushers. A combined Terminal rerun must verify continuation.
+
+The [development handoff](DEVELOPMENT_HANDOFF.md) records reproduction, build prerequisites,
+code ownership, verification limits and the prioritized renderer debugging backlog.
+
+## Reviewed upstream renderer backports
+
+The 2026-10-21 upstream review found an exact match for the duplicate auxiliary
+shader location error. Three selected runtime commits are now backported over the
+existing pinned GPU base: auxiliary tessellation location deduplication, shader-cache
+invalidation for that correction, and retained Metal shader/graphics resources for
+deferred draws. The CPU/runtime/reference pins are unchanged. The builder accepts
+only the exact reviewed patch set and records its provenance in the private build
+report. See [upstream review](UPSTREAM_REVIEW.md).
+
+The ARM64 library rebuild and actual SPIR-V emitter regression pass. Fifteen synthetic
+modules cover duplicate/sparse/default/flat/full/empty interfaces across three shader
+kinds; the original emitter reproduces the duplicate-location failure. This verifies
+generated interface locations, not driver compilation or correct game pixels. The
+lifetime backport still needs real renderer exercise. SRT Phi errors, buffer clamps
+and compressed-texture usage remain unresolved. Rebuild the GPU library before the
+next combined Terminal run; the host queue change alone needed no GPU rebuild.

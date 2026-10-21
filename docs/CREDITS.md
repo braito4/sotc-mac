@@ -36,8 +36,10 @@ This project is built on the work of:
 
 The project code is licensed under **GNU GPL version 2 or later**; see [LICENSE](../LICENSE).
 Upstream submodules retain their own license files and attribution. The memory, CPU context
-and vector adapters include pinned upstream implementation files unchanged rather than copying
-them into a competing runtime. Fiber adapter comments identify its upstream reference.
+and vector adapters reuse pinned upstream implementations rather than copying them into a
+competing runtime. The memory adapter now includes a digest-checked private copy with growable
+GPU notification storage; its allocator and hook dispatch stay upstream. The source checkout
+remains unchanged. Fiber adapter comments identify its upstream reference.
 
 No game code, assets, generated game functions, saves or executable images are distributed.
 
@@ -45,3 +47,8 @@ The isolated GPU builder uses bloodborne-runtime's pinned renderer and macOS dep
 recipes (including the bbport and shadPS4 foundations), with a checked build-only subset for
 ARM64 renderer dependencies. It excludes the app-bundle runtimes and does not alter or claim
 authoring of the upstream renderer, shader recompiler, FSR-Vulkan or Dear ImGui sources.
+
+The isolated renderer now includes three reviewed upstream backports for auxiliary
+tessellation locations, cache invalidation and Metal resource lifetime. Their exact
+commits, adaptations and regression evidence are recorded in the
+[upstream review](UPSTREAM_REVIEW.md); patch files preserve upstream license notices.

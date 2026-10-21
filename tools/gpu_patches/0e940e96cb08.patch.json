@@ -1,0 +1,17 @@
+{
+  "lines": [
+    "diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp b/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+    "index 32d3741..e50a155 100644",
+    "--- a/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+    "+++ b/gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp",
+    "@@ -17,7 +17,7 @@",
+    " ",
+    " namespace Serialization {",
+    " /* You should increment versions below once corresponding serialization scheme is changed. */",
+    "-static constexpr u32 ShaderBinaryVersion = 18u; // bbport: bounded motion-vector accesses; layer page-table pairs / guarded write-through stores (upstream 9)",
+    "+static constexpr u32 ShaderBinaryVersion = 21u; // SotC backport: distinct auxiliary tessellation locations; invalidate old SPIR-V (upstream 0e940e96cb08)",
+    " static constexpr u32 ShaderMetaVersion = 9u; // fixed quad local output map in InfoPersistent",
+    " static constexpr u32 PipelineKeyVersion = 6u; // fixed quad vertex pipeline key",
+    " } // namespace Serialization"
+  ]
+}

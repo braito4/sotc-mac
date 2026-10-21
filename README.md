@@ -24,6 +24,7 @@
 <p align="center">
   <a href="docs/guide/installation.md"><strong>Getting started</strong></a>
   · <a href="docs/README.md">Documentation</a>
+  · <a href="docs/DEVELOPMENT_HANDOFF.md">Developer handoff</a>
   · <a href="docs/STATUS.md">Development status</a>
   · <a href="CONTRIBUTING.md">Contributing</a>
 </p>

@@ -44,6 +44,7 @@ build_diagnostic() {
     done
     ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o interp_vec.c.o
     python3 "$trial_root/tools/prepare_runtime_support.py" "$runtime_repo/src/runtime_mutex.c" "$trial_root/work/runtime_mutex_diagnostic.c"
+    python3 "$trial_root/tools/prepare_memory_support.py" "$runtime_repo/src/runtime_memory.c" "$trial_root/work/runtime_memory_diagnostic.c"
     trial_support=("$trial_root/runtime/src/bootstrap_contracts.c" "$trial_root/runtime/src/bootstrap_clocks.c"
         "$trial_root/runtime/src/bootstrap_cpu_context.c" "$trial_root/runtime/src/bootstrap_fibers.c"
         "$trial_root/runtime/src/bootstrap_cpu_vector.c"
@@ -80,6 +81,7 @@ build_cpu_strings() {
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
@@ -105,6 +107,21 @@ contracts() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_memory_query.c" \
         "${trial_support[@]}" "${trial_libraries[@]}" -o "$trial_root/work/test_memory_query"
     BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB=512 "$trial_root/work/test_memory_query"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_memory_hooks.c" \
+        "${trial_support[@]}" "${trial_libraries[@]}" -o "$trial_root/work/test_memory_hooks"
+    for trial_jit in 1 0; do
+        BB_JIT="$trial_jit" SOTC_MEMORY_BACKING=file "$trial_root/work/test_memory_hooks"
+    done
+    for trial_failure in allocation capacity; do
+        trial_log="$trial_root/work/memory-hook-$trial_failure.log"
+        if "$trial_root/work/test_memory_hooks" "--$trial_failure-failure" > "$trial_log" 2>&1; then
+            fail "Expected explicit GPU notification $trial_failure failure"
+        else
+            trial_status=$?
+            [[ "$trial_status" == 21 ]] || fail "Unexpected GPU notification failure: $trial_status"
+        fi
+        cat "$trial_log"
+    done
     clang "${trial_flags[@]}" "$trial_root/tests/test_bootstrap.c" \
         "$trial_root/tests/test_clocks.c" "$trial_root/tests/test_files.c" "$trial_root/tests/test_rwlocks.c" \
         "$trial_root/tests/test_event_flags.c" "$trial_root/tests/test_equeues.c" \
