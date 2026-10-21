@@ -38,6 +38,7 @@ static int32_t display_close(int32_t handle) {
 static int32_t (*graphics_flip_status)(int32_t, void *);
 static int32_t (*graphics_adjust_color)(int32_t, const void *);
 static int32_t (*graphics_capability)(int32_t, void *);
+static int32_t (*graphics_labels)(int32_t,uintptr_t *);
 static int32_t validate_display(int32_t handle) {
     /* Pinned FlipStatus is 64 bytes. Lookup precedes accessing the caller's
      * settings/output, matching the supplied retail empty-handle behavior. */
@@ -140,6 +141,39 @@ static int32_t retail_compute_wait(uint32_t *commands,uint32_t size,uintptr_t ad
     /* The first NOP's two padding dwords are not initialized by retail. */
     memcpy(commands,packet,8);memcpy((unsigned char *)commands+16,packet+4,36);return 0;
 }
+/* Read a real provider-owned label address; never fabricate a flip/fence. */
+static int32_t retail_wait_flip(uint32_t *commands,uint32_t size,int32_t handle,uint32_t index) {
+    if(size!=7 || !commands || index>=16) return -1;
+    pthread_mutex_lock(&display_lock);
+    int32_t result=(int32_t)UINT32_C(0x8029000b);uintptr_t labels=0;
+    if(handle==live_display && live_display>=0) result=graphics_labels(handle,&labels);
+    if(result==16) {
+        uint64_t address=labels+(uint64_t)index*8;
+        const uint32_t packet[]={UINT32_C(0xc0053c00),0x13,
+            (uint32_t)address & UINT32_C(0xfffffffc),
+            (uint32_t)(address>>32)&UINT32_C(0xffff),0,UINT32_MAX,10};
+        memcpy(commands,packet,sizeof(packet));result=0;
+    } else if(result>=0) result=-1;
+    pthread_mutex_unlock(&display_lock);return result;
+}
+static int32_t retail_color_marker(uint32_t *commands,uint32_t size,const char *label,
+                                     uint32_t color,uint32_t tag) {
+    if(!commands || !label) return -1;
+    size_t len=strlen(label);if(len>UINT32_MAX-16) return -1;
+    uint32_t payload=(uint32_t)(((len+12)>>2)+((len+16)>>3)*2);
+    if(size!=payload+2) return -1;
+    const uint32_t header[]={UINT32_C(0xc0001000)|(payload<<16),tag};
+    memcpy(commands,header,8);
+    unsigned char *data=(unsigned char *)commands+8;
+    memcpy(data,label,len+1);memcpy(data+len+1,&color,4);
+    memset(data+len+5,0,payload*4-len-5);return 0;
+}
+static int32_t retail_push_color(uint32_t *c,uint32_t s,const char *label,uint32_t color) {
+    return retail_color_marker(c,s,label,color,UINT32_C(0x6875000e));
+}
+static int32_t retail_set_color(uint32_t *c,uint32_t s,const char *label,uint32_t color) {
+    return retail_color_marker(c,s,label,color,UINT32_C(0x6875000f));
+}
 typedef int32_t (*Submit)(uint32_t,uint32_t,const uint32_t *const *,const uint32_t *,
                            const uint32_t *const *,const uint32_t *);
 typedef int32_t (*SubmitFlip)(uint32_t,uint32_t,const uint32_t *const *,const uint32_t *,
@@ -208,7 +242,7 @@ static const char *const graphics_imports[] = {
     /* Real compute mapping, command encoding, submission and completion.
      * Retail resource registration retains its existing checked failure path. */
     /* Pure PM4 debug-scope packet writers, not successful submissions/draws. */
-    "W1Etj-jlW7Y#A#B", "7qZVNgEu+SY#A#B",
+    "W1Etj-jlW7Y#A#B", "7qZVNgEu+SY#A#B", "jiItzS6+22g#A#B",
     /* Base-PS4 compute initialization: real register/barrier/NOP packets. */
     "nF6bFRUBRAU#A#B",
     /* Query the same provider lock used by submission/completion. */
@@ -229,7 +263,7 @@ static const char *const graphics_imports[] = {
     "KXltnCwEJHQ#A#B", "bQVd5YzCal0#A#B", "gAhCn6UiU4Y#A#B",
 };
 static int adapted_operation(const char *name) {
-    return !strcmp(name, "jRcI8VcgTz4#A#B") || !strcmp(name, "Ga6r7H6Y0RI#A#B") || !strcmp(name, "zwY0YV91TTI#A#B") || !strcmp(name, "xbxNatawohc#A#B") || !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
+    return !strcmp(name, "1qXLHIpROPE#A#B") || !strcmp(name, "aPIZJTXC+cU#A#B") || !strcmp(name, "aj3L-iaFmyk#A#B") || !strcmp(name, "jRcI8VcgTz4#A#B") || !strcmp(name, "Ga6r7H6Y0RI#A#B") || !strcmp(name, "zwY0YV91TTI#A#B") || !strcmp(name, "xbxNatawohc#A#B") || !strcmp(name, "ffrNQOshows#A#B") || !strcmp(name, "KXltnCwEJHQ#A#B") || !strcmp(name, "Kx-h-nWQJ8A#A#B") || !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
 }
 int bootstrap_graphics_owns(const char *name) {
     if (!graphics_resolver) return 0;
@@ -249,8 +283,10 @@ int bootstrap_graphics_bind(Resolver resolver) {
     const uintptr_t open = resolver("Up36PTk687E#G#H");
     const uintptr_t close = resolver("uquVH4-Du78#G#H");
     const uintptr_t status = resolver("SbU3dwp80lQ#G#H");
+    const uintptr_t labels=resolver("OcQybQejHEY#G#H");
     const uintptr_t submit=resolver("jRcI8VcgTz4#A#B"),submit_flip=resolver("Ga6r7H6Y0RI#A#B");
-    if (!adjust || !capability || !open || !close || !status || !submit || !submit_flip) return -1;
+    if (!adjust || !capability || !open || !close || !status || !labels || !submit || !submit_flip) return -1;
+    graphics_labels=(void *)labels;
     graphics_submit = (Submit)submit;
     graphics_submit_flip = (SubmitFlip)submit_flip;
     graphics_open = (void *)open;
@@ -263,6 +299,9 @@ int bootstrap_graphics_bind(Resolver resolver) {
 }
 uintptr_t bootstrap_graphics_resolve(const char *name) {
     if (!graphics_resolver) return 0;
+    if (!strcmp(name, "1qXLHIpROPE#A#B")) return (uintptr_t)retail_wait_flip;
+    if (!strcmp(name, "aPIZJTXC+cU#A#B")) return (uintptr_t)retail_push_color;
+    if (!strcmp(name, "aj3L-iaFmyk#A#B")) return (uintptr_t)retail_set_color;
     if (!strcmp(name, "jRcI8VcgTz4#A#B")) return (uintptr_t)retail_submit;
     if (!strcmp(name, "Ga6r7H6Y0RI#A#B")) return (uintptr_t)retail_submit_flip;
     if (!strcmp(name, "zwY0YV91TTI#A#B")) return (uintptr_t)retail_submit_plain;

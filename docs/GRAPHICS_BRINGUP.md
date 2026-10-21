@@ -821,3 +821,45 @@ Terminal now passes PS350 preparation and reaches the workload graphics submissi
 call after entering the main loop. It also reaches the provider's shader compiler
 warning path; this does not verify a rendered frame. The float32 denormal-flush warning
 is not the import stop. No upstream change or GPU library rebuild is required.
+
+## Flip-label wait and debug-marker batch
+
+Four more scoped imports are connected: sceGnmInsertWaitFlipDone,
+sceGnmInsertSetMarker, sceGnmInsertPushColorMarker and sceGnmInsertSetColorMarker.
+The observed stop is InsertWaitFlipDone; the marker work is prospective.
+
+The wait adapter queries the actual native VideoOut buffer-label address for the
+tracked live display and writes the original seven-dword WAIT_REG_MEM packet for
+the selected label. It preserves 32-bit handle/index/size narrowing, eight-byte label
+stride, four-byte alignment and the original 48-bit hardware address. No label value
+is changed and no completed flip is invented. Unsupported sizes return failure before
+querying VideoOut. Null output, out-of-range indices and unavailable/closed displays
+are guarded explicitly. Native label-query errors preserve the destination and are
+returned instead of reaching the pinned encoder's assertion. These malformed-input
+and query-error guards are deliberate diagnostic behavior: the original does not
+validate the query result or null output. Successful packets match the original.
+
+The plain SetMarker route uses the checked native encoder. Both colored variants
+use local original-compatible packet writers: color immediately follows the string's
+NUL, followed by zero padding. The pinned native push-color implementation instead
+places it eight bytes later; the pinned set-color export returns success without
+writing any packet. Neither implementation is forwarded for colored imports.
+Private tests confirm both differences in the actual loaded native library.
+
+A synthetic guest fixture checks wait packets for all 16 buffer indices across
+four address profiles (including high bits and wrap), query identity, opening/closing,
+error/size/index precedence, unchanged failure outputs, scope/capability gating and
+missing-provider activation. The three marker encoders cover 256 synthetic string
+lengths and four color patterns, exact headers/tags/NUL/color/padding, unaligned
+buffers, 32-bit argument widths, invalid arguments, guards and errno. All run in both
+CPU modes as part of the full contracts command.
+
+Private original-module comparisons use a controlled VideoOut label query and match
+the valid wait and all marker expectations in JIT and interpreter. The actual native
+SetMarker matches; native wait size rejection is checked without renderer startup.
+The checked local color adapters also match the originals. These checks do not prove
+a completed wait, host presentation or frame rendering.
+
+Terminal passes graphics workload submission and now reaches the flip-wait packet
+builder. Continuation after this batch and game video still require Terminal testing.
+No upstream source change or GPU library rebuild is required.
