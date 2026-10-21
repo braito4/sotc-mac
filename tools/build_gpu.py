@@ -55,7 +55,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'before', 'backports', 'previous', 'validity', 'after'}
+    states = {'before', 'backports', 'previous', 'validity', 'compatibility', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -67,7 +67,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -78,6 +78,7 @@ def apply_backports(source):
     # trailing whitespace to the public source files.
     manifest = backport_manifest()
     applied = {'previous': manifest['previous_patches'],
+               'compatibility': manifest['compatibility_patches'],
                'validity': manifest['validity_patches'],
                'backports': manifest['backport_patches']}.get(state, ())
     names = [name for name in manifest['patches'] if name not in applied]
@@ -259,7 +260,7 @@ def verify_source(source):
             state = backport_state(source)
             expected = {name for name, digests in backport_manifest()['files'].items()
                         if digests[state] != digests['before']}
-            if state not in ('backports', 'previous', 'validity', 'after') or changed != expected:
+            if state not in ('backports', 'previous', 'validity', 'compatibility', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error

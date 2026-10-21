@@ -1,8 +1,8 @@
 """Check actual built SRT/shader-info passes with synthetic IR and no renderer.
 
-The installed library's existing walker still reports unsupported CPU-side Phi
-and lane offsets. This diagnostic verifies that those reads remain dynamic and
-select GPU page-table/fault-buffer resources when direct memory access is enabled.
+The installed library resolves only branch-independent Phi offsets. This checks
+actual flattened values and keeps divergent/lane/cyclic/excessive offsets dynamic,
+selecting GPU page-table/fault-buffer resources only when direct access is enabled.
 It does not validate GPU execution or game pixels.
 """
 from pathlib import Path
@@ -50,7 +50,7 @@ def main():
                         '-L'+str(prefix/'lib'), '-lfmt', '-Wl,-rpath,'+str(build),
                         '-Wl,-export_dynamic', '-o', str(output)], check=True)
         for dma in ('0', '1'):
-            subprocess.run([str(output)], check=True, env=dict(os.environ,
+            subprocess.run([str(output)], check=True, timeout=20, env=dict(os.environ,
                            BB_GPU_USER_DIR=str(state), BB_DIRECT_MEMORY_ACCESS=dma, BB_SRT_INTERP='1'))
 
 

@@ -2,16 +2,17 @@
 
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
-**Newest boundary:** the no-deadline preset-4 run exits after about 160.93 seconds
-at POSIX `sched_yield`, with confirmed child/supervisor exit 20 and no GPU-watchdog
-stop. Scoped native bindings for that import now pass full JIT/interpreter
-contracts. A checked renderer overlay fixes mixed-width wave64 scratch and admits
-the exact vertex-zero Flat input rewrite before both new and cached MoltenVK
-module creation. Nine original synthetic compute modules reproduce the missing
-shared-memory declaration; nine corrected modules convert, and first/other-vertex
-policy checks pass without a GPU. The ARM64 library is rebuilt incrementally;
-game continuation and visible rendering improvements remain untested. General
-PerVertexKHR and SRT/Phi failures remain. See the first
+**Newest boundary:** the no-deadline preset-4 run passes `sched_yield` and the
+missing shared-U32 errors, then exits 23 after about 156.90 seconds at missing
+shader metadata, without a GPU-watchdog stop. Bounded backing-memory lookup,
+speculative retry and private failure evidence are implemented. Equal incoming Phi
+offset programs now flatten exactly, with cycle/depth/expansion bounds; divergent
+or lane-dependent values remain dynamic. Cache version 23 invalidates stale output.
+All CPU checks and full JIT/interpreter contracts pass; native game validation of
+these latest changes is pending. Standalone CPU replay converts 1,134/1,609 cached
+modules; all 475 failures are unsupported PerVertexKHR fragment inputs. Conversion
+does not validate the driver or images. The owner restored the 640x360 scene setting;
+no 320-wide scene change was applied. See the current
 [handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 **Continuation checkpoint:** the owner now sees the 3D animation with rendering

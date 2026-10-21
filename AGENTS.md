@@ -16,17 +16,20 @@ Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
   runtime changes and native CPU checks when changing the CPU context bridge.
-- The newest no-deadline native run exits after about 160.93 seconds at sched_yield,
-  with child/supervisor exit 20 and no GPU-watchdog stop. Scoped native POSIX yield
-  bindings now pass full JIT/interpreter contracts. The checked shader overlay keeps
-  wave64 scratch in one U32 view and applies only the exact vertex-zero Flat rewrite
-  where provoking vertex is fixed to the first vertex,
-  before new/cached MoltenVK module creation. Nine original compute fixtures reproduce
-  the missing declaration; nine corrected fixtures convert. Other vertex selections
-  remain explicitly unsupported. The ARM64 library is rebuilt incrementally; a fresh
-  full build needs restoration of the missing external glslang executable. No game
-  run validates these corrections yet. Read the first handoff checkpoint before the
-  historical run/duration summaries below.
+- The newest owner-run no-deadline preset-4 capture passes sched_yield and the
+  missing shared-U32 errors, then exits 23 after about 156.90 seconds at missing
+  shader metadata, with no GPU-watchdog stop. Its failing role/thread is unknown.
+  The latest checked overlay uses bounded backing-memory metadata reads, retries
+  unavailable speculative work on the GPU thread, and preserves required failures
+  with private evidence. Equal incoming Phi offset programs now flatten exactly;
+  divergent/lane/cyclic/excessive expressions remain dynamic. Cache version 23
+  invalidates pre-fix modules/meta. All CPU checks and full contracts pass; no new
+  game run validates these changes. Standalone CPU replay converts 1134/1609 captured
+  modules; all 475 failures are PerVertexKHR. This is not driver/pixel validation.
+  The owner explicitly restored the 640x360 scene configuration; no 320-wide scene
+  change was applied. Keep DMA/async off. Tool Metal enumeration remains zero.
+  Fresh full builds still need the missing external glslang. Read the newest
+  handoff checkpoint before all historical summaries below.
 - Read the handoff's Continuation checkpoint first: it supersedes the older run summaries below. The owner now sees the 3D animation with defects. The latest preset-4 run reaches its 120-second wall deadline without a GPU-watchdog/import/CPU-fault report, detects a DualSense, and continues recording activity after connection. Cooperative child exit is unconfirmed (supervisor exit 1); a later targeted lookup finds the process absent. The authorized removal of the automatic game-duration limit is implemented: zero disables both game-duration timers, and the combined launcher defaults to zero and passes it to both layers. Keep GPU-progress cancellation, DMA protection, cooperative stopping and the independent prerequisite budgets. Headless probes still default to 30 seconds; explicit 1..1800-second game runs remain available. No real GPU experiment validates this change yet.
 - The owner has visually confirmed game logos/menu, opening introduction audio and now defective 3D animation. Correct scene rendering and audiovisual synchronization remain unverified. Gameplay stability, a playable app and save support remain unverified. Keep claims tied to measured tests.
 - The newest owner-run capture omits the low-resolution preset and uses a 30-second budget. It stops on the GPU watchdog after about 19.49 seconds, with unknown child status and supervisor exit 1 despite a cancellation notice; a later targeted lookup finds the PID absent. Its awaited batch retains 96 of 164 metadata notes, including eight guest compute dispatch candidates, transfers and one three-vertex draw. The last compute candidate also has 31 buffer-size clamp warnings. Its queue call returned success and its Metal chunk returned from commit, without scheduled/completed callbacks observed; the preceding chunk completed. These are CPU candidates, not the precise executing GPU command. The CSV is empty. No reduced-scene transition or physical-controller connection is logged. Preserve this changed configuration separately from the preceding complete low-resolution capture.

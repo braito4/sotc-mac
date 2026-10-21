@@ -8,6 +8,91 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Current shader-metadata boundary and CPU-only continuation
+
+The newest owner-run preset-4 capture reaches the main loop at about 1.47 seconds,
+detects a DualSense, and stops after about 156.90 seconds with confirmed child and
+supervisor exit 23: `SearchBinaryInfo` cannot find shader metadata. No duration
+deadline, unresolved-import stop, missing shared-U32 declaration or GPU-watchdog
+stop appears. This validates continuation beyond `sched_yield`, not stable gameplay
+or correct rendering. The failing shader's role/address/backtrace is absent from
+the old assertion; do not infer that it ran on a preparation worker.
+
+The log still has 474 PerVertexKHR messages, 561 graphics-pipeline failures, 805
+SRT-walk failures and 797 unsupported-Phi messages. Counts describe messages,
+not unique modules or frames. Compressed-format storage-image failures and many
+buffer-size clamps remain. The owner's visual report remains defective 3D animation.
+
+Implemented after that capture, without GPU execution:
+
+- `runtime/src/gpu_shader_metadata.h` reads actual `BinaryInfo` through bounded
+  copies. It promotes prologue arithmetic before addition/multiplication, preserves
+  the original 64 KiB candidate scan, supports unaligned trailers, validates full
+  code ranges and never invents a length/hash. `gpu_shader_lookup.h` uses the pinned
+  runtime's checked backing-memory hooks, so metadata reads do not themselves fault
+  through GPU page tracking. The rest of shader compilation still uses the real code.
+- Missing speculative graphics, geometry-copy or prepared-pipeline metadata marks
+  preparation unavailable and retries on the owning GPU thread. A required missing
+  program still stops with exit 23. It now prints role, thread, header, mapped length,
+  hint and a native backtrace, and writes at most 64 KiB plus context under the private
+  capture's `shader-metadata-failure/`. Existing evidence is preserved. This is
+  diagnosis/retry behavior, not proof that the recorded required shader is valid.
+- The portable SRT walker accepts a Phi only when every incoming edge emits exactly
+  the same supported offset program. Constants, uniform user data, matching
+  arithmetic and nested equal values retain their actual offsets. Divergent edges,
+  lane reads, cycles, excessive depth and exponential expansion stay dynamic.
+  Gameplay DMA remains disabled; synthetic DMA=1 checks initialize no GPU.
+- Shader binary version 23 invalidates stale SPIR-V and corresponding metadata.
+  Digest-checked migration includes the previous compatibility overlay (version 22).
+- `tools/replay_shader_cache.py` compiles a standalone CPU converter using the actual
+  exact-only compatibility policy and installed SPIRV-Cross. Each private module has
+  an isolated ten-second conversion budget and input-size/header/instruction checks.
+  It writes only a private JSON report, not converted game shaders. It does not link
+  the renderer or Metal/Vulkan frameworks. Synthetic tests check exact-only policy,
+  malformed files and dependency absence.
+
+CPU replay of all 1,609 modules in the latest capture converts 1,134, including six
+exact vertex-zero rewrites. The other 475 are fragment modules, all rejected with
+`PerVertexKHR decoration is not supported in MSL.` The converted set has 591 vertex,
+351 compute and 192 fragment modules. This standalone MSL 3.1 conversion omits
+pipeline resource bindings, specialization and tessellation variants; it does not
+prove MoltenVK pipeline creation, Metal compilation or pixels. Do not enable
+approximate derivative reconstruction to hide the remaining per-vertex limitation.
+
+The incremental ARM64 library rebuild, twelve actual SRT/shader-info IR cases in
+both synthetic DMA modes, two metadata/lookup tests, wave64/exact-input regression,
+15 auxiliary interface modules, pipeline-validity guards, 22 builder tests and all
+46 host imports pass. Full native JIT/interpreter contracts also pass. The fresh
+build's missing external glslang prerequisite is still unresolved; incremental
+builds reuse existing generated assets. No new native game run validates these
+latest changes. The tool's supervised prerequisite check still enumerates zero
+Metal devices and exits 24 before a draw; do not bypass that restriction.
+
+The owner first allowed a 320-pixel comparison, then explicitly restored the
+**640x360 scene configuration**. No 320-wide scene change was applied. Preset 4,
+DMA off and async submission off remain the native configuration; the existing
+320x180 half-resolution targets are intermediate buffers, not a 320-wide scene.
+Output/UI remain 1920x1080. Actual reduction eligibility still depends on each draw.
+CPU-only conversion needs no pixel-resolution change.
+
+For further autonomous analysis, use an existing private capture:
+
+```sh
+python3 tools/replay_shader_cache.py work/your-capture/cache/your-profile \
+  --first-vertex-provoking --output work/shader-replay.json
+python3 tools/check_shader_memory.py
+python3 tools/check_shader_compat.py
+```
+
+Use `--first-vertex-provoking` only when the target device fixes the provoking
+vertex to first (the reviewed native device lacks `VK_EXT_provoking_vertex`).
+Reports and any failure snapshots remain private. Priorities: inspect a real
+metadata failure snapshot if required lookup still fails; resolve general per-vertex
+inputs exactly; then investigate compressed storage images, unresolved dynamic SRT
+reads, clamps and the visible scene. A new GPU run is needed to measure pixels.
+
+### Earlier yield and wave64 correction
+
 **Newest native boundary and implemented corrections:** the owner-run preset-4
 capture now confirms no duration deadline in both supervision layers. It detects a
 DualSense, starts the main loop at about 1.37 seconds, and exits after about 160.93

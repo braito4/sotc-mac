@@ -36,12 +36,19 @@ std::vector<uint32_t> fragment_case(unsigned vertices) {
     m.OpReturn();m.OpFunctionEnd();return m.Assemble();
 }
 #else
+#include <filesystem>
+#include <fstream>
 #include <spirv_cross/spirv_msl.hpp>
 #include "gpu_msl_compat.h"
 std::vector<uint32_t> fragment_case(unsigned vertices);
-int main() {
+int main(int argc, char** argv) {
     for(unsigned vertices : {0u,1u,2u,4u,3u}) {
         const auto original=fragment_case(vertices);
+        if(argc==2) {
+            std::ofstream file(std::filesystem::path(argv[1])/(std::to_string(vertices)+".spv"),std::ios::binary);
+            file.write(reinterpret_cast<const char*>(original.data()),original.size()*sizeof(uint32_t));
+            assert(file);
+        }
         assert(Sotc::MslCompatibleSpirv(original,false)==original);
         const auto adapted=Sotc::MslCompatibleSpirv(original,true);
         const bool exact=vertices==1;

@@ -78,6 +78,19 @@ class GpuBuildTests(unittest.TestCase):
             gpu.apply_backports(source)
             self.assertEqual(gpu.backport_state(source), 'after')
 
+    def test_shader_compatibility_state_migrates_to_lookup_and_srt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            manifest = gpu.backport_manifest()
+            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
+                              for name in manifest['compatibility_patches'])
+            subprocess.run(['git', '-C', str(source), 'apply'], input=patches,
+                           text=True, capture_output=True, check=True)
+            self.assertEqual(gpu.backport_state(source), 'compatibility')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source), 'after')
+
     def test_checked_recipe_is_portable_and_excludes_app_runtimes(self):
         original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
         recipe = gpu.prepare_recipe(original)
