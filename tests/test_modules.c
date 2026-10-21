@@ -476,6 +476,32 @@ static void test_unavailable_share(void) {
                 }
     puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
 }
+static void check_absent_save_dialog(const uintptr_t entries[2]) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    uint64_t data[4],before[4];memset(data,0xa5,sizeof(data));memcpy(before,data,sizeof(data));
+    const uint64_t args[]={1,UINT64_MAX,(uintptr_t)protected,(uintptr_t)data,3,5};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<4;++round) for(unsigned op=0;op<2;++op) {
+        assert((uint32_t)bbcpu_call(entries[op],0,NULL)==0);
+        assert((uint32_t)bbcpu_call(entries[op],6,args)==0);
+        assert(!memcmp(data,before,sizeof(data)) && *runtime_errno()==17);
+    }
+    assert(!munmap(protected,page));
+}
+static void test_absent_save_dialog(void) {
+    const char *names[]={"ERKzksauAJA#v#f","KK3Bdg1RWK0#v#f"};uintptr_t entries[2];
+    for(unsigned i=0;i<2;++i) {
+        bootstrap_initialize(0);assert(!bootstrap_resolve(names[i],0));bootstrap_initialize(1);
+        const uintptr_t fn=bootstrap_resolve(names[i],0);assert(fn && !bootstrap_resolve(names[i],1));
+        char wrong[64];snprintf(wrong,sizeof(wrong),"%.11s#g#g",names[i]);assert(!bootstrap_resolve(wrong,0));
+        snprintf(wrong,sizeof(wrong),"%.11s#0#F",names[i]);assert(!bootstrap_resolve(wrong,0));
+        entries[i]=guest_bridge(fn);
+    }
+    check_absent_save_dialog(entries);
+    assert(!bootstrap_resolve("s9e3+YpRnzw#v#f",0) && !bootstrap_resolve("yEiJ-qqr6Cg#v#f",0));
+    puts("PASS: absent save-dialog GetStatus/UpdateStatus no-argument guest ABI, repeated NONE, ignored stale/protected pointers, scopes/capability and unchanged buffers/errno; no initialized or completed dialog");
+}
 static void check_unavailable_appcontent(const uintptr_t entries[2]) {
     const size_t page=(size_t)sysconf(_SC_PAGESIZE);
     void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
@@ -849,6 +875,7 @@ int main(void) {
     test_unavailable_savedata_search();
     test_unavailable_trophy();
     test_unavailable_appcontent();
+    test_absent_save_dialog();
     test_unavailable_np_title();
     test_unavailable_np_restriction();
     test_unavailable_dialogs();

@@ -46,7 +46,7 @@ Updated 2026-10-21. **CPU bootstrap research; not playable.**
 | Original NGS2 module | Graphics command privately links supplied libSceNgs2; its initializer returns zero in both modes; provider activation requires executable native bindings and initializer success; real combined run passes its load and creates sndx_loader_thread; sound output unverified |
 | Original gesture module | Graphics command privately links supplied libSceSystemGesture; module startup and isolated initialize/open/close/finalize pass in JIT/interpreter; real combined run passes initialization and opens the keyboard pad; touch recognition and game frames remain unverified |
 | Keyboard input profile | SDL readiness checked on main thread; seven scoped pad APIs implement keyboard input and explicit light-bar unavailability; lifecycle, input/state/packet layouts and loader readiness tests pass in JIT/interpreter; real combined run confirms initialization, open and four input samples |
-| Optional graphics/game connection | Scoped VideoOut/GNM routing, one event-queue provider, main-thread window and guest worker; original synthetic linked fixture passes in JIT/interpreter, including fault recovery; real combined run passes color/capability operations and starts RenderFlip/Game Render, passing original gesture initialization and keyboard pad open; save/trophy tasks, thread keys and UUID generation pass; original NGS2 load and three AudioOut stream opens now pass; sound-output worker submits PCM to SDL without errors and starts the stream scheduler; main passes the absent launch-control and NP title responses, finishes initialization and starts the main loop and Shadow Game Update after the unavailable NetCtl response; numeric thread identity passes; main passes PadSetLightBar and SystemServiceGetStatus, processes the local login event and reaches SaveDataInitialize3 |
+| Optional graphics/game connection | Native renderer initialization in Terminal; resource loading reaches the main loop and Shadow Game Update. Keyboard samples and sustained SDL PCM are recorded. Explicit unavailable responses for saves, trophy context and AppContent are passed. Current boundary: SaveDataDialogGetStatus; no game frame verified |
 | VideoOut availability | Four-argument open ABI, supported main-output profile, explicit NO_DEVICE; no window, port or handle |
 | Display safe area | Fixed logical ratio 1.0, exact four-byte output, reserved bytes preserved, null-pointer error; no host display |
 | Local users | Ephemeral single-user registry; guest initialization/termination, priority and lifecycle errors, guarded ID/list/name outputs and concurrent one-shot login events tested in both modes |
@@ -399,7 +399,7 @@ threads, passes original gesture initialization and opens the keyboard-backed co
 then starts save/trophy tasks, creates/uses a thread key and passes UUID generation. The
 latest run loads NGS2, opens three real audio streams, passes two device-state queries and
 the thread-self alias, then starts the stream scheduler and submits PCM to SDL before stopping
-at sceAppContentInitialize on main after numeric thread identity passes, world loading begins and the main loop starts
+at sceSaveDataDialogGetStatus on main after numeric thread identity passes, world loading begins and the main loop starts
 and Shadow Game Update is created.
 Title and adjacent content-restriction uninitialized paths pass guest/original/loader checks;
 the optional restriction branch was not taken in Terminal. Four keyboard samples are recorded; audible sound
@@ -446,7 +446,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and reaches sceAppContentInitialize. No game frame has
+Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
 been verified.
 
 ## Network-control availability
@@ -473,7 +473,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-denial and system-status query; main passes SaveDataInitialize3; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and reaches sceAppContentInitialize.
+Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
 
 ## Keyboard-controller light-bar availability
 
@@ -491,7 +491,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and reaches sceAppContentInitialize.
+Terminal passes the unavailable save, trophy-context and AppContent responses and reaches SaveDataDialogGetStatus.
 
 ## Standalone system status
 
@@ -511,7 +511,7 @@ and confirms the same complete output. The graphics-loader fixture verifies ever
 byte after initializing the destination to a nonzero pattern. Actual game continuation
 after this query is confirmed in Terminal, including processing the local login event.
 The SaveData initialization failure now returns in Terminal; the next unresolved import is
-sceAppContentInitialize on main after the savedata search and trophy-context failures.
+sceSaveDataDialogGetStatus on main after the savedata, trophy-context and AppContent failures.
 
 ## Savedata availability
 
@@ -528,7 +528,7 @@ Initialize3 wrapper comparison injects backend INTERNAL and checks propagation t
 the original error conversion without reading the optional parameter. The synthetic
 graphics loader also continues after the response in both modes. Terminal confirms actual
 continuation after this initialization failure; Save Task Thread now reaches
-AppContentInitialize after the directory search and trophy context return NOT_INITIALIZED. No game frame is verified.
+SaveDataDialogGetStatus after the savedata, trophy-context and AppContent failures. No game frame is verified.
 
 ## Uninitialized savedata directory search
 
@@ -564,7 +564,8 @@ and confirms the same behavior. The synthetic graphics loader checks context cre
 uninitialized result and continues in both modes. Actual game continuation after the
 context-creation response is confirmed in Terminal. Only context creation was called there;
 the other five paths remain synthetic/original checks. The next boundary is
-sceAppContentInitialize; game video is unverified.
+AppContent initialization, which now also returns in Terminal. The current boundary is
+sceSaveDataDialogGetStatus; game video is unverified.
 
 ## AppContent module availability
 
@@ -581,5 +582,20 @@ buffers, repeated calls, untouched outputs/counts/errno, scope/capability and un
 module availability in both CPU modes. A private comparison executes both supplied
 original exports with absent module references and no dependency-helper replacement,
 confirming the same paths. The graphics-loader fixture continues after the initialization
-error in both modes. Actual game continuation still requires Terminal verification;
-no game frame is verified.
+error in both modes. Terminal confirms actual continuation after initialization; the add-on
+list was not called. The next boundary is SaveDataDialogGetStatus; no game frame is verified.
+
+## Absent save-dialog status
+
+The exact-scoped no-argument sceSaveDataDialogGetStatus and UpdateStatus queries return
+NONE because no save-dialog instance has been initialized or opened. This is a status
+enumeration value, not a successful result, completed interaction, dismissed error message
+or saved game. No dialog state, UI, file access or fabricated user input is created. Other
+save-dialog operations remain unresolved until their contracts are implemented.
+
+Guest tests cover repeated NONE queries, stale registers including protected pointers,
+unchanged buffers/errno and scope/capability in both CPU modes. A private comparison runs
+the supplied original status exports with an absent instance and native serialized lock
+dependencies; their status logic is unchanged and gives the same result. The synthetic
+graphics loader also continues after both queries in both modes. Actual game continuation
+after the new status query requires Terminal verification; game video remains unverified.
