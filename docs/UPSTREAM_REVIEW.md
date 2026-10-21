@@ -69,3 +69,12 @@ updated host notification queue. It should first establish whether the queue sto
 and duplicate-location pipeline error disappear, then record the first remaining
 failure and any actual visible output. Preserve existing isolated cache/configuration
 behavior and read-only game input.
+
+## Follow-up Terminal observation
+
+The next combined run no longer reports the queue overflow or duplicate auxiliary
+location error, and reaches an unsupported EXTRQ CPU instruction. A new PerVertexKHR
+MSL interface error skips some pipelines. The CPU instruction family is handled by a
+separate local extension; it is not part of these renderer backports. SRT, compressed
+texture usage and visible-frame verification remain open. See the current
+[handoff](DEVELOPMENT_HANDOFF.md) for the next reproduction step.

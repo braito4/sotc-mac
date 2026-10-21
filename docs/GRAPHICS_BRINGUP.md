@@ -996,3 +996,30 @@ generated interface locations, not driver compilation or correct game pixels. Th
 lifetime backport still needs real renderer exercise. SRT Phi errors, buffer clamps
 and compressed-texture usage remain unresolved. Rebuild the GPU library before the
 next combined Terminal run; the host queue change alone needed no GPU rebuild.
+
+## SSE4a instruction batch after renderer continuation
+
+The next native Terminal run no longer reports the notification queue overflow or
+duplicate auxiliary shader location error. It enters the main loop at 1.3763 seconds
+and records a sample of 1,017 draws/3,145 dispatches per second. These counters do not
+verify game pixels or FPS. Execution stops on the CPU instruction EXTRQ. The renderer
+also reports unsupported PerVertexKHR decoration in MSL, persistent SRT Phi failures,
+buffer clamps and compressed image usage errors; affected pipelines are skipped.
+
+The vector extension now implements both EXTRQ and INSERTQ in register and immediate
+forms, following AMD APM volume 4 revision 3.27. The pinned decoder/interpreter/JIT
+sources remain unchanged; JIT execution uses its existing synchronized fallback.
+Controls are narrowed to six bits, zero length means 64, and source data/controls are
+captured before any aliased destination write. Flags, MXCSR and upper YMM state remain
+unchanged. AMD leaves the destination's upper quadword undefined; preserving it here
+is a deterministic diagnostic choice, not a hardware guarantee. Architecturally
+undefined ranges stop explicitly rather than relying on undefined host-language shifts.
+
+Native emitter/JIT fault checks and full contracts pass. A bit-by-bit scalar oracle
+checks 266,240 cases per CPU mode across all defined length/index combinations,
+register/immediate forms, ignored control bits, low/high/aliased XMM registers,
+full-width fields, unchanged vectors/MXCSR/flags and translated flag consumers.
+All four forms reject an undefined range explicitly in each mode. Existing SSE4a
+CPUID advertisement is retained. No x86 hardware oracle or Rosetta is used.
+Only the host diagnostic needs rebuilding; the existing GPU library is unchanged.
+A Terminal rerun must establish the next boundary and any actual visible output.

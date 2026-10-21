@@ -10,6 +10,13 @@ uses its existing interpreter fallback for these instructions; that fallback is 
 ARM64. SSE/VEX upper-register behavior and later translated flag consumers are tested.
 All other vector operations delegate to the unchanged pinned implementation.
 
+The extension also handles SSE4a EXTRQ/INSERTQ in register and immediate forms.
+The JIT uses its existing synchronized interpreter fallback. Six-bit field controls,
+zero-as-64 lengths and aliased inputs are checked against an independent bit oracle.
+Flags and upper YMM lanes are preserved. AMD leaves the destination's upper XMM
+quadword undefined; preserving it here is a diagnostic policy. Undefined bit ranges
+stop explicitly. This does not establish complete SSE4a instruction coverage.
+
 The loader reads a private image prepared from the user's executable. In linked mode it also
 initializes the original libc and Fios2 modules from the same input. Unknown imports stop
 execution with an explicit diagnostic instead of receiving blanket success results.

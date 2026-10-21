@@ -19,6 +19,8 @@ This project is built on the work of:
   instruction decoding dependencies, under their upstream MIT licenses.
 - [Intel Software Developer's Manual, Volume 2B](https://cdrdv2-public.intel.com/774487/253667-sdm-vol-2b.pdf):
   section 4.1 and the PCMPISTRM instruction entry define the string-mask extension's semantics.
+- [AMD64 Architecture Programmer's Manual, Volume 4, revision 3.27](https://docs.amd.com/v/u/en-US/26568_3.27_APM_Vol4_PUB):
+  the EXTRQ and INSERTQ entries define the SSE4a field extension and its synthetic oracle.
 - [OpenOrbis PS4 Toolchain](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain):
   [user type definitions](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/include/orbis/_types/user.h)
   and [UserService declarations](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/include/orbis/UserService.h)

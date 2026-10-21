@@ -77,6 +77,20 @@ build_diagnostic() {
 }
 build_cpu_strings() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_strings.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_strings"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_sse4a.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_sse4a"
+}
+test_cpu_sse4a() {
+    BB_JIT="$1" "$trial_root/work/test_cpu_sse4a"
+    for trial_sse4a_form in 0 1 2 3; do
+        trial_sse4a_log="$trial_root/work/sse4a-undefined-jit$1-form$trial_sse4a_form.log"
+        if BB_JIT="$1" "$trial_root/work/test_cpu_sse4a" --undefined "$trial_sse4a_form" > "$trial_sse4a_log" 2>&1; then
+            fail 'Expected explicit rejection of an undefined SSE4a range'
+        else
+            trial_sse4a_status=$?
+            [[ "$trial_sse4a_status" == 30 ]] || fail "Unexpected undefined SSE4a exit: $trial_sse4a_status"
+        fi
+        /usr/bin/grep -Fq 'undefined SSE4a bit range' "$trial_sse4a_log" || fail 'Missing undefined SSE4a diagnostic'
+    done
 }
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
@@ -183,6 +197,7 @@ contracts() {
         fi
         BB_JIT="$trial_jit" "$trial_root/work/test_keys"
         BB_JIT="$trial_jit" "$trial_root/work/test_pad"
+        test_cpu_sse4a "$trial_jit"
         BB_JIT="$trial_jit" "$trial_root/work/test_graphics_color"
         trial_log="$trial_prefix-cpu-strings-jit$trial_jit.log"
         if BB_JIT="$trial_jit" "$trial_root/work/test_cpu_strings" > "$trial_log" 2>&1; then
@@ -263,6 +278,7 @@ case "$trial_mode" in
         build_cpu_strings
         for trial_jit in 1 0; do
             BB_JIT="$trial_jit" "$trial_root/work/test_cpu_strings"
+            test_cpu_sse4a "$trial_jit"
         done
         printf 'Native emitter and diagnostic JIT fault checks passed. The upstream Rosetta comparison suite was not run.\n'
         ;;

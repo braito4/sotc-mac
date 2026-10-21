@@ -52,6 +52,10 @@ string-mask checks in both CPU modes. `--contracts-test` also includes the strin
 alongside the runtime contracts. These include guest user-event queues with level/edge
 notifications, timeouts and concurrent deletion. Neither command needs game files or Rosetta.
 
+Both commands also run synthetic EXTRQ/INSERTQ register/immediate checks in JIT and
+interpreter, covering every defined six-bit field range and explicit rejection of
+undefined ranges. These use a scalar bit oracle, not native x86 hardware execution.
+
 The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
 lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters
 atomic. The source checkout is not patched. Synthetic tests now also start concurrent guest

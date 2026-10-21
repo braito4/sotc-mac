@@ -12,6 +12,48 @@
 #include "../upstream/recomp/src/cpu/interp_vec.c"
 #undef bbcpu_exec_vec
 
+/* AMD APM volume 4, revision 3.27: EXTRQ/INSERTQ (SSE4a).
+ * https://docs.amd.com/v/u/en-US/26568_3.27_APM_Vol4_PUB
+ * Zydis describes the written destination as 64 bits, not an entire XMM.
+ * Preserve undefined bits 64..127 as a deterministic diagnostic choice and
+ * preserve the architectural legacy-SSE upper YMM half. Undefined bit ranges
+ * stop explicitly; do not rely on undefined C shifts to implement them. */
+static void sse4a_field(BbCpu *cpu, const BbInsn *in) {
+    const int insert = in->mnemonic == ZYDIS_MNEMONIC_INSERTQ;
+    const int immediate = in->count == (insert ? 4 : 3);
+    const BbOp *dst = &in->op[0];
+    if (in->vex || dst->type != OP_REG || dst->kind != RK_VEC || dst->size != 8 ||
+        dst->reg >= 16 || (!immediate && in->count != 2))
+        bbcpu_fatal(cpu, in, "SSE4a operand shape");
+    const BbVec original = cpu->v[dst->reg];
+    BbVec source = {0};
+    if (insert || !immediate) {
+        const BbOp *src = &in->op[1];
+        if (src->type != OP_REG || src->kind != RK_VEC || src->reg >= 16 ||
+            src->size != (immediate ? 8 : 16))
+            bbcpu_fatal(cpu, in, "SSE4a source shape");
+        source = cpu->v[src->reg]; /* Capture before writes, including aliases. */
+    }
+    unsigned length, index;
+    if (immediate) {
+        const unsigned first = insert ? 2 : 1;
+        if (in->op[first].type != OP_IMM || in->op[first+1].type != OP_IMM)
+            bbcpu_fatal(cpu, in, "SSE4a immediate shape");
+        length = (unsigned)in->op[first].disp & 63;
+        index = (unsigned)in->op[first+1].disp & 63;
+    } else {
+        const unsigned byte = insert ? 8 : 0;
+        length = source.b[byte] & 63;
+        index = source.b[byte+1] & 63;
+    }
+    if (!length) length = 64;
+    if (index + length > 64) bbcpu_fatal(cpu, in, "undefined SSE4a bit range");
+    const uint64_t mask = length == 64 ? UINT64_MAX : (UINT64_C(1) << length) - 1;
+    cpu->v[dst->reg].q[0] = insert ?
+        (original.q[0] & ~(mask << index)) | ((source.q[0] & mask) << index) :
+        (original.q[0] >> index) & mask;
+}
+
 static unsigned implicit_length(const int32_t *values, unsigned lanes) {
     unsigned n = 0;
     while (n < lanes && values[n]) ++n;
@@ -68,6 +110,9 @@ static void implicit_string_mask(BbCpu *cpu, const BbInsn *in) {
     if (in->vex) memset(cpu->v[0].b + 16, 0, 16);
 }
 int bbcpu_exec_vec(BbCpu *cpu, const BbInsn *in) {
+    if (in->mnemonic == ZYDIS_MNEMONIC_EXTRQ || in->mnemonic == ZYDIS_MNEMONIC_INSERTQ) {
+        sse4a_field(cpu, in); return 1;
+    }
     if (in->mnemonic == ZYDIS_MNEMONIC_PCMPISTRM || in->mnemonic == ZYDIS_MNEMONIC_VPCMPISTRM) {
         implicit_string_mask(cpu, in); return 1;
     }

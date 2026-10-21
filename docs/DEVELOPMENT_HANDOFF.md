@@ -16,20 +16,21 @@ Supported input is the owner's readable CUSA08809 update 1.01 dump. ARM64 macOS 
 Apple M1 is the observed host; the isolated GPU build targets macOS 15 or later.
 Other game editions and hardware are unverified.
 
-The last native Terminal run passed the RTC import boundary, completed initialization
-at 1.1461 seconds and entered the main loop at 1.6131 seconds. Metal reported a
-per-second sample of 486 draws and 1,985 dispatches. These counts establish renderer
-activity, not correct pixels, presentation or frames per second. The run terminated
-with `STOP: GPU hook queue overflow`, followed by a GPU assertion and a mutex error
-during termination. Fix and retest the first stop before treating later termination
-errors as independent root causes.
+The last native Terminal run completes initialization at 926.8211 milliseconds and
+enters the main loop at 1.3763 seconds. Metal reports a sample of 1,017 draws and
+3,145 dispatches per second. These are renderer activity counters, not FPS or correct
+pixels. Neither the previous queue overflow nor duplicate `locn0` error appears in
+this run. Execution now stops at an unsupported EXTRQ CPU instruction.
 
-The host notification queue now grows instead of stopping at 64 entries. Synthetic
-coverage exercises real shared aliases and burst dispatch; continuation in the
-actual renderer remains to be tested in Terminal. This host executable change
-requires no GPU library rebuild by itself. This handoff also includes three reviewed
-renderer backports; rebuild the GPU library for those. See the
-[upstream review](UPSTREAM_REVIEW.md) for provenance and measured limits.
+EXTRQ and INSERTQ are now implemented through the existing ARM64-compiled interpreter
+fallback used by the JIT. Both register and immediate forms have synthetic coverage;
+continuation after this CPU fix still needs Terminal verification. The GPU backports
+remain in place; no additional GPU rebuild is required for this CPU change. See the
+[upstream review](UPSTREAM_REVIEW.md) for provenance and its follow-up observation.
+
+A new renderer error reports `PerVertexKHR decoration is not supported in MSL` and
+skips affected pipelines. SRT Phi offset failures, buffer clamps and compressed
+texture usage errors also persist. Correct game pixels remain unverified.
 
 ## First session: reproduce the boundary
 
@@ -140,20 +141,20 @@ archive and diagnostic sources in `work`.
 
 ## Prioritized debugging work
 
-1. **Confirm the queue fix in a combined Terminal run.** Previously, registering hooks
-   or releasing fragmented/aliased memory could enqueue more than 64 notifications
-   within one locked operation. Check that the overflow disappears and identify the
-   first new stop. Growth preserves the existing lock/dispatch algorithm; global
-   callback completion ordering across competing flushers is not newly guaranteed.
-2. **Confirm the tessellation backport in Terminal.** MoltenVK reported an invalid post-tessellation
-   vertex return type and duplicated `user(locn0)` outputs. Pipeline creation fails
-   and that pipeline's draws are skipped. Trace SPIR-V output locations through the
-   tessellation interface and SPIRV-Cross/MSL conversion. Isolate a synthetic shader
-   reproducer before further location changes. The reviewed upstream deduplication
-   and cache invalidation now pass a real SPIR-V emitter regression and rebuild; the
-   original emitter fails the same test. Driver compilation and visible pixels after
-   this change still need Terminal verification. Do not remove outputs merely to
-   make compilation succeed.
+1. **Verify continuation after the SSE4a batch.** The latest stop was EXTRQ, not an
+   unresolved import. The scoped vector extension now covers EXTRQ and INSERTQ in
+   register/immediate forms through the existing fallback. The native suite and
+   full contracts check 266,240 defined cases per mode against a bit-by-bit oracle,
+   including aliasing, high registers, controls, flags and full-width fields. AMD
+   leaves bits 64..127 undefined; this diagnostic preserves them. Undefined ranges
+   stop explicitly. No hardware x86 oracle is claimed. Do not hide the existing
+   SSE4a CPUID feature merely to skip game code.
+2. **MSL fragment interface support.** The newest log has 31 `PerVertexKHR` conversion
+   failures and skips affected pipelines. Trace why the fragment input receives that
+   decoration and whether its semantic contract can be represented on Metal. Do not
+   just remove the decoration to make compilation succeed. The earlier duplicate
+   auxiliary tessellation location error is absent in this run, and its synthetic
+   regression remains available. This does not prove every tessellation path works.
 3. **SRT resource tracking.** `flatten_extended_userdata_pass.cpp` fails offset
    computation on `Phi` and then fails its SRT walk. Investigate predecessor/value
    handling and resource provenance in the recompiler. Buffer-size clamps may relate
@@ -218,7 +219,9 @@ The queue regression is `tests/test_memory_hooks.c`: provider replay and guest-A
 release of 257 real aliases, 8,193 mixed FIFO events, callbacks outside the region
 lock, reentry, reuse, count rollback, absent hooks and explicit allocation/capacity
 failure. `tests/test_prepare_memory.py` checks the restricted transformation and
-rejection of changed upstream input. The GPU-only auxiliary emitter regression is `python3 tools/check_tessellation.py`;
+rejection of changed upstream input. The SSE4a fixture is `tests/test_cpu_sse4a.c`, run by both `--test` and
+`--contracts-test`, including explicit undefined-range exits in all four forms.
+The GPU-only auxiliary emitter regression is `python3 tools/check_tessellation.py`;
 it needs the isolated build but neither a GPU device nor game data. Backport source
 checks are part of `tests/test_gpu_build.py`. Other graphics regressions are split across
 `test_graphics_{routes,color,shaders,submit,present,draw}.c`; synthetic dynamic-loader
