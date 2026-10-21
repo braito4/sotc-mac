@@ -83,6 +83,23 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
+**Current result:** the latest native GPU run confirms cooperative cancellation.
+Its header records DMA off, asynchronous submission off and JIT on. The control
+channel is ready before renderer initialization, which finishes at about 1.10
+seconds; the main loop starts at about 1.63 seconds. At the 30-second deadline,
+the log records the stop request, `STOP_DIAGNOSTIC_CONTROL` and a completion footer
+with `child_returncode=21 exit=21` after about 30.52 seconds. There is no cleanup
+error, unresolved import, CPU-fault report or GPU-watchdog message. This verifies
+the stop for that run; it is not a renderer-stability or gameplay result.
+
+The latest file still has 21 PerVertexKHR/skipped-pipeline messages, 220 Phi offset
+errors, 228 SRT-walk failures, six compressed-texture usage errors and 910 clamps.
+The DualSense and Metal command activity are recorded. Message/command counts are
+not FPS or evidence of better rendering. The next investigation concerns the
+remaining shader/resource failures and the image actually observed by the owner;
+do not automatically launch another comparison or change a renderer flag based
+solely on these counters. The following paragraphs retain earlier checkpoints.
+
 The earlier completed native log uses DMA off and a 120-second budget. Initialization completes
 at about 1.69 seconds and the main loop starts at about 2.33 seconds. The run ends
 at STOP_TIMEOUT without an unresolved import, CPU fault or GPU-watchdog message.
@@ -140,9 +157,9 @@ through another API or guarantee recovery from a kernel/driver hang. CPU-only
 native fixtures check deadlines despite ignored TERM, parent cancellation, parent
 channel closure and invalid descriptors. Synthetic infinite guests verify the
 actual probe's channel in JIT and interpreter before its longer own alarm.
-No new GPU run is used for this change. Child exit under real GPU load still needs
-native verification. Ensure the preceding diagnostic window has closed before one
-more run; retain these exact settings and change no renderer switch:
+No GPU run was used to implement that change. The subsequent native run confirms
+child exit under GPU load, as summarized above. This remains the reference
+configuration; it is not an instruction to rerun automatically:
 
 ```sh
 SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \

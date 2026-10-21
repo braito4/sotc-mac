@@ -5,9 +5,9 @@ Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 **Current incident: GPU testing resumes gradually at the owner's request after a
 reported host watchdog kernel panic.** The latest 30-second comparison uses DMA off
 and asynchronous submission off. It records GPU activity without an import stop,
-CPU-fault report or GPU-watchdog warning. Its footer now confirms a deadline followed
-by an OS refusal during external cleanup; child exit is unconfirmed. Owned
-diagnostics now use cooperative cancellation, verified with CPU-only fixtures.
+CPU-fault report or GPU-watchdog warning. Its footer confirms cooperative child
+exit with status 21 after about 30.52 seconds, without the earlier cleanup error.
+This verifies the stop in that run, not renderer stability or scene correctness.
 The earlier 120-second run ended at its diagnostic timeout. Dynamic shader reads
 stay blocked. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
@@ -1299,3 +1299,21 @@ The full runtime contracts pass. No new GPU run is used for validation, and neit
 this channel nor an alarm guarantees recovery from a kernel/driver hang. Confirm
 that the preceding window has closed before one further identical 30-second
 observation; no renderer flag or dependency pin changed.
+
+## Cooperative stop confirmed in native GPU run (2026-10-21)
+
+The newest native run confirms the cancellation channel is ready before renderer
+initialization. DMA and asynchronous submission remain off, with JIT on and a
+30-second wall budget. Initialization completes at about 1.10 seconds and the main
+loop starts at about 1.63 seconds. The log records the wall-time stop request,
+the child's cooperative termination message and matching child/supervisor status
+21 after about 30.52 seconds. No cleanup-permission error, unresolved import,
+CPU-fault report or GPU-watchdog warning is recorded. Status 21 is the intentional
+diagnostic limit, not a newly discovered game fault.
+
+The DualSense and Metal draw/dispatch activity are recorded. Twenty-one per-vertex
+conversion/skipped-pipeline messages, 220 Phi offset errors, 228 SRT-walk failures,
+six compressed-texture usage errors and 910 buffer clamps remain. These counts
+are not FPS, unique shaders or evidence that rendering improved. Correct
+introduction video, scene entry and system stability remain unverified. No new
+runtime configuration or additional GPU test is introduced by this log review.

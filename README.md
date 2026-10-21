@@ -25,10 +25,10 @@
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
-> run reached its 120-second limit; the latest 30-second comparison reports an OS
-> refusal during external cleanup, without confirming child exit. Owned diagnostics
-> now use cooperative cancellation, tested without a GPU. Neither establishes
-> renderer stability. See the
+> run reached its 120-second limit. The latest 30-second native comparison confirms
+> cooperative child exit with the expected diagnostic status and no cleanup error.
+> This verifies the stop mechanism for that run, not renderer stability or gameplay.
+> See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
 <p align="center">
