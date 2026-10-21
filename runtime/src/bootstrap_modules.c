@@ -71,7 +71,30 @@ static int32_t load_internal_with_arg(uint32_t id, int32_t bytes, const void *ar
     if (!result && initializer_result) *initializer_result = 0;
     return result;
 }
+static _Atomic size_t appcontent_initializations,appcontent_lists;
+static int32_t appcontent_initialize(const void *init,void *boot) {
+    (void)init;(void)boot;
+    atomic_fetch_add_explicit(&appcontent_initializations,1,memory_order_relaxed);
+    /* AppContent 0xb4 has no provider/reference in this registry. Retail
+     * checks module availability before either parameter. Do not inspect
+     * reserved storage or create a profile/package/license initialization. */
+    return (int32_t)UINT32_C(0x80d90001);
+}
+static int32_t appcontent_addons(uint32_t label,void *list,uint32_t capacity,uint32_t *hits) {
+    (void)label;(void)list;(void)capacity;(void)hits;
+    atomic_fetch_add_explicit(&appcontent_lists,1,memory_order_relaxed);
+    /* Same retail module/initialization guard precedes pointer validation.
+     * Never report an empty successful list or inspect host add-on folders. */
+    return (int32_t)UINT32_C(0x80d90001);
+}
+void bootstrap_modules_report(void) {
+    printf("Bootstrap: unavailable AppContent requests: initialize=%zu, add-on lists=%zu (module unavailable; outputs untouched)\n",
+           atomic_load_explicit(&appcontent_initializations,memory_order_relaxed),
+           atomic_load_explicit(&appcontent_lists,memory_order_relaxed));
+}
 uintptr_t bootstrap_modules_resolve(const char *name) {
+    if (!strcmp(name, "R9lA82OraNs#t#Z")) return (uintptr_t)appcontent_initialize;
+    if (!strcmp(name, "xnd8BJzAxmk#t#Z")) return (uintptr_t)appcontent_addons;
     if (!strcmp(name, "g8cM39EUZ6o#F#G")) return (uintptr_t)module_load;
     if (!strcmp(name, "fMP5NHUOaMk#F#G")) return (uintptr_t)module_loaded;
     if (!strcmp(name, "eR2bZFAAU0Q#F#G")) return (uintptr_t)module_unload;

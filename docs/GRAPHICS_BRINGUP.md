@@ -416,7 +416,7 @@ use, original NGS2 loading and three AudioOut stream opens. The sound-output wor
 passes device-state and thread-self calls and submits PCM to SDL without output errors.
 Main passes the absent launch-control and NP title responses and reaches
 the main loop after world-loading progress and creates Shadow Game Update. SoundSystemSndx
-passes numeric thread identity; main passes scePadSetLightBar and passes sceSystemServiceGetStatus and passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main stops at sceNpTrophyCreateContext.
+passes numeric thread identity; main passes scePadSetLightBar and passes sceSystemServiceGetStatus and passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and stops at sceAppContentInitialize.
 Additional retail ABI adapters, system imports and GNM operations will be
 needed as the game reaches them. Static-image pointer/address assumptions and subsequent
 asset loading remain unresolved. Bloodborne-specific image hooks must never be applied to SotC.
@@ -436,7 +436,7 @@ guest ABI, ID width, guarded output, errors, scopes and errno checks run in both
 a private original-module comparison confirms the language fallback and null/invalid-ID
 behavior. The graphics-loader fixture checks the language value during initialization.
 Terminal confirms five language queries, completed initialization and entry into the startup
-script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main reaches sceNpTrophyCreateContext. No game frame has
+script and main loop. Numeric thread identity now passes; main passes scePadSetLightBar and sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and reaches sceAppContentInitialize. No game frame has
 been verified.
 
 ## Network-control availability
@@ -463,7 +463,7 @@ Synthetic guest tests cover main/worker identity, stale registers, concurrent un
 post-join non-reuse, callback stability, capability/scope checks and errno in both CPU modes.
 This does not change CPU context switching or make guest handles into original kernel
 structures. Terminal confirms continuation after numeric thread identity and the light-bar
-denial and system-status query; main passes SaveDataInitialize3; Save Task Thread passes sceSaveDataDirNameSearch; main reaches sceNpTrophyCreateContext.
+denial and system-status query; main passes SaveDataInitialize3; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and reaches sceAppContentInitialize.
 
 ## Keyboard-controller light-bar availability
 
@@ -481,7 +481,7 @@ ordering, exact scopes, capability gating and unchanged inputs/errno in both CPU
 A private supplied-module comparison confirms retail validation and exact RGB reads, and
 propagation of an injected device-output denial. The game caller discards this result;
 Terminal confirms continuation after the light-bar denial. The next import is
-sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main reaches sceNpTrophyCreateContext.
+sceSystemServiceGetStatus, passes the unavailable SaveDataInitialize3 response; Save Task Thread passes sceSaveDataDirNameSearch; main passes the uninitialized trophy-context response and reaches sceAppContentInitialize.
 
 ## Standalone system status
 
@@ -501,7 +501,7 @@ and confirms the same complete output. The graphics-loader fixture verifies ever
 byte after initializing the destination to a nonzero pattern. Actual game continuation
 after this query is confirmed in Terminal, including processing the local login event.
 The SaveData initialization failure now returns in Terminal; the next unresolved import is
-sceNpTrophyCreateContext on main after the savedata search failure.
+sceAppContentInitialize on main after the savedata search and trophy-context failures.
 
 ## Savedata availability
 
@@ -518,7 +518,7 @@ Initialize3 wrapper comparison injects backend INTERNAL and checks propagation t
 the original error conversion without reading the optional parameter. The synthetic
 graphics loader also continues after the response in both modes. Terminal confirms actual
 continuation after this initialization failure; Save Task Thread now reaches
-the trophy-context call after the directory search returns NOT_INITIALIZED. No game frame is verified.
+AppContentInitialize after the directory search and trophy context return NOT_INITIALIZED. No game frame is verified.
 
 ## Uninitialized savedata directory search
 
@@ -533,7 +533,7 @@ protected input and output pointers, ignored stale argument registers, untouched
 errno and exact scopes/capability in both CPU modes. A private supplied original export
 confirms the same uninitialized path without dependency-helper replacement. The synthetic
 graphics loader also continues after this response in both modes. Terminal confirms actual
-continuation after the search error; main then reaches sceNpTrophyCreateContext. Save support
+continuation after the search error; main then passes trophy-context creation's uninitialized response and reaches sceAppContentInitialize. Save support
 and game video remain unverified.
 
 ## Uninitialized trophy-service paths
@@ -552,4 +552,24 @@ capability and unchanged buffers/errno in both CPU modes. A private comparison e
 all six supplied original exports without initialization or dependency-helper replacement
 and confirms the same behavior. The synthetic graphics loader checks context creation's
 uninitialized result and continues in both modes. Actual game continuation after the
-context-creation response still requires Terminal verification; game video is unverified.
+context-creation response is confirmed in Terminal. Only context creation was called there;
+the other five paths remain synthetic/original checks. The next boundary is
+sceAppContentInitialize; game video is unverified.
+
+## AppContent module availability
+
+The exact-scoped two-pointer sceAppContentInitialize and four-argument
+sceAppContentGetAddcontInfoList return the retail unavailable-module error before
+inspecting their parameters. AppContent module 0xb4 has no provider and remains
+unavailable in the existing module registry; failed calls do not create references or
+initialized state. Boot buffers, list slots and hit counts remain untouched. This does
+not configure an offline entitlement profile, enumerate host add-on folders, infer
+licenses or initialize package/DLC mounts or downloads.
+
+Guest tests cover both typed ABIs, module-before-pointer checks, invalid/protected/null
+buffers, repeated calls, untouched outputs/counts/errno, scope/capability and unchanged
+module availability in both CPU modes. A private comparison executes both supplied
+original exports with absent module references and no dependency-helper replacement,
+confirming the same paths. The graphics-loader fixture continues after the initialization
+error in both modes. Actual game continuation still requires Terminal verification;
+no game frame is verified.

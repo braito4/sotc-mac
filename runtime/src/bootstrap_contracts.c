@@ -396,6 +396,7 @@ void bootstrap_report(void) {
     runtime_memory_report();
     bootstrap_files_report();
     bootstrap_fibers_report();
+    bootstrap_modules_report();
     bootstrap_dialogs_report();
     bootstrap_trophy_report();
     bootstrap_savedata_report();

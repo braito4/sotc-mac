@@ -73,13 +73,15 @@ def synthetic_image(path, fault=False):
     initializer+=b'\xff\x15'+struct.pack('<i',360-(512+len(initializer)+6))
     initializer+=bytes.fromhex('3d 01009f80 7402 0f0b 31ff 31f6 31d2 31c9')
     initializer+=b'\xff\x15'+struct.pack('<i',368-(512+len(initializer)+6))
-    initializer+=bytes.fromhex('3d 01165580 7402 0f0b 31c0c3')
+    initializer+=bytes.fromhex('3d 01165580 7402 0f0b 31ff 31f6')
+    initializer+=b'\xff\x15'+struct.pack('<i',376-(512+len(initializer)+6))
+    initializer+=bytes.fromhex('3d 0100d980 7402 0f0b 31c0c3')
     assert 512+len(initializer)<768
     image[1280:1416]=b'\xa5'*136
     image[512:512+len(initializer)]=initializer
     def words(*values):
         return struct.pack('<'+'Q'*len(values), *values)
-    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 18, 18, 1) +
+    path.write_bytes(b'BBPROBE5' + words(16384, 0, 1, 19, 19, 1) +
         words(768, 0, 0, 0, 0, 1) + words(0, 16384, 512, 0, 0, 0, 0) + words(0) +
         words(0, 16384, 5) + b'hv1luiJrqQM#H#I'.ljust(128, b'\0') + b'JfEPXVxhFqA#q#M'.ljust(128, b'\0') +
         b'Up36PTk687E#G#H'.ljust(128, b'\0') + b'ekNvsT22rsY#q#M'.ljust(128,b'\0') +
@@ -87,8 +89,8 @@ def synthetic_image(path, fault=False):
         b'w3PdaSTSwGE#q#M'.ljust(128,b'\0') + b'QOQtbeDqsT4#q#M'.ljust(128,b'\0') +
         b'fixture-stop#none'.ljust(128, b'\0') + b'Vo5V8KAwCmk#a#a'.ljust(128,b'\0') +
         b'Ec63y59l9tw#S#T'.ljust(128,b'\0') +
-        b'A2CQ3kgSopQ#S#T'.ljust(128,b'\0') + b'fZo48un7LK4#a#a'.ljust(128,b'\0') + b'gky0+oaNM4k#D#E'.ljust(128,b'\0') + b'rPo6tV8D9bM#a#a'.ljust(128,b'\0') + b'TywrFKCoLGY#u#d'.ljust(128,b'\0') + b'dyIhnXq-0SM#u#d'.ljust(128,b'\0') + b'XbkjbobZlCY#O#P'.ljust(128,b'\0') +
-        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0,304,1,9,0,312,1,10,0,320,1,11,0,328,1,12,0,336,1,13,0,344,1,14,0,352,1,15,0,360,1,16,0,368,1,17,0) + image)
+        b'A2CQ3kgSopQ#S#T'.ljust(128,b'\0') + b'fZo48un7LK4#a#a'.ljust(128,b'\0') + b'gky0+oaNM4k#D#E'.ljust(128,b'\0') + b'rPo6tV8D9bM#a#a'.ljust(128,b'\0') + b'TywrFKCoLGY#u#d'.ljust(128,b'\0') + b'dyIhnXq-0SM#u#d'.ljust(128,b'\0') + b'XbkjbobZlCY#O#P'.ljust(128,b'\0') + b'R9lA82OraNs#t#Z'.ljust(128,b'\0') +
+        words(232,1,0,0,240,1,1,0,248,1,2,0,256,1,3,0,264,1,4,0,272,1,5,0,280,1,6,0,288,1,7,0,296,1,8,0,304,1,9,0,312,1,10,0,320,1,11,0,328,1,12,0,336,1,13,0,344,1,14,0,352,1,15,0,360,1,16,0,368,1,17,0,376,1,18,0) + image)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and shutil.which('clang') and PROBE.is_file(),
@@ -222,6 +224,7 @@ void bbgpu_window_loop(void) {
                 self.assertIn('unavailable SaveData Initialize3 requests=1',result.stdout)
                 self.assertIn('unavailable SaveData directory searches=1',result.stdout)
                 self.assertIn('unavailable trophy requests: create context=1',result.stdout)
+                self.assertIn('unavailable AppContent requests: initialize=1, add-on lists=0',result.stdout)
                 self.assertIn('unavailable network-control initialization requests=1',result.stdout)
                 for fault, permissions in (('protected','r--'), ('backing','rw-')):
                     fault_boot=root/('fault-'+fault+'.bin')

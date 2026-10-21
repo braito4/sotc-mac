@@ -476,6 +476,44 @@ static void test_unavailable_share(void) {
                 }
     puts("PASS: ShareUtility Ex2 guest ABI, 64-bit mode/size validation, early resource failure, untouched attributes/buffers/errno, repeated errors and scoped capability");
 }
+static void check_unavailable_appcontent(const uintptr_t entries[2]) {
+    const size_t page=(size_t)sysconf(_SC_PAGESIZE);
+    void *protected=mmap(NULL,page,PROT_NONE,MAP_PRIVATE|MAP_ANON,-1,0);assert(protected!=MAP_FAILED);
+    unsigned char init[32],boot[40],list[48],before[48];uint32_t hits=0xa5a5a5a5;
+    memset(init,0xa5,sizeof(init));memset(boot,0xa5,sizeof(boot));
+    memset(list,0x5a,sizeof(list));memcpy(before,list,sizeof(list));
+    const uint64_t inputs[]={0,1,UINT64_MAX,(uintptr_t)init,(uintptr_t)protected};
+    const uint64_t outputs[]={0,1,UINT64_MAX,(uintptr_t)boot,(uintptr_t)protected};
+    const uint64_t lists[]={0,1,UINT64_MAX,(uintptr_t)list,(uintptr_t)protected};
+    const uint64_t counts[]={0,1,UINT64_MAX,(uintptr_t)&hits,(uintptr_t)protected};
+    *runtime_errno()=17;
+    for(unsigned round=0;round<3;++round) for(unsigned i=0;i<5;++i) for(unsigned j=0;j<5;++j) {
+        const uint64_t a[]={inputs[i],outputs[j],1,UINT64_MAX,3,5};
+        const uint64_t b[]={round?UINT64_MAX:0,lists[i],round?UINT64_MAX:0,counts[j],1,UINT64_MAX};
+        assert((uint32_t)bbcpu_call(entries[0],6,a)==0x80d90001);
+        assert((uint32_t)bbcpu_call(entries[1],6,b)==0x80d90001);
+        assert(!memcmp(list,before,sizeof(list)) && hits==0xa5a5a5a5 && *runtime_errno()==17);
+        for(size_t k=0;k<sizeof(init);++k) assert(init[k]==0xa5);
+        for(size_t k=0;k<sizeof(boot);++k) assert(boot[k]==0xa5);
+    }
+    assert(!munmap(protected,page));
+}
+static void test_unavailable_appcontent(void) {
+    const char *names[]={"R9lA82OraNs#t#Z","xnd8BJzAxmk#t#Z"};uintptr_t entries[2];
+    for(unsigned i=0;i<2;++i) {
+        bootstrap_initialize(0);assert(!bootstrap_resolve(names[i],0));bootstrap_initialize(1);
+        const uintptr_t fn=bootstrap_resolve(names[i],0);assert(fn && !bootstrap_resolve(names[i],1));
+        char wrong[64];snprintf(wrong,sizeof(wrong),"%.11s#c#d",names[i]);assert(!bootstrap_resolve(wrong,0));
+        snprintf(wrong,sizeof(wrong),"%.11s#0#F",names[i]);assert(!bootstrap_resolve(wrong,0));
+        entries[i]=guest_bridge(fn);
+    }
+    int32_t (*load_module)(uint16_t)=(void *)bootstrap_resolve("g8cM39EUZ6o#F#G",0);
+    int32_t (*is_loaded)(uint16_t)=(void *)bootstrap_resolve("fMP5NHUOaMk#F#G",0);
+    assert((uint32_t)load_module(0xb4)==0x805a1001 && (uint32_t)is_loaded(0xb4)==0x805a1001);
+    check_unavailable_appcontent(entries);
+    assert((uint32_t)is_loaded(0xb4)==0x805a1001);
+    puts("PASS: unavailable AppContent initialize/add-on list typed guest ABI, module-before-pointer checks, protected/null buffers, unchanged outputs/counts/errno, scopes/capability and unavailable module state");
+}
 static const char *const trophy_names[]={
     "XbkjbobZlCY#O#P","q7U6tEAQf7c#O#P","E1Wrwd07Lr8#O#P",
     "GNcF4oidY0Y#O#P","TJCAxto9SEU#O#P","28xmRUFao68#O#P",
@@ -810,6 +848,7 @@ int main(void) {
     test_unavailable_savedata();
     test_unavailable_savedata_search();
     test_unavailable_trophy();
+    test_unavailable_appcontent();
     test_unavailable_np_title();
     test_unavailable_np_restriction();
     test_unavailable_dialogs();
