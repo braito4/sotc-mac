@@ -7,6 +7,11 @@ reported host watchdog kernel panic.** The latest 30-second comparison uses DMA 
 and asynchronous submission off. It records GPU activity without an import stop,
 CPU-fault report or GPU-watchdog warning. Its footer confirms cooperative child
 exit with status 21 after about 30.52 seconds, without the earlier cleanup error.
+The owner confirms that only the first logo appears; the second is not reached.
+The log does not identify whether presentation stops or resource loading continues.
+Earlier menu/audio observations used other runs and do not establish progression
+in this shorter comparison. The next brief experiment adds the pinned renderer's
+flip statistics while preserving the duration and renderer settings.
 This verifies the stop in that run, not renderer stability or scene correctness.
 The earlier 120-second run ended at its diagnostic timeout. Dynamic shader reads
 stay blocked. See the

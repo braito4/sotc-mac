@@ -10,11 +10,12 @@
 </p>
 
 > [!IMPORTANT]
-> **Early development: game logos and the menu are visible on Apple M1. Gameplay is unverified.**
+> **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
-> in native Terminal. The diagnostic reaches the main loop with game GPU commands and a
-> physical controller. Introduction video correctness, entering a playable 3D scene,
+> in earlier native Terminal runs. The latest 30-second comparison shows only the first
+> logo; it does not reach the second. The diagnostic reaches the main loop with game
+> GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
 > The goal is to run Shadow of the Colossus on Apple Silicon without Rosetta. The current
@@ -27,7 +28,8 @@
 > reads remain disabled and enabling them is blocked before GPU loading. An earlier
 > run reached its 120-second limit. The latest 30-second native comparison confirms
 > cooperative child exit with the expected diagnostic status and no cleanup error.
-> This verifies the stop mechanism for that run, not renderer stability or gameplay.
+> The owner reports that its image remains at the first logo. This verifies the stop
+> mechanism for that run, not renderer stability or gameplay.
 > See the
 > [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
 
@@ -90,8 +92,9 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 ## Status
 
-**Experimental: logos and menu visually confirmed by the owner on Apple M1.**
-The owner also confirms hearing the opening of the game's introduction. This
+**Experimental: earlier runs reached the logos/menu on Apple M1; the latest
+30-second comparison shows only the first logo.**
+The owner also previously confirmed hearing the opening of the game's introduction. This
 establishes audible game output, without proving full audio coverage or audiovisual
 synchronization. An earlier native run reaches the main loop at about 1.38 seconds,
 detects a DualSense and continues beyond the save-dialog boundary. It ends at the

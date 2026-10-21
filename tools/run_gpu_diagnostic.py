@@ -72,7 +72,8 @@ def supervise(command, seconds, log_path, cooperative=False):
             sys.stdout.buffer.flush()
 
         settings = {key: os.getenv(key) for key in ('BB_DIRECT_MEMORY_ACCESS',
-                    'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER')}
+                    'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER', 'BB_FRAME_STATS',
+                    'BB_FRAME_LOG')}
         emit((f'GPU supervisor: wall budget={seconds}s, stop on GPU watchdog, no retries; '
               f'stop_mode={"cooperative" if cooperative else "process-group"}; '
               f'settings={json.dumps(settings, sort_keys=True)}\n').encode())

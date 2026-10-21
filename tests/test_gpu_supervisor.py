@@ -15,13 +15,14 @@ RUNNER = ROOT/'tools/run_gpu_diagnostic.py'
 
 @unittest.skipUnless(os.name == 'posix', 'POSIX process groups required')
 class GpuSupervisorTests(unittest.TestCase):
-    def run_fixture(self, source, seconds='5', arguments=()):
+    def run_fixture(self, source, seconds='5', arguments=(), environment=None):
         with tempfile.TemporaryDirectory(prefix='GPU supervisor fixture ') as directory:
             log = Path(directory)/'private log.txt'
             started = time.monotonic()
             result = subprocess.run([sys.executable, str(RUNNER), '--seconds', seconds,
                 '--log', str(log), '--', sys.executable, '-u', '-c', source, *arguments],
-                capture_output=True, timeout=8)
+                capture_output=True, timeout=8,
+                env=dict(os.environ, **(environment or {})))
             elapsed = time.monotonic()-started
             return result, log.read_bytes() if log.exists() else b'', elapsed
 
@@ -99,6 +100,22 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
         result, log, _ = self.run_fixture("print('PerVertexKHR decoration is not supported in MSL')")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn(b'STOP_GPU_STALL', log)
+
+    def test_flip_statistics_settings_are_logged_and_reach_the_child(self):
+        import json
+        with tempfile.TemporaryDirectory(prefix='flip statistics fixture ') as directory:
+            frames = Path(directory)/'private frames.csv'
+            result, log, _ = self.run_fixture(
+                "import os,pathlib; assert os.environ['BB_FRAME_STATS']=='1'; "
+                "pathlib.Path(os.environ['BB_FRAME_LOG']).write_text('synthetic flip fixture\\n')",
+                environment={'BB_FRAME_STATS': '1', 'BB_FRAME_LOG': str(frames),
+                             'SYNTHETIC_PRIVATE_SECRET': 'must-not-be-in-the-log'})
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(frames.read_text(), 'synthetic flip fixture\n')
+            settings = json.loads(log.splitlines()[0].split(b'settings=', 1)[1])
+            self.assertEqual(settings['BB_FRAME_STATS'], '1')
+            self.assertEqual(settings['BB_FRAME_LOG'], str(frames))
+            self.assertNotIn(b'must-not-be-in-the-log', log)
 
     def test_stalled_process_group_does_not_leave_a_worker_running(self):
         with tempfile.TemporaryDirectory() as directory:

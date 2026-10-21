@@ -329,6 +329,14 @@ case "$trial_mode" in
             --out "$trial_root/work/sotc-graphics-arm64"
         trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-game-state-XXXXXX")
         trial_log="$trial_root/logs/graphics-game-$(date -u +%Y%m%dT%H%M%SZ).log"
+        # Reuse the pinned renderer's host-side flip statistics, only on request.
+        # Keep each default CSV private and separate from previous comparisons.
+        if [[ "${BB_FRAME_STATS:-}" == 1 ]]; then
+            export BB_FRAME_LOG="${BB_FRAME_LOG-$trial_gpu_state/frames.csv}"
+            if [[ -n "$BB_FRAME_LOG" ]]; then
+                printf 'GPU flip statistics: %s (buffered; the final rows may be absent after cancellation).\n' "$BB_FRAME_LOG"
+            fi
+        fi
         printf 'Experimental graphics initialization; no game frame established. Log: %s\n' "$trial_log"
         if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \

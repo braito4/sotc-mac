@@ -92,13 +92,20 @@ with `child_returncode=21 exit=21` after about 30.52 seconds. There is no cleanu
 error, unresolved import, CPU-fault report or GPU-watchdog message. This verifies
 the stop for that run; it is not a renderer-stability or gameplay result.
 
+**Visual boundary:** the owner reports only the first logo, without reaching the
+second. The earlier menu and introduction-audio observations remain historical;
+this run does not reproduce them. The duration and submission configuration differ
+from earlier runs, so neither is an established cause of the missing progression.
+The last sampled Metal activity drops to one draw and nine dispatches, but these
+are command counters, not a record of displayed images or a diagnosis of a stall.
+
 The latest file still has 21 PerVertexKHR/skipped-pipeline messages, 220 Phi offset
 errors, 228 SRT-walk failures, six compressed-texture usage errors and 910 clamps.
 The DualSense and Metal command activity are recorded. Message/command counts are
-not FPS or evidence of better rendering. The next investigation concerns the
-remaining shader/resource failures and the image actually observed by the owner;
-do not automatically launch another comparison or change a renderer flag based
-solely on these counters. The following paragraphs retain earlier checkpoints.
+not FPS or evidence of better rendering. The next investigation records flip
+progress with the existing host-side statistics described below. Do not change
+renderer settings based solely on error counts. The following paragraphs retain
+earlier checkpoints.
 
 The earlier completed native log uses DMA off and a 120-second budget. Initialization completes
 at about 1.69 seconds and the main loop starts at about 2.33 seconds. The run ends
@@ -171,6 +178,40 @@ Inspect the newest game log before another run. Record what was actually visible
 whether progression stopped, the selected setting, terminal stop and any GPU-stall
 message. Keep other renderer settings unchanged and do not turn DMA back on.
 
+### First-logo presentation trace
+
+The next single native Terminal comparison keeps the same 30-second budget, DMA
+off, asynchronous submission off and JIT on. Add only the pinned renderer's
+`BB_FRAME_STATS=1` instrumentation:
+
+```sh
+SOTC_MEMORY_BACKING=file BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 \
+  SOTC_DIAGNOSTIC_SECONDS=30 BB_JIT=1 BB_FRAME_STATS=1 \
+  bash packaging/test-arm64.sh --graphics-game-test
+```
+
+No new GPU run was launched to prepare this trace. Use a native Terminal only
+after the prior diagnostic window has closed; inspect the resulting log before
+another comparison. The launcher chooses a private `frames.csv` inside this run's
+isolated GPU-state directory unless `BB_FRAME_LOG` is already specified. The
+supervisor records both settings and the CSV path in its header. Remove
+`BB_FRAME_STATS` from the environment to return to the preceding baseline.
+
+In the pinned `VideoOutDriver::Flip`, this instrumentation reads host clocks and
+existing counters after the presenter call. It reports flip-rate/wait summaries
+every five seconds when flips continue and records per-flip CSV rows. It is not a
+pixel readback, a new shader, or evidence of correct game frames. Profiling adds
+CPU work and can affect timing. The CSV is buffered, with an explicit flush every
+120 flips; cooperative `_Exit` can discard its final rows. An empty, absent or
+short file does **not** prove that no flips occurred. Keep CSVs and logs private.
+
+Look for continuing flip records versus continuing command activity, long frame
+intervals, host/GPU wait counters and compilation work. If flips continue while
+the first logo remains, investigate image/resource contents; if the trace stops,
+investigate the submission/presentation waits. No result alone justifies skipping
+a fence, replacing a shader result with zero, increasing the budget or enabling
+DMA. The current log has no flip trace, so that distinction remains unresolved.
+
 ## First session: inspect without GPU execution
 
 Run commands from the repository root in a native macOS Terminal. Quote absolute
@@ -230,6 +271,8 @@ Important environment variables:
 | `SOTC_DIAGNOSTIC_SECONDS` | Accepts 1..1800; combined default 120, headless 30; not protection from a kernel hang |
 | `BB_DIRECT_MEMORY_ACCESS` | Unset or literal 0 only; all other values rejected before GPU loading/prechecks |
 | `BB_ASYNC_SUBMIT=0` | Current single comparison: submit on the calling thread; preserve recording workers |
+| `BB_FRAME_STATS=1` | Opt-in host-side flip/wait statistics for the first-logo investigation; remove the variable for baseline timing |
+| `BB_FRAME_LOG` | Optional CSV destination; with statistics on, the combined launcher defaults to private per-run `frames.csv`; final rows may be buffered |
 | `SOTC_GPU_JOBS` | Isolated build parallelism, 1..8 |
 
 The launch script explicitly selects its bundled Vulkan loader, MoltenVK ICD and
