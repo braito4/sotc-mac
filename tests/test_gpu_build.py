@@ -81,6 +81,19 @@ class GpuBuildTests(unittest.TestCase):
         result = subprocess.run(['/bin/bash', '-n'], input=recipe, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_original_three_backports_migrate_through_both_local_overlays(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            manifest = gpu.backport_manifest()
+            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
+                              for name in manifest['backport_patches'])
+            subprocess.run(['git', '-C', str(source), 'apply'], input=patches,
+                           text=True, capture_output=True, check=True)
+            self.assertEqual(gpu.backport_state(source), 'backports')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source), 'after')
+
     @unittest.skipUnless(shutil.which('cmake') and shutil.which('ninja'), 'CMake/Ninja required')
     def test_generated_include_flag_builds_with_spaces_in_prefix(self):
         original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()

@@ -85,7 +85,69 @@ device identifiers, addresses and execution logs remain private.
 
 ## Gradual GPU testing
 
-**Current result:** the owner's next low-resolution run uses a 120-second budget
+### Black scene and native submission evidence
+
+**Current result:** the owner reports a black screen where the 3D animation should
+appear. The latest native run uses the same low-resolution, DMA-off, async-off,
+JIT/statistics-on settings with the submission journal enabled and a 120-second
+budget. It detects a DualSense, finishes initialization at about 0.94 seconds and
+starts the main loop at about 1.38 seconds. Scene raster remains 640x360, half-size
+targets 320x180 and UI/output 1920x1080. The GPU watchdog stops it after about
+114.91 seconds; child exit 21 is confirmed and supervisor exit 31 preserves the
+stall reason. No import stop, CPU-fault report or cleanup error is recorded.
+
+The native journal now identifies the awaited batch's recorded work. Its submit
+call returned success, with one command buffer and no explicit wait-semaphore
+entries. Its sole Metal chunk has commit return observed but no scheduled or
+completion callback observed. The immediately preceding empty batch's Metal chunk
+has both callbacks and completion status 4, error 0. The awaited chunk's zero
+status/error fields are defaults because no completion callback arrived, not a
+polled Metal status or evidence that no driver error occurred. These observations
+do not prove which command started or whether the stall is within that batch,
+earlier queue dependencies or the driver.
+
+The awaited batch has 28632 metadata notes, not that many draws. Only the 96-note
+tail is retained. It includes sixteen indexed indirect draw candidates from two
+vertex/fragment shader pairs, with maximum draw count 1 and stride 20. The actual
+indirect index/instance counts were not read. Both pairs also appear in failed
+graphics-pipeline messages immediately following PerVertexKHR conversion errors.
+This links candidate shader pairs to a concrete compiler limitation, but pairs
+can share several pipeline variants: it does not prove which variant was bound
+or which GPU instruction blocked. The awaited record has no missing buffers;
+missing-note and missing-Metal-event counts are zero. Cumulative ring evictions
+do not reconstruct the omitted prefix or constitute per-command GPU breadcrumbs.
+
+The log records 118 PerVertexKHR messages, 133 graphics-pipeline creation failures,
+four undeclared `shared_mem_u32` compute failures, two integer-format Metal blit
+failures, 271 SRT-walk failures, 8094 clamps and 267 incomplete GPU-mapping warnings.
+The fragment-interface CPU fixture still reproduces the installed SPIRV-Cross
+limitation (expected exit 2); it is not a passing shader-support test. Missing
+pipelines and omitted copies are rendering defects consistent with missing scene
+content, but the owner's black image has not been isolated to one of them.
+Sampled Vulkan allocations/images peak at 5304/1318 MiB, not measured macOS RAM.
+The CSV retains 438 complete rows through about 60.53 seconds relative to its
+first row, plus a partial row. Buffering prevents dating the last presentation.
+
+Source review exposes a separate validity defect worth correcting before another
+capture. `GetGraphicsPipeline` checked the handle after first creation and in the
+prepared path, but its ordinary cache-hit path returned the object unconditionally.
+A rejected pipeline could therefore be offered again with an empty handle.
+`GraphicsFromVulkan` also accepted a nonnull object with an empty handle, allowing
+different native Metal entries to share the null Vulkan lookup key. The local
+validity overlay checks both paths. This consistently rejects unsupported state;
+it does not fabricate a successful pipeline or bypass shader semantics.
+
+The regression compiles the actual source guard blocks with synthetic handles:
+the original guards fail both checks, the adapted guards reject null/empty entries
+and preserve valid ones. The ARM64 library rebuild, fifteen auxiliary SPIR-V cases,
+the new CPU guard test, twenty offline builder tests and full JIT/interpreter
+contracts pass. Pristine sources,
+the exact original three-backport state and the preceding journal overlay can
+migrate; mixed/unknown sources remain rejected. No GPU run of this correction was
+launched. Native image verification, PerVertexKHR support, compute shared-memory
+emission, typed blits and the precise stall cause remain open.
+
+**Earlier uninstrumented low-resolution stall:** the owner's run uses a 120-second budget
 with DMA off, async submission off, JIT/statistics on and scene preset 4. Initialization
 completes at about 0.93 seconds; a DualSense is detected before the main loop starts
 at about 1.37 seconds. There is no recorded physical disconnection or input-backend
@@ -169,9 +231,10 @@ are present. The actual auxiliary SPIR-V regression and full JIT/interpreter
 contracts pass. Native CPU fixtures check dependencies, prepared/returned states,
 recording reuse, bounded tails, concurrency and callbacks. A CPU-only supervised
 fixture proves the dump precedes the watchdog prefix and survives cooperative exit.
-Nineteen offline builder tests cover pristine application, exact previous-set
+Twenty offline builder tests cover pristine application, exact previous-set
 migration, unknown/partial rejection and idempotence; twenty supervisor tests pass.
-No native GPU capture of this instrumentation has run in the tool environment.
+The owner's first native capture is analyzed above. No GPU capture was run in the
+tool environment.
 
 For the next single owner-run capture, keep the previous low-resolution renderer
 settings and 120-second observation budget; the protective GPU-watchdog stop remains
@@ -624,6 +687,7 @@ The main entry points are:
 | `bash packaging/test-arm64.sh --graphics-check` | Synthetic offscreen Metal draw/readback; no game frame |
 | `bash packaging/test-arm64.sh --vulkan-check` | Check Vulkan surface extension discovery |
 | `python3 tools/check_gpu_link.py` | Inspect actual host/library symbol coverage; does not validate ABI or load the library |
+| `python3 tools/check_pipeline_validity.py` | CPU-only source-guard regression: original invalid acceptance versus adapted rejection |
 | `bash packaging/test-arm64.sh --gpu-load-check` | Load the library without renderer initialization |
 | `bash packaging/test-arm64.sh --renderer-check` | Initialize the renderer and diagnostic window without guest commands |
 | `bash packaging/test-arm64.sh --graphics-game-test` | One supervised combined experiment; see the pending-submission capture above |
@@ -692,14 +756,14 @@ archive and diagnostic sources in `work`.
 ## Prioritized debugging work
 
 1. **Investigate the host watchdog incident without reproducing it.** Read the latest
-   initialization-only log and the earlier GPU-stall log together. Review renderer
+   instrumented stall and earlier initialization-only/panic-associated logs together. Review renderer
    startup, shared guest-memory residency, queue progress and the pinned upstream
    sources. The cause is unresolved; do not assume DMA, memory pressure or the
    controller is responsible. The owner has resumed gradual testing; run one
    supervised comparison, inspect it, and do not replay the DMA-on incident.
    Scene entry and introduction video remain later goals; the owner has confirmed
    logos/menu and opening audio.
-2. **MSL fragment interface support.** An earlier game log has 78 `PerVertexKHR` conversion
+2. **MSL fragment interface support.** The latest native log has 118 `PerVertexKHR` conversion
    failures. `python3 tools/check_fragment_interface.py` isolates this with the actual
    installed SPIRV-Cross library: an ordinary input converts, raw per-vertex input
    reading vertex one fails. Exit 2 means the known limitation is reproduced; it does

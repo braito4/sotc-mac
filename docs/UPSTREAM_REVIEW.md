@@ -23,7 +23,8 @@ CPU and reference pins remain unchanged.
 The three patches above are GPL-2.0-or-later upstream work, not a new renderer authored here.
 Patch files and input/output digests live in `tools/gpu_patches`. The build accepts
 only a pristine pinned private checkout, the exact previous three-backport state,
-or the complete reviewed set with the local submission diagnostic overlay;
+the preceding submission-journal overlay, or the complete reviewed set with the
+local pipeline-validity correction;
 unknown modifications and partial applications are rejected. Digests verify source
 identity; they are not proof of runtime correctness. `runtime/upstream` stays unchanged.
 
@@ -39,7 +40,17 @@ observations. It does not use the unavailable AMD marker extension or change sha
 resource, fence or queue-order semantics. Bounded metadata is dumped before the
 watchdog prefix, preserving the existing supervisor stop. The native ARM64 build,
 CPU fixtures and exact previous-set migration pass; real GPU identification remains
-pending. See [pending-submission tracing](DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
+limited to the recorded candidates described in the
+[native capture](DEVELOPMENT_HANDOFF.md#black-scene-and-native-submission-evidence).
+
+The later local `sotc-pipeline-validity` overlay corrects two source defects:
+ordinary graphics-cache hits returned rejected objects with empty handles, and
+game Metal registration accepted that null lookup key. Both paths now reject
+empty handles consistently with first creation and prepared draws. Actual-source
+CPU guard fixtures reproduce the original behavior and pass the correction;
+native ARM64 compilation and the auxiliary shader regression pass. This is not
+PerVertexKHR support or a proven black-scene/GPU-stall fix. The shader-cache state,
+renderer settings and dependency pins are unchanged.
 
 ## What was validated
 

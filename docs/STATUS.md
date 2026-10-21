@@ -3,7 +3,36 @@
 Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
 
 **Current incident: GPU testing resumes gradually at the owner's request after a
-reported host watchdog kernel panic.** The latest owner-run low-resolution test
+reported host watchdog kernel panic.** The owner now reports a black screen instead
+of the expected 3D animation. The latest instrumented low-resolution run detects a
+DualSense, starts the main loop at about 1.38 seconds and applies 640x360 scene
+targets. It stops on the GPU watchdog after about 114.91 seconds, with confirmed
+child exit 21 and supervisor exit 31. The pending batch's submit call returned
+success, with no explicit wait-semaphore entries. Its single Metal chunk has no
+scheduled/completed callback observed; the preceding empty chunk completed.
+The batch retains 96 of 28632 metadata notes. Its tail contains sixteen indexed
+indirect draw candidates using two shader pairs also seen in PerVertexKHR pipeline
+errors. Shared shader pairs do not establish an identical pipeline variant or
+identify the GPU instruction responsible. No import stop or CPU-fault report appears.
+
+There are 118 PerVertexKHR messages, 133 graphics-pipeline creation failures, four
+`shared_mem_u32` compute compilation failures and the two integer-format Metal blit
+errors. These are concrete rendering failures, not proof of a single black-screen
+cause. Sampled Vulkan allocations peak at 5304 MiB and images at 1318 MiB; total
+macOS RAM pressure is unmeasured. The CSV retains 438 complete rows through about
+60.53 seconds relative to its first row, plus a partial row.
+
+Source review finds an independent validity defect: a cache hit returned a graphics
+pipeline object even when its handle was empty, although first creation rejected
+the same empty handle. Game Metal registration also accepted that null lookup key.
+A checked local overlay now rejects both paths. Actual source-guard CPU fixtures
+reproduce both original failures and pass with the overlay; twenty offline builder
+tests cover both known previous states. The native ARM64 library, auxiliary
+SPIR-V regression and full JIT/interpreter contracts pass. This prevents invalid state acceptance; it does not implement
+PerVertexKHR, restore the 3D scene or prove the stall's cause. No GPU run was launched
+for this analysis. See the [black-scene analysis](DEVELOPMENT_HANDOFF.md#black-scene-and-native-submission-evidence).
+
+**Earlier uninstrumented low-resolution stall:** that owner-run test
 uses a 120-second budget, DMA off, async submission off and JIT/statistics on.
 It detects a DualSense, starts the main loop at about 1.37 seconds and applies
 640x360 scene raster targets. The renderer then reports submitted GPU work unfinished
@@ -39,8 +68,8 @@ SPIR-V regression passes, and full contracts pass in JIT/interpreter. Nineteen
 offline builder tests, twenty supervisor tests and the native metadata fixture
 (including a real cooperative supervisor stop) pass without GPU execution. The
 combined launcher enables `SOTC_GPU_SUBMIT_TRACE=1` by default, with 0 to disable it;
-the low-resolution settings, DMA guard and budgets are unchanged. No native GPU
-run of this instrumentation has been made. Four additional compute compilation
+the low-resolution settings, DMA guard and budgets are unchanged. The later native
+journal result is described above. Four additional compute compilation
 errors reference an undeclared `shared_mem_u32`; they are not linked to the awaited
 batch by the existing evidence. See [pending-submission tracing](DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
 

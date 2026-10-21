@@ -14,10 +14,11 @@
 >
 > The owner has visually confirmed the logos/menu and heard the opening introduction audio
 > in earlier native Terminal runs. The last uninstrumented 30-second comparison showed
-> only the first logo. The latest native run confirms reduced scene draws at
-> 640x360 and detects a DualSense. With a 120-second budget, it reports submitted
-> GPU work unfinished for ten seconds and stops after about 112 seconds; cooperative
-> process exit is confirmed. The diagnostic reaches the main loop with game
+> only the first logo. The owner now reports a black screen where the 3D animation
+> should appear. The latest 640x360 native run detects a DualSense and stops on the
+> GPU watchdog after about 114.91 seconds, with confirmed cooperative process exit.
+> Its pending batch includes indexed indirect draws, while shader pipelines still fail.
+> The diagnostic reaches the main loop with game
 > GPU commands and a physical controller. Introduction video correctness, entering a playable 3D scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
 >
@@ -109,14 +110,15 @@ detects a DualSense and continues beyond the save-dialog boundary. It ends at th
 recorded during that interval. Draw/dispatch counters are not gameplay FPS.
 The POSIX `usleep` import from an earlier instrumented run is corrected. The latest
 low-resolution run detects a DualSense and stops on the renderer's GPU watchdog
-after about 112 seconds, with no import stop or CPU-fault report. The child exits
+after about 114.91 seconds, with no import stop or CPU-fault report. The child exits
 with status 21; supervisor status 31 preserves the GPU-stall reason. Its CSV retains
-519 complete flip rows; cancellation can discard buffered rows. A record
+438 complete flip rows; cancellation can discard buffered rows. A record
 of presentation calls does not establish correct image contents or gameplay performance.
 
-The log lacks per-submission command history because AMD GPU markers are unavailable.
-A bounded CPU submission journal and Metal completion observations are now built
-into the diagnostic; native GPU verification is pending. See
+The bounded journal now identifies indexed indirect draw candidates in the awaited
+batch, but not the precise executing command. A checked correction rejects invalid
+cached pipelines and null Metal registration; black-scene shader support remains
+unresolved. See
 [pending-submission tracing](docs/DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
 
 Save-dialog initialization/open error contracts complement the eight mount/cleanup/

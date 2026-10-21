@@ -55,7 +55,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'before', 'previous', 'after'}
+    states = {'before', 'backports', 'previous', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -67,7 +67,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'previous', 'before') if state in states)
+    return next(state for state in ('after', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -77,8 +77,9 @@ def apply_backports(source):
     # JSON lines preserve significant unified-diff blank context without adding
     # trailing whitespace to the public source files.
     manifest = backport_manifest()
-    names = [name for name in manifest['patches']
-             if state != 'previous' or name not in manifest['previous_patches']]
+    applied = {'previous': manifest['previous_patches'],
+               'backports': manifest['backport_patches']}.get(state, ())
+    names = [name for name in manifest['patches'] if name not in applied]
     patches = ''.join('\n'.join(json.loads((PATCH_DIR / name).read_text())['lines']) + '\n'
                       for name in names)
     try:
@@ -257,7 +258,7 @@ def verify_source(source):
             state = backport_state(source)
             expected = {name for name, digests in backport_manifest()['files'].items()
                         if digests[state] != digests['before']}
-            if state not in ('previous', 'after') or changed != expected:
+            if state not in ('backports', 'previous', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -338,6 +339,7 @@ def build(root, runner, jobs, compiler):
         raise BuildError('Built GPU library does not export the required loader ABI.')
     verify_source(source)
     runner.run([sys.executable, root / 'tools/check_tessellation.py'])
+    runner.run([sys.executable, root / 'tools/check_pipeline_validity.py'])
     undefined = subprocess.check_output(['nm', '-u', library], text=True)
     runtime_symbols = sorted({line.split()[-1] for line in undefined.splitlines() if line.split()
                               and line.split()[-1].startswith(('_runtime_', '_bbcpu_', '_bb_image_base'))})
