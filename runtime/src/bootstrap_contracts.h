@@ -10,6 +10,7 @@ void runtime_sleep_stats(uint64_t *calls, uint64_t *ns, uint64_t *requested_ns);
 int bootstrap_graphics_bind(uintptr_t (*resolver)(const char *));
 int bootstrap_graphics_owns(const char *name);
 uintptr_t bootstrap_graphics_resolve(const char *name);
+void bootstrap_graphics_report(void);
 int bootstrap_gpu_start(const char *path, uint32_t sdk);
 void bootstrap_gpu_window_loop(void);
 int bootstrap_gpu_handle_fault(void *context, void *address);

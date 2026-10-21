@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 static _Atomic size_t open_requests, gamma_requests, adjust_requests, rate_requests, capability_requests;
+static _Atomic size_t margin_requests;
 static _Atomic size_t flip_event_requests, attribute_requests, register_requests, mode_requests, configure_requests;
 static int32_t video_open(int32_t user, int32_t bus, int32_t index, const void *params) {
     atomic_fetch_add_explicit(&open_requests, 1, memory_order_relaxed);
@@ -48,6 +49,11 @@ static int32_t color_adjust_unavailable(int32_t handle, const void *settings, ui
     (void)settings;
     (void)size;
     return (int32_t)UINT32_C(0x8029000b); /* INVALID_HANDLE */
+}
+static int32_t window_margins_unavailable(int32_t handle,int32_t top,int32_t bottom) {
+    (void)handle;(void)top;(void)bottom;
+    atomic_fetch_add_explicit(&margin_requests,1,memory_order_relaxed);
+    return (int32_t)UINT32_C(0x8029000b); /* No open port; handle lookup first. */
 }
 static int32_t flip_rate_unavailable(int32_t handle, int32_t rate) {
     atomic_fetch_add_explicit(&rate_requests, 1, memory_order_relaxed);
@@ -112,6 +118,7 @@ static int32_t configure_unavailable(int32_t handle, uint32_t reserved, const vo
     return (int32_t)UINT32_C(0x8029000b);
 }
 uintptr_t bootstrap_video_resolve(const char *name) {
+    if (!strcmp(name, "MTxxrOCeSig#G#H")) return (uintptr_t)window_margins_unavailable;
     if (!strcmp(name, "pjkDsgxli6c#G#H")) return (uintptr_t)mode_any;
     if (!strcmp(name, "N1bEoJ4SRw4#G#H")) return (uintptr_t)configure_unavailable;
     if (!strcmp(name, "w3BY+tAEiQY#G#H")) return (uintptr_t)register_buffers_unavailable;
@@ -125,6 +132,8 @@ uintptr_t bootstrap_video_resolve(const char *name) {
     return 0;
 }
 void bootstrap_video_report(void) {
+    printf("Bootstrap: rejected VideoOut window-margin requests=%zu (no valid display handle)\n",
+           atomic_load_explicit(&margin_requests,memory_order_relaxed));
     printf("Bootstrap: VideoOut mode preparations=%zu, rejected configurations=%zu (no valid display handle)\n",
            atomic_load_explicit(&mode_requests, memory_order_relaxed),
            atomic_load_explicit(&configure_requests, memory_order_relaxed));

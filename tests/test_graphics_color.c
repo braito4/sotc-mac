@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+static int margin_forwarded;
 static int open_now, adjust_calls, query_calls, native_result, status_result;
 static uint32_t gamma_bits;
 static int32_t native_open(int32_t user, int32_t bus, int32_t index, const void *p) {
@@ -31,8 +32,10 @@ static int32_t native_capability(int32_t handle, void *out) {
     const uint64_t caps = UINT64_C(0x123456789abcdef0);
     memcpy(out, &caps, sizeof(caps)); return native_result;
 }
+static int32_t native_margins(int32_t h,int32_t t,int32_t b) {(void)h;(void)t;(void)b;++margin_forwarded;return 0;}
 static void unused(void) {}
 static uintptr_t resolver(const char *name) {
+    if (!strcmp(name, "MTxxrOCeSig#G#H")) return (uintptr_t)native_margins;
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)native_open;
     if (!strcmp(name, "uquVH4-Du78#G#H")) return (uintptr_t)native_close;
     if (!strcmp(name, "SbU3dwp80lQ#G#H")) return (uintptr_t)native_status;
@@ -51,18 +54,32 @@ static uint32_t call(uintptr_t entry, uint64_t handle, const void *data, uint64_
     const uint64_t args[3] = {handle, (uintptr_t)data, size};
     return (uint32_t)bbcpu_call(entry, 3, args);
 }
+static void check_unsupported_window_margins(uintptr_t entry) {
+    const uint64_t values[]={0,1,108,216,432,INT32_MAX,UINT32_MAX,UINT64_MAX};
+    *runtime_errno()=17;
+    for(unsigned i=0;i<8;++i) for(unsigned j=0;j<8;++j) {
+        const uint64_t args[]={UINT64_C(0x1234000000000025),values[i],values[j],1,3,5};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0x8029001c && *runtime_errno()==17);
+    }
+}
 int main(int argc, char **argv) {
     bootstrap_initialize(1); assert(bootstrap_graphics_bind(resolver) == 0);
     const uintptr_t color = bridge("pv9CI5VC+R0#G#H"), cap = bridge("kGVLc3htQE8#G#H");
+    const uintptr_t margins=bridge("MTxxrOCeSig#G#H");
+    assert(!bootstrap_resolve("MTxxrOCeSig#A#B",0) && !bootstrap_resolve("MTxxrOCeSig#G#H",1));
+    assert(bootstrap_graphics_owns("MTxxrOCeSig#G#H"));
     const uintptr_t open = bridge("Up36PTk687E#G#H"), close = bridge("uquVH4-Du78#G#H");
     const size_t page = (size_t)sysconf(_SC_PAGESIZE);
     void *protected = mmap(NULL, page, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0); assert(protected != MAP_FAILED);
     /* Even the HLE's usual handle value is invalid until an actual open. */
     assert(call(color, 37, protected, 16) == UINT32_C(0x8029000b));
     assert(call(cap, 37, protected, 8) == UINT32_C(0x8029000b));
+    assert(call(margins,37,NULL,0)==0x8029000b);
     const uint64_t open_args[4] = {255, 0, 0, 0};
     assert(bbcpu_call(open, 4, open_args) == 37);
     assert((int32_t)bbcpu_call(open, 4, open_args) == -77); /* Failed open retains the live handle. */
+    check_unsupported_window_margins(margins);
+    assert(!margin_forwarded);
     if (argc == 2) {
         uint32_t channels[4] = {0x3f800000, 0x3f800000, 0x3f800000, 0};
         uint32_t size = 16;
@@ -98,6 +115,7 @@ int main(int argc, char **argv) {
     assert(call(cap, 37, protected, 16) == UINT32_C(0x80290001));
     assert(call(cap, 37, NULL, 8) == UINT32_C(0x80290001) && query_calls == previous_queries);
     status_result = -55;
+    assert((int32_t)call(margins,37,NULL,0)==-55);
     assert((int32_t)call(color, 37, protected, 16) == -55);
     assert((int32_t)call(cap, 37, protected, 8) == -55);
     status_result = 0;
@@ -108,9 +126,11 @@ int main(int argc, char **argv) {
     assert(munmap(boundary, page*2) == 0);
     const uint64_t close_args[1] = {37}; assert(bbcpu_call(close, 1, close_args) == 0);
     const int previous_adjusts = adjust_calls;
+    assert(call(margins,37,NULL,0)==0x8029000b && !margin_forwarded);
     assert(call(color, 37, protected, 16) == UINT32_C(0x8029000b));
     assert(call(cap, 37, protected, 8) == UINT32_C(0x8029000b));
     assert(adjust_calls == previous_adjusts && query_calls == previous_queries);
     assert(munmap(protected, page) == 0);
-    puts("PASS: guest RGB-to-scalar gamma, 32/64-bit sizes, actual capability bits, guarded outputs, real backend errors and live display lifecycle");
+    puts("PASS: guest RGB-to-scalar gamma, 32/64-bit sizes, actual capability bits, guarded outputs, real backend errors, unsupported window margins without forwarding success stubs, and live display lifecycle");
+    return 0;
 }

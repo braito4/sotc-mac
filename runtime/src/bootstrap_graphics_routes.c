@@ -8,10 +8,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 typedef uintptr_t (*Resolver)(const char *);
 static Resolver graphics_resolver;
 static pthread_mutex_t display_lock = PTHREAD_MUTEX_INITIALIZER;
+static _Atomic size_t margin_requests;
 static int32_t live_display = -1; /* Pinned provider supports one main port. */
 static int32_t (*graphics_open)(int32_t, int32_t, int32_t, const void *);
 static int32_t (*graphics_close)(int32_t);
@@ -42,6 +44,21 @@ static int32_t validate_display(int32_t handle) {
     if (handle != live_display || live_display < 0) return (int32_t)UINT32_C(0x8029000b);
     uint64_t status[8] = {0};
     return graphics_flip_status(handle, status);
+}
+static int32_t retail_window_margins(int32_t handle,int32_t top,int32_t bottom) {
+    (void)top;(void)bottom;
+    atomic_fetch_add_explicit(&margin_requests,1,memory_order_relaxed);
+    pthread_mutex_lock(&display_lock);
+    const int32_t result=validate_display(handle);
+    pthread_mutex_unlock(&display_lock);
+    /* The pinned renderer has no window-margin implementation: never call
+     * its unconditional-success stub. Retail rejects an otherwise valid main
+     * port without margin capability before inspecting margin values. */
+    return result ? result : (int32_t)UINT32_C(0x8029001c);
+}
+void bootstrap_graphics_report(void) {
+    if (graphics_resolver) printf("Graphics: unsupported VideoOut window-margin requests=%zu (no margin capability; no display update)\n",
+        atomic_load_explicit(&margin_requests,memory_order_relaxed));
 }
 static _Noreturn void unsupported_color(void) {
     fputs("STOP_GRAPHICS_COLOR: unsupported color size, unequal channel gamma or reserved data\n", stderr);
@@ -114,7 +131,7 @@ static const char *const graphics_imports[] = {
     "KXltnCwEJHQ#A#B", "bQVd5YzCal0#A#B", "gAhCn6UiU4Y#A#B",
 };
 static int adapted_operation(const char *name) {
-    return !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
+    return !strcmp(name, "MTxxrOCeSig#G#H") || !strcmp(name, "pv9CI5VC+R0#G#H") || !strcmp(name, "kGVLc3htQE8#G#H");
 }
 int bootstrap_graphics_owns(const char *name) {
     if (!graphics_resolver) return 0;
@@ -145,6 +162,7 @@ int bootstrap_graphics_bind(Resolver resolver) {
 }
 uintptr_t bootstrap_graphics_resolve(const char *name) {
     if (!graphics_resolver) return 0;
+    if (!strcmp(name, "MTxxrOCeSig#G#H")) return (uintptr_t)retail_window_margins;
     if (!strcmp(name, "Up36PTk687E#G#H")) return (uintptr_t)display_open;
     if (!strcmp(name, "uquVH4-Du78#G#H")) return (uintptr_t)display_close;
     if (!strcmp(name, "pv9CI5VC+R0#G#H")) return (uintptr_t)retail_adjust_color;

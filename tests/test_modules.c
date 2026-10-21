@@ -28,6 +28,19 @@ static uint32_t load(uintptr_t fn, uint32_t id, int32_t bytes, const void *argum
     const uint64_t args[] = {id, (uint32_t)bytes, (uintptr_t)arguments, reserved, (uintptr_t)initializer_result};
     return (uint32_t)bbcpu_call(fn, 5, args);
 }
+static void test_headless_window_margins(void) {
+    const char *name="MTxxrOCeSig#G#H";
+    bootstrap_initialize(0);assert(!bootstrap_resolve(name,0));bootstrap_initialize(1);
+    const uintptr_t fn=bootstrap_resolve(name,0);assert(fn && !bootstrap_resolve(name,1));
+    assert(!bootstrap_resolve("MTxxrOCeSig#A#B",0));
+    const uintptr_t entry=guest_bridge(fn);*runtime_errno()=17;
+    const uint64_t values[]={0,1,37,UINT32_MAX,UINT64_MAX};
+    for(unsigned i=0;i<5;++i) for(unsigned j=0;j<5;++j) {
+        const uint64_t args[]={values[i],values[j],UINT64_MAX,1,3,5};
+        assert((uint32_t)bbcpu_call(entry,6,args)==0x8029000b && *runtime_errno()==17);
+    }
+    puts("PASS: headless window-margin three-int guest ABI, invalid-handle precedence, scopes/capability and errno");
+}
 static void test_video_flip_event(void) {
     const char *name = "HXzjK9yI30k#G#H";
     bootstrap_initialize(0); assert(!bootstrap_resolve(name, 0));
@@ -861,6 +874,7 @@ int main(void) {
     test_video_buffers();
     test_video_modes();
     test_video_flip_event();
+    test_headless_window_margins();
     test_video_flip_rate();
     test_video_adjust_color();
     test_video_gamma();

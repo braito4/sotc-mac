@@ -406,6 +406,7 @@ void bootstrap_report(void) {
     bootstrap_gnm_report();
     bootstrap_system_report();
     bootstrap_video_report();
+    bootstrap_graphics_report();
     bootstrap_pad_report();
     bootstrap_audio_report();
     bootstrap_keys_report();
