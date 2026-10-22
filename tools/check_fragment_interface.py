@@ -4,15 +4,16 @@ Exit 0: both synthetic interfaces convert; 2: the known unsupported raw-per-vert
 interface is reproduced; other failures are errors. Requires isolated GPU deps.
 """
 from pathlib import Path
+from build_gpu import source_path, build_path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
-    source = ROOT / 'work/gpu-source'
+    source = source_path(ROOT)
     prefix = source / 'deps/macos-arm64'
-    sirit = ROOT / 'work/gpu-build/third_party/sirit/src/libsirit.a'
+    sirit = build_path(ROOT) / 'third_party/sirit/src/libsirit.a'
     output = ROOT / 'work/test_fragment_interface'
     emitter = ROOT / 'work/fragment_interface_emitter.o'
     if not sirit.is_file():

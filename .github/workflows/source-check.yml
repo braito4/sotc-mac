@@ -6,11 +6,13 @@ jobs:
   source-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # The AudioOut regression compiles the reviewed preceding adapter.
       - name: Check public source index and documentation
         run: python3 tools/check_repository.py
+      - name: Check dependency inventory
+        run: python3 tools/dependency_inventory.py --check
       - name: Check shell syntax
         run: |
           bash -n packaging/test-arm64.sh

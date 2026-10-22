@@ -53,6 +53,7 @@
   · <a href="docs/README.md">Documentation</a>
   · <a href="docs/DEVELOPMENT_HANDOFF.md">Developer handoff</a>
   · <a href="docs/STATUS.md">Development status</a>
+  · <a href="docs/DEPENDENCIES.md">Dependency versions</a>
   · <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -62,6 +63,12 @@
 > The synthetic CPU tests do not need a game. See [Game files](docs/guide/game-files.md).
 
 ## Features
+
+The current [dependency inventory](docs/DEPENDENCIES.md) records updated runtime,
+CPU and SotC reference pins, stable library versions and exact source revisions.
+The ARM64 build and CPU/source checks pass. The latest native failure described
+above predates this dependency cohort; its game rendering and OOM behavior still
+need an owner-supervised comparison.
 
 - **Native Apple Silicon host:** the diagnostic and bbcpu are built as ARM64 binaries.
 - **JIT and interpreter checks:** both modes are compared at explicit initialization boundaries.
@@ -115,9 +122,10 @@ exit 23. The newest run has one large cross-window copy and 2.5 GiB staging.
 A complete image history now shows 981 unassociated reduced-size images
 retaining 806.35 MiB without destruction. Retained reduced-scene proxies are a
 candidate requiring isolated lifetime validation.
-The experimental shader-derived buffer bound stays withdrawn, including its
-metadata/cache changes. The prior renderer overlays and cache 23/9 are rebuilt
-for ARM64; source regressions and full CPU contracts pass. Correct rendering
+The experimental shader-derived buffer bound stays withdrawn. The updated
+ARM64 renderer preserves the checked overlays, adds stale-proxy and completed-
+coroutine cleanup, and uses cache 24/9. Source regressions and full CPU contracts
+pass; this dependency cohort has not yet run the game. Correct rendering
 and memory stability remain unverified. The scene
 setting remains 640x360, DMA/async off. General PerVertexKHR, dynamic SRT and
 buffer-clamp failures persist. The resource exhausting memory, correct rendering

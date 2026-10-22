@@ -10,8 +10,8 @@ def git(*args):
 
 entries = git('ls-files', '--stage', '-z').decode().split('\0')
 expected_modules = {
-    'runtime/upstream': '3170535f59cadbe5ce9c38e6bb961ed5fd215194',
-    'reference': '2250f328feafab953aac85e758e7bddb2e80e891',
+    'runtime/upstream': 'b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548',
+    'reference': '411fdd86dadce347dcc4443228b009ae9265a548',
 }
 allowed_root = {'.gitignore', '.gitmodules', 'README.md', 'LICENSE', 'AGENTS.md',
                 'CONTRIBUTING.md', 'prueba_cpu_arm64.command'}

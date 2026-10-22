@@ -141,7 +141,7 @@ def render_memory(directory):
                       'large_copy_completed_bytes','gc_sample_known','gc_age_ns','gc_enabled',
                       'gc_uses_driver_usage','gc_used_bytes','gc_trigger_bytes','gc_pressure_bytes',
                       'gc_critical_bytes','gc_tick','scheduler_tick','gc_kept_window_sample','gc_freed_window_sample',
-                      'gc_kept_tiled_download','gc_kept_download_no_pressure'):
+                      'gc_kept_tiled_download','gc_kept_download_no_pressure','gc_kept_unresolved_gpu'):
             parts.append('<tr><td>'+esc(field)+'</td><td>'+esc(last.get(field,'unknown'))+'</td></tr>')
         parts.append('</table><p>State arrays: constructed/unknown, registered, unregistered, deletion queued. '
                      'Role arrays: unspecified, reduced scene proxy. Proxy ownership is the original UID '

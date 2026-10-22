@@ -37,11 +37,19 @@ This project is built on the work of:
 
 | Project | Revision |
 |---|---|
-| bloodborne-runtime | `3170535f59cadbe5ce9c38e6bb961ed5fd215194` |
-| bloodborne-recomp | `f749c155c2ff3bb932795de85c9c8fe9c4aa59ad` |
-| ShadowOfTheColossus-PC | `2250f328feafab953aac85e758e7bddb2e80e891` |
+| bloodborne-runtime | `b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548` |
+| bloodborne-recomp | `b9652d75edc0a281f06cec0da6ff72e9f5150a70` |
+| ShadowOfTheColossus-PC | `411fdd86dadce347dcc4443228b009ae9265a548` |
 | README layout reference: bloodborne-mac | `134780d9544dc726061a21993011434c9d746406` |
 | Zydis | `v4.1.1` |
+
+The [current dependency inventory](DEPENDENCIES.md) lists all selected library,
+submodule and host-tool versions. The nested-command coroutine correction is
+adapted from AjncSystem's `c9be8142ac76`, extending completed-frame cleanup to our
+two analogous self-test scopes. bmy's proxy detection and our local deferred
+ownership/cache invalidation remain. Earlier per-commit backports are now part
+of the selected runtime base; the consolidated checked overlay preserves their
+credits and the independent SotC/ARM64 adaptations.
 
 The project code is licensed under **GNU GPL version 2 or later**; see [LICENSE](../LICENSE).
 Upstream submodules retain their own license files and attribution. The memory, CPU context

@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
     }
     Collection({100,200,300,400,21,22,23,24,true,false});
     Keep(true); Keep(false);
+    Keep(false, true);
     Failure(8,111,222);
     return 0;
 }

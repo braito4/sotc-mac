@@ -2,7 +2,21 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**New isolated correction, native validation pending:** stale reduced-scene
+**Current dependency integration:** runtime **b2ff9cd0** (20 commits beyond the
+previous pin), CPU **b9652d75** and SotC reference **411fdd86 / v0.60.5** are now
+selected. Stable library updates include fmt 12.2.0, Boost 1.92.0, VMA 3.4.0,
+FFmpeg 9.0.2, Dear ImGui 1.93.0, xxHash 0.8.4 and current SPIRV-Headers; glslang
+16.6.0 is built as ARM64. [Dependency versions](DEPENDENCIES.md) lists the full
+set, exact revisions and latest reviewed channels. The selected renderer keeps
+our scene-proxy, SRT/Phi, audio and staging fixes, adds completed coroutine-frame
+cleanup and includes upstream's newest unresolved-GPU-content collection guard.
+Cache is now **24/9**. A fresh renderer/dependency build and native CPU checks
+pass, along with nine renderer regressions, 22 builder tests and 46/46 host-import
+coverage. The current handoff records the source/test boundary.
+No game/GPU comparison has validated this dependency cohort. The confirmed
+09:41Z OOM below predates it. Keep 640x360 and DMA/async off.
+
+**Previous scene-proxy checkpoint, before the dependency update:** stale reduced-scene
 proxies now leave the active cache at a drained submission boundary. Their views
 and images remain owned until real completion past the following submission;
 recent pointers, tracked UIDs and texture-set generation are invalidated together.

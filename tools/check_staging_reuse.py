@@ -1,5 +1,6 @@
 """Actual staging allocation/ownership methods against CPU buffer and tick doubles."""
 from pathlib import Path
+from build_gpu import source_path, build_path
 import re
 import subprocess
 from check_buffer_copy_chunks import function
@@ -96,7 +97,7 @@ int main(){
 
 def main():
     work = ROOT/'work/staging-reuse-fixture';work.mkdir(exist_ok=True)
-    for name, tree, expected in (('pinned', ROOT/'runtime/upstream', 2), ('adapted', ROOT/'work/gpu-source', 0)):
+    for name, tree, expected in (('pinned', ROOT/'runtime/upstream', 2), ('adapted', source_path(ROOT), 0)):
         cpp, binary = work/(name+'.cpp'), work/name
         cpp.write_text(fixture(tree))
         subprocess.run(['clang++', '-std=c++20', '-O1', '-Wall', '-Wextra', '-Werror',

@@ -18,18 +18,43 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
-    def test_memory_state_migrates_to_scene_proxy_retirement(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                              for name in manifest['memory_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
-                           capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'memory')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
+    def test_spirv_header_metadata_without_prefix_is_normalized_exactly(self):
+        with tempfile.TemporaryDirectory(prefix='SPIRV headers ') as directory:
+            prefix = Path(directory)
+            path = prefix/'share/pkgconfig/SPIRV-Headers.pc';path.parent.mkdir(parents=True)
+            path.write_text('includedir='+str(prefix)+'/include\nName: SPIRV-Headers\nCflags: -I${includedir}\n')
+            self.assertEqual(gpu.normalize_pkgconfig_paths(prefix),1)
+            self.assertEqual(gpu.normalize_pkgconfig_paths(prefix),0)
+            self.assertIn('includedir=${prefix}/include',path.read_text())
+            path.write_text('includedir=/unrecognized/path\n')
+            with self.assertRaises(gpu.BuildError):
+                gpu.normalize_pkgconfig_paths(prefix)
+
+    def test_selected_versions_and_nonempty_markers_prevent_stale_reuse(self):
+        recipe = gpu.prepare_recipe((gpu.ROOT/'runtime/upstream/scripts/macos/build-deps.sh').read_bytes())
+        self.assertIn('FMT_VERSION=12.2.0\n', recipe)
+        self.assertIn('FFMPEG_VERSION=n9.0.2\n', recipe)
+        self.assertIn('$work/src/xxhash/build/cmake', recipe)
+        functions = recipe[recipe.index('package_version() {'):recipe.index('# fetch <name>')]
+        with tempfile.TemporaryDirectory(prefix='dependency stamp ') as directory:
+            script = 'set -eu\nprefix=$1\n' + functions + r'''
+touch "$(done_mark fmt)"
+needed fmt || exit 2
+mark fmt
+if needed fmt; then exit 3; fi
+printf 'old-version\n' > "$(done_mark fmt)"
+needed fmt || exit 4
+'''
+            subprocess.run(['/bin/bash','-c',script,'fixture',directory],check=True,capture_output=True,text=True)
+
+    def test_versioned_source_does_not_overwrite_previous_renderer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            old = root/'work/gpu-source';old.mkdir(parents=True)
+            (old/'sentinel').write_text('previous qualified renderer')
+            self.assertNotEqual(gpu.source_path(root),old)
+            self.assertEqual((old/'sentinel').read_text(),'previous qualified renderer')
+
 
     def test_untracked_and_ignored_compile_sources_are_rejected_without_changes(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -46,44 +71,8 @@ class GpuBuildTests(unittest.TestCase):
                 gpu.reject_untracked_renderer_sources(source)
             self.assertEqual(duplicate.read_text(),'// preserved\n')
 
-    def test_staging_state_migrates_to_memory_observations(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                              for name in manifest['staging_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
-                           capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'staging')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
-    def test_visual_state_migrates_to_staging_reuse(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                              for name in manifest['visual_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
-                           capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'visual')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
-    def test_command_error_state_migrates_to_visual_evidence(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                              for name in manifest['command_error_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
-                           capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'command_error')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
     def backport_fixture(self, root):
         for name in gpu.backport_manifest()['files']:
@@ -119,56 +108,9 @@ class GpuBuildTests(unittest.TestCase):
             with self.assertRaisesRegex(gpu.BuildError, 'Incomplete'):
                 gpu.apply_backports(source)
 
-    def test_exact_previous_backport_set_migrates_without_reapplying_it(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
-                              for name in manifest['previous_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches,
-                           text=True, capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'previous')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
-    def test_pipeline_validity_state_migrates_to_shader_compatibility(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
-                              for name in manifest['validity_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches,
-                           text=True, capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'validity')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
-    def test_shader_compatibility_state_migrates_to_lookup_and_srt(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
-                              for name in manifest['compatibility_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches,
-                           text=True, capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'compatibility')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
-    def test_lookup_and_srt_state_migrates_to_metal_failure_check(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source=Path(temporary)
-            self.backport_fixture(source)
-            manifest=gpu.backport_manifest()
-            patches=''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                            for name in manifest['lookup_patches'])
-            subprocess.run(['git','-C',str(source),'apply'],input=patches,text=True,capture_output=True,check=True)
-            self.assertEqual(gpu.backport_state(source),'lookup')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source),'after')
 
     def test_checked_recipe_is_portable_and_excludes_app_runtimes(self):
         original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
@@ -186,18 +128,6 @@ class GpuBuildTests(unittest.TestCase):
         result = subprocess.run(['/bin/bash', '-n'], input=recipe, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_original_three_backports_migrate_through_both_local_overlays(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
-                              for name in manifest['backport_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches,
-                           text=True, capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'backports')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
 
     @unittest.skipUnless(shutil.which('cmake') and shutil.which('ninja'), 'CMake/Ninja required')
     def test_generated_include_flag_builds_with_spaces_in_prefix(self):
@@ -381,7 +311,7 @@ class GpuBuildTests(unittest.TestCase):
             source = Path(temporary)
             for status in ('-fixture gpu/third_party/imgui', '+fixture gpu/third_party/imgui', 'Ufixture recomp'):
                 with mock.patch.object(gpu, 'git_output', side_effect=[str(source), gpu.REVISION, gpu.REPOSITORY, '', status]):
-                    with self.assertRaisesRegex(gpu.BuildError, 'gitlinks'):
+                    with self.assertRaisesRegex(gpu.BuildError, 'gitlink|override'):
                         gpu.verify_source(source)
 
     def test_inventory_stays_read_only_when_dependencies_are_absent(self):

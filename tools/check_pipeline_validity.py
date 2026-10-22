@@ -4,6 +4,7 @@ The pinned source must reproduce invalid-handle acceptance; the private adapted
 source must reject it. No graphics library, GPU or game input is used.
 """
 from pathlib import Path
+from build_gpu import source_path, build_path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,5 +73,5 @@ def check_sources(pinned, adapted, output):
     print('PASS: actual cached-pipeline and Metal registration guards; no GPU initialized')
 
 if __name__ == '__main__':
-    check_sources(ROOT / 'runtime/upstream', ROOT / 'work/gpu-source',
+    check_sources(ROOT / 'runtime/upstream', source_path(ROOT),
                   ROOT / 'work/pipeline-validity-fixture')

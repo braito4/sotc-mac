@@ -1,5 +1,18 @@
 # Reviewed renderer adaptations
 
+The active manifest now targets **b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548** and
+uses the consolidated `sotc-current-runtime` overlay. Earlier individual patch
+files below document the previous 3170535f development history; the active builder
+does not reapply them to the new base. The new base already incorporates the
+three original upstream backports. The consolidated set preserves local
+corrections/diagnostics, adds Ajnc's completed-task cleanup and uses current
+installed SPIRV-Headers. Dear ImGui 1.93.0 is separately revision checked.
+Unknown/partial source sets remain rejected; obsolete cross-base migrations are
+not accepted as if they were the new base. Cache is **24/9**. The upstream
+unresolved-image collector guard remains intact and receives its own observational
+retention counter. See [current versions](../../docs/DEPENDENCIES.md) and the
+[current review](../../docs/UPSTREAM_REVIEW.md#current-dependency-integration).
+
 `sotc-scene-proxy-retirement` adapts stale-proxy detection introduced in
 [bmy 8185b88d8057](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935)
 (bbport/shadPS4/bmy, GPL-2.0-or-later). At the already-drained `OnSubmit`, proxies

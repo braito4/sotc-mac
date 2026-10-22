@@ -6,6 +6,7 @@ selecting GPU page-table/fault-buffer resources only when direct access is enabl
 It does not validate GPU execution or game pixels.
 """
 from pathlib import Path
+from build_gpu import source_path, build_path
 import os
 import subprocess
 import tempfile
@@ -16,9 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
-    source = ROOT / 'work/gpu-source'
+    source = source_path(ROOT)
     prefix = source / 'deps/macos-arm64'
-    build = ROOT / 'work/gpu-build'
+    build = build_path(ROOT)
     library = build / 'libbbgpu.dylib'
     if not library.is_file():
         raise SystemExit('Build the isolated GPU library first.')

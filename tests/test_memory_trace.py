@@ -61,6 +61,8 @@ class MemoryTraceTests(unittest.TestCase):
         self.assertEqual(last['large_copy_requests'],1)
         self.assertEqual(last['large_copy_completed_bytes'],3<<30)
         self.assertEqual(last['gc_kept_tiled_download'],1)
+        self.assertEqual(last['gc_kept_download_no_pressure'],1)
+        self.assertEqual(last['gc_kept_unresolved_gpu'],1)
         self.assertEqual(last['gc_kept_window_sample'],23)
         self.assertEqual(last['gc_freed_window_sample'],24)
         buffers = self.read(directory/'buffers.jsonl')

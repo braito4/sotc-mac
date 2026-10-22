@@ -16,7 +16,7 @@ require_arm64() {
 configure_gpu_driver() {
     # The pinned Metal layer still needs Vulkan's WSI setup. Without this ICD
     # the standalone loader advertises only its own non-surface extensions.
-    trial_gpu_prefix="$trial_root/work/gpu-source/deps/macos-arm64"
+    trial_gpu_prefix="$trial_root/work/gpu-source-22923f080229/deps/macos-arm64"
     [[ -f "$trial_gpu_prefix/lib/libvulkan.1.dylib" && -f "$trial_gpu_prefix/lib/libMoltenVK.dylib" &&
        -f "$trial_gpu_prefix/share/vulkan/icd.d/MoltenVK_icd.json" ]] || fail 'Build the isolated GPU dependencies first.'
     export VK_DRIVER_FILES="$trial_gpu_prefix/share/vulkan/icd.d/MoltenVK_icd.json"
@@ -39,8 +39,12 @@ build_diagnostic() {
         -I"$trial_deps/include" -I"$cpu_repo/src" -I"$cpu_repo/src/cpu" -I"$runtime_repo/src"
         -I"$trial_root/runtime/src" -I"$trial_root/tests" -I"$trial_root/work")
     cp "$cpu_repo/out/libbbcpu.a" "$trial_root/work/libbbcpu-context.a"
+    trial_archive_members=$(ar -t "$trial_root/work/libbbcpu-context.a") || fail 'Cannot read bbcpu archive.'
     for trial_member in cpu.c.o interp_vec.c.o; do
-        ar -t "$trial_root/work/libbbcpu-context.a" | /usr/bin/grep -Fxq "$trial_member" || fail 'Unexpected bbcpu archive layout.'
+        case $'\n'"$trial_archive_members"$'\n' in
+            *$'\n'"$trial_member"$'\n'*) ;;
+            *) fail 'Unexpected bbcpu archive layout.' ;;
+        esac
     done
     ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o interp_vec.c.o
     python3 "$trial_root/tools/prepare_runtime_support.py" "$runtime_repo/src/runtime_mutex.c" "$trial_root/work/runtime_mutex_diagnostic.c"
@@ -266,8 +270,8 @@ case "$trial_mode" in
         need git
         git -C "$trial_root" submodule update --init runtime/upstream reference
         git -C "$runtime_repo" submodule update --init recomp
-        git -C "$runtime_repo" checkout --detach 3170535f59cadbe5ce9c38e6bb961ed5fd215194
-        git -C "$cpu_repo" checkout --detach f749c155c2ff3bb932795de85c9c8fe9c4aa59ad
+        git -C "$runtime_repo" checkout --detach b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548
+        git -C "$cpu_repo" checkout --detach b9652d75edc0a281f06cec0da6ff72e9f5150a70
         printf 'Pinned CPU sources initialized; no game data downloaded.\n'
         ;;
     --test-emitter) need clang; test_emitter ;;
@@ -316,9 +320,9 @@ case "$trial_mode" in
         if [[ "$trial_mode" == --renderer-check ]]; then
             BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
                 BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
-                "$trial_root/work/probe_entry_arm64" --renderer-check "$trial_root/work/gpu-build/libbbgpu.dylib"
+                "$trial_root/work/probe_entry_arm64" --renderer-check "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
         else
-            BB_GPU_USER_DIR="$trial_gpu_state" "$trial_root/work/probe_entry_arm64" --gpu-load-check "$trial_root/work/gpu-build/libbbgpu.dylib"
+            BB_GPU_USER_DIR="$trial_gpu_state" "$trial_root/work/probe_entry_arm64" --gpu-load-check "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
         fi
         ;;
     --graphics-game-test)
@@ -354,7 +358,7 @@ case "$trial_mode" in
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \
             --seconds "${SOTC_DIAGNOSTIC_SECONDS-0}" --log "$trial_log" --cooperative-stop \
             -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
-            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib"
+            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
         then trial_status=0; else trial_status=$?; fi
         if [[ -d "$trial_gpu_state/visual" ]]; then
             python3 "$trial_root/tools/analyze_visual_trace.py" "$trial_gpu_state/visual" || \

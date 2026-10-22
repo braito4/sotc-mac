@@ -126,6 +126,15 @@ user-space timer guarantees recovery from a kernel/driver hang.
 
 ## Isolated renderer build
 
+The [dependency inventory](../DEPENDENCIES.md) and
+[lock](../../tools/dependencies.json) select current source heads and stable
+library versions. Runtime/CPU/reference pins are updated; the renderer uses a
+separate integration workspace (`gpu-source-22923f080229` and
+`gpu-build-22923f080229`). The workspace key remains fixed within this update;
+the builder independently verifies the selected b2ff9cd0 Git HEAD. Older qualified
+source/dependencies are preserved. Do not manually rebuild the legacy
+`work/gpu-build` directory expecting the new library.
+
 The Metal prerequisite has passed on Apple M1 in the user's native Terminal. The isolated
 ARM64 renderer library has also built successfully. To build or resume it (macOS 15 or later):
 
@@ -135,8 +144,8 @@ bash packaging/build-gpu-arm64.sh
 
 This uses a separate pinned source checkout and build area under `work`, leaving the current
 CPU diagnostic and `runtime/upstream` unchanged. The first build downloads and compiles
-dependencies and needs network access; GitHub DNS is unavailable in the development tool
-process. Completed dependencies are reused. Re-run the same command after an interrupted
+dependencies and needs network access. Completed matching-version dependencies are
+reused; old empty marker files cannot certify a new version. Re-run after an interrupted
 build; generated FFmpeg metadata and cached dependency paths are repaired for spaced prefixes.
 A successful build checks ARM64 architecture and API exports and records the host runtime
 symbols it needs. It does not launch the game. See [Graphics bring-up](../GRAPHICS_BRINGUP.md)
@@ -148,6 +157,22 @@ the [upstream review](../UPSTREAM_REVIEW.md) for the exact changes. A successful
 build now also runs `python3 tools/check_tessellation.py`, which checks the actual
 auxiliary SPIR-V emitter without initializing a GPU. Keep this separate from the
 native Terminal visual verification.
+
+The current full build also checks pipeline validity, copy chunking, staging
+reuse, memory observations, deferred scene-proxy ownership, completed coroutine
+frames, collector-content safety and synthetic shader conversion without
+initializing a GPU. Cache is 24/9. These checks do not establish native game video.
+
+glslang 16.6.0 is selected for host shaders. The builder recognizes a locally built
+`work/host-tools/prefix/bin/glslang`, or an explicit `SOTC_GLSLANG` executable.
+To reproduce the local host-tool build without installing system software:
+
+```sh
+git clone --depth 1 --branch 16.6.0 https://github.com/KhronosGroup/glslang.git work/host-tools/glslang-source
+cmake -S work/host-tools/glslang-source -B work/host-tools/glslang-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_INSTALL_PREFIX="$PWD/work/host-tools/prefix" -DENABLE_OPT=OFF -DENABLE_GLSLANG_BINARIES=ON -DBUILD_TESTING=OFF
+cmake --build work/host-tools/glslang-build --parallel 2
+cmake --install work/host-tools/glslang-build
+```
 
 Before attempting loader integration, run `python3 tools/check_gpu_link.py` on the Mac after
 building the diagnostic and GPU library. It reports missing host symbols without loading the

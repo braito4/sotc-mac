@@ -5,6 +5,7 @@ SPIRV-Cross PR #2699 separately under work/pervertex-research before running thi
 API design: KhronosGroup/SPIRV-Cross PR #2699 by Jean-Philippe Meunier (carbonimax).
 """
 from pathlib import Path
+from build_gpu import source_path, build_path
 import subprocess
 import tempfile
 
@@ -19,7 +20,7 @@ def main():
         raise SystemExit('The isolated PR checkout does not match the reviewed revision')
     if subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain', '--untracked-files=no'], text=True).strip():
         raise SystemExit('The isolated PR checkout has tracked modifications')
-    gpu = ROOT/'work/gpu-source'
+    gpu = source_path(ROOT)
     sirit = gpu/'gpu/third_party/sirit'
     flags = ['clang++', '-std=c++20', '-O1', '-arch', 'arm64', '-mmacosx-version-min=15.0']
     includes = ['-I'+str(sirit/'include'), '-I'+str(sirit/'externals/SPIRV-Headers/include')]
@@ -32,7 +33,7 @@ def main():
                             str(ROOT/'tests'/ (fixture+'.cpp')), '-o', str(obj)], check=True)
         binary = work/'proposal'
         subprocess.run([*flags, '-I'+str(source), str(ROOT/'tests/test_pervertex_replay.cpp'),
-                        *objects, str(ROOT/'work/gpu-build/third_party/sirit/src/libsirit.a'),
+                        *objects, str(build_path(ROOT)/'third_party/sirit/src/libsirit.a'),
                         *(str(build/('libspirv-cross-'+name+'.a')) for name in ('msl', 'glsl', 'core')),
                         '-o', str(binary)], check=True)
         dependencies = subprocess.check_output(['otool', '-L', str(binary)], text=True)

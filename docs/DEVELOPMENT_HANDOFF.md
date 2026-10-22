@@ -8,6 +8,69 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Current dependency integration and native comparison boundary
+
+The owner explicitly requested integrating all dependency updates and keeping
+their current/latest versions visible on GitHub. The selected sources are now
+runtime **b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548**, CPU
+**b9652d75edc0a281f06cec0da6ff72e9f5150a70** and SotC reference
+**411fdd86dadce347dcc4443228b009ae9265a548 / v0.60.5**. See
+[the complete inventory](DEPENDENCIES.md) and [lock](../tools/dependencies.json).
+The reference source is updated; its Windows renderer does not replace our Mac
+renderer. Runtime/CPU/reference histories advance 20/2/72 commits respectively.
+
+All selected recipe libraries were freshly built/installed, with the official
+MoltenVK v1.4.2 binary retained at the latest stable release. New stable versions
+include fmt 12.2.0, magic_enum 0.9.8, robin-map 1.4.1, VMA 3.4.0, Xbyak 7.44,
+xxHash 0.8.4, Boost 1.92.0 and FFmpeg 9.0.2. Dear ImGui is checked at 1.93.0;
+Sirit now uses installed SPIRV-Headers v1.202609.0. The CPU prefix's older Zycore
+was replaced with the bundled 1.5.2 pair. ROCm's current half header is identical
+to our embedded 1.12.0. glslang 16.6.0 is built locally as ARM64, resolving the
+former fresh-build preflight blocker. Current Vulkan/SDL/SPIRV-Cross releases
+and unchanged FSR-Vulkan head are recorded separately from unreleased proposals.
+
+The checked overlay is consolidated against the new runtime base. The three
+earlier upstream backports are already incorporated there. Local scene-proxy
+retirement, exact-only PerVertex compatibility, wave64/SRT/Phi corrections,
+buffer-copy chunking, staging reuse, private diagnostics and native failure exits
+remain. Shader binary version is **24**, metadata **9**; the withdrawn buffer-
+bound experiment remains absent. Ajnc c9be8142 completed-coroutine cleanup is
+adapted to all five local nested-command/self-test sites. Its CPU regression
+reproduces 500 outstanding child frames before and zero after; this is not native
+heap or Metal OOM evidence.
+
+The last public-head refresh caught the additional **b2ff9cd0** collector fix,
+which is now included: MaybeCpuDirty can describe a neighboring write, while an
+image's only valid contents remain on the GPU. Such unresolved GPU-modified
+images are retained unless CpuDirty proves an actual CPU overwrite. The
+actual-predicate CPU fixture verifies the old/current/adapted behavior, preserving
+ordinary tiled-download and pressure eviction rules. `gc_kept_unresolved_gpu`
+counts this reason separately. This correctness guard can retain more memory;
+do not remove it to reduce pressure or claim it solves our OOM.
+
+Sources/builds are isolated under the `22923f080229` workspace key; the actual
+required HEAD is b2ff9cd0 and is verified independently. This fixed integration
+key avoids moving installed-library identities while the final upstream commit
+is incorporated. The old qualified renderer/dependencies remain untouched;
+private rollback binaries and original source snapshots are retained. Do not mix
+libraries, source revisions or dependency prefixes from different cohorts.
+
+Native emitter/JIT/vector checks and full JIT/interpreter contracts pass. The
+fresh ARM64 renderer builds with regenerated host shaders and the selected
+dependencies. All **nine production-source renderer regressions**, **22 builder
+tests** and **46/46 host-import symbol checks** pass. CI now checks the generated dependency inventory and uses
+the current checkout action by immutable commit. Hosted CI execution is distinct
+from local checks. No tool-driven game or GPU test was launched.
+
+Next is **one owner-supervised comparison** with scene **640x360**, DMA/async off,
+JIT/statistics on, metadata on and pixel capture off. Default game duration remains
+unlimited and GPU-progress supervision stays active. Refresh public heads again
+if delayed; inspect that one log before another run. Compare proxy live/pending/
+destroyed bytes, unresolved-GPU retention, the single large upload and actual
+Metal allocation/error. The last confirmed native boundary remains 09:41Z:
+**101.864 seconds, Metal OOM code 8, child/supervisor exit 23**, before this cohort.
+Correct pixels, stable playback and avoidance of OOM remain unverified.
+
 ### Stale reduced-scene proxy retirement: built, native comparison pending
 
 The new `sotc-scene-proxy-retirement` checked overlay addresses the retained

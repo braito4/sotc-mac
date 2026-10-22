@@ -1,385 +1,119 @@
 {
-  "base_revision": "3170535f59cadbe5ce9c38e6bb961ed5fd215194",
+  "base_revision": "b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548",
+  "previous_base_revision": "3170535f59cadbe5ce9c38e6bb961ed5fd215194",
   "upstream_commits": [
     "ef0080bb433152b476ab27b398d53eb23e8e934f",
     "0e940e96cb08e06e0ea588bd41800dd62b00c659",
     "e0348c24d9117af5b22de2caa09d17a5e6a3dd07",
-    "5f381d5dd190f55b6dae5608a162b6807c688928"
+    "5f381d5dd190f55b6dae5608a162b6807c688928",
+    "8185b88d80573fa300595d5c54450183b4109935",
+    "c9be8142ac7675ccc553a0445273202fc5a96981"
   ],
   "files": {
-    "gpu/shadps4/shader_recompiler/backend/spirv/emit_spirv_quad_rect.cpp": {
-      "before": "fda91b2c2ada2569abde14f352255a7d4ec2388d885536513f267fd35a178a37",
-      "after": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "previous": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "backports": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "validity": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "compatibility": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "lookup": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "command_error": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "visual": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "staging": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "memory": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289"
-    },
-    "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
-      "before": "d00e9d4f343bcbbbce00f361da8637c378a9441e39932eb4b63035d058f3e4f4",
-      "after": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "previous": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "backports": "d554160440bb533dbc2e75fd9213458ea8de7c09ddbee7f99a8d2d807aec8acf",
-      "validity": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "compatibility": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "lookup": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "command_error": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "visual": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "staging": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "memory": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78"
-    },
-    "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
-      "before": "34e9ff7defc64093897e913d0921d4d51d49e3cb16d3d30affbf4f8c7fa101eb",
-      "after": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d",
-      "previous": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
-      "backports": "0c34ee4e0772db4de5873445c47f361e06a5fbf15e9c04b0adae955e54c98174",
-      "validity": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
-      "compatibility": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
-      "lookup": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
-      "command_error": "8666cf3b6628297544e179557eddf11d593ff04a2673afdd91e576e063ad59d9",
-      "visual": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d",
-      "staging": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d",
-      "memory": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d"
-    },
-    "gpu/shadps4/video_core/renderer_metal/mtl_shadow.h": {
-      "before": "96c3c5caccc95c843d225b1598604d82914b4c66fabcdcb251f616f5066f841d",
-      "after": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "previous": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "backports": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "validity": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "compatibility": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "lookup": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "command_error": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "visual": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "staging": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "memory": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8"
-    },
-    "gpu/shadps4/video_core/renderer_metal/mtl_shadow.mm": {
-      "before": "4875d594e973ddd875b728acbf8871b943e3cdd447b4bda4b7a1b68e4a6afcb6",
-      "after": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "previous": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "backports": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "validity": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "compatibility": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "lookup": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "command_error": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "visual": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "staging": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "memory": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
-      "before": "7d44150f1a6471931d3e82457734e84a4d47c35b1a554ca1426984cd6c5761fa",
-      "after": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
-      "previous": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
-      "backports": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
-      "validity": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
-      "compatibility": "b599204c56fe27a987335d53dc72566d43bea6aaa4695d89d9687422ee8e585c",
-      "lookup": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
-      "command_error": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
-      "visual": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
-      "staging": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
-      "memory": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0"
-    },
     "gpu/CMakeLists.txt": {
-      "before": "b55098b2da8d69e2eb78863bd56e97c3dfe11e944fa797ee10f802e67cec5664",
-      "previous": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "after": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "backports": "b55098b2da8d69e2eb78863bd56e97c3dfe11e944fa797ee10f802e67cec5664",
-      "validity": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "compatibility": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "lookup": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "command_error": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "visual": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "staging": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "memory": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
-      "before": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
-      "previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "after": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "backports": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
-      "validity": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "compatibility": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "lookup": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "command_error": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "visual": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "staging": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "memory": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
-      "before": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
-      "previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "after": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "backports": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
-      "validity": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "compatibility": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "lookup": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "command_error": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "visual": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "staging": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "memory": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
-      "before": "ff7eca2ce613b01366bc2843ba20394e6c2528ef45f7307bd2b0947f0f79ff0f",
-      "previous": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "after": "39a1270ec2cf7661dc43fcba61157e31867ed46d08a01989e6751a927fa61948",
-      "backports": "ff7eca2ce613b01366bc2843ba20394e6c2528ef45f7307bd2b0947f0f79ff0f",
-      "validity": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "compatibility": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "lookup": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "command_error": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "visual": "a5ba434de674d252882f4184ac9ee57067e8a800be1e686c9a33cc4219400944",
-      "staging": "a5ba434de674d252882f4184ac9ee57067e8a800be1e686c9a33cc4219400944",
-      "memory": "14683fa3a6a630d2bac5c882bfb02922fa51a36d3a621151ad2ea6125ac24405"
-    },
-    "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
-      "before": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
-      "previous": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "after": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "backports": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
-      "validity": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "compatibility": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "lookup": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "command_error": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "visual": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "staging": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "memory": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
-      "before": "7ee67a7ead14fcd94a45ba94f641baa308d9eac75fd92b4ac7a03114e5a48b77",
-      "backports": "7ee67a7ead14fcd94a45ba94f641baa308d9eac75fd92b4ac7a03114e5a48b77",
-      "previous": "7ee67a7ead14fcd94a45ba94f641baa308d9eac75fd92b4ac7a03114e5a48b77",
-      "after": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
-      "validity": "7114122607062169f1d9debcb9ee1bd54a03c5b66909641497175027d519297f",
-      "compatibility": "3994b557057d048efde19cc5c6dcb14e95c7fd712d83d1e573fa90e6123d8ad1",
-      "lookup": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
-      "command_error": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
-      "visual": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
-      "staging": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
-      "memory": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_metal_shadow.h": {
-      "before": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
-      "backports": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
-      "previous": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
-      "after": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "validity": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "compatibility": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "lookup": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "command_error": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "visual": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "staging": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "memory": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
-    },
-    "gpu/shadps4/shader_recompiler/ir/passes/lower_wave64_pass.cpp": {
-      "before": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
-      "backports": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
-      "previous": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
-      "after": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "validity": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
-      "compatibility": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "lookup": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "command_error": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "visual": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "staging": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "memory": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.cpp": {
-      "before": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
-      "backports": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
-      "previous": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
-      "after": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "validity": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
-      "compatibility": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "lookup": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "command_error": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "visual": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "staging": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "memory": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.h": {
-      "before": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
-      "backports": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
-      "previous": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
-      "validity": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
-      "after": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "compatibility": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "lookup": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "command_error": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "visual": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "staging": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "memory": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
-    },
-    "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp": {
-      "before": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
-      "backports": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
-      "previous": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
-      "validity": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
-      "compatibility": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
-      "after": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "lookup": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "command_error": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "visual": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "staging": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "memory": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
-      "before": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "backports": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "previous": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "validity": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "compatibility": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "lookup": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "command_error": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
-      "after": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0",
-      "visual": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0",
-      "staging": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0",
-      "memory": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_graphics_pipeline.cpp": {
-      "before": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "backports": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "previous": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "validity": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "compatibility": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "lookup": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "command_error": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
-      "after": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
-      "visual": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
-      "staging": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
-      "memory": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5"
-    },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp": {
-      "before": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "backports": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "previous": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "validity": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "compatibility": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "lookup": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "command_error": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
-      "after": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9",
-      "visual": "ca03741fd3af43e48a989e444544c05655bc090a46a6a5d268cd570cc848afd5",
-      "staging": "451d8344cbd4850d78741712fce8d0e266fd1ff34f4e6bdb8dffdc54e512989c",
-      "memory": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9"
+      "before": "353da382ba3ff49a298cdaca18d71782219722f6e4f5311b08cbb74326f35af4",
+      "after": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985"
     },
     "gpu/shadps4/core/libraries/videoout/driver.cpp": {
       "before": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "backports": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "previous": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "validity": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "compatibility": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "lookup": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "command_error": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
-      "after": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
-      "visual": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
-      "staging": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
-      "memory": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
+      "after": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
     },
-    "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp": {
-      "before": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "backports": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "previous": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "validity": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "compatibility": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "lookup": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "command_error": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "after": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b",
-      "visual": "e39d4b2ca91be5d5a728c4f291df3b1cedc49207db0c6b51fc4627670c505ef8",
-      "staging": "e39d4b2ca91be5d5a728c4f291df3b1cedc49207db0c6b51fc4627670c505ef8",
-      "memory": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b"
+    "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp": {
+      "before": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
+      "after": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392"
+    },
+    "gpu/shadps4/shader_recompiler/ir/passes/lower_wave64_pass.cpp": {
+      "before": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
+      "after": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
+    },
+    "gpu/shadps4/video_core/amdgpu/liverpool.cpp": {
+      "before": "d2e1a4b0b0eb6c64c99d319fa4bdfd9c2a99e54c89cd1811bfcc44e8abc84798",
+      "after": "5a7854d906875a9d1941b18ae989ce3189b5fc5e5d6760f8c29db3f390270722"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp": {
       "before": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "backports": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "previous": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "validity": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "compatibility": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "lookup": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "command_error": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "visual": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "staging": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
-      "after": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6",
-      "memory": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6"
+      "after": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6"
     },
-    "gpu/shadps4/video_core/texture_cache/image.cpp": {
-      "before": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "backports": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "previous": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "validity": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "compatibility": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "lookup": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "command_error": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "visual": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "staging": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
-      "after": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910",
-      "memory": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910"
+    "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
+      "before": "d554160440bb533dbc2e75fd9213458ea8de7c09ddbee7f99a8d2d807aec8acf",
+      "after": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78"
     },
-    "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
-      "before": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "backports": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "previous": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "validity": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "compatibility": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "lookup": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "command_error": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "visual": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "staging": "ac1b37e6c2038c1171cf62be0af53d5a6c562594ae68fb7f3f92f8a9cf13e429",
-      "after": "3af94be9c893ed74d935c23c02ae8521632503e54bc2d876389cf60c94da2f71",
-      "memory": "3af94be9c893ed74d935c23c02ae8521632503e54bc2d876389cf60c94da2f71"
+    "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
+      "before": "0c34ee4e0772db4de5873445c47f361e06a5fbf15e9c04b0adae955e54c98174",
+      "after": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d"
+    },
+    "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
+      "before": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
+      "after": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_graphics_pipeline.cpp": {
+      "before": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
+      "after": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_metal_shadow.h": {
+      "before": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
+      "after": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
+      "before": "2aa776f2253c009f93d89545c9f765ed9584e1741c27c9150541c0ebc2ef5fc8",
+      "after": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
+      "before": "52d4a240543f15b10cc200567ce3ad34c1f19a2e9cbbfe2f4b8361b1bd35ccfa",
+      "after": "395d5a4165417030b27bdcd7267a6292ee5ab9b462945e9e7b9e404de5383b19"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
+      "before": "d8e18677499a71fa1d216932ba208b6e4a0804a0c1abce6c2d6d1c29af216334",
+      "after": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
+      "before": "48fa552c0ff5d48f683e2d06d980ff38a3ada5789ef28249417bcb01057f01b9",
+      "after": "e22fa7baeced7a0c252ec0b76bb66c531a0e4f8921156d9dc3c3a519081398d1"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp": {
+      "before": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
+      "after": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.cpp": {
       "before": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "backports": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "previous": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "validity": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "compatibility": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "lookup": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "command_error": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "visual": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "staging": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
-      "memory": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
       "after": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.h": {
       "before": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "backports": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "previous": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "validity": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "compatibility": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "lookup": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "command_error": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "visual": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "staging": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
-      "memory": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
       "after": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
+      "before": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
+      "after": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
+      "before": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
+      "after": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.cpp": {
+      "before": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
+      "after": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.h": {
+      "before": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
+      "after": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp": {
+      "before": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
+      "after": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9"
+    },
+    "gpu/shadps4/video_core/texture_cache/image.cpp": {
+      "before": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
+      "after": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910"
+    },
+    "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
+      "before": "05d738dc7041cbb9f6567ca7871963f7b8629a260f23d515ce676c37ba585d3a",
+      "after": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c"
     }
   },
   "patches": {
-    "0e940e96cb08.patch.json": "25f45c3f3f985c68df81c3eaf06e2521025cc216fa4511857ed3a2f1ff8ac43d",
-    "e0348c24d911.patch.json": "ed67fd1baef2bfcb04523802cad0d3f05c90df78967a6d10aab13a5975342861",
-    "ef0080bb4331.patch.json": "4b7aa773e484c7219a42febf12ba8f9b9eb57ed3862136529b721f8939906a26",
-    "sotc-submission-trace.patch.json": "2aa17eab887fbca562bb5554dd52f683b479827501fc0b188c5de7db3d601d2d",
-    "sotc-pipeline-validity.patch.json": "5bb57345f1b60af076b9d8ba2d1005f80c46bfe0087989db24c64bf041bffbc3",
-    "sotc-shader-compat.patch.json": "5afce6f569b61abe7eba7343e3a16fe51b031a4de7a5727fd4fe6fe2b68cf565",
-    "sotc-shader-lookup-srt.patch.json": "17ecbbdf15ed6abd795ae5315716ebf2797d14157cbb1111dcd775bd9527358a",
-    "sotc-metal-command-error.patch.json": "d54470a1af6e644c0de15b1caa9d677ae883a5bcf747ec690e7e37eaffc3f5c7",
-    "sotc-visual-trace.patch.json": "3eb0c53df02f1b6e0266d3f695f8b570252acff87a226160edd4a18219be7595",
-    "sotc-buffer-copy-chunks.patch.json": "70b42c8221f43e6dd70ece5125b8de49adafe10961ff30486fd2681641827e1c",
-    "sotc-staging-reuse.patch.json": "542addabb171b221c5252b258bd433414d0974971182aaaa92c2b69461830194",
-    "sotc-memory-trace.patch.json": "81d19d3e74b8d57f2dfa6cb865dcc91647f8be0cde7cb6c069fea45e6068500d",
-    "sotc-scene-proxy-retirement.patch.json": "8f5c0f086784fc58852ecd75c0ad4f8b87d3630bc01f4d861053123e1068f965"
+    "sotc-current-runtime.patch.json": "ec51c826b05f5869ec2e56b286bef2cf577c641ab4a73da006118b6a227977f4"
   },
-  "previous_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json"
-  ],
   "local_adaptations": [
     "sotc-submission-trace-v1",
     "sotc-pipeline-validity-v1",
@@ -390,85 +124,9 @@
     "sotc-buffer-copy-chunks-v1",
     "sotc-staging-reuse-v1",
     "sotc-memory-trace-v1",
-    "sotc-scene-proxy-retirement-v1"
-  ],
-  "backport_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json"
-  ],
-  "validity_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json"
-  ],
-  "compatibility_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json",
-    "sotc-shader-compat.patch.json"
-  ],
-  "lookup_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json",
-    "sotc-shader-compat.patch.json",
-    "sotc-shader-lookup-srt.patch.json"
-  ],
-  "command_error_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json",
-    "sotc-shader-compat.patch.json",
-    "sotc-shader-lookup-srt.patch.json",
-    "sotc-metal-command-error.patch.json"
-  ],
-  "visual_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json",
-    "sotc-shader-compat.patch.json",
-    "sotc-shader-lookup-srt.patch.json",
-    "sotc-metal-command-error.patch.json",
-    "sotc-visual-trace.patch.json",
-    "sotc-buffer-copy-chunks.patch.json"
-  ],
-  "staging_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json",
-    "sotc-shader-compat.patch.json",
-    "sotc-shader-lookup-srt.patch.json",
-    "sotc-metal-command-error.patch.json",
-    "sotc-visual-trace.patch.json",
-    "sotc-buffer-copy-chunks.patch.json",
-    "sotc-staging-reuse.patch.json"
-  ],
-  "memory_patches": [
-    "0e940e96cb08.patch.json",
-    "e0348c24d911.patch.json",
-    "ef0080bb4331.patch.json",
-    "sotc-submission-trace.patch.json",
-    "sotc-pipeline-validity.patch.json",
-    "sotc-shader-compat.patch.json",
-    "sotc-shader-lookup-srt.patch.json",
-    "sotc-metal-command-error.patch.json",
-    "sotc-visual-trace.patch.json",
-    "sotc-buffer-copy-chunks.patch.json",
-    "sotc-staging-reuse.patch.json",
-    "sotc-memory-trace.patch.json"
+    "sotc-scene-proxy-retirement-v1",
+    "sotc-current-runtime-integration-v1",
+    "sotc-nested-coroutine-lifetime-v1"
   ],
   "scene_proxy_source_review": {
     "repository": "https://github.com/bmy/bbport-mac",
@@ -476,5 +134,18 @@
     "observed_head": "a69f56af2069df45357e86c27396baa945b53231",
     "path": "gpu/upscale/vk_scene_resolution.cpp",
     "scope": "Stale proxy detection reference; local drained-submit maintenance, past-next deferred ownership, generation/tracked invalidation and role evidence. No bulk upstream import."
-  }
+  },
+  "submodule_overrides": {
+    "gpu/third_party/imgui": {
+      "base": "f1cc2ae15e53a861a874c3034aae6798fde194ab",
+      "after": "c1aaac65e896a45f81f47a4d68f9959e0f86c859",
+      "repository": "https://github.com/ocornut/imgui.git",
+      "version": "v1.93.0"
+    }
+  },
+  "incorporated_in_base": [
+    "ef0080bb433152b476ab27b398d53eb23e8e934f",
+    "0e940e96cb08e06e0ea588bd41800dd62b00c659",
+    "e0348c24d9117af5b22de2caa09d17a5e6a3dd07"
+  ]
 }

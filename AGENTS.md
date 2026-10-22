@@ -2,6 +2,18 @@
 
 This repository develops a native ARM64 macOS diagnostic for Shadow of the Colossus PS4.
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
+The current dependency integration supersedes older pin/cache instructions below:
+runtime b2ff9cd0, CPU b9652d75 and reference 411fdd86 are selected, with shader cache
+24/9. Read docs/DEPENDENCIES.md and tools/dependencies.json for every library,
+latest reviewed version, exact source SHA and open proposal. Keep the inventory
+current whenever dependencies or reviewed upstream versions change. Runtime,
+CPU and reference updates are integrated at the owner's explicit request;
+unmerged PerVertex proposals and alternative driver architectures remain tracked
+separately. Preserve the local scene-proxy, coroutine, shader/SRT, audio and staging
+corrections when updating upstream. The new GC guard preserves unresolved GPU
+contents; record those retention decisions separately from no-pressure downloads.
+The versioned workspace key is an integration identifier, not the required HEAD;
+the builder verifies the exact selected b2ff9cd0 revision independently.
 Use docs/DEVELOPMENT_HANDOFF.md for the current reproduction steps, stopping boundary and debugging priorities; keep it current when those change.
 Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred upstream reference when resolving doubts. Follow its runtime/recomp links and review relevant changes against our pins; do not assume Bloodborne-specific layouts apply to SotC or silently update dependencies.
 Also review bmy/bbport-mac, MoltenVK, SPIRV-Cross and KosmicKrisp as requested by

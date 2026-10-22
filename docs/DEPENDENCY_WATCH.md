@@ -6,6 +6,11 @@ updates. It is a review/notification task, not an automatic dependency updater.
 Development sessions should also check these sources before treating an old
 limitation as current. Resolve each repository's actual default branch, record
 the reviewed SHA and inspect the diff and tests.
+The owner subsequently explicitly requested integration of all dependency
+updates. That reviewed integration is now represented by the
+[current dependency inventory](DEPENDENCIES.md) and version lock. Keep this
+inventory current after source/version reviews; the daily watch remains a public
+review task rather than an automatic installer or publisher.
 Also follow audio/NGS2 delivery and scheduling changes: the owner reports audible
 cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 
@@ -28,14 +33,20 @@ new work; production pins remain separate.
 | Repository | Branch | Observed head |
 |---|---|---|
 | `bmy/bbport-mac` | `macos-native-0.6` | [a69f56af2069](https://github.com/bmy/bbport-mac/commit/a69f56af2069df45357e86c27396baa945b53231) |
-| `bloodborne-native/bloodborne-mac` | `main` | [6b23bd27663e](https://github.com/bloodborne-native/bloodborne-mac/commit/6b23bd27663e6a36338433abb9f03cde60b14fa8) |
-| `bloodborne-native/bloodborne-runtime` | `main` | [22923f080229](https://github.com/bloodborne-native/bloodborne-runtime/commit/22923f08022909b7e22f7ae8c02ad4c3f6554bfd) |
+| `bloodborne-native/bloodborne-mac` | `main` | [ab1f0c57d1e2](https://github.com/bloodborne-native/bloodborne-mac/commit/ab1f0c57d1e25cc130c59be9a874e98099822cc4) |
+| `bloodborne-native/bloodborne-runtime` | `main` | [b2ff9cd0b982](https://github.com/bloodborne-native/bloodborne-runtime/commit/b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548) |
 | `bloodborne-native/bloodborne-recomp` | `main` | [b9652d75edc0](https://github.com/bloodborne-native/bloodborne-recomp/commit/b9652d75edc0a281f06cec0da6ff72e9f5150a70) |
 | `KhronosGroup/MoltenVK` | `main` | [5189f8de86ec](https://github.com/KhronosGroup/MoltenVK/commit/5189f8de86ec365860f63bf1da736815cfaea5cd) |
 | `KhronosGroup/SPIRV-Cross` | `main` | [300681bbcb83](https://github.com/KhronosGroup/SPIRV-Cross/commit/300681bbcb8365a8d1eacdacdbdd0249bbf1d6b1) |
 | `shadexternals/mesa-kosmickrisp` | `main` | [52d87b35f3a4](https://github.com/shadexternals/mesa-kosmickrisp/commit/52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1) |
 
 ## bmy review: 2026-10-22
+
+The final public-head refresh advanced the runtime/app heads to those in the
+table. Runtime b2ff9cd0's unresolved-GPU-image collection guard is integrated;
+it protects valid GPU contents and can retain more memory. Its CPU predicate
+regression and a separate retention counter accompany the update. There is no
+native SotC/M1 validation of that guard yet.
 
 The later focused source review also finds stale reduced-scene proxy cleanup in
 [8185b88d8057](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935),

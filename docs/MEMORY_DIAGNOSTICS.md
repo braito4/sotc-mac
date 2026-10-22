@@ -2,12 +2,20 @@
 
 The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these additional
 observations. This instruments the current renderer without changing shader code,
-cache versions (23/9), buffer sizes, imported windows, resource ownership, eviction
+cache versions, buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
 The measured native boundary remains Metal out-of-memory code 8 after 101.864
 seconds in the 09:41Z owner run on 2026-10-22, now with a complete image history.
 The owner previously recovered visible
 output after the earlier experiment was withdrawn. These traces are not a fix.
+
+The current dependency cohort uses cache **24/9**; older native captures use
+23/9. Its separate upstream collector correction retains unresolved GPU-written
+contents when a neighboring page write makes download unsafe. The recorder now
+counts those decisions as `gc_kept_unresolved_gpu`, separately from tiled
+downloads and downloads kept without pressure. These are decision counts, not
+distinct-image counts. That correctness fix can increase retained memory and has
+not yet been validated in our native game workload.
 
 The separate checked scene-proxy retirement overlay is now built, with native
 validation pending. It changes stale proxy lifetime only; the recorder remains

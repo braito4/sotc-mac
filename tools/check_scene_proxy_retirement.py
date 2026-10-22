@@ -1,5 +1,6 @@
 """Production proxy creation/retirement and scheduler deferral against CPU resource doubles."""
 from pathlib import Path
+from build_gpu import source_path, build_path
 import json
 import os
 import subprocess
@@ -20,7 +21,7 @@ def fixture(tree):
     entry = function(header, '    struct Entry {')+';'
     scheduler = (base/'vk_scheduler.h').read_text()
     defer = function(scheduler, '    void DeferOperationPastNext(')
-    destruction = function((ROOT/'work/gpu-source/gpu/shadps4/video_core/texture_cache/image.cpp').read_text(),
+    destruction = function((source_path(ROOT)/'gpu/shadps4/video_core/texture_cache/image.cpp').read_text(),
                            'UniqueImage::~UniqueImage()')
     on_submit = function((base/'vk_rasterizer.cpp').read_text(), 'void Rasterizer::OnSubmit()')
     return r'''
@@ -169,11 +170,11 @@ int main(){
 
 def main():
     with tempfile.TemporaryDirectory(prefix='scene-proxy-fixture-',dir=ROOT/'work') as temp:
-        for name,tree,expected in (('pinned',ROOT/'runtime/upstream',2),('adapted',ROOT/'work/gpu-source',0)):
+        for name,tree,expected in (('pinned',ROOT/'runtime/upstream',2),('adapted',source_path(ROOT),0)):
             root=Path(temp)/name;root.mkdir();cpp=root/'fixture.cpp';binary=root/'fixture'
             cpp.write_text(fixture(tree))
             subprocess.run(['clang++','-std=c++20','-O1','-Wall','-Wextra','-Werror','-pthread',
-                            '-I'+str(ROOT/'runtime/src'),'-I'+str(ROOT/'work/gpu-source/gpu/shadps4'),
+                            '-I'+str(ROOT/'runtime/src'),'-I'+str(source_path(ROOT)/'gpu/shadps4'),
                             str(cpp),'-o',str(binary)],check=True)
             result=subprocess.run([str(binary)],capture_output=True,text=True,timeout=15,
                 env=dict(os.environ,SOTC_MEMORY_TRACE='1',BB_GPU_USER_DIR=str(root)))

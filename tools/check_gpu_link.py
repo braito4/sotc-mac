@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from build_gpu import BuildError, REQUIRED_EXPORTS, ROOT, private_path
+from build_gpu import BuildError, REQUIRED_EXPORTS, ROOT, private_path, source_path, build_path
 
 
 def parse_symbols(output):
@@ -65,7 +65,7 @@ def inspect(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--library', type=Path, default=ROOT / 'work/gpu-build/libbbgpu.dylib')
+    parser.add_argument('--library', type=Path, default=build_path(ROOT) / 'libbbgpu.dylib')
     parser.add_argument('--executable', type=Path, default=ROOT / 'work/probe_entry_arm64')
     args = parser.parse_args()
     # Inspect binaries, not the earlier JSON build report: the report may be stale.

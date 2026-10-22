@@ -124,9 +124,9 @@ class LauncherBudgetTests(unittest.TestCase):
             # synthetic, and the recording stub never executes a GPU command.
             for name in ('runtime/upstream/recomp/out/libbbcpu.a',
                          'work/deps-arm64/lib/libZydis.a', 'work/deps-arm64/lib/libZycore.a',
-                         'work/gpu-source/deps/macos-arm64/lib/libvulkan.1.dylib',
-                         'work/gpu-source/deps/macos-arm64/lib/libMoltenVK.dylib',
-                         'work/gpu-source/deps/macos-arm64/share/vulkan/icd.d/MoltenVK_icd.json'):
+                         'work/gpu-source-22923f080229/deps/macos-arm64/lib/libvulkan.1.dylib',
+                         'work/gpu-source-22923f080229/deps/macos-arm64/lib/libMoltenVK.dylib',
+                         'work/gpu-source-22923f080229/deps/macos-arm64/share/vulkan/icd.d/MoltenVK_icd.json'):
                 path = root/name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('synthetic fixture only')

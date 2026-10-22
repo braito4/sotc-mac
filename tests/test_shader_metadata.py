@@ -25,12 +25,12 @@ class ShaderMetadataTests(unittest.TestCase):
                             str(ROOT/'tests/test_shader_metadata.cpp'),'-o',str(binary)],check=True)
             subprocess.run([str(binary)],check=True,timeout=15)
 
-    @unittest.skipUnless(shutil.which('c++') and (ROOT/'work/gpu-source/deps/macos-arm64/include/fmt/format.h').is_file(),
+    @unittest.skipUnless(shutil.which('c++') and (ROOT/'work/gpu-source-22923f080229/deps/macos-arm64/include/fmt/format.h').is_file(),
                          'C++ compiler and prepared renderer headers required')
     def test_runtime_wrapper_and_required_failure_evidence(self):
         import os
         source=ROOT/'runtime/upstream'
-        prefix=ROOT/'work/gpu-source/deps/macos-arm64'
+        prefix=ROOT/'work/gpu-source-22923f080229/deps/macos-arm64'
         with tempfile.TemporaryDirectory(prefix='shader lookup ') as directory:
             work=Path(directory)
             binary=work/'lookup'

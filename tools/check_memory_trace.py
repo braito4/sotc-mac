@@ -1,5 +1,6 @@
 """Run production range/copy/staging/destruction methods against CPU-only resource doubles."""
 from pathlib import Path
+from build_gpu import source_path, build_path
 import json
 import os
 import subprocess
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
-    tree=ROOT/'work/gpu-source'
+    tree=source_path(ROOT)
     buffer=(tree/'gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp').read_text()
     image=(tree/'gpu/shadps4/video_core/texture_cache/image.cpp').read_text()
     ranges='\n'.join(function(buffer,s) for s in (

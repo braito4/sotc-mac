@@ -1,0 +1,365 @@
+{
+  "schema": 1,
+  "checked_at": "2026-10-22T10:51:27Z",
+  "runtime": {
+    "repository": "https://github.com/bloodborne-native/bloodborne-runtime",
+    "previous_revision": "3170535f59cadbe5ce9c38e6bb961ed5fd215194",
+    "revision": "b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548"
+  },
+  "cpu": {
+    "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
+    "previous_revision": "f749c155c2ff3bb932795de85c9c8fe9c4aa59ad",
+    "revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70"
+  },
+  "reference": {
+    "repository": "https://github.com/AjncSystem/ShadowOfTheColossus-PC",
+    "previous_revision": "2250f328feafab953aac85e758e7bddb2e80e891",
+    "revision": "411fdd86dadce347dcc4443228b009ae9265a548",
+    "release": "v0.60.5",
+    "scope": "Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations."
+  },
+  "packages": [
+    {
+      "id": "vulkan-headers",
+      "repository": "https://github.com/KhronosGroup/Vulkan-Headers",
+      "recipe_variable": "VULKAN_VERSION",
+      "recipe_version": "v1.4.365",
+      "version": "v1.4.365",
+      "upstream_tag": "v1.4.365",
+      "latest_available": "v1.4.365",
+      "latest_url": "https://github.com/KhronosGroup/Vulkan-Headers/tree/v1.4.365",
+      "selected_revision": "c46850864f4661461b0f6cb9922c058ffea4915e"
+    },
+    {
+      "id": "vulkan-loader",
+      "repository": "https://github.com/KhronosGroup/Vulkan-Loader",
+      "recipe_variable": null,
+      "recipe_version": "v1.4.365",
+      "version": "v1.4.365",
+      "upstream_tag": "v1.4.365",
+      "latest_available": "v1.4.365",
+      "latest_url": "https://github.com/KhronosGroup/Vulkan-Loader/tree/v1.4.365",
+      "selected_revision": "f866657ff687a36d767cd7783bab800e31ebafaa"
+    },
+    {
+      "id": "moltenvk",
+      "repository": "https://github.com/KhronosGroup/MoltenVK",
+      "recipe_variable": "MOLTENVK_VERSION",
+      "recipe_version": "v1.4.2",
+      "version": "v1.4.2",
+      "upstream_tag": "v1.4.2",
+      "latest_available": "v1.4.2",
+      "latest_url": "https://github.com/KhronosGroup/MoltenVK/releases/tag/v1.4.2",
+      "selected_revision": "db66022459ffb663aa2b50f6b018bc2e124f5edf",
+      "release_published_at": "2026-07-24T14:00:46Z"
+    },
+    {
+      "id": "spirv-cross",
+      "repository": "https://github.com/KhronosGroup/SPIRV-Cross",
+      "recipe_variable": "SPIRV_CROSS_VERSION",
+      "recipe_version": "vulkan-sdk-1.4.363.0",
+      "version": "vulkan-sdk-1.4.363.0",
+      "upstream_tag": "vulkan-sdk-1.4.363.0",
+      "latest_available": "vulkan-sdk-1.4.363.0",
+      "latest_url": "https://github.com/KhronosGroup/SPIRV-Cross/releases/tag/vulkan-sdk-1.4.363.0",
+      "selected_revision": "f11ba9f0b21ba8fc15153d50a2a1ae31ab1cf8f7",
+      "note": "Latest Vulkan SDK tag; the GitHub latest-release endpoint reports an unrelated historical MoltenVK-1.1.5 release."
+    },
+    {
+      "id": "sdl3",
+      "repository": "https://github.com/libsdl-org/SDL",
+      "recipe_variable": "SDL_VERSION",
+      "recipe_version": "release-3.4.18",
+      "version": "release-3.4.18",
+      "upstream_tag": "release-3.4.18",
+      "latest_available": "release-3.4.18",
+      "latest_url": "https://github.com/libsdl-org/SDL/releases/tag/release-3.4.18",
+      "selected_revision": "829a65d769d935c4852f8159e964312c0957260a",
+      "release_published_at": "2026-10-02T22:43:21Z"
+    },
+    {
+      "id": "fmt",
+      "repository": "https://github.com/fmtlib/fmt",
+      "recipe_variable": "FMT_VERSION",
+      "recipe_version": "12.0.0",
+      "version": "12.2.0",
+      "upstream_tag": "12.2.0",
+      "latest_available": "12.2.0",
+      "latest_url": "https://github.com/fmtlib/fmt/releases/tag/12.2.0",
+      "selected_revision": "1be298e1bd68957e4cd352e1f676f00e07dcfb57",
+      "release_published_at": "2026-06-16T05:30:06Z"
+    },
+    {
+      "id": "magic-enum",
+      "repository": "https://github.com/Neargye/magic_enum",
+      "recipe_variable": "MAGIC_ENUM_VERSION",
+      "recipe_version": "v0.9.7",
+      "version": "v0.9.8",
+      "upstream_tag": "v0.9.8",
+      "latest_available": "v0.9.8",
+      "latest_url": "https://github.com/Neargye/magic_enum/releases/tag/v0.9.8",
+      "selected_revision": "1384769c66bd16ec9bb1353f45fe8ec8ccc12dbd",
+      "release_published_at": "2026-05-03T16:53:04Z"
+    },
+    {
+      "id": "robin-map",
+      "repository": "https://github.com/Tessil/robin-map",
+      "recipe_variable": "ROBIN_MAP_VERSION",
+      "recipe_version": "v1.4.0",
+      "version": "v1.4.1",
+      "upstream_tag": "v1.4.1",
+      "latest_available": "v1.4.1",
+      "latest_url": "https://github.com/Tessil/robin-map/releases/tag/v1.4.1",
+      "selected_revision": "bd14e6830a1474fed9d2d03f5c3b0683d818d540",
+      "release_published_at": "2025-11-02T19:30:03Z"
+    },
+    {
+      "id": "vma",
+      "repository": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator",
+      "recipe_variable": "VMA_VERSION",
+      "recipe_version": "v3.3.0",
+      "version": "v3.4.0",
+      "upstream_tag": "v3.4.0",
+      "latest_available": "v3.4.0",
+      "latest_url": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.4.0",
+      "selected_revision": "3aa921224c154a0d2c43912bc88e1c42ce1f7607",
+      "release_published_at": "2026-06-04T22:51:10Z"
+    },
+    {
+      "id": "miniz",
+      "repository": "https://github.com/richgel999/miniz",
+      "recipe_variable": "MINIZ_VERSION",
+      "recipe_version": "3.1.2",
+      "version": "3.1.2",
+      "upstream_tag": "3.1.2",
+      "latest_available": "3.1.2",
+      "latest_url": "https://github.com/richgel999/miniz/releases/tag/3.1.2",
+      "selected_revision": "77d0dce8627735138c51770d1799a1ef48f2117d",
+      "release_published_at": "2026-07-01T13:46:26Z"
+    },
+    {
+      "id": "xbyak",
+      "repository": "https://github.com/herumi/xbyak",
+      "recipe_variable": "XBYAK_VERSION",
+      "recipe_version": "v7.43",
+      "version": "v7.44",
+      "upstream_tag": "v7.44",
+      "latest_available": "v7.44",
+      "latest_url": "https://github.com/herumi/xbyak/tree/v7.44",
+      "selected_revision": "df112862583c2d327c1d9782fd28f53aa675f11d",
+      "note": "Recipe header dependency; x86 emitter is not used by the ARM64 CPU path."
+    },
+    {
+      "id": "zydis",
+      "repository": "https://github.com/zyantific/zydis",
+      "recipe_variable": "ZYDIS_VERSION",
+      "recipe_version": "v4.1.1",
+      "version": "v4.1.1",
+      "upstream_tag": "v4.1.1",
+      "latest_available": "v4.1.1",
+      "latest_url": "https://github.com/zyantific/zydis/releases/tag/v4.1.1",
+      "selected_revision": "a2278f1d254e492f6a6b39f6cb5d1f5d515659dc",
+      "release_published_at": "2025-02-16T00:17:45Z"
+    },
+    {
+      "id": "xxhash",
+      "repository": "https://github.com/Cyan4973/xxHash",
+      "recipe_variable": "XXHASH_VERSION",
+      "recipe_version": "v0.8.3",
+      "version": "v0.8.4",
+      "upstream_tag": "v0.8.4",
+      "latest_available": "v0.8.4",
+      "latest_url": "https://github.com/Cyan4973/xxHash/releases/tag/v0.8.4",
+      "selected_revision": "c87183a77d67f7d37e3d2d1b7eaac5e7c695e4f0"
+    },
+    {
+      "id": "boost",
+      "repository": "https://github.com/boostorg/boost",
+      "recipe_variable": "BOOST_VERSION",
+      "recipe_version": "1.89.0",
+      "version": "1.92.0",
+      "upstream_tag": "boost-1.92.0",
+      "latest_available": "boost-1.92.0",
+      "latest_url": "https://github.com/boostorg/boost/releases/tag/boost-1.92.0",
+      "selected_revision": "afdfa32505af73e3d208144b3f623f0096cb62b6",
+      "release_published_at": "2026-08-12T11:41:32Z"
+    },
+    {
+      "id": "ffmpeg",
+      "repository": "https://github.com/FFmpeg/FFmpeg",
+      "recipe_variable": "FFMPEG_VERSION",
+      "recipe_version": "n7.1.2",
+      "version": "n9.0.2",
+      "upstream_tag": "n9.0.2",
+      "latest_available": "n9.0.2",
+      "latest_url": "https://github.com/FFmpeg/FFmpeg/tree/n9.0.2",
+      "selected_revision": "946fcce07b6dcd0331c8cc609192aeff5e1924f8"
+    },
+    {
+      "id": "spirv-headers",
+      "repository": "https://github.com/KhronosGroup/SPIRV-Headers",
+      "recipe_variable": "SPIRV_HEADERS_VERSION",
+      "recipe_version": null,
+      "version": "v1.202609.0",
+      "upstream_tag": "v1.202609.0",
+      "latest_available": "v1.202609.0",
+      "latest_url": "https://github.com/KhronosGroup/SPIRV-Headers/releases/tag/v1.202609.0",
+      "selected_revision": "04fd3caa1e8267e4d95c806cad901181728e1006",
+      "note": "Installed system headers replace the runtime-vendored 1.5.5 snapshot for Sirit."
+    }
+  ],
+  "submodules": [
+    {
+      "id": "imgui",
+      "repository": "https://github.com/ocornut/imgui",
+      "version": "v1.93.0",
+      "revision": "c1aaac65e896a45f81f47a4d68f9959e0f86c859",
+      "latest_available": "v1.93.0"
+    },
+    {
+      "id": "fsr-vulkan",
+      "repository": "https://github.com/FireBurn/FSR-Vulkan",
+      "version": "main",
+      "revision": "c64f093404125e960813f95f1996c14780f0dd69",
+      "latest_available": "main at the same revision; no release tags"
+    }
+  ],
+  "host_tools": [
+    {
+      "id": "glslang",
+      "repository": "https://github.com/KhronosGroup/glslang",
+      "version": "16.6.0",
+      "revision": "e1b562a8bed273a02f30b59b66a5d499793cede5",
+      "latest_available": "16.6.0",
+      "built_locally": "arm64"
+    }
+  ],
+  "validation": {
+    "integration": "integrated; fresh ARM64 renderer/dependency build, nine renderer source regressions, 22 builder tests, native CPU checks and full JIT/interpreter contracts pass",
+    "native_game": "not run after this dependency update; last confirmed boundary predates it: Metal OOM 8 at 101.864 seconds",
+    "renderer_cache": "24/9",
+    "symbol_coverage": "46/46 host imports present; ABI/device rendering not established",
+    "latest_runtime_guard": "b2ff9cd protects unresolved GPU image contents; this can retain additional memory",
+    "hosted_ci": "not yet observed for this commit"
+  },
+  "transitive": [
+    {
+      "id": "zycore",
+      "repository": "https://github.com/zyantific/zycore-c",
+      "version": "v1.5.2",
+      "latest_available": "v1.5.2",
+      "latest_url": "https://github.com/zyantific/zycore-c/tree/v1.5.2",
+      "revision": "0b2432ced0884fd152b471d97ecf0258ff4d859f",
+      "scope": "Zydis bundled dependency, installed for CPU and GPU; replaces the older CPU prefix metadata 1.5.0.0."
+    }
+  ],
+  "vendored": [
+    {
+      "id": "sirit",
+      "version": "runtime-vendored",
+      "revision": "22923f08022909b7e22f7ae8c02ad4c3f6554bfd",
+      "scope": "Sirit emitter source follows the current runtime commit; headers now come from the separately updated SPIRV-Headers package."
+    },
+    {
+      "id": "half",
+      "version": "1.12.0",
+      "latest_available": "1.12.0",
+      "latest_url": "https://github.com/ROCm/half/blob/rocm-7.2.4/include/half.hpp",
+      "scope": "Vendored header verified byte-identical to current ROCm 7.2.4; no source replacement needed."
+    },
+    {
+      "id": "gcn-and-fonts",
+      "version": "runtime-vendored",
+      "revision": "22923f08022909b7e22f7ae8c02ad4c3f6554bfd",
+      "scope": "Embedded GCN headers and menu fonts follow the selected runtime snapshot; not independently downloaded packages."
+    }
+  ],
+  "excluded": [
+    {
+      "id": "app-bash-python",
+      "scope": "App-bundle runtimes are deliberately excluded from the ARM64 diagnostic recipe. System host tools are prerequisites, not vendored dependencies."
+    },
+    {
+      "id": "LibAtrac9",
+      "scope": "Uninitialized upstream submodule, not built/linked by this diagnostic; not an active dependency."
+    },
+    {
+      "id": "kosmickrisp",
+      "scope": "Tracked alternative driver; not installed. The active driver is MoltenVK."
+    }
+  ],
+  "references": [
+    {
+      "id": "bloodborne-mac",
+      "repository": "https://github.com/bloodborne-native/bloodborne-mac",
+      "branch": "main",
+      "revision": "ab1f0c57d1e25cc130c59be9a874e98099822cc4",
+      "scope": "App/reference project, not a linked dependency."
+    },
+    {
+      "id": "bbport-mac",
+      "repository": "https://github.com/bmy/bbport-mac",
+      "branch": "macos-native-0.6",
+      "revision": "a69f56af2069df45357e86c27396baa945b53231",
+      "scope": "Selected copy batching and stale-proxy detection adapted; its Rosetta/KosmicKrisp architecture is not substituted."
+    },
+    {
+      "id": "MoltenVK development",
+      "repository": "https://github.com/KhronosGroup/MoltenVK",
+      "branch": "main",
+      "revision": "5189f8de86ec365860f63bf1da736815cfaea5cd",
+      "scope": "Development head tracked; selected installed release is v1.4.2."
+    },
+    {
+      "id": "SPIRV-Cross development",
+      "repository": "https://github.com/KhronosGroup/SPIRV-Cross",
+      "branch": "main",
+      "revision": "300681bbcb8365a8d1eacdacdbdd0249bbf1d6b1",
+      "scope": "Development head tracked; selected compiler uses the latest SDK tag."
+    },
+    {
+      "id": "mesa-kosmickrisp",
+      "repository": "https://github.com/shadexternals/mesa-kosmickrisp",
+      "branch": "main",
+      "revision": "52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1",
+      "scope": "Alternative driver reference; not installed in the active renderer."
+    }
+  ],
+  "proposals": [
+    {
+      "name": "MoltenVK #2858",
+      "url": "https://github.com/KhronosGroup/MoltenVK/pull/2858",
+      "state": "open / draft / unmerged",
+      "head": "6ed66f1b5d3575eed04b04e6332b389f398f9533"
+    },
+    {
+      "name": "SPIRV-Cross #2699",
+      "url": "https://github.com/KhronosGroup/SPIRV-Cross/pull/2699",
+      "state": "open / draft / unmerged",
+      "head": "81739edf516c2bef043ac61f510b4bd78e126a22"
+    },
+    {
+      "name": "SPIRV-Cross #2697",
+      "url": "https://github.com/KhronosGroup/SPIRV-Cross/pull/2697",
+      "state": "open / non-draft / unmerged",
+      "head": "aa7879476d018098bd2c1279893409ba61cf3f03"
+    },
+    {
+      "name": "SotC reference #219",
+      "url": "https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/219",
+      "state": "open / non-draft / unmerged; incorporated commit adapted separately",
+      "head": "e391e03e956808abcb178a9e714df06ad871be78"
+    }
+  ],
+  "development_tools": [
+    {
+      "id": "actions/checkout",
+      "repository": "https://github.com/actions/checkout",
+      "version": "v7.0.1",
+      "latest_available": "v7.0.1",
+      "revision": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "scope": "Source-check CI action, pinned by commit; hosted runner execution is separate from local validation."
+    }
+  ],
+  "workspace_key": "22923f080229"
+}

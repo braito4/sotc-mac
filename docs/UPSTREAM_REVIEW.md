@@ -1,5 +1,45 @@
 # Upstream review: 2026-10-22
 
+## Current dependency integration
+
+At the owner's explicit request, the runtime is advanced from 3170535f to
+[b2ff9cd0b982](https://github.com/bloodborne-native/bloodborne-runtime/commit/b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548),
+CPU from f749c155 to b9652d75 and the SotC reference from 2250f328 to
+411fdd86/v0.60.5. The last public default-head refresh found b2ff9cd0 and app head
+ab1f0c57 after the first integration build; that additional runtime fix is included.
+[Dependency versions](DEPENDENCIES.md) and its lock identify the complete current
+set, exact SHA, selected stable channel and available releases/development heads.
+Open PerVertex proposals and the alternative KosmicKrisp architecture are tracked
+separately from the integrated stable libraries.
+
+The consolidated overlay is checked against b2ff9cd0. Earlier tessellation and
+Metal-lifetime backports are now part of the base. Local ARM64/SRT/Phi, shader
+compatibility, copy batching, audio/staging, failure diagnostics and deferred
+scene-proxy ownership remain. Cache advances to **24/9** for the updated shader
+toolchain/interfaces; no withdrawn bound/metadata experiment returns.
+
+Ajnc's c9be8142 completed-coroutine correction is now adapted into the Mac
+renderer at three indirect-buffer sites and two analogous self-test sites.
+The production promise/loop CPU fixture reproduces 500 outstanding child frames
+before versus zero after, and checks that suspended children survive. This is
+synthetic ownership evidence, not the reference author's heap measurement or an
+M1 Metal result. PR #219 remains open/non-draft/unmerged at its recorded head;
+the incorporated commit and our adaptation are distinct from a GitHub PR merge.
+
+The newest upstream b2ff9cd0 guard retains GPU-modified images whose contents are
+not safely downloadable and which have no actual CpuDirty overwrite. MaybeCpuDirty
+can originate from a neighboring tracked-page write; evicting that image discarded
+its only valid GPU contents. The actual old/current/adapted predicates are covered
+on the CPU, including normal pressure eviction and tiled-download retention.
+The recorder now labels this reason separately. This may increase retained
+memory and is not a demonstrated fix for our out-of-memory failure.
+
+The new library/dependency cohort builds as ARM64 with freshly generated shaders.
+Native CPU checks and full contracts pass; the handoff records final renderer
+regressions and symbol/audit results. New game/GPU validation remains pending at
+640x360, DMA/async off. The last measured OOM predates this integration.
+The sections below retain the earlier reviews and their historical boundaries.
+
 ## Reduced-scene proxy retirement
 
 Fresh public API and raw-source review on **2026-10-22** finds a directly relevant
@@ -13,8 +53,8 @@ on **2026-10-19 at 06:30:55Z** identifies the addition of
 `scheduler.Finish`, erases stale entries and clears recent pointers. The same
 commit adds a temporal-upscaler call every 60 observed frames; the source remains
 on the current branch. This is committed default-branch code, not an unmerged PR.
-Our pinned source and current bloodborne runtime main
-`22923f08022909b7e22f7ae8c02ad4c3f6554bfd` lack this cleanup.
+The current bloodborne runtime main
+`b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548` still lacks this cleanup.
 
 Only that lifetime problem is adapted here through a checked local overlay,
 preserving bbport/shadPS4/bmy GPL credits. Maintenance runs in our already-drained
@@ -47,15 +87,16 @@ backport stays deferred so the next native comparison isolates proxy retirement.
 
 ## SotC reference v0.60.5 comparison
 
-Checked public GitHub metadata and affected source on **2026-10-22**. The reference
-pin remains `2250f328feafab953aac85e758e7bddb2e80e891`. Its current default branch is
+This comparison predates the integration above. Public metadata/source were
+checked on **2026-10-22** while the reference pin was
+`2250f328feafab953aac85e758e7bddb2e80e891`. Its default branch was
 `main`, observed at `411fdd86dadce347dcc4443228b009ae9265a548`, **72 commits ahead**.
 [Release v0.60.5](https://github.com/AjncSystem/ShadowOfTheColossus-PC/releases/tag/v0.60.5)
 was published at 01:09:58Z on 22 October, targeting
 `43a619f8251b68761c082f7df5ca5acf69877883`; one later documentation commit is on main.
-The complete update is **not integrated** into this port. Runtime and reference
-pins are unchanged; the Mac renderer is based on the pinned bloodborne runtime,
-not automatically replaced by the Windows reference renderer.
+The complete update was not integrated at that checkpoint. The reference pin is
+now updated as described above; the Mac renderer remains the reviewed bloodborne
+runtime with local adaptations, rather than the Windows reference renderer.
 
 The particularly relevant
 [c9be8142ac76](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/c9be8142ac7675ccc553a0445273202fc5a96981)
@@ -64,10 +105,10 @@ command-buffer coroutine. The diff is present on main; the corresponding
 [PR #219](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/219) is still
 **open, non-draft and unmerged** in the public API, head
 `e391e03e956808abcb178a9e714df06ad871be78`. Do not confuse the incorporated commit
-with a GitHub merge of the PR. Our pinned/adapted renderer lacks those three
-destructions and its `Task` has no owning destructor. This is a concrete candidate
-for a separate checked adaptation and coroutine-lifetime regression; it is not
-included in the observational memory patch.
+with a GitHub merge of the PR. Before integration our renderer lacked those three
+destructions and its `Task` had no owning destructor. The correction is now
+included through the separate checked adaptation/regression described above;
+it is not part of the purely observational memory recorder.
 
 The commit author's comparison reports process-heap growth of approximately
 756 to 1706 MiB over fifteen minutes, then approximately 820 MiB after the fix.

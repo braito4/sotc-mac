@@ -9,6 +9,7 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
+from build_gpu import source_path, build_path
 import subprocess
 import tempfile
 
@@ -16,7 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def build_converter(output):
-    source=ROOT/'work/gpu-source'
+    source=source_path(ROOT)
     prefix=source/'deps/macos-arm64'
     subprocess.run(['clang++','-std=c++23','-O1','-arch','arm64','-mmacosx-version-min=15.0',
                     '-I'+str(ROOT/'runtime/src'),'-I'+str(source/'gpu/shim'),

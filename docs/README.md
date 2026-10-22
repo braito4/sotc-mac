@@ -16,5 +16,6 @@ It records the current boundary, reproduction commands, code map and prioritized
 | [Reference review](REFERENCE_REVIEW.md) | Supplied snapshot findings, independent content/address checks and file backing |
 | [Graphics bring-up](GRAPHICS_BRINGUP.md) | Confirmed Apple M1 prerequisite, isolated renderer build and remaining integration |
 | [Upstream review](UPSTREAM_REVIEW.md) | Selected renderer fixes, provenance, reproducible backports and verification limits |
+| [Dependency versions](DEPENDENCIES.md) | Integrated versions, latest reviewed releases/tags/heads, exact SHA and remaining proposals |
 | [Credits](CREDITS.md) | Upstream projects, licenses and pinned revisions |
 | [Publishing](guide/publishing.md) | Maintainer-only GitHub creation and push |

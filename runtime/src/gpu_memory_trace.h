@@ -180,7 +180,10 @@ public:
             << ",\"tick\":" << tick << ",\"role\":1,\"state\":" << (retired ? 3 : 0);
         Write(0, out.str() + '}');
     }
-    void Keep(bool tiled_download) { (tiled_download ? kept_tiled : kept_download).fetch_add(1, std::memory_order_relaxed); }
+    void Keep(bool tiled_download, bool unresolved_gpu = false) {
+        (unresolved_gpu ? kept_unresolved_gpu : tiled_download ? kept_tiled : kept_download)
+            .fetch_add(1, std::memory_order_relaxed);
+    }
     void Collection(const GC& value) {
         const auto now = Now(); auto previous = last_snapshot.load(std::memory_order_relaxed);
         if (now - previous < 5'000'000'000ull || !last_snapshot.compare_exchange_strong(previous, now)) return;
@@ -247,7 +250,8 @@ private:
             << ",\"gc_tick\":" << gc.tick << ",\"scheduler_tick\":" << gc.scheduler_tick
             << ",\"gc_enabled\":" << int(gc.enabled) << ",\"gc_uses_driver_usage\":" << int(gc.driver_usage)
             << ",\"gc_kept_window_sample\":" << gc.kept << ",\"gc_freed_window_sample\":" << gc.freed
-            << ",\"gc_kept_tiled_download\":" << kept_tiled.load() << ",\"gc_kept_download_no_pressure\":" << kept_download.load();
+            << ",\"gc_kept_tiled_download\":" << kept_tiled.load() << ",\"gc_kept_download_no_pressure\":" << kept_download.load()
+            << ",\"gc_kept_unresolved_gpu\":" << kept_unresolved_gpu.load();
         const auto array = [&](const char* name, const auto& values) {
             out << ',' << Quote(name) << ":[";
             for (unsigned i = 0; i < values.size(); ++i) out << (i ? "," : "") << values[i];
@@ -314,7 +318,7 @@ private:
     U64 sequence{}, allocated_count{}, allocated_bytes{}, freed_count{}, freed_bytes{}, live_count{}, live_bytes{};
     U64 tracking_overflow{}, untracked_frees{}, unmatched_frees{}, copies{}, copy_requested_bytes{}, completed_copies{}, copy_completed_bytes{};
     U64 scene_proxy_created_count{}, scene_proxy_created_bytes{}, scene_proxy_destroyed_count{}, scene_proxy_destroyed_bytes{};
-    std::atomic<U64> last_snapshot{}, kept_tiled{}, kept_download{};
+    std::atomic<U64> last_snapshot{}, kept_tiled{}, kept_download{}, kept_unresolved_gpu{};
     GC gc{}; U64 gc_ns{}; bool attempted{};
 };
 inline Recorder& Get() { static auto* recorder = new Recorder; return *recorder; }
@@ -335,6 +339,8 @@ inline void ImageSceneProxy(U64 id, U64 owner, U64 level, U64 tick, bool retired
 }
 inline void ImageAllocationFailed(std::int64_t result, const ImageDescription& value) noexcept { Observe([&](Recorder& r) { r.AllocationFailed(result, value); }); }
 inline void Collection(const GC& value) noexcept { Observe([&](Recorder& r) { r.Collection(value); }); }
-inline void Keep(bool tiled_download) noexcept { Observe([&](Recorder& r) { r.Keep(tiled_download); }); }
+inline void Keep(bool tiled_download, bool unresolved_gpu = false) noexcept {
+    Observe([&](Recorder& r) { r.Keep(tiled_download, unresolved_gpu); });
+}
 inline void Failure(std::int64_t code, U64 allocated, U64 recommended) noexcept { Observe([&](Recorder& r) { r.Failure(code, allocated, recommended); }); }
 } // namespace SotcMemory
