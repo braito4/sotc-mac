@@ -2,7 +2,20 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Newest measured boundary (07:23Z):** the owner reports audio much improved.
+## Current checkpoint: bounded read-only bindings (2026-10-22)
+
+The 07:57Z owner run still ends with native Metal OOM after 73.859 seconds.
+A huge cross-window read-only fallback explains the retained 3 GiB upload
+allocation; later tracked growth in that run is entirely image inventory.
+The new checked correction uses final-IR read-bound proofs and per-draw uniform
+snapshots to shorten only supported raw read-only bindings. Actual-source/IR
+regressions, incremental ARM64 rebuilding and full JIT/interpreter contracts pass.
+Native game savings and pixels remain unverified. Binary/meta cache versions
+are now 24/10; dependencies and 640x360/DMA-off/async-off settings are unchanged.
+See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint), which
+supersedes the historical measurements below.
+
+**Earlier measured boundary (07:23Z):** the owner reports audio much improved.
 Native audio delivery is now about **47,684 of 48,000 input frames/s per port**,
 versus 23,912 previously, with a measured 1024-frame/48 kHz device quantum.
 There are 52 complete windows and no queue/output failure; submission gaps still

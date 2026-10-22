@@ -8,6 +8,52 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Huge cross-window copy: guarded read-bound correction
+
+The newest reviewed owner capture starts at **07:57Z on 2026-10-22** and stops
+after **73.859 seconds**, with actual Metal out-of-memory code 8 and confirmed
+child/supervisor exit 23. A preceding 07:37Z run lasts 68.613 seconds. Both use
+the same scene/DMA/async settings and no duration deadline. Native allocation
+at the newest failure is 11.70 GiB. Dedicated upload staging reaches 3,072 MiB
+within the first several seconds, then stays stable. Between the approximately
+ten-second sample and failure, tracked image memory rises from 490.65 to
+1,023.65 MiB; its 533 MiB increase equals the tracked Vulkan increase over that
+interval. This is not proof of an image leak. Newest audio delivery is about
+47,014 input frames/s per port, but both ports have a 263.66 ms maximum gap;
+zero queue failures and small lock waits do not establish hardware playback.
+
+Source/log review identifies the large staging request: a near-4-GiB descriptor
+is clamped to its mapped range, crosses an imported pool window, and takes
+`UnifiedCopy`. Rounding the roughly 3,022 MiB request yields exactly 3,072 MiB.
+The older approximately 2,519 MiB request similarly rounds to 2,560 MiB. The
+captured consumer has unsigned guarded, strided raw reads; this does not prove
+that every large descriptor can be shortened or identify the last failing GPU
+instruction.
+
+The new checked `sotc-buffer-read-bounds` overlay collects an optional proof
+from final structured IR. Every read of a resource must have a supported affine
+address under the same unsigned index-less-than-uniform guard. The host
+evaluates its exclusive byte bound using that draw's actual flat-UD snapshot.
+Unknown/unguarded accesses, mixed uniform limits, writes, formatted accesses,
+missing snapshot data and arithmetic overflow keep the original range. No
+descriptor receives an arbitrary cap; no extra import, DMA, shader replacement
+or premature resource destruction is introduced. Small bounded ranges may use
+the existing stream-copy path; larger ones can use an existing imported window.
+The first sixteen successful reductions print `SotC buffer read bound:` with
+declared/bounded byte sizes and the uniform value in the private log.
+
+**The current shader binary/meta versions are now 24/10**, superseding historical
+cache-23 instructions below. Existing dependency pins, scene **640x360** and
+DMA/async off remain. The ARM64 library rebuild, actual-IR/pool-window regression,
+renderer regressions and full JIT/interpreter contracts pass. The synthetic
+range check reduces a GiB-sized request to 40,972 bytes without reading game
+input or executing GPU work. Missing glslang still blocks the separate fresh
+dependency-build prerequisite; this is an incremental native library rebuild.
+No native run yet establishes that the real giant request is narrowed, how much
+memory is saved, or correct pixels. The next owner-supervised comparison should
+check reduction records, dedicated upload inventory and the first remaining
+failure; later image growth remains a separate investigation.
+
 ### Native audio improvement and exercised staging reuse
 
 The newest owner run starts at **07:23Z on 2026-10-22**, using the corrections in

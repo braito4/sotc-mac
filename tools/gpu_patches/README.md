@@ -1,5 +1,21 @@
 # Reviewed renderer adaptations
 
+`sotc-buffer-read-bounds` addresses the huge read-only fallback copy without
+changing imported windows or enabling DMA. The final structured IR may prove
+that every raw load of a resource is guarded by the same unsigned comparison
+against a flattened uniform value, with a supported affine address. The host
+evaluates the proof from the same per-draw snapshot as the shader and binds only
+the proven byte range. Missing guards, mixed limits, writes, formatted accesses,
+unknown expressions and overflowing U32 arithmetic retain the original path.
+There is no arbitrary size cap or shader substitution. Shader metadata version
+10 and binary version 24 invalidate the preceding resource layout.
+`tools/check_buffer_read_bounds.py` uses actual IR plus the production
+`UnifiedRange` method: an original synthetic GiB request cannot fit one window,
+while its proven 40,972-byte range can. It checks all read widths, vector tails,
+per-draw snapshots and conservative fallbacks without a GPU. Native SotC savings
+and pixels still need owner validation. The next run prints bounded
+`SotC buffer read bound:` records; retained staging is never freed by this patch.
+
 `sotc-staging-reuse` removes the upper size-class exclusion from best-fit dedicated
 buffer reuse while preserving type, held ownership and actual GPU completion.
 It releases no retained allocation. Inventory is now published after prewarm/new

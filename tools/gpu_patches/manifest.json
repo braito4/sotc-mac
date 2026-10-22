@@ -16,7 +16,8 @@
       "compatibility": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
       "lookup": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
       "command_error": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
-      "visual": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289"
+      "visual": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289",
+      "staging": "5919ddc8b5bc05562c3b77af7a5f48144113ad69aaa766149d18860f1e94e289"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
       "before": "d00e9d4f343bcbbbce00f361da8637c378a9441e39932eb4b63035d058f3e4f4",
@@ -27,7 +28,8 @@
       "compatibility": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
       "lookup": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
       "command_error": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "visual": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78"
+      "visual": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
+      "staging": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "34e9ff7defc64093897e913d0921d4d51d49e3cb16d3d30affbf4f8c7fa101eb",
@@ -38,7 +40,8 @@
       "compatibility": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
       "lookup": "bbac657463312705161dd4aedfdd1b731d2e3e3f0a4bdb3f6349272e46bbe046",
       "command_error": "8666cf3b6628297544e179557eddf11d593ff04a2673afdd91e576e063ad59d9",
-      "visual": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d"
+      "visual": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d",
+      "staging": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_shadow.h": {
       "before": "96c3c5caccc95c843d225b1598604d82914b4c66fabcdcb251f616f5066f841d",
@@ -49,7 +52,8 @@
       "compatibility": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
       "lookup": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
       "command_error": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
-      "visual": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8"
+      "visual": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8",
+      "staging": "20dbca9dcf05305e7c9c1b0fe8714b81dd5d2ed4fd87064bd56c733f7ebc00d8"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_shadow.mm": {
       "before": "4875d594e973ddd875b728acbf8871b943e3cdd447b4bda4b7a1b68e4a6afcb6",
@@ -60,18 +64,20 @@
       "compatibility": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
       "lookup": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
       "command_error": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
-      "visual": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9"
+      "visual": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9",
+      "staging": "b7e14ccc3b7afd344b6624cc17dfca919bec45fbd80027afabc2d51531fc37c9"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
       "before": "7d44150f1a6471931d3e82457734e84a4d47c35b1a554ca1426984cd6c5761fa",
-      "after": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
+      "after": "43f2ce527c4b68b3562eb92c7f81e0187ea0f17d53feb973a83c927d0e584c01",
       "previous": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
       "backports": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
       "validity": "52dd87aadf4dda87713e0b5df9135ea63bb800084cf6176054adbba7e653bd7d",
       "compatibility": "b599204c56fe27a987335d53dc72566d43bea6aaa4695d89d9687422ee8e585c",
       "lookup": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
       "command_error": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
-      "visual": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0"
+      "visual": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0",
+      "staging": "9bb9cf7516250678c708c22f3677b3a5b430c6cb27efef4d6b0a12919149dbc0"
     },
     "gpu/CMakeLists.txt": {
       "before": "b55098b2da8d69e2eb78863bd56e97c3dfe11e944fa797ee10f802e67cec5664",
@@ -82,7 +88,8 @@
       "compatibility": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
       "lookup": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
       "command_error": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
-      "visual": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902"
+      "visual": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902",
+      "staging": "fa1d86a3555e8c2a42d0d569bb3474f40f58e83a67527914baa659efc90df902"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
       "before": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
@@ -93,7 +100,8 @@
       "compatibility": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
       "lookup": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
       "command_error": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "visual": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
+      "visual": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
+      "staging": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
       "before": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
@@ -104,18 +112,20 @@
       "compatibility": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
       "lookup": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
       "command_error": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "visual": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
+      "visual": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
+      "staging": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
       "before": "ff7eca2ce613b01366bc2843ba20394e6c2528ef45f7307bd2b0947f0f79ff0f",
       "previous": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "after": "a5ba434de674d252882f4184ac9ee57067e8a800be1e686c9a33cc4219400944",
+      "after": "b24b66f230dd946325829314906332e83402c34223a97725575f4a22d425006d",
       "backports": "ff7eca2ce613b01366bc2843ba20394e6c2528ef45f7307bd2b0947f0f79ff0f",
       "validity": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
       "compatibility": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
       "lookup": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
       "command_error": "ec91fa01717089d71572cb432e2de3ca1ec94bb5993347e0db11fd2165933ec5",
-      "visual": "a5ba434de674d252882f4184ac9ee57067e8a800be1e686c9a33cc4219400944"
+      "visual": "a5ba434de674d252882f4184ac9ee57067e8a800be1e686c9a33cc4219400944",
+      "staging": "a5ba434de674d252882f4184ac9ee57067e8a800be1e686c9a33cc4219400944"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
       "before": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
@@ -126,7 +136,8 @@
       "compatibility": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
       "lookup": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
       "command_error": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "visual": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
+      "visual": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
+      "staging": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
       "before": "7ee67a7ead14fcd94a45ba94f641baa308d9eac75fd92b4ac7a03114e5a48b77",
@@ -137,7 +148,8 @@
       "compatibility": "3994b557057d048efde19cc5c6dcb14e95c7fd712d83d1e573fa90e6123d8ad1",
       "lookup": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
       "command_error": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
-      "visual": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc"
+      "visual": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc",
+      "staging": "2b95d4f3fff577794e7142eb91103e49a15d68a47900c519842775147c9cf4cc"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_metal_shadow.h": {
       "before": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
@@ -148,7 +160,8 @@
       "compatibility": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
       "lookup": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
       "command_error": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "visual": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
+      "visual": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
+      "staging": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/lower_wave64_pass.cpp": {
       "before": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
@@ -159,7 +172,8 @@
       "compatibility": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
       "lookup": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
       "command_error": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "visual": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
+      "visual": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
+      "staging": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.cpp": {
       "before": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
@@ -170,7 +184,8 @@
       "compatibility": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
       "lookup": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
       "command_error": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "visual": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
+      "visual": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
+      "staging": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.h": {
       "before": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
@@ -181,7 +196,8 @@
       "compatibility": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
       "lookup": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
       "command_error": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "visual": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
+      "visual": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
+      "staging": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp": {
       "before": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
@@ -192,7 +208,8 @@
       "after": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
       "lookup": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
       "command_error": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "visual": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392"
+      "visual": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
+      "staging": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
       "before": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
@@ -203,7 +220,8 @@
       "lookup": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
       "command_error": "7d6da7fac6dd456c63574cc45d6a3a8f05cb762a62eddb9e9d18605a2fe43160",
       "after": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0",
-      "visual": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0"
+      "visual": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0",
+      "staging": "9578eeab2fa4b40850581e01fad3fcfc5dd18575c7fc9937efab6c18fafe12f0"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_graphics_pipeline.cpp": {
       "before": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
@@ -214,7 +232,8 @@
       "lookup": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
       "command_error": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
       "after": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
-      "visual": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5"
+      "visual": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
+      "staging": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp": {
       "before": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
@@ -225,7 +244,8 @@
       "lookup": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
       "command_error": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
       "after": "451d8344cbd4850d78741712fce8d0e266fd1ff34f4e6bdb8dffdc54e512989c",
-      "visual": "ca03741fd3af43e48a989e444544c05655bc090a46a6a5d268cd570cc848afd5"
+      "visual": "ca03741fd3af43e48a989e444544c05655bc090a46a6a5d268cd570cc848afd5",
+      "staging": "451d8344cbd4850d78741712fce8d0e266fd1ff34f4e6bdb8dffdc54e512989c"
     },
     "gpu/shadps4/core/libraries/videoout/driver.cpp": {
       "before": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
@@ -236,7 +256,8 @@
       "lookup": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
       "command_error": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
       "after": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
-      "visual": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
+      "visual": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
+      "staging": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp": {
       "before": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
@@ -247,7 +268,32 @@
       "lookup": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
       "command_error": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
       "after": "e39d4b2ca91be5d5a728c4f291df3b1cedc49207db0c6b51fc4627670c505ef8",
-      "visual": "e39d4b2ca91be5d5a728c4f291df3b1cedc49207db0c6b51fc4627670c505ef8"
+      "visual": "e39d4b2ca91be5d5a728c4f291df3b1cedc49207db0c6b51fc4627670c505ef8",
+      "staging": "e39d4b2ca91be5d5a728c4f291df3b1cedc49207db0c6b51fc4627670c505ef8"
+    },
+    "gpu/shadps4/shader_recompiler/resource.h": {
+      "before": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "backports": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "previous": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "validity": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "compatibility": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "lookup": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "command_error": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "visual": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "staging": "4e89ccd11afabee884e5855ed1b927b04664ff258e7d9224ba4e5673d4599250",
+      "after": "50a30e3991f0d460a021bc9714e2a00e72f7832608058a7bece1273af1fde2c2"
+    },
+    "gpu/shadps4/shader_recompiler/ir/passes/shader_info_collection_pass.cpp": {
+      "before": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "backports": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "previous": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "validity": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "compatibility": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "lookup": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "command_error": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "visual": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "staging": "85bb495d68767ecfdb8a8195f21ad534c5345731f8d4f49b1ab849119f0aaa44",
+      "after": "07011a837a5d9f16f4510dafdf362ddcfa597b17d2d6e7ed80779dda4f80b38a"
     }
   },
   "patches": {
@@ -261,7 +307,8 @@
     "sotc-metal-command-error.patch.json": "d54470a1af6e644c0de15b1caa9d677ae883a5bcf747ec690e7e37eaffc3f5c7",
     "sotc-visual-trace.patch.json": "3eb0c53df02f1b6e0266d3f695f8b570252acff87a226160edd4a18219be7595",
     "sotc-buffer-copy-chunks.patch.json": "70b42c8221f43e6dd70ece5125b8de49adafe10961ff30486fd2681641827e1c",
-    "sotc-staging-reuse.patch.json": "542addabb171b221c5252b258bd433414d0974971182aaaa92c2b69461830194"
+    "sotc-staging-reuse.patch.json": "542addabb171b221c5252b258bd433414d0974971182aaaa92c2b69461830194",
+    "sotc-buffer-read-bounds.patch.json": "79935f54602b0daade7d9d55746325575011fffa2085572959a85fcdb589e7c0"
   },
   "previous_patches": [
     "0e940e96cb08.patch.json",
@@ -277,7 +324,8 @@
     "sotc-metal-command-error-v1",
     "sotc-visual-trace-v1",
     "sotc-buffer-copy-chunks-v1",
-    "sotc-staging-reuse-v1"
+    "sotc-staging-reuse-v1",
+    "sotc-buffer-read-bounds-v1"
   ],
   "backport_patches": [
     "0e940e96cb08.patch.json",
@@ -329,5 +377,18 @@
     "sotc-metal-command-error.patch.json",
     "sotc-visual-trace.patch.json",
     "sotc-buffer-copy-chunks.patch.json"
+  ],
+  "staging_patches": [
+    "0e940e96cb08.patch.json",
+    "e0348c24d911.patch.json",
+    "ef0080bb4331.patch.json",
+    "sotc-submission-trace.patch.json",
+    "sotc-pipeline-validity.patch.json",
+    "sotc-shader-compat.patch.json",
+    "sotc-shader-lookup-srt.patch.json",
+    "sotc-metal-command-error.patch.json",
+    "sotc-visual-trace.patch.json",
+    "sotc-buffer-copy-chunks.patch.json",
+    "sotc-staging-reuse.patch.json"
   ]
 }

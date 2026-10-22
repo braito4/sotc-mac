@@ -15,6 +15,14 @@ public-source watch notifies about relevant changes but does not update pins.
   allowed. The game input must remain unchanged.
 - Use the pinned upstream submodules. Read their instructions before editing them. Preserve
   credits to bloodborne-native, deadinside28/bbport, shadPS4 and the SotC reference project.
+- The current checked read-bound overlay uses shader binary/meta versions 24/10,
+  superseding the historical cache-23 instructions below. It shortens only large
+  raw read-only bindings when final structured IR proves every load is guarded
+  and bounded by the same per-draw flat uniform. Unknown/written/formatted and
+  overflowing cases retain the original path. Actual-IR/window CPU regressions,
+  the incremental ARM64 rebuild and full contracts pass; native reduction of the
+  giant copy remains unverified. The latest 07:57Z owner run still fails with
+  OOM after 73.859 seconds. Keep scene 640x360, DMA/async off and source pins.
 - Prefer real runtime contracts with explicit error behavior. Unknown imports stop; missing
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
