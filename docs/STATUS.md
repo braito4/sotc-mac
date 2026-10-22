@@ -2,6 +2,56 @@
 
 Updated 2026-10-22. **Reaches the first gameplay image on Apple M1; not playable yet.**
 
+**Development paused at the owner's request because of memory exhaustion.**
+The latest owner run (21:16 UTC) ends after 185.769 s on Metal error 8, exits
+23/23, with 12.170 GiB native allocation against 11.840 GiB recommended.
+There are 1,095 presentations, 417 pipeline failures and 805 SRT errors. Scene
+resolution stays 1920x1080; fullscreen presentation is mainly 2560x1440. Actual
+Game Mode activation and a performance benefit are not established. See the
+[pause report and conditions for resuming](DEVELOPMENT_PAUSE.md).
+The entries below preserve previous investigations and prepared local work;
+they do not supersede this pause or constitute native validation.
+
+**Prepared finite SRT correction:** bounded exhaustive choices now become
+constant reads plus GPU selection, with descriptor/pointer dependencies excluded.
+Cache 26/9; ARM64/renderer CPU checks and 25 builder tests pass. In isolation,
+16 real PerVertex shader pairs convert and all 48 generated MSL sources pass
+Apple syntax; this does not integrate capture/replay into the renderer.
+
+**Latest owner run (20:57 UTC):** zero-filled compute shader metadata stops an
+indirect dispatch after 78.854 s, exits 23/23. There are 944 presentations at
+1920x1080, 275 pipeline failures and 805 SRT errors. No OOM or CPU fatal signal
+is recorded. This run predates the finite-choice correction. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Latest owner capture (20:53 UTC):** original-resolution scene **1920x1080**,
+no reduced draws/proxies, 1,325 presentations; Metal OOM 8 after **123.887 s**,
+confirmed exits 23/23, fresh allocation **11.966 GiB**. There are 476 pipeline
+failures and 271 SRT errors. Image journal drops limit lifetime replay. Longer
+duration than the preceding reduced-resolution capture does not isolate a gain.
+See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared SRT improvement:** proven uniform `ReadFirstLane` offsets now resolve,
+with 24 installed-pass synthetic cases preserving lane/divergent/induction/cycle
+rejections. Cache becomes 25/9 with dependency pins unchanged. Large staging
+reuse now refreshes statistics every 256 traced requests; allocation/lifetime
+rules remain intact. Native shader effects and OOM relief are unverified.
+
+**Latest owner capture (20:40 UTC):** Metal OOM 8 after 65.352 s, exits 23/23,
+11.573 GiB fresh allocation and 680 presentations. There are 199 pipeline failures
+and 271 SRT errors. New SRT provenance captures 52 samples/eight shaders, including
+Phi recurrences; explicit resolution limits remain. No CPU fatal signal/watchdog
+stop or audio queue failure is recorded. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared shader failure diagnosis:** offline grouping identifies 386 failed
+fragment/vertex pairs across 431 events; 375 failures have adjacent PerVertexKHR
+errors and 56 remain unattributed. All 805 SRT errors use the copy-offset site.
+The ARM64 renderer now includes bounded failure-only SRT IR shapes; actual-pass
+CPU fixtures, renderer regressions, 25 builder tests and parser controls pass.
+No native shader compatibility or memory improvement is claimed. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
 **Latest owner comparison (20:08 UTC):** Metal OOM 8 after **122.026 s**,
 confirmed exits 23/23 and fresh **12.469 GiB** native allocation. Admission has
 limit/peak 8 but only four reserved/inflight commands at failure. There are

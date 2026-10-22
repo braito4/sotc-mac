@@ -8,6 +8,256 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Development paused: memory remains the immediate blocker
+
+The owner has paused development because native runs still exhaust Metal's
+memory budget. The latest 21:16 UTC comparison ends after 185.769 s on error 8,
+exits 23/23, at 12.170 GiB. It records 1,095 presentations, 417 pipeline failures
+and 805 SRT errors. Scene work remains 1920x1080, fullscreen output mostly
+2560x1440. No finite-choice SRT expansion or actual Game Mode activation is
+established. The [pause report](DEVELOPMENT_PAUSE.md) consolidates evidence,
+remaining uncertainties and conditions for resuming. Do not automatically launch
+further game/device comparisons. Historical checkpoints below remain evidence,
+not a declaration that development is active or those failures are fixed.
+
+### Game Mode eligibility at graphical startup
+
+The graphical launcher now copies the freshly built ARM64 diagnostic into
+`work/SotC-Diagnostic.app` and supervises that bundle's actual executable directly.
+The maintained `packaging/SotC-Info.plist` identifies an adventure game and opts
+into Game Mode with `LSSupportsGameMode` (macOS 26+) and the older
+`GCSupportsGameMode` key. Fullscreen defaults to on, with SDL's native macOS
+fullscreen Spaces enabled. The dedicated native launcher forces fullscreen;
+`BB_FULLSCREEN=0 bash packaging/test-arm64.sh --graphics-game-test` retains a
+windowed comparison. Use the guarded launcher, not Finder on the generated app:
+the supervisor still supplies private paths, arguments, environment and controls.
+
+macOS decides whether Game Mode activates; verify its menu-bar indication during
+the next owner run. No game/device run validates activation yet. Fullscreen can
+change drawable/output dimensions; original guest scene resolution and dependency
+pins remain unchanged. This is not an OOM, SRT or PerVertex correction.
+
+### Prepared finite-choice SRT data reads; real-module PerVertex experiment
+
+The checked `sotc-srt-finite` overlay expands a small, exhaustive set of scalar
+ReadConst offsets into separate constant reads and a GPU-side selection. It runs
+after resource discovery and before the existing protected SRT flattening pass.
+Unlike selecting a Phi incoming edge on CPU, both runtime choices remain correct.
+Only direct scalar-user-data pointer bases are admitted. Descriptor dependencies,
+sampler LOD post-op dependencies and values used as table pointers are protected.
+Unknown/lane-derived sources, cycles, induction recurrences and excessive sets
+remain unsupported. Limits: eight choices, 16 levels/256 analysis nodes, offsets
+below 4,096 dwords and at most 64 expansions per shader. No shader DMA is enabled.
+
+Compiler cache is now **26/9**; pins and installed dependencies stay fixed. Exact
+prior sources migrate as `finite_previous`. ARM64 build, normal renderer CPU
+regressions, 25 builder tests and dependency-inventory checks pass. Fifteen
+original finite-choice controls include nested Phi/ReadFirstLane/arithmetic,
+uint32 wraparound, resource/pointer exclusions, depth limits and a separate
+64-expansion cap. Runtime selections are checked against actual flattened data,
+alongside the preceding 24-case suite. New native effects remain unmeasured.
+
+For PerVertexKHR, private cached modules show 406 modules selecting vertices
+0/1/2 and six selecting only vertex zero. The pinned compiler proposal converts
+16 unambiguous failed vertex/fragment pairs through capture, replay and portable
+fragment inputs; all **48 generated MSL sources pass Apple Metal 3.1 syntax**.
+Six ambiguous/missing permutation pairs are skipped rather than guessed.
+`tools/replay_pervertex_proposal.py` preserves private reports/sources under work.
+Its standalone options and experimental binding slots do not reconstruct actual
+runtime bindings, specialization, topology, ordering or ownership. This is not
+an installed PerVertex fix or a native pipeline/pixel test; full renderer
+capture/replay integration remains open. Default library pins are unchanged.
+
+### Latest owner comparison: zero-filled compute-shader metadata
+
+The October 22 **20:57 UTC** owner run, before the new finite-choice adaptation,
+stops after **78.854 seconds**, child/supervisor exits **23/23**, on
+`STOP_GPU_SHADER_METADATA` during an indirect compute dispatch. The source is
+mapped, but the protected lookup finds no valid metadata and its entire captured
+**65,536-byte** window contains zeros. This does not identify a writer, prove
+freed storage, or distinguish wrong register/address, uninitialized content and
+later overwrite. Preserve the explicit stop; do not skip the dispatch or treat
+zeros as executable shader code. Exact owner addresses/code remain private.
+
+Scene work remains 1920x1080 with **944 presentation results**. The last native
+sample is **11.438 GiB**, not a failure-time OOM measurement. No Metal OOM,
+CPU fatal signal or watchdog stop is recorded. There are **275 pipeline failures
+/ 258 shader pairs** (248 have adjacent PerVertex rejection evidence) and **805
+SRT errors**. Audio has zero queue-wait failures and a recorded maximum submit
+gap of 127.707 ms. Different stopping boundaries and workload prevent interpreting
+these counters as an effect of the prepared shader changes. The metadata failure
+is separate from the unresolved PerVertex/SRT paths. No game/device run is
+performed during this follow-up.
+
+### Latest owner comparison: original-resolution scene, OOM persists
+
+The October 22 **20:53 UTC** owner capture confirms **1920x1080 scene work**,
+1280x720 presentation output, zero reduced decisions and zero created scene
+proxies. Its environment retains preset 4 but sets `BB_UPSCALER=none`; actual
+scene metadata confirms the reduction was disabled. The dedicated native launcher
+also forces preset 0 to avoid that misleading inherited setting.
+
+The run ends on Metal status 5/error 8 after **123.887 seconds**, with confirmed
+child/supervisor exits **23/23**. Fresh native allocation is **11.966 GiB**, against
+11.840 GiB recommended. Admission is active (limit/peak 8, five reserved/inflight
+at failure). There are **1,325 presentation results**, not 3,976 frames. The failed
+batch has 18,356 CPU notes, not proof of a particular failing GPU instruction.
+
+Failure memory inventory records **359 live images / 954.19 MiB** and zero scene
+proxies. The 3 GiB upload remains. Staging counters are 4.777 seconds old and GC
+state 7.263 seconds old. The image event journal dropped **8,861 records**; full
+event replay is incomplete even though the failure inventory supplies live totals.
+Do not infer absent allocation/destruction events or a complete lifetime history.
+
+There are **476 pipeline failures / 423 shader pairs**, 403 with adjacent
+PerVertexKHR rejection evidence; the strict association leaves 73 unattributed.
+SRT still records **271 failures**, with 52 bounded samples/eight shaders. The
+uniform ReadFirstLane correction has no demonstrated reduction of these remaining
+errors. Presentation counters include 1,136,113 missing-pipeline draw requests;
+more/faster presentations do not establish complete rendering or correct pixels.
+Audio has no queue-wait failures and a recorded maximum submit gap of 32.027 ms.
+No CPU fatal signal or watchdog stop is recorded.
+
+The longer run versus the 65.352-second reduced-resolution capture is an owner
+observation, not an isolated performance/memory comparison: duration, progress,
+shader/cache state and missing work differ. Original resolution is retained as
+requested; OOM, PerVertex compatibility and remaining SRT problems stay open.
+This checkpoint analyzes existing evidence only; no new game/device run occurs.
+
+### Owner-selected original scene resolution
+
+The owner now requests removing the 640x360 reduction. The graphics launcher
+defaults to `BB_UPSCALE_PRESET=0` and `BB_UPSCALER=none`. The new
+`prueba_grafica_nativa.command` also clears inherited render/output overrides
+and forces that original-resolution mode, with DMA/asynchronous submission off
+and JIT/statistics on. This means the game's original scene resolution, not the
+monitor's physical resolution. Existing explicit low-resolution comparisons remain
+available through the generic launcher. Prior 640x360 captures remain historical.
+Shell syntax/configuration were checked without a game/device run; native memory,
+FPS and correctness effects of this selection remain unmeasured.
+
+### Prepared uniform SRT lane-read correction and reuse observations
+
+The checked `sotc-srt-uniform` overlay resolves `ReadFirstLane` only when its
+operand can already be expressed by the portable uniform scalar SRT program.
+Constants, scalar user data, branch-independent Phi and previously flattened
+constant reads can therefore retain their actual values. Lane-dependent values,
+different incoming Phi programs, induction recurrences, cycles and excessive
+expansion remain dynamic/rejected. No Phi edge, initial loop value or lane-zero
+value is guessed, and direct guest-memory shader access remains disabled.
+
+The strengthened 24-case installed-pass fixture first fails against the preceding
+library and passes with the correction in both CPU-only synthetic DMA modes.
+It includes original arithmetic induction and nested Phi/load controls inspired
+by the bounded diagnostic shapes, without copying owner shader code. This is not
+proof that all 271 owner errors can be resolved, nor native pixel validation.
+
+Shader cache becomes **25/9**, invalidating previous compiler outputs through
+the existing versioned migration; no manual deletion, dependency pin or library
+upgrade is introduced. Exact previous sources migrate as `uniform_previous`.
+The ARM64 rebuild, normal renderer CPU regression suite, 25 builder tests and
+dependency-inventory checks pass. No new owner/game/device comparison was run.
+
+Staging memory statistics now refresh every 256 large-buffer reuses when memory
+tracing is enabled, in addition to allocation/frame-boundary updates. This improves
+the stale diagnostic boundary without changing allocation sizes, completion,
+ownership or release rules. The original/best-fit repeated-reuse CPU fixture
+checks fresh publication and preserves held/pending/type guards. The 3 GiB upload
+is not freed or shrunk: existing code documents late Metal descriptor references,
+and original size-class controls reproduce growth from naive finer rounding.
+OOM avoidance, title progress and native SRT effects remain unverified.
+
+### Latest owner comparison: OOM and first native SRT provenance
+
+The October 22 **20:40 UTC** owner capture ends after **65.352 seconds** with
+confirmed child/supervisor exits **23/23**, Metal status 5/error 8 (insufficient
+memory). Fresh native allocation is **11.573 GiB**, against 11.840 GiB recommended;
+the recommendation is not a guaranteed safe allocation ceiling. Admission has
+limit/peak 8 and eight reserved/inflight commands at failure. The failed batch
+has 16 CPU notes including three dispatch candidates, not proof of a particular
+failing shader or GPU execution order. Completion is observed after 12.368 ms;
+commit returned after 0.009 ms. There is no CPU fatal signal or watchdog stop.
+
+There are **680 presentation results**, not 2,041 frames (three lifecycle events
+per presentation plus one failure). Final requested scene work remains 640x360.
+Failure memory inventory has **255 live images / 683.43 MiB**, including **21
+proxies / 19.60 MiB** after 559 proxy destructions. No image tracking overflow,
+unmatched frees or journal drops are reported. A roughly 2.88 GiB fallback copy
+still requires the rounded 3 GiB upload; another roughly 85.63 MiB request is
+also recorded. Staging counters at failure are 19.398 seconds old; do not treat
+their reusable-byte figures as permission to release current resources.
+
+Offline grouping finds **199 pipeline failures / 188 distinct shader pairs**:
+181 have adjacent PerVertexKHR conversion errors and 18 remain unattributed by
+that strict rule. There are 184 conversion messages and **271 SRT errors**.
+Lower counts than the 122-second run do not establish improvements. PerVertex
+capture/replay remains an isolated compiler experiment, not an installed fix.
+
+The checked SRT diagnostic is now exercised natively: **52 samples across eight
+shader identifiers and six bounded IR shapes**, all at the copy-offset site.
+Thirty-six samples include a Phi recurrence through IAdd, consistent with a loop
+induction value; others include nested Phi or ReadConst/ReadFirstLane shapes.
+Samples omit constants and can truncate traversal. They neither prove identical
+expressions nor establish how to resolve the remaining offsets. Do not choose a
+Phi edge, substitute zero or enable direct guest-memory access. Next construct
+original synthetic recurrence/nested-load controls before changing semantics.
+
+Audio has zero queue-wait failures, a maximum recorded submit gap of **29.597 ms**
+and approximately 47,965 input frames/s/port over its windows. Its final window
+does not cover the exact failure instant. Prior CPU corruption/audio failures
+remain unresolved. This is an offline review of owner evidence: no new game run,
+runtime/configuration change or dependency update is performed.
+
+### Extended isolated PerVertex compiler experiment
+
+`tools/check_pervertex_proposal.py` now exports six MSL sources and the captured
+layout, strengthens the two-corner consumer to a real sum, checks 24 invalid
+layout/binding configurations and exercises a CPU addressing oracle with 24
+scalar reads and four range controls. The pinned isolated compiler converts the
+four portable cases and rejects the default cases; four driver controls pass.
+Renderer dependencies, cache 24/9 and exact-only compatibility policy stay fixed.
+
+Apple MSL 2.4 syntax validation now passes for all six sources using the direct
+installed Metal Toolchain 27A266a compiler (Apple metal 32023.921), without
+diagnostics. Xcode's `xcrun` wrapper still reports missing tooling in this
+environment; its report stays blocked, with the successful direct invocation
+recorded separately as `metal-direct-validation.json` beside the sources. The driver
+uses subprocess-local Xcode selection and returns 2 for missing tools, 1 for real
+syntax failures, 0 only when all six compile. Generated sources/reports remain
+private in `work/pervertex-research/validation-*`. Do not label compiler or CPU
+ABI checks as GPU bounds/ordering validation.
+No game/device execution or PerVertex renderer integration occurred here.
+
+### Prepared pipeline/SRT failure classification
+
+`tools/analyze_shader_failures.py` groups private logs by fragment/vertex pair
+and conversion errors immediately preceding pipeline failures. The 20:08 UTC
+capture has 431 failures across 386 distinct pairs: 375 events/375 pairs have
+adjacent PerVertexKHR errors; 56 events/54 pairs remain unattributed. Categories
+overlap by pair; a pair is not a complete pipeline key and adjacency is not
+causal proof. All 805 SRT errors come from the portable copy-offset failure site.
+The old log does not preserve the underlying expressions.
+Of the 56 unattributed events, 55 reuse a fragment identifier with adjacent
+PerVertex rejection evidence elsewhere. The remaining event has a PerVertex
+message three lines earlier, interrupted by unrelated runtime output. Preserve
+these as weaker associations, not another 56 established independent defects.
+
+The new checked `sotc-srt-diagnostic` overlay adds shader/stage/pointer-or-copy
+context and a bounded IR shape on offset failure, preserving original errors,
+resolution, cache 24/9, dependencies and disabled direct guest-memory access.
+At most eight records per pass / 128 per process are emitted; shapes omit values
+and have fixed node/depth/input/text limits. They are diagnostic samples, not
+semantically equivalent-expression keys. They appear only on compilation, not
+when a cached pipeline bypasses the pass. No cache is automatically cleared.
+
+ARM64 build and renderer CPU regression checks pass, including twelve actual
+SRT/shader-info cases in both synthetic direct-access modes and the 128-record
+cap. The latter mode only uses original CPU arrays, never a game/GPU. Offline
+parser controls and 25 builder tests pass. Native provenance is pending; no
+game/device run, shader support fix or OOM remedy is claimed. Next inspect new
+private failure shapes and construct original synthetic expressions before
+changing offset semantics or attempting per-vertex capture/replay.
+
 
 ### Latest owner comparison: Metal OOM despite active admission cap
 

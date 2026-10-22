@@ -2,6 +2,40 @@
 
 This repository develops a native ARM64 macOS diagnostic for Shadow of the Colossus PS4.
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
+Development is paused at the owner's request because of unresolved native memory
+exhaustion. Read docs/DEVELOPMENT_PAUSE.md first. Latest owner capture (21:16 UTC)
+ends on Metal OOM 8 after 185.769 s, exits 23/23, 12.170 GiB; 417 pipeline failures
+and 805 SRT errors persist. Do not automatically resume game/device comparisons.
+The following checkpoints describe historical evidence and prepared local work.
+Cache is now 26/9: checked finite-choice SRT data-read expansion preserves GPU
+selection and protects descriptor/pointer dependencies. CPU/build checks pass;
+native effects are pending. PerVertex conversion passes Apple syntax for 16 real
+pairs in isolation; renderer integration is still absent. Latest owner run
+(20:57 UTC, before this adaptation) stops on zero-filled compute-shader metadata
+after 78.854 s, exits 23/23; preserve that failure. Read the first handoff.
+Newest owner capture (20:53 UTC) verifies native 1920x1080 scene work, no reduced
+draws/proxies, 1,325 presentations, then Metal OOM 8 after 123.887 s (23/23),
+11.966 GiB. Preset 4 is inherited but upscaler none disables reduction. SRT remains
+271; PerVertex failures persist. Image journal drops 8,861 records. Read first handoff.
+The owner now selects original scene resolution: preset 0, upscaler none.
+Use prueba_grafica_nativa.command to clear inherited 640x360 overrides. DMA and
+async stay off. Prior instructions/captures retaining 640x360 are historical;
+no native result has yet validated this resolution change.
+Prepared SRT correction accepts ReadFirstLane only of proven portable uniform
+expressions; 24 synthetic installed-pass cases pass, including induction/lane
+negative controls. Cache is now 25/9; pins remain fixed. Staging statistics refresh
+on repeated large-buffer reuse without freeing storage. Read the first handoff;
+native SRT/pixel/OOM effects remain unverified.
+Newest owner capture (20:40 UTC) ends on Metal OOM 8 after 65.352 s, exits 23/23,
+11.573 GiB fresh allocation and 680 presentation results. Native SRT provenance
+now records 52 samples/eight shaders/six bounded shapes, including Phi induction
+recurrences. Do not resolve these by choosing an edge or enabling DMA. Read the
+first handoff checkpoint; earlier 20:08 evidence below remains historical.
+Pipeline/SRT classification is prepared: 431 failures / 386 shader pairs;
+375 have adjacent PerVertexKHR errors, 56 remain unattributed. The checked SRT
+diagnostic emits bounded shader/stage/site/IR shapes without guest reads or
+resolution changes. CPU tests pass; native samples remain pending. See the
+first handoff checkpoint; no cache purge or direct-memory enablement follows.
 The consolidated checkout is the only active project. Read
 `docs/guide/workspace.md` and the continuation checkpoint before resuming.
 The latest 20:08 UTC owner capture ends on Metal OOM 8 after 122.026 s,

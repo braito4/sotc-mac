@@ -14,11 +14,19 @@ The owner confirms this milestone on 2026-10-22. Rendering defects, memory failu
 and instability remain; correct graphics, sustained gameplay, audiovisual
 synchronization and save persistence are not validated.
 
-The newest analyzed native run stops on Metal insufficient memory after
-122.026 seconds, with confirmed exits 23 and 12.469 GiB native allocation.
-The admission limit is active, with four unfinished commands at failure; the
-3 GiB upload remains. It is not an established OOM fix. There are 1,190
-presentation observations, not correct-pixel or gameplay validation.
+**Development is paused because native runs still exhaust the available Metal
+memory budget on Apple M1.** The latest owner run (October 22, 2026, 21:16 UTC)
+ends after **185.769 seconds** on Metal insufficient memory, with **12.170 GiB**
+native allocation against **11.840 GiB** recommended. The 3 GiB upload allocation
+remains retained; its lifetime must be understood before changing reclamation.
+
+The capture records 1,095 presentation results, 417 pipeline-creation failures
+and 805 SRT errors. Scene resolution remains 1920x1080; fullscreen output is
+mostly 2560x1440. Game Mode activation and any performance benefit are unverified.
+PerVertex compatibility, SRT handling and earlier corruption remain unresolved.
+See the [development pause report](docs/DEVELOPMENT_PAUSE.md) for what was learned,
+validation limits and conditions for resuming. The investigations below are
+historical and do not supersede the pause.
 
 An earlier native run stops on a translated CPU SIGSEGV after
 118.281 seconds, with confirmed exits 139 and 11.646 GiB sampled native peak.
@@ -147,7 +155,8 @@ regressions and JIT/interpreter contracts pass. Those two errors do not recur in
 the native comparison, but exact GPU copy pixels and all supported cases still
 need validation. PerVertexKHR failures persist. This is not an OOM or corruption fix.
 
-Dependencies and shader cache 24/9 remain unchanged. The current comparison keeps
+Dependencies remain unchanged; shader cache is now 26/9 for the finite-choice SRT
+correction described in the handoff. The current comparison keeps
 640x360, DMA/async off and metadata diagnostics on. Native comparisons remain
 one brief supervised run at a time; see the
 [developer handoff](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint) for the
