@@ -4,8 +4,8 @@ The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these addition
 observations. This instruments the current renderer without changing shader code,
 cache versions (23/9), buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
-The measured native boundary remains Metal out-of-memory code 8 after 175.402
-seconds in the 09:25Z owner run on 2026-10-22, now with these resource records.
+The measured native boundary remains Metal out-of-memory code 8 after 101.864
+seconds in the 09:41Z owner run on 2026-10-22, now with a complete image history.
 The owner previously recovered visible
 output after the earlier experiment was withdrawn. These traces are not a fix.
 
@@ -110,9 +110,11 @@ dedicated staging allocation/rounding and both VMA destruction paths are compile
 against CPU resource doubles; an original synthetic request rounds to 3 GiB with
 matching metadata, without allocating that amount or initializing a GPU.
 The other renderer regressions and full JIT/interpreter contracts remain required.
-The 09:25Z owner run on 2026-10-22 exercises the records and final forced failure
-summary. It confirms two cross-window copies sharing one retained 3 GiB buffer,
-and late growth in unassociated images. The detailed image journal hits its 8 MiB
-cap; the live tracker has no overflow, unmatched free or diagnostic exception.
+The 09:25Z owner run on 2026-10-22 first exercises the records and final forced
+failure summary, with a capped detailed image journal. The 09:41Z repeat has
+complete uncapped lifetime history, no lost record or tracker error. It confirms
+one large copy into 2.5 GiB staging, and 981 unassociated 640x360/320x180 images
+retaining 806.35 MiB without destruction. Caller-role attribution still needs
+isolation before a proxy-lifetime fix can be qualified.
 See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 Pixel correctness and a tracing-overhead comparison remain unverified.

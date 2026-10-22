@@ -8,9 +8,59 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Complete repeat trace: unassociated reduced images accumulate without destruction
+
+The newest owner run starts at **09:41Z on 2026-10-22** and ends after
+**101.864 seconds** on confirmed Metal command error 8, child/supervisor exit 23.
+The main loop starts in 1.557 seconds and a DualSense is detected. Native allocation
+is **12,512,018,432 bytes (11.65 GiB)** against the same recommendation, a 191.78
+MiB margin. Scene remains **640x360**, DMA/async off, cache 23/9 and pixel capture
+off. A shorter run does not establish a performance or regression comparison.
+
+This time there is only **one** observed large cross-window copy. Its request is
+2,629,644,160 bytes, rounded to **2,684,354,560 bytes (2,560 MiB / 2.5 GiB)** staging;
+allocation/copy/flush completes in **995.63 ms**. The previous run's initial
+larger compute request does not cross the selected window in this workload.
+Do not assume every run allocates a 3 GiB staging buffer. Total staging inventory
+at its last sample is 2,988 MiB; that sample is 31.58 seconds old.
+
+The **complete** image journal has 5,972 allocations, 4,768 actual destructions
+and 19,518 ownership events. Its 6.90 MB size is below the 8 MiB cap. All dropped
+record, overflow, unmatched/untracked free and diagnostic-exception counters are
+zero. Replaying all lifetime events reproduces the final ledger exactly:
+**1,204 live images / 1,476.63 MiB**. Of these, 223 registered images occupy
+**670.28 MiB**, while **981 allocations without a cache owner occupy 806.35 MiB**.
+No unregistered or queued-deletion bytes remain at failure.
+
+Unlike the preceding capped run, the full history proves that **none of the 981
+unassociated images is destroyed** during this run. Every one is 640x360 or
+320x180, one mip/layer/sample. Four recurring format/size classes account for
+975 of them and about 800 MiB. Their final-live inventory appears after roughly
+65 seconds and grows through failure, while registered-cache bytes remain near
+670 MiB. This materially strengthens the reduced-scene proxy retention candidate:
+the source map is keyed by original UID/mip and lacks per-source retirement.
+Allocation role is still not explicitly tagged, so do not claim each handle has
+been traced to `SceneTargets::Get`. Next isolate source/proxy UID ownership and
+qualify retirement after all prepared/recorded work, including cached recent
+pointers/views; retain actual GPU-completion guards and the 640x360 setting.
+
+The last collector snapshot is **35.14 seconds old**. Its usage/threshold samples
+are not current failure-time pressure measurements, and resettable GC counters
+are not cumulative totals. The corrected window-sample labels are exercised in
+this run. The failed Metal batch again has a complete seven-note CPU tail with
+one compute candidate, not a precise failing GPU instruction. The journal records
+1,236 presentation API successes, which do not prove correct pixels.
+
+There are 38 complete audio windows, nineteen per active port, measuring about
+**47,733 input frames/s per port**, maximum submission gap **156.539 ms**, and no
+recorded queue/output failure. Input-queue zero is not a device underrun.
+This is an evidence update; no renderer policy change or new tool-driven GPU
+comparison accompanies it. The prior ARM64 build and full CPU checks remain the
+validation baseline. Refresh upstream before the next proposed native trial.
+
 ### Native resource evidence: large-copy origins and late auxiliary-image growth
 
-The newest owner run starts at **09:25Z on 2026-10-22**, using `d86465b` and
+The preceding owner run starts at **09:25Z on 2026-10-22**, using `d86465b` and
 `SOTC_MEMORY_TRACE=1`. The new metadata is exercised natively. The main loop starts
 in 1.573 seconds, a DualSense is detected, and the run ends after **175.402 seconds**
 on actual Metal command error 8 (`Insufficient Memory`), child/supervisor exit 23.

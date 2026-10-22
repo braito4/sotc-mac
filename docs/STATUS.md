@@ -2,7 +2,16 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Newest native boundary (09:25Z):** resource tracing is exercised. The owner run
+**Newest native boundary (09:41Z):** repeat Metal OOM code 8 after **101.864
+seconds**, child/supervisor exit 23. Staging is 2.5 GiB this time. Complete,
+uncapped lifetime records prove that **981 unassociated reduced-size images
+accumulate 806.35 MiB without any destruction**; registered cache inventory is
+223 images/670.28 MiB. All unassociated images are 640x360 or 320x180, strengthening
+the retained scene-proxy candidate, although callers are not individually tagged.
+The last GC sample is 35.14 seconds old. No policy change or new GPU test is made
+for this evidence update; see the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding native boundary (09:25Z):** resource tracing is exercised. The owner run
 ends after **175.402 seconds** on Metal OOM code 8, child/supervisor exit 23,
 at 11.70 GiB native allocation. Two cross-window binding requests copy through
 one retained **3 GiB** upload buffer. The final live-image ledger has 611 images,

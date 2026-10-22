@@ -15,8 +15,8 @@
 > Earlier runs showed logos/menu and defective 3D animation, with much improved
 > audio and measured input delivery close to 48 kHz. Visible output returned after
 > withdrawing a buffer-bound experiment. The latest instrumented run stops on
-> confirmed native Metal memory exhaustion after about 175 seconds. A retained
-> 3 GiB upload buffer and later image growth remain investigation priorities;
+> confirmed native Metal memory exhaustion after about 102 seconds. A retained
+> 2.5 GiB upload buffer and accumulating reduced-size images remain investigation priorities;
 > correct rendering and memory stability remain unverified. The audio and
 > staging-reuse corrections remain. The error
 > handler exits with confirmed status. See the
@@ -110,11 +110,11 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 supersedes the historical run summaries below. The owner confirmed that visible
 output returned after rollback. The latest resource-instrumented run stops on
-native Metal memory exhaustion after **175.402
-seconds**, with child/supervisor exit 23. Two large cross-window copies share one
-retained 3 GiB upload buffer. Later image growth is mainly unassociated with the
-game texture cache; retained reduced-scene proxies are a candidate requiring
-isolated lifetime validation.
+native Metal memory exhaustion after **101.864 seconds**, with child/supervisor
+exit 23. The newest run has one large cross-window copy and 2.5 GiB staging.
+A complete image history now shows 981 unassociated reduced-size images
+retaining 806.35 MiB without destruction. Retained reduced-scene proxies are a
+candidate requiring isolated lifetime validation.
 The experimental shader-derived buffer bound stays withdrawn, including its
 metadata/cache changes. The prior renderer overlays and cache 23/9 are rebuilt
 for ARM64; source regressions and full CPU contracts pass. Correct rendering

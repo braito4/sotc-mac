@@ -1,6 +1,12 @@
 # Audio delivery diagnostics
 
-The **09:25Z comparison on 2026-10-22** has 68 complete native audio windows,
+The **09:41Z comparison on 2026-10-22** has 38 complete native audio windows,
+nineteen per active port, delivering about **47,733 input frames/s per port**.
+Maximum submission gap is **156.539 ms**, with no recorded queue/output failure.
+The run ends after 101.864 seconds on Metal OOM code 8. This remains input-delivery
+evidence, not a measurement of device underruns or complete audible output.
+
+The earlier **09:25Z comparison on 2026-10-22** has 68 complete native audio windows,
 34 per active port. Mean delivery is about **47,488 input frames/s per port**;
 submission gaps reach **120.404 ms** and output-lock waits 89 microseconds.
 No queue/output failure is recorded. The run ends after 175.402 seconds on Metal

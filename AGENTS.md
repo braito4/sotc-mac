@@ -37,14 +37,15 @@ silently update dependencies. This pre-test review is separate from the daily wa
   docs/MEMORY_DIAGNOSTICS.md: bounded private buffer origins, real image
   allocation/destruction, queued deletion and GC summaries now accompany the
   existing visual report. The ARM64 build, six renderer source regressions,
-  27 builder tests and full JIT/interpreter contracts pass. The 09:25Z owner run
-  now exercises the new records and stops after 175.402 seconds on Metal OOM 8,
-  confirmed child/supervisor exit 23. Two cross-window requests use one retained
-  3 GiB upload buffer. The final live-image ledger has 611 images/997.07 MiB,
-  including 387 unassociated images/317.20 MiB, with no queued deletion at failure.
-  SceneTargets' retained per-UID proxies are a source-backed candidate, not a
-  proven attribution. Keep cache 23/9 and all resource/fence/import semantics.
-  The event journal reached its 8 MiB cap; the live tracker did not overflow.
+  27 builder tests and full JIT/interpreter contracts pass. The newest 09:41Z
+  owner run stops after 101.864 seconds on Metal OOM 8, child/supervisor exit 23.
+  Its single cross-window copy allocates 2.5 GiB staging, not 3 GiB. The complete
+  uncapped image history proves 981 unassociated images/806.35 MiB remain live
+  without any such destruction; all are 640x360 or 320x180. Registered inventory
+  is 223 images/670.28 MiB. No image deletion is queued at failure. Retained
+  per-UID SceneTargets proxies are a strengthened candidate; allocation roles
+  are still untagged. Keep cache 23/9 and all resource/fence/import semantics.
+  The last GC sample is 35.14 seconds old; read the current handoff checkpoint.
   GC kept/freed upstream samples reset with frame statistics: never interpret
   them as cumulative totals. Reject untracked renderer source/header copies.
 - The SotC reference is still pinned at 2250f328. On 2026-10-22 main is observed
