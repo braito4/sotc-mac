@@ -9,45 +9,19 @@
   <sub>Built on <a href="https://github.com/bloodborne-native/bloodborne-mac"><strong>bloodborne-native</strong></a>, <a href="https://github.com/deadinside28/bloodborne_pc"><strong>bbport</strong></a> by deadinside28, and <a href="https://github.com/shadps4-emu/shadPS4">shadPS4</a>. SotC reference: <a href="https://github.com/AjncSystem/ShadowOfTheColossus-PC">AjncSystem/ShadowOfTheColossus-PC</a>.</sub>
 </p>
 
-> [!IMPORTANT]
-> **Early development: game graphics on Apple M1; gameplay is unverified.**
->
-> Earlier runs showed logos/menu and defective 3D animation, with much improved
-> audio and measured input delivery close to 48 kHz. Visible output returned after
-> withdrawing a buffer-bound experiment. The latest instrumented run stops on a
-> CPU invalid-memory access after about 183 seconds. Busy-queue maintenance now
-> destroys stale reduced-size images; the last sample retains 30 proxies versus
-> 336 before. Native memory still reaches 11.42 GiB and a 3 GiB upload buffer remains;
-> correct rendering and memory stability remain unverified. The audio and
-> staging-reuse corrections remain. The error
-> handler exits with confirmed status. See the
-> [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
-> [Resource diagnostics](docs/MEMORY_DIAGNOSTICS.md) now identify the large-copy
-> path and late growth in auxiliary/unassociated images on the native device.
-> They do not change rendering or memory policy; the exact failing resource is unresolved.
-> The diagnostic reaches the main loop with game GPU commands and a physical controller.
-> Introduction video correctness, entering a playable scene,
-> save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
->
-> The goal is to run Shadow of the Colossus on Apple Silicon without Rosetta. The current
-> method translates PS4 x86-64 instructions to ARM64 at runtime; it is not a source rebuild
-> of the game's engine.
+**The game reaches the first gameplay image on Apple M1, but it is not playable yet.**
+The owner confirms this milestone on 2026-10-22. Rendering defects, memory failures
+and instability remain; correct graphics, sustained gameplay, audiovisual
+synchronization and save persistence are not validated.
 
-> [!WARNING]
-> **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
-> The owner authorized one brief supervised experiment at a time. Dynamic shader
-> reads remain disabled and enabling them is blocked before GPU loading. The latest
-> reviewed capture stops on a CPU invalid-memory access with confirmed exit 139;
-> earlier captures stopped on Metal OOM or the GPU watchdog.
-> At the owner's request, game-duration limits now default to disabled; GPU-progress
-> supervision, manual cancellation and prerequisite budgets remain active.
-> Integer-format image-copy errors remain, and lower total memory pressure has
-> not been demonstrated.
-> Low-resolution comparisons are authorized, one at a time; see
-> the [scene-preset comparison](docs/DEVELOPMENT_HANDOFF.md#low-resolution-scene-comparison).
-> Lower pixel counts do not guarantee lower total memory pressure or host stability.
-> See the
-> [current test](docs/DEVELOPMENT_HANDOFF.md#gradual-gpu-testing).
+The latest analyzed native run stops on a GPU-progress watchdog; the supervisor
+ends after 136.225 seconds without confirming child exit. Earlier Metal OOM,
+CPU allocation-metadata corruption and an audio queue stop remain unresolved.
+See the [current status](docs/STATUS.md) and
+[developer handoff](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The port translates PS4 x86-64 instructions to ARM64 at runtime without Rosetta;
+it is not a source rebuild of the game's engine. There is no downloadable game app.
 
 <p align="center">
   <a href="docs/guide/installation.md"><strong>Getting started</strong></a>
@@ -68,8 +42,8 @@
 The current [dependency inventory](docs/DEPENDENCIES.md) records updated runtime,
 CPU and SotC reference pins, stable library versions and exact source revisions.
 The ARM64 build and CPU/source checks pass. Ordered frame maintenance now
-destroys stale proxies in the native owner comparison. That run ends on a CPU
-invalid-memory access; sustained memory stability remains unverified.
+destroys stale proxies in native owner comparisons. The latest run ends on a
+GPU-progress stop; memory stability remains unresolved.
 
 - **Native Apple Silicon host:** the diagnostic and bbcpu are built as ARM64 binaries.
 - **JIT and interpreter checks:** both modes are compared at explicit initialization boundaries.
@@ -115,74 +89,30 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 ## Status
 
-The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
-records the latest owner run: **182.664 seconds**, ending on CPU **SIGSEGV** with
-child/supervisor exit **139**. Busy-queue maintenance now releases stale scene
-proxies: the last sample records 1,233 actual destructions and 30 still live.
-No Metal OOM or GPU-watchdog stop is recorded in that run; native allocation
-still peaks at 11.423 GiB and the retained 3 GiB upload remains. The faulting
-load uses an invalid metadata-derived size/offset; its origin is unresolved.
-The image-event journal is capped, and the final resource inventory is sampled
-before the CPU fault. Correct rendering and sustained memory stability remain
-unverified. Keep cache 24/9, 640x360 and DMA/async off. The withdrawn shader-bound
-experiment stays inactive; shader/interface and integer-copy failures remain.
+The owner confirms the first image of the gameplay section on Apple M1.
+**Reaching gameplay does not yet make this a playable port.** Rendering defects
+and crashes remain, and no stable gameplay performance or working save support
+is claimed.
 
-The following audio and graphics observations are historical comparisons.
-The owner reports audio much improved: native delivery rises from about 23,912 to
-47,684 input frames/s per port after sizing the queue to the actual device quantum.
-A staging-cache correction now exercises four reuses previously rejected by size
-class, with 512 MiB less dedicated upload inventory. The run lasts 137.642 seconds
-versus 59.026 previously, but image allocations grow and Metal still runs out of
-memory. Residual audio gaps, the large upload allocation and image lifetimes need
-further investigation; this is not a gameplay performance or stability result.
+The latest owner comparison reports a **GPU submission without completion for
+ten seconds**. The supervisor ends after **136.225 seconds**, with exit **1**
+and child exit unconfirmed despite a cancellation notice. No Metal OOM or CPU
+fault is recorded in this capture. Native allocation peaks at **11.584 GiB**
+before the stop. The image journal records **1,037 proxies destroyed / 26 live**,
+but registered-image growth and the 3 GiB upload remain. Earlier guest allocator
+corruption, Metal OOM and a stopped audio queue have not been fixed.
 
-**Experimental: earlier runs reached the logos/menu on Apple M1; the last
-uninstrumented 30-second comparison showed only the first logo.**
-The owner also previously confirmed hearing the opening of the game's introduction. This
-establishes audible game output, without proving full audio coverage or audiovisual
-synchronization. An earlier native run reaches the main loop at about 1.38 seconds,
-detects a DualSense and continues beyond the save-dialog boundary. It ends at the
-60-second diagnostic timeout, with no unresolved-import stop or CPU execution fault
-recorded during that interval. Draw/dispatch counters are not gameplay FPS.
-The POSIX `usleep` import from an earlier instrumented run is corrected. The preceding
-complete low-resolution run detects a DualSense and stops on the renderer's GPU watchdog
-after about 114.91 seconds, with no import stop or CPU-fault report. The child exits
-with status 21; supervisor status 31 preserves the GPU-stall reason. Its CSV retains
-438 complete flip rows; cancellation can discard buffered rows. A record
-of presentation calls does not establish correct image contents or gameplay performance.
+The renderer adds typed integer image blits, addressing the float-output
+mismatch reported for R32Uint and RG32Uint. ARM64 compilation, actual-source CPU
+regressions and JIT/interpreter contracts pass. Those two errors do not recur in
+the native comparison, but exact GPU copy pixels and all supported cases still
+need validation. PerVertexKHR failures persist. This is not an OOM or corruption fix.
 
-An earlier capture omits the low-resolution preset and uses a 30-second budget. It
-stops on the GPU watchdog after about 19.49 seconds; the supervisor observes the
-cancellation notice but cannot confirm child exit. A later targeted check finds
-the process absent. Its pending batch includes compute, transfers and one draw in
-the retained tail, and its CSV is empty. This is a different configuration and
-earlier stopping boundary, not evidence that the later scene-rendering errors passed.
-
-The bounded journal now identifies indexed indirect draw candidates in the awaited
-batch, but not the precise executing command. A checked correction rejects invalid
-cached pipelines and null Metal registration; black-scene shader support remains
-unresolved. See
-[pending-submission tracing](docs/DEVELOPMENT_HANDOFF.md#pending-submission-tracing).
-
-Save-dialog initialization/open error contracts complement the eight mount/cleanup/
-metadata failure paths. Full synthetic contracts pass in both CPU modes; private
-comparisons check original validation and injected dependency-error propagation.
-No save storage or completed UI interaction is created. Following the reported host
-panic, dynamic shader-memory reads are disabled and nonzero overrides are rejected.
-The combined default now has no game-duration limit at the owner's request;
-`SOTC_DIAGNOSTIC_SECONDS=0` disables both duration timers, while 1..1800 selects
-a bounded run. GPU-progress cancellation, DMA protection and prerequisite budgets
-remain active. These cannot protect against a kernel/driver hang. The owner has authorized gradual
-supervised GPU testing. See the
-[current incident and handoff](docs/DEVELOPMENT_HANDOFF.md#host-watchdog-incident).
-
-The renderer still reports PerVertexKHR-to-MSL conversion failures, SRT/Phi offset
-errors and buffer-size clamps. A matching SotC issue and exact MoltenVK reports are
-linked in the [upstream review](docs/UPSTREAM_REVIEW.md). Correct in-game scenes and
-stability remain unverified. The current reproduction steps and stopping boundary
-are in the [developer handoff](docs/DEVELOPMENT_HANDOFF.md).
-
-See [Development status](docs/STATUS.md) for the measured scope and next checks.
+Dependencies and shader cache 24/9 remain unchanged. The current comparison keeps
+640x360, DMA/async off and metadata diagnostics on. Native comparisons remain
+one brief supervised run at a time; see the
+[developer handoff](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint) for the
+procedure, known limits and historical evidence.
 
 ## Additional diagnostics
 

@@ -30,12 +30,17 @@ class VisualReportTests(unittest.TestCase):
             self.assertIn('partial record ignored', report)
             audio = {'schema': 1, 'event': 'audio_window', 'boundary': '<script>', 'accepted_buffers': 470,
                      'frames': 256, 'window_us': 5_000_000}
-            (root.parent/'audio.jsonl').write_text(json.dumps(audio)+'\n{"partial":')
+            backend = {'schema': 1, 'event': 'audio_backend_state', 'stage': 'put',
+                       'provider_error': '<script>provider failure</script>',
+                       'paused_result': -1, 'available_output_bytes': -1}
+            (root.parent/'audio.jsonl').write_text(json.dumps(audio)+'\n'+json.dumps(backend)+'\n{"partial":')
             try:
-                self.assertIn('Audio delivery evidence', visual.render(root))
-                self.assertIn('&lt;script&gt;', visual.render(root))
-                self.assertIn('24064.0', visual.render(root))
-                self.assertEqual(len(visual.load_audio(root)), 1)
+                report = visual.render(root)
+                self.assertIn('Audio delivery evidence', report)
+                self.assertIn('&lt;script&gt;provider failure&lt;/script&gt;', report)
+                self.assertNotIn('<script>', report)
+                self.assertIn('24064.0', report)
+                self.assertEqual(len(visual.load_audio(root)), 2)
             finally:
                 (root.parent/'audio.jsonl').unlink()
             self.assertTrue(visual.preview_png(root, event['file']).startswith(b'\x89PNG'))

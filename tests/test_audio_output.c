@@ -3,9 +3,19 @@
 #include "test_audio.c"
 #undef main
 #include <time.h>
+#include <stdlib.h>
 static unsigned char captured[32][65536];
 static int lengths[32],put_calls,accepted,flush_calls,queue_calls;
 static int put_fail_at,queue_fail,flush_fail,pending,drain_step,stalled;
+static void *stalled_stream;
+static int diagnostic_queries;
+static const char *provider_error="stale error must not describe a timeout";
+static const char *get_error(void) { return provider_error; }
+static int available_pcm(void *stream) {
+    assert(stream);++diagnostic_queries;provider_error="getter overwrote error";
+    return stream==stalled_stream ? 4096:2048;
+}
+static bool paused_device(uint32_t device) { assert(device==100);++diagnostic_queries;return stalled!=0; }
 static uint64_t now_ns(void) {
     struct timespec t;assert(!clock_gettime(CLOCK_MONOTONIC,&t));
     return (uint64_t)t.tv_sec*1000000000u+(uint64_t)t.tv_nsec;
@@ -13,14 +23,15 @@ static uint64_t now_ns(void) {
 static bool put_pcm(void *stream,const void *data,int bytes) {
     assert(stream && data && bytes>0 && bytes<=65536);
     ++put_calls;
-    if(put_fail_at && put_calls==put_fail_at) return false;
+    if(put_fail_at && put_calls==put_fail_at) { provider_error="synthetic \"put\"\\failure\n";return false; }
     assert(pending<=4*bytes); /* The default 1024-frame quantum fits before a 256-frame put. */
     const size_t i=(unsigned char *)stream-streams;assert(i<32);
     lengths[i]=bytes;memcpy(captured[i],data,(size_t)bytes);++accepted;return true;
 }
 static int queued_pcm(void *stream) {
     assert(stream);++queue_calls;
-    if(queue_fail)return -1;
+    if(queue_fail) { provider_error="synthetic queue failure";return -1; }
+    if(stalled && stream!=stalled_stream) return 0;
     const int result=pending;
     if(!stalled && pending>0) pending=pending>drain_step ? pending-drain_step:0;
     return result;
@@ -36,8 +47,11 @@ int main(int argc,char **argv) {
     assert(!bootstrap_resolve("w3PdaSTSwGE#q#M",0));
     BootstrapAudioBackend b={.initialized_subsystems=0x10,.driver="coreaudio",.open=open_stream,
         .resume=resume,.destroy=destroy,.device=stream_device,.device_format=device_format,
-        .put=put_pcm,.queued=queued_pcm,.flush=flush_pcm};
-    if(argc==2) { assert(!strcmp(argv[1],"--missing-output"));b.put=NULL; }
+        .put=put_pcm,.queued=queued_pcm,.flush=flush_pcm,
+        .paused=paused_device,.available=available_pcm,.error=get_error};
+    const int missing_diagnostics=argc==2 && !strcmp(argv[1],"--missing-diagnostics");
+    if(missing_diagnostics) { b.paused=NULL;b.available=NULL;b.error=NULL; }
+    else if(argc==2) { assert(!strcmp(argv[1],"--missing-output"));b.put=NULL; }
     assert(!bootstrap_audio_bind(&b));
     uintptr_t init=bridge("JfEPXVxhFqA#q#M"),open=bridge("ekNvsT22rsY#q#M"),close=bridge("s1--uE9mBFw#q#M");
     uintptr_t single=bridge("QOQtbeDqsT4#q#M"),multi=bridge("w3PdaSTSwGE#q#M");
@@ -50,7 +64,7 @@ int main(int argc,char **argv) {
     assert((uint32_t)batch_call(multi,(const void *)1,26)==0x80260005);
     unsigned char source[65537],expected[65536];
     for(unsigned i=0;i<sizeof(source);++i) source[i]=(unsigned char)(i*37+13);
-    if(argc==2) {
+    if(argc==2 && !missing_diagnostics) {
         int32_t h=call(open,255,0,0,256,48000,5);assert(h>0);
         assert((uint32_t)call(single,(uint32_t)h,(uintptr_t)(source+1),0,0,0,0)==0x80260010);
         assert(!accepted && !put_calls && *runtime_errno()==77);
@@ -115,8 +129,8 @@ int main(int argc,char **argv) {
     flush_fail=1;assert((uint32_t)call(single,(uint32_t)handles[0],0,0,0,0,0)==0x80260010 && accepted==prior);flush_fail=0;
     pending=16384;drain_step=8192;
     assert(call(single,(uint32_t)handles[0],0,0,0,0,0)==256 && !pending && accepted==prior && flush_calls>=2);
-    pending=8192*8;stalled=1;started=now_ns();
-    assert((uint32_t)call(single,(uint32_t)handles[0],(uintptr_t)source,0,0,0,0)==0x80260010 && accepted==prior);
+    pending=8192*8;stalled=1;stalled_stream=&streams[8];started=now_ns();
+    assert((uint32_t)batch_call(multi,params,3)==0x80260010 && accepted==prior);
     assert(now_ns()-started>=UINT64_C(1900000000));pending=stalled=0;
     for(unsigned i=0;i<4;++i) assert(!call(close,(uint32_t)handles[i],0,0,0,0,0));
     int32_t maximum[9];const int first_stream=created;
@@ -130,6 +144,8 @@ int main(int argc,char **argv) {
         assert(!call(close,(uint32_t)maximum[i],0,0,0,0,0));
     }
     assert(created==destroyed && *runtime_errno()==77);
+    const char *trace=getenv("SOTC_AUDIO_TRACE");
+    assert((trace && !strcmp(trace,"1") && !missing_diagnostics) ? diagnostic_queries>0 : diagnostic_queries==0);
     puts("PASS: AudioOut single/batch guest PCM ABI, exact bytes and channel ordering, frame returns, validation before submission, protected buffers, device errors, partial failure, one batch cadence, bounded queue/drain and stream ownership");
     return 0;
 }

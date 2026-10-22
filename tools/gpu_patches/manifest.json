@@ -13,137 +13,164 @@
     "gpu/CMakeLists.txt": {
       "before": "353da382ba3ff49a298cdaca18d71782219722f6e4f5311b08cbb74326f35af4",
       "after": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985",
-      "maintenance_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985"
+      "maintenance_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985",
+      "integer_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985"
     },
     "gpu/shadps4/core/libraries/videoout/driver.cpp": {
       "before": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
       "after": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
-      "maintenance_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
+      "maintenance_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
+      "integer_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp": {
       "before": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
       "after": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
-      "maintenance_previous": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392"
+      "maintenance_previous": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392",
+      "integer_previous": "c300bd53ebd9af884c797eec9f52b04dc522018821fad777c65ca1b47fcd8392"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/lower_wave64_pass.cpp": {
       "before": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
       "after": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "maintenance_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
+      "maintenance_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
+      "integer_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.cpp": {
       "before": "d2e1a4b0b0eb6c64c99d319fa4bdfd9c2a99e54c89cd1811bfcc44e8abc84798",
       "after": "ee8cc3d8b02428d005990c9832881a8738da6fd992766a141121e79a49806afe",
-      "maintenance_previous": "5a7854d906875a9d1941b18ae989ce3189b5fc5e5d6760f8c29db3f390270722"
+      "maintenance_previous": "5a7854d906875a9d1941b18ae989ce3189b5fc5e5d6760f8c29db3f390270722",
+      "integer_previous": "ee8cc3d8b02428d005990c9832881a8738da6fd992766a141121e79a49806afe"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp": {
       "before": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
       "after": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6",
-      "maintenance_previous": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6"
+      "maintenance_previous": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6",
+      "integer_previous": "1ecfadecbd8fcf9c80d09a823ec1124f1731484929c27d33aeb3b4b0df704eb6"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
       "before": "d554160440bb533dbc2e75fd9213458ea8de7c09ddbee7f99a8d2d807aec8acf",
       "after": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
-      "maintenance_previous": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78"
+      "maintenance_previous": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78",
+      "integer_previous": "b74b6a77188fff91b56eef2fa50a369395330ac19c441b06c05c0eca1fb14e78"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "0c34ee4e0772db4de5873445c47f361e06a5fbf15e9c04b0adae955e54c98174",
-      "after": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d",
-      "maintenance_previous": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d"
+      "after": "71318d44382231e4cb64623aa9e46a4ef6c2fdc16fda77059f4af935f0e64c94",
+      "maintenance_previous": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d",
+      "integer_previous": "8afb098c4cef5cf6968affe0838eac0f7c9da74dff0dcdd8ca03631cda2c3d0d"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
       "before": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
       "after": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
-      "maintenance_previous": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
+      "maintenance_previous": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29",
+      "integer_previous": "e9bb8ba9a16eb53954d321cb111235dc3249baa2ba896234758df58ffa949c29"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_graphics_pipeline.cpp": {
       "before": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
       "after": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
-      "maintenance_previous": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5"
+      "maintenance_previous": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5",
+      "integer_previous": "d95a0fd618bbb0594a5e2aaa586ae2eefbdeb9ebaae37c65ae90a27ab8d1c7b5"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_metal_shadow.h": {
       "before": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
       "after": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "maintenance_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
+      "maintenance_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
+      "integer_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
       "before": "2aa776f2253c009f93d89545c9f765ed9584e1741c27c9150541c0ebc2ef5fc8",
       "after": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c",
-      "maintenance_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c"
+      "maintenance_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c",
+      "integer_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
       "before": "52d4a240543f15b10cc200567ce3ad34c1f19a2e9cbbfe2f4b8361b1bd35ccfa",
       "after": "395d5a4165417030b27bdcd7267a6292ee5ab9b462945e9e7b9e404de5383b19",
-      "maintenance_previous": "395d5a4165417030b27bdcd7267a6292ee5ab9b462945e9e7b9e404de5383b19"
+      "maintenance_previous": "395d5a4165417030b27bdcd7267a6292ee5ab9b462945e9e7b9e404de5383b19",
+      "integer_previous": "395d5a4165417030b27bdcd7267a6292ee5ab9b462945e9e7b9e404de5383b19"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
       "before": "d8e18677499a71fa1d216932ba208b6e4a0804a0c1abce6c2d6d1c29af216334",
       "after": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20",
-      "maintenance_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20"
+      "maintenance_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20",
+      "integer_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
       "before": "48fa552c0ff5d48f683e2d06d980ff38a3ada5789ef28249417bcb01057f01b9",
       "after": "55314b567c70436262e8bf51cf376eb30429302273d990ad5143e24e22c2e229",
-      "maintenance_previous": "e22fa7baeced7a0c252ec0b76bb66c531a0e4f8921156d9dc3c3a519081398d1"
+      "maintenance_previous": "e22fa7baeced7a0c252ec0b76bb66c531a0e4f8921156d9dc3c3a519081398d1",
+      "integer_previous": "55314b567c70436262e8bf51cf376eb30429302273d990ad5143e24e22c2e229"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp": {
       "before": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
       "after": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b",
-      "maintenance_previous": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b"
+      "maintenance_previous": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b",
+      "integer_previous": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.cpp": {
       "before": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
       "after": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25",
-      "maintenance_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25"
+      "maintenance_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25",
+      "integer_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.h": {
       "before": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
       "after": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81",
-      "maintenance_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81"
+      "maintenance_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81",
+      "integer_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
       "before": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
       "after": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "maintenance_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
+      "maintenance_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
+      "integer_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
       "before": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
       "after": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "maintenance_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
+      "maintenance_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
+      "integer_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.cpp": {
       "before": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
       "after": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "maintenance_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
+      "maintenance_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
+      "integer_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.h": {
       "before": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
       "after": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "maintenance_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
+      "maintenance_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
+      "integer_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp": {
       "before": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
       "after": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9",
-      "maintenance_previous": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9"
+      "maintenance_previous": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9",
+      "integer_previous": "3a095ee897df6912bb5120b58fbfafc1d42d6a3cdd902d7d684f49f59c3ecba9"
     },
     "gpu/shadps4/video_core/texture_cache/image.cpp": {
       "before": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
       "after": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910",
-      "maintenance_previous": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910"
+      "maintenance_previous": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910",
+      "integer_previous": "6ccc02c9813ed1eb72081a4f478b7a64ca1fe1531831f08fcf38d879ddfbe910"
     },
     "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
       "before": "05d738dc7041cbb9f6567ca7871963f7b8629a260f23d515ce676c37ba585d3a",
       "after": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c",
-      "maintenance_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c"
+      "maintenance_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c",
+      "integer_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h": {
       "before": "50548c9374b5bf2e3009cf6309ac413580478bccff717bbc58305abd742e2bd4",
       "after": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd",
-      "maintenance_previous": "50548c9374b5bf2e3009cf6309ac413580478bccff717bbc58305abd742e2bd4"
+      "maintenance_previous": "50548c9374b5bf2e3009cf6309ac413580478bccff717bbc58305abd742e2bd4",
+      "integer_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd"
     }
   },
   "patches": {
     "sotc-current-runtime.patch.json": "ec51c826b05f5869ec2e56b286bef2cf577c641ab4a73da006118b6a227977f4",
-    "sotc-busy-cache-maintenance.patch.json": "a2e142eac13f205202f331d040e9af6c51d67b0dafaab5f156eb788ee9a212eb"
+    "sotc-busy-cache-maintenance.patch.json": "a2e142eac13f205202f331d040e9af6c51d67b0dafaab5f156eb788ee9a212eb",
+    "sotc-integer-blit.patch.json": "4774dc10c248a39eb42198d99a9a5f070aa23914382551887333004f73230af1"
   },
   "local_adaptations": [
     "sotc-submission-trace-v1",
@@ -158,7 +185,8 @@
     "sotc-scene-proxy-retirement-v1",
     "sotc-current-runtime-integration-v1",
     "sotc-nested-coroutine-lifetime-v1",
-    "sotc-busy-cache-maintenance-v1"
+    "sotc-busy-cache-maintenance-v1",
+    "sotc-integer-blit-v1"
   ],
   "scene_proxy_source_review": {
     "repository": "https://github.com/bmy/bbport-mac",
@@ -182,5 +210,9 @@
   ],
   "maintenance_previous_patches": [
     "sotc-current-runtime.patch.json"
+  ],
+  "integer_previous_patches": [
+    "sotc-current-runtime.patch.json",
+    "sotc-busy-cache-maintenance.patch.json"
   ]
 }

@@ -8,6 +8,291 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### First gameplay image confirmed; native comparison stops on GPU progress
+
+The owner reports seeing the **first image of the gameplay section** in the
+**2026-10-22 15:27 UTC** comparison on Apple M1. This refines the earlier gameplay
+milestone; it does not establish responsive or stable play, correct pixels or
+working saves. Pixel capture remains off. The native log no longer contains the
+two `float4`/R32Uint/RG32Uint blit pipeline errors, nor an integer-library compile
+or unsupported-integer-copy error. This is useful native absence-of-error evidence
+for the prepared overlay, not per-format GPU readback or proof that every signed,
+mip, scaling and edge case is correct.
+
+The renderer reports a submission without completion for ten seconds. The
+supervisor requests cooperative cancellation and observes the child's notice
+2.125 ms later, but **does not confirm child exit**. Its footer ends after
+**136.225 seconds**, with **child status unknown and supervisor exit 1**. This
+is a GPU-progress stop followed by failed stop confirmation, not Metal OOM,
+SIGBUS or a duration timer. The targeted process-status lookup is denied in this
+tool context, so process absence is not established. Confirm the old diagnostic
+window/process has closed before any further comparison; do not run another
+instance or bypass the cooperative stop policy.
+
+The preceding batch has completed Metal callbacks. The awaited batch returns
+success from Vulkan submission and returns from Metal commit, with no scheduled
+or completed callback observed for its retained chunk. Its bounded tail retains
+96 of 26,764 CPU command notes, including indexed draws and image blits. These
+are candidates, not the exact executing or failing GPU instruction. The actual
+batch and shader identifiers remain private. PerVertexKHR failures persist
+(406 messages), as do SRT/Phi errors and buffer clamps. No CPU-fatal or audio-
+backend-failure path is exercised in this run.
+
+There are **968 presentation results**, ending at recorder time 108.752 seconds;
+these are not gameplay FPS or pixel validation. The largest gap between recorded
+results is 4.170 seconds. No later presentation result is recorded before the
+supervisor stop. Native allocation peaks at **11.584 GiB**, last **11.572 GiB**;
+these samples predate the stop and are not final pressure measurements. The
+**3 GiB upload** remains in the last staging inventory, but that inventory is
+already **57.953 seconds old at the last presentation**. Its reusable fields
+cannot justify freeing live storage. The buffer-origin journal reaches its cap.
+
+The image journal remains below its cap. Offline replay exactly matches the
+last bounded summary (377 images / 901.52 MiB, 1,007 proxies destroyed / 27 live),
+then continues another 18.844 seconds. At its last event it records **6,129
+allocations / 5,665 destructions / 464 live images / 1,135.69 MiB**. Of these,
+435 registered images retain 1,107.32 MiB; **26 proxies retain 23.46 MiB after
+1,037 actual proxy destructions**. Two other images have deletion queued
+(4.91 MiB), and one small image has no recorded association yet. There are no
+unmatched replay events; the last bounded tracker reports no errors or overflow.
+This distinguishes continuing proxy cleanup from growth of registered images;
+it does not prove a leak or identify the stalled resource. No forced final
+memory snapshot accompanies this watchdog stop.
+
+Audio has **52 healthy windows**, 26 per port, spanning about 130.227 seconds
+per port and delivering **47,734 input frames/s**. The maximum submission gap is
+**95.384 ms**, with no queue wait failure or output error. Delivery continues
+after the final presentation result; speaker continuity and audiovisual alignment
+remain unmeasured. Archive writes take up to 13.634 seconds, but timing alone
+does not make them the cause of the terminal stall.
+
+Next priorities: inspect the awaited submission's resource lifetimes and native
+encoding/completion boundary using synthetic fixtures, while tracking registered-
+image retention separately from proxy cleanup and staging reuse. Keep the earlier
+CPU corruption/audio failure open. Preserve runtime b2ff9cd0, CPU b9652d75,
+reference 411fdd86, cache 24/9, 640x360 and DMA/async off. This review changes
+documentation only and starts no game/GPU run. Private reproducible calculations
+remain with the ignored capture. Publication after review was requested by the
+owner; do not claim it complete without a successful push.
+
+### Prepared integer blit correction; gameplay milestone reported
+
+On **2026-10-22**, the owner confirms reaching the game's gameplay section on
+Apple M1, while explicitly reporting that the port is **not playable yet**.
+This is an owner observation, not a pixel capture, performance measurement or
+proof of stable gameplay/save support. At the owner's request, the README no
+longer has the Warning callout; the native testing procedure and runtime guards
+remain unchanged.
+
+The latest analyzed capture below contains two Metal render-pipeline failures:
+R32Uint and RG32Uint destinations were paired with the blit's `float4` output.
+The checked `sotc-integer-blit-v1` overlay now selects `uint4`/`int4` fragment
+outputs and matching integer textures. `read()` preserves integer texels without
+float conversion and uses the source mip explicitly. The first supported scope
+is same-format, single-sample, nearest-filtered 2D color blits. Signedness/format
+conversion, arrays, cubes, 3D, multisampling and unsupported subresources report
+an explicit error before recording any part of the integer batch. They do not
+fall back to the float shader. Existing rectangle scaling/mirroring remains.
+The original float/depth shader source and selection remain in a separate
+library, so failure to compile the new integer library cannot invalidate them.
+
+Validation: the ARM64 library rebuild and symbol audit pass, along with eleven
+renderer source regressions, 24 builder tests and full JIT/interpreter contracts.
+The integer regression evaluates the actual selector/guards and mechanically
+translated MSL bodies with CPU texture doubles: 384 signed/unsigned cases cover
+exact 32-bit values, three mips and nearest edge coordinates. The pinned selector
+fails the integer contract; the adapted one passes. Builder fixtures cover clean
+application, migration from both earlier overlay cohorts, idempotence and rejection
+of unknown/partial sources. `xcrun metal` is unavailable: no native Metal shader
+compilation, GPU copy or game execution was performed by these checks. Correct
+M1 pixels and absence of the two errors still need the owner's comparison.
+
+This targets the typed-copy failures, not the OOM or CPU corruption. The staging
+allocation policy and ownership remain: smaller rounding could cause additional
+retained buffers if requests subsequently grow, so the 2.5/3 GiB guards are not
+changed. The Metal archive already has an asynchronous writer; moving it to a
+worker would not be a new fix, and its timing alone does not establish causality
+for the presentation gap. Keep these investigations separate.
+
+The [fresh upstream review](DEPENDENCY_WATCH.md#pre-comparison-integer-blit-review-2026-10-22-1525-utc)
+records current access limits and preserves the previous exact-SHA baseline.
+Keep runtime b2ff9cd0, CPU b9652d75, reference 411fdd86 and cache 24/9. After the
+previous window is closed, the owner can run the same combined command, once,
+with 640x360, DMA/async off, JIT/statistics and metadata on, pixel capture off and
+no automatic duration limit. Stop manually after a brief comparison. Inspect
+integer blit/shader errors, real exit status, memory inventory and audio progress
+before another run. The owner requested GitHub publication after that comparison;
+the subsequent comparison and its limits are recorded above.
+
+### Native repeat: Metal OOM despite proxy retirement; long presentation gap
+
+The **2026-10-22 14:58 UTC** owner run ends after **120.309 seconds** on
+**Metal command-buffer out-of-memory error 8**, with confirmed child/supervisor
+exit **23**. There is no wall deadline, CPU fault, audio timeout or GPU-watchdog
+stop in this capture. The failure is not a 120-second timer. Settings remain
+640x360, DMA/async off, JIT/statistics and metadata on, pixel capture off; a
+DualSense connects. This run follows the diagnostic preparation below, but does
+not exercise its new CPU-fatal or audio-backend-failure branches. The preceding
+SIGBUS and stopped audio queue remain unresolved, not disproved or fixed.
+
+The forced failure snapshot records **11.571 GiB** native allocation; the visual
+journal's peak is **11.577 GiB**, against an **11.840 GiB** recommendation. That
+recommendation is not a hard limit or a promise that another GPU allocation can
+succeed. The retained failed command-buffer generation has all six CPU metadata
+notes, including one compute dispatch candidate. It does not identify the precise
+GPU instruction or resource that exhausted memory.
+
+Proxy cleanup still works: **923 created / 900 destroyed / 23 live**, retaining
+**20.30 MiB**, with no pending proxy deletion. The complete image journal has
+**5,786 allocations / 5,403 destructions / 383 live images**, **899.23 MiB**.
+Offline replay exactly matches the forced ledger: 357 registered images retain
+852.91 MiB, 23 proxies retain 20.30 MiB, and three other images have deletion
+queued (26.02 MiB). Those three retirement observations are only 5.9–7.6 ms old;
+they are not evidence of a stuck deletion queue. No event was dropped and no
+tracker overflow, unmatched/untracked free or observation error is recorded.
+
+One cross-window copy requests about 2.740 GiB and allocates **3 GiB** of upload
+staging; its CPU copy takes 2.082 seconds. The final staging inventory retains
+that buffer, with a sample age of 1.642 seconds. Total sampled staging is 3,500
+MiB. From the first presentation result after 20 seconds to the error, tracked
+Vulkan memory grows **386.20 MiB**, exactly the image-byte growth; native
+allocation grows 397.39 MiB. The large upload is a fixed contributor during that
+interval, while image inventory grows. Neither this trend nor registered state
+proves a leak or permits discarding unresolved GPU contents. The collector's
+last sample is 3.430 seconds old at failure, with tick 258; cumulative retention
+decisions are 37 unresolved-GPU and 67 tiled-download, separately counted.
+
+There is a **24.771-second gap between presentation API results**, from 84.588
+to 109.359 seconds on the visual recorder's clock, not supervisor elapsed time.
+The frame CSV independently reports a 24,767.14 ms interval. The surrounding
+statistics window records 706 shader/pipeline compilation events and 22,157.5 ms
+of accumulated compilation time; the log also reports a 7,790 ms Metal binary
+archive write in this interval. These timings can overlap/nest and must not be
+added. They make pipeline compilation/cache serialization a concrete profiling
+candidate, without identifying one culprit shader or proving all of the pause
+is compilation. Resource collection samples have a 30.006-second gap, then resume;
+image allocation/destruction and audio delivery continue during that interval.
+There are 1,002 presentation results, not validated pixels or gameplay FPS.
+PerVertexKHR failures, the two integer-format blit failures and clamps remain.
+
+Audio records **44 healthy windows**, 22 per port, covering about 110.17 seconds
+per port and delivering about **47,270 input frames/s**. No queue wait failure,
+output error or backend-failure snapshot is recorded. The largest submission
+gap is **448.116 ms**; the device quantum remains 1024 frames / 48 kHz. The final
+partial window is not flushed by immediate Metal-error exit. This validates
+neither uninterrupted audible output nor the new failure-only diagnostic paths.
+
+Next review priorities are safe large-upload lifetime/reuse and the growth and
+retention of registered images, plus timing of pipeline compilation/archive
+writes around long presentation gaps. Keep the earlier guest allocation/write
+provenance investigation separate. Do not remove ownership/completion guards,
+silence shader errors or infer a fix from failure-mode alternation. This review
+changes documentation only, preserves pins/cache 24/9 and starts no new game/GPU
+run. Private evidence and reproducible calculations remain under the run's
+ignored output. A fresh upstream review is required before a new comparison.
+
+### Prepared comparison: audio backend failures and caller-local memory
+
+After the 14:23 UTC analysis below, the ARM64 diagnostic is rebuilt with bounded
+audio failure snapshots and additional fatal CPU context. The subsequent 14:58
+UTC owner run above ends on Metal OOM without triggering these failure paths.
+This is evidence collection, not a claimed fix for
+the allocator corruption or stopped audio queue.
+
+With `SOTC_AUDIO_TRACE=1`, the first eight backend failure groups sample every
+selected port, including peers skipped by an earlier port's failure. They record
+the device/format query, pause-query result, input queue and available converted
+output bytes. The failed wait records first/last/minimum input bytes and poll/
+change counts. Queue timeouts, clock failures and failed SDL calls are distinct;
+an SDL error is copied immediately after a failed call, before diagnostic getters
+can replace it. Timeouts do not inherit stale SDL errors. Optional getters are
+not playback requirements. Real errors, partial submissions, the queue bound and
+two-second deadline remain intact; no stream is restarted or data fabricated.
+The private HTML report includes these snapshots. See
+[audio diagnostics](AUDIO_DIAGNOSTICS.md) for interpretation and caps.
+
+Fatal JIT context also samples eight protected words immediately before each
+of at most eight frame-pointer candidates. These are raw candidate local words,
+not validated arguments or writer provenance. Existing guest-range/GPU-page
+guards and signal-derived exit codes remain. See
+[CPU diagnostics](CPU_DIAGNOSTICS.md).
+
+The ARM64 rebuild and full JIT/interpreter contracts pass, including multi-port
+timeout isolation, immediate error preservation/JSON escaping, absent optional
+getters, exact PCM behavior and fatal-context reads. The report's escaped-error
+and incomplete-tail regression passes. Fresh public pre-comparison review is
+[recorded with access limits](DEPENDENCY_WATCH.md#pre-comparison-audio-diagnostic-review-2026-10-22-1455-utc).
+Keep runtime b2ff9cd0, CPU b9652d75, reference 411fdd86 and cache 24/9; scene
+640x360, DMA/async off, metadata on, pixel capture off and no automatic game
+duration limit. Use the combined launcher only after the prior window closes.
+The next log should distinguish the failed port's observed backend state from
+its peers and provide more caller context. Allocation/write provenance remains
+the main unresolved CPU investigation.
+
+### Native CPU context captured: invalid allocator metadata and audio queue stop
+
+The **2026-10-22 14:23 UTC** owner run ends after **120.001 seconds** on
+**SIGBUS**, with confirmed child/supervisor exit **138**. The supervisor reports
+no wall budget; this is not a 120-second timer stop. No Metal command-error,
+GPU-watchdog or unresolved-import stop is recorded. Scene remains 640x360,
+DMA/async off, JIT/statistics and metadata on, pixel capture off; a DualSense
+connects. The new bounded CPU context completes without a truncation marker.
+
+Private offline inspection finds a **store**, at a different instruction from
+the preceding SIGSEGV. The surrounding guest code appears to allocate/split a
+free-list block. Its supposed node contains readable resource-name text, including
+the word used as a count. That captured word reproduces the saved index, scaled
+offset, stored value and exact failing address. The original and linked bytes
+of the inspected block match. This strengthens a corrupted/stale node or invalid
+reuse hypothesis: the immediate address arithmetic is consistent with its bad
+input. It does not identify the writer, prove use-after-free, exclude an earlier
+translation/ordering defect or establish a connection with GPU maintenance.
+
+All eight frame candidates have a call immediately before their return position
+(six direct, two indirect). Candidate callers include byte-buffer/string growth
+and allocation paths. This supports the interpretation but is not a validated
+unwind or a record of the indirect targets. Exact words, names, addresses,
+instruction bytes and disassembly remain in ignored private analysis output.
+
+Audio has a separate newly observed failure. Fifteen healthy windows per port
+deliver about **47,919 input frames/s**. The first queue failure appears
+**80.176 seconds after the audio recorder's window origin**, not supervisor
+start. Seventeen failing windows then show roughly two-second queue waits;
+after the first, sixteen accept no new buffers on the first port. Its input
+queue stays at **40,960 bytes**, above the **32,768-byte** pre-submit limit.
+The batch returns the real provider error; the 16 output-error records hit their
+logging cap and are not the total failure count. The first port's failure exits
+the batch before submitting the second, so missing later second-port windows do
+not diagnose its device. Device pause/removal, callback progress and backend
+error details are not recorded. No causal link to the later CPU crash is proven.
+
+The latest resource summary has **1,535 proxy creations / 1,505 destructions /
+30 live (27.32 MiB)**, with none pending. Total live inventory is **247 images /
+715.16 MiB**; 6,973 allocations minus 6,726 destructions matches the ledger.
+Twenty-two summaries show continued collection, ending at collector tick 342;
+51 unresolved-GPU retention decisions remain separate from 106 tiled-download
+decisions. The image journal reaches its cap (875 dropped events by the last
+summary), with no tracker overflow, unmatched/untracked frees or observation
+errors. A CPU stop does not force a final resource snapshot.
+
+Native allocation peaks at **11.435 GiB**, last **11.430 GiB**. A single large
+cross-window request allocates the retained **3 GiB** upload; the last dedicated
+upload inventory is **3,112 MiB**, including another allocation. CPU copy
+completion is not GPU completion. Pressure remains high despite proxy cleanup.
+The visual journal has 1,175 presentation-result records, not validated pixels;
+PerVertexKHR failures, two integer-format blit failures and size clamps remain.
+
+Next priorities are allocation/free/write provenance for the bad guest node,
+including synchronization, and bounded audio device/queue-progress diagnostics.
+Do not replace metadata, skip the store, weaken memory guards or increase the
+audio timeout as a remedy. The AnyPS5 thread now supplies additional review
+candidates, especially command-memory reuse and barycentric built-ins; see
+[the watch baseline](DEPENDENCY_WATCH.md#anyps5-macos-thread-review-2026-10-22).
+These are different implementations, not established fixes for this crash.
+That analysis changed documentation only. The subsequent diagnostic preparation
+and pre-comparison review are recorded above; the targeted AnyPS5 review alone
+does not replace the broader upstream check.
+
 ### CPU fault investigation: bounded context and indexed-load regression
 
 The host diagnostic now collects protected, bounded register-base memory,
@@ -24,12 +309,13 @@ unaligned reads and protected page edges. The real diagnostic's fatal path
 retains exit 139 and records the fixture's metadata/frame candidate; protected
 and unmapped read fixtures pass too. ARM64 build, native emitter/JIT/vector
 checks and full JIT/interpreter contracts pass. This has not reproduced the
-native corruption or established its cause. The added context has no new game
-validation; the **182.664-second SIGSEGV** below remains the measured boundary.
+native corruption or established its cause. The subsequent **120.001-second
+SIGBUS** above now exercises the added context in a native owner run; the
+**182.664-second SIGSEGV** below is the preceding boundary.
 
-Next, use any subsequent owner-run fatal context to compare object words with
-the saved size/index register and identify frame candidates privately. Only
-then select an allocation-lifetime/write-origin or narrower CPU reproduction.
+The subsequent owner-run context now compares object words with the saved
+index and identifies call-site candidates privately. Use that evidence to
+select an allocation-lifetime/write-origin or narrower CPU reproduction.
 Keep CPU metadata corruption and the still-high GPU memory use as separate
 unresolved problems. Fresh public upstream review is still required before
 supplying another native comparison, with unavailable sources recorded.

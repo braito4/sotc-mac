@@ -108,20 +108,21 @@ needed fmt || exit 4
             self.assertEqual(once, {name: (source / name).read_bytes() for name in once})
 
     def test_previous_cohort_migrates_without_reapplying_existing_overlays(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source=Path(temporary)
-            self.backport_fixture(source)
-            manifest=gpu.backport_manifest()
-            previous=''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                             for name in manifest['maintenance_previous_patches'])
-            subprocess.run(['git','-C',str(source),'apply'],input=previous,text=True,check=True,
-                           capture_output=True)
-            self.assertEqual(gpu.backport_state(source),'maintenance_previous')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source),'after')
-            once={name:(source/name).read_bytes() for name in manifest['files']}
-            gpu.apply_backports(source)
-            self.assertEqual(once,{name:(source/name).read_bytes() for name in once})
+        for state in ('maintenance_previous', 'integer_previous'):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as temporary:
+                source=Path(temporary)
+                self.backport_fixture(source)
+                manifest=gpu.backport_manifest()
+                previous=''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
+                                 for name in manifest[state+'_patches'])
+                subprocess.run(['git','-C',str(source),'apply'],input=previous,text=True,check=True,
+                               capture_output=True)
+                self.assertEqual(gpu.backport_state(source),state)
+                gpu.apply_backports(source)
+                self.assertEqual(gpu.backport_state(source),'after')
+                once={name:(source/name).read_bytes() for name in manifest['files']}
+                gpu.apply_backports(source)
+                self.assertEqual(once,{name:(source/name).read_bytes() for name in once})
 
     def test_backports_reject_unknown_or_partial_sources_without_writing(self):
         with tempfile.TemporaryDirectory() as temporary:

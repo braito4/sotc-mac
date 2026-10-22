@@ -66,6 +66,11 @@ byte, word and dword widening, SSE128/VEX128/VEX256, aliases/high registers, exa
 memory against inaccessible pages, upper lanes and flags. No complete AVX2 coverage
 or x86 hardware oracle is implied.
 
+Both commands also run 8,064 original scalar indexed-load cases per CPU mode,
+including masked 64-bit indices, wraparound, scales, displacement and guarded
+page edges. Contracts additionally exercise the actual terminating diagnostic
+with synthetic invalid metadata. See [CPU fault diagnostics](../CPU_DIAGNOSTICS.md).
+
 The thread adapter similarly includes the pinned thread backend and wraps its start, TLS and
 lifecycle boundaries. A private build copy of the mutex backend makes only diagnostic counters
 atomic. The source checkout is not patched. Synthetic tests now also start concurrent guest
@@ -125,6 +130,13 @@ test and does not establish successful gameplay. Neither cancellation nor a
 user-space timer guarantees recovery from a kernel/driver hang.
 
 ## Isolated renderer build
+
+The checked integer-blit regression (`python3 tools/check_integer_blit.py`) uses
+the production format selector, compatibility guards and shader bodies with CPU
+texture doubles. It checks exact signed/unsigned texels and mip selection without
+creating a Metal device. The builder runs it automatically. This is not a Metal
+shader compilation or a native pixel test; see the
+[handoff](../DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 The [dependency inventory](../DEPENDENCIES.md) and
 [lock](../../tools/dependencies.json) select current source heads and stable

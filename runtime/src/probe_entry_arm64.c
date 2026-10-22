@@ -8,6 +8,7 @@
 #include "bbcpu.h"
 #include "bootstrap_contracts.h"
 #include "diagnostic_control.h"
+#include "cpu_fault_diagnostics.h"
 #include "platform.h"
 #include "runtime.h"
 #include <inttypes.h>
@@ -40,6 +41,8 @@ static uint64_t import_count;
 static int bootstrap;
 static _Atomic int entered_game;
 static atomic_flag stopping = ATOMIC_FLAG_INIT;
+static atomic_flag fault_reporting = ATOMIC_FLAG_INIT;
+static uint64_t fault_image_size;
 typedef struct { uint64_t at, size, flags; } Segment;
 typedef struct { uint64_t at, kind, value, addend; } Reloc;
 typedef struct {
@@ -100,6 +103,13 @@ static void fault(int sig, siginfo_t *info, void *context) {
         pthread_sigmask(SIG_UNBLOCK, &unblock, NULL);
         siglongjmp(*recover, 1);
     }
+    /* A second fatal fault must not recurse into diagnostics or wait for a
+     * damaged reporter. Preserve termination and explicitly mark truncation. */
+    if (atomic_flag_test_and_set_explicit(&fault_reporting,memory_order_relaxed)) {
+        const char repeated[]="CPU fault context: concurrent or nested fatal fault; report truncated\n";
+        (void)write(STDERR_FILENO,repeated,sizeof(repeated)-1);
+        _Exit(128+sig);
+    }
     /* Signal-safe header: report the failure type/address even when it is
      * outside registered guest code. Recovered GPU/speculative faults return
      * above and never emit a fatal diagnostic. */
@@ -143,6 +153,13 @@ static void fault(int sig, siginfo_t *info, void *context) {
     char description[2048];
     if (bbcpu_describe_fault(context, description, sizeof(description)))
         (void)write(STDERR_FILENO, description, strnlen(description, sizeof(description)));
+    BbGuestRegs regs;
+    if (bbcpu_fault_guest_regs(context,&regs))
+        sotc_cpu_fault_context(STDERR_FILENO,&regs,bb_image_base,fault_image_size);
+    else {
+        const char unavailable[]="CPU fault context: unavailable outside translated code\n";
+        (void)write(STDERR_FILENO,unavailable,sizeof(unavailable)-1);
+    }
     _Exit(128 + sig);
 }
 
@@ -293,6 +310,7 @@ int main(int argc, char **argv) {
         if (game_root && bootstrap_mount_game_root(game_root)) fail("cannot mount read-only game root");
     }
     bb_image_base = (uintptr_t)image;
+    fault_image_size = size;
     /* Publish all guest TLS templates before the GPU can create host workers. */
     if (linked && bootstrap) {
         bootstrap_set_procparam(image + procparam);

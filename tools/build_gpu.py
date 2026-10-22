@@ -84,7 +84,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -96,7 +96,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -359,7 +359,7 @@ def verify_source(source):
             for name, override in backport_manifest().get('submodule_overrides', {}).items():
                 if git_output(source / name, 'rev-parse', 'HEAD') == override['after']:
                     expected.add(name)
-            if state not in ('backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
+            if state not in ('integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -470,6 +470,7 @@ def build(root, runner, jobs, compiler):
     verify_source(source)
     runner.run([sys.executable, root / 'tools/check_tessellation.py'])
     runner.run([sys.executable, root / 'tools/check_pipeline_validity.py'])
+    runner.run([sys.executable, root / 'tools/check_integer_blit.py'])
     runner.run([sys.executable, root / 'tools/check_buffer_copy_chunks.py'])
     runner.run([sys.executable, root / 'tools/check_staging_reuse.py'])
     runner.run([sys.executable, root / 'tools/check_memory_trace.py'])

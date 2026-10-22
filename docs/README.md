@@ -13,6 +13,7 @@ It records the current boundary, reproduction commands, code map and prioritized
 | [Troubleshooting](guide/troubleshooting.md) | Expected stops and restricted environments |
 | [Performance](guide/performance.md) | Current verification scope |
 | [Development status](STATUS.md) | Confirmed milestones and remaining work |
+| [CPU fault diagnostics](CPU_DIAGNOSTICS.md) | Bounded private fault context, synthetic indexed-load checks and remaining uncertainty |
 | [Reference review](REFERENCE_REVIEW.md) | Supplied snapshot findings, independent content/address checks and file backing |
 | [Graphics bring-up](GRAPHICS_BRINGUP.md) | Confirmed Apple M1 prerequisite, isolated renderer build and remaining integration |
 | [Upstream review](UPSTREAM_REVIEW.md) | Selected renderer fixes, provenance, reproducible backports and verification limits |

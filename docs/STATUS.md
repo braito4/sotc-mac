@@ -1,17 +1,75 @@
 # Development status
 
-Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
+Updated 2026-10-22. **Reaches the first gameplay image on Apple M1; not playable yet.**
 
-**CPU investigation prepared:** the rebuilt diagnostic now records bounded
+The owner confirms seeing the first gameplay image. Rendering correctness, stable
+play and saves remain unverified. This observation is separate from synthetic
+checks and the latest captured failure below.
+
+**Current native boundary (15:27 UTC):** the renderer reports ten seconds without
+submission completion. The supervisor ends after **136.225 seconds**, exit **1**,
+with child exit unconfirmed despite a cooperative cancellation notice. A targeted
+process check is denied, so absence remains unverified. No Metal OOM, CPU fault
+or audio failure is recorded. Native allocation peaks at **11.584 GiB** before
+the stop; final pressure is unknown. Image replay records 464 live images /
+1,135.69 MiB, including **26 proxies / 23.46 MiB after 1,037 destructions** and
+435 registered images / 1,107.32 MiB. The 3 GiB upload remains in an old staging
+sample. Audio delivers about 47,734 input frames/s per port, maximum gap 95.384 ms.
+PerVertexKHR errors persist. See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Integer-copy correction:** typed uint/int blits replace the float
+output for supported same-format nearest 2D integer copies. The ARM64 build,
+eleven renderer regressions, 24 builder tests and full JIT/interpreter contracts
+pass. CPU texture doubles preserve exact values and source mips. The two captured
+float-output/integer-target errors do not recur in the native comparison, but
+exact GPU pixels and coverage of all cases remain unverified. No OOM, guest-corruption or
+PerVertexKHR fix is claimed. See the
+[continuation checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding native boundary (14:58 UTC):** the owner run ends after **120.309
+seconds on Metal OOM 8**, child/supervisor exit **23**, with no wall deadline,
+CPU fault or audio queue failure recorded. Native allocation peaks at **11.577
+GiB**, ending at 11.571 GiB. Proxy cleanup records 923 created / 900 destroyed /
+23 live (20.30 MiB). The complete final image ledger holds 383 images / 899.23
+MiB; the 3 GiB upload remains. After 20 seconds, all 386.20 MiB of tracked Vulkan
+growth is image growth, not another staging allocation. A 24.771-second
+presentation-result gap accompanies substantial shader/pipeline compilation and
+an archive write; their individual causal contributions are not established.
+Audio delivers about 47,270 input frames/s per port, with a 448.116 ms maximum
+submission gap. The earlier corruption/audio failure remain unresolved. See the
+[continuation checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared diagnostic improvement:** the rebuilt ARM64 launcher distinguishes
+audio queue timeouts from failed SDL calls and samples all ports in a failing
+batch, with bounded queue-progress/device evidence and immediately captured
+provider errors. Fatal CPU context also records protected candidate frame-local
+words. Full JIT/interpreter contracts and report regressions pass. Native
+validation of these failure-only additions is pending: the 14:58 run does not
+trigger them. The CPU crash and audio stop remain
+unfixed. Dependencies/cache 24/9 and rendering settings are unchanged. See the
+[continuation checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding native boundary (14:23 UTC):** the owner run ends after **120.001
+seconds on SIGBUS**, child/supervisor exit **138**, with no wall deadline or
+recorded Metal OOM/watchdog stop. The new fault context captures resource-name
+text where the guest allocation path expects node metadata. That word explains
+the saved index and faulting store address; the writer/lifetime and any earlier
+translation or synchronization defect remain unresolved. Audio separately stops
+accepting batches after repeated two-second waits on a non-draining input queue.
+Proxy cleanup continues: 1,535 created / 1,505 destroyed / 30 live (27.32 MiB).
+Native allocation still peaks at **11.435 GiB**. See the
+[current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**CPU investigation instrumented:** the rebuilt diagnostic now records bounded
 protected object-base/stack words and frame-pointer candidates at a fatal JIT
 stop. Tracked GPU pages are skipped; failed reads and unavailable interpreter
 context remain explicit. A new original synthetic indexed-load fixture passes
 8,064 cases per CPU mode, and native fatal-path fixtures preserve exit 139.
 ARM64/native CPU checks and contracts pass. The underlying corruption is not
-reproduced or fixed, and the new context has no game validation. See
+reproduced synthetically or fixed; the native run above now exercises the context. See
 [CPU diagnostics](CPU_DIAGNOSTICS.md).
 
-**Current native boundary (13:55 UTC):** the consolidated-workspace owner run
+**Preceding native boundary (13:55 UTC):** the consolidated-workspace owner run
 ends after **182.664 seconds on SIGSEGV**, child/supervisor exit **139**, in
 translated guest code. No Metal OOM or GPU-watchdog stop is recorded. Busy-queue
 maintenance now destroys stale proxies natively: the last resource sample has

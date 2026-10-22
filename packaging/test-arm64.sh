@@ -83,10 +83,12 @@ build_cpu_strings() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_strings.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_strings"
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_sse4a.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_sse4a"
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_widen.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_widen"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_indexed.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_indexed"
 }
 test_cpu_sse4a() {
     BB_JIT="$1" "$trial_root/work/test_cpu_sse4a"
     BB_JIT="$1" "$trial_root/work/test_cpu_widen"
+    BB_JIT="$1" "$trial_root/work/test_cpu_indexed"
 }
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
@@ -100,6 +102,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_load.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_supervisor.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_budget.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_fault_diagnostics.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_linked_modules.py

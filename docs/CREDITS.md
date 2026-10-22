@@ -5,6 +5,8 @@ This project is built on the work of:
 - [bloodborne-native](https://github.com/bloodborne-native): macOS ARM64 runtime and bbcpu.
   [bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac) also provides the README
   presentation used as this repository's reference.
+  The pinned runtime's protected fault-field/stack diagnostics inform the local
+  bounded [CPU fault context](CPU_DIAGNOSTICS.md); no game-specific layout is imported.
 - [bbport / bloodborne_pc](https://github.com/deadinside28/bloodborne_pc) by **deadinside28**:
   foundational native PS4 game runtime and porting work.
 - [bmy/bbport-mac](https://github.com/bmy/bbport-mac): reviewed buffer-copy batching
@@ -32,6 +34,12 @@ This project is built on the work of:
   [user type definitions](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/include/orbis/_types/user.h)
   and [UserService declarations](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/include/orbis/UserService.h)
   provide the local user adapter's guest ABI reference.
+
+The local typed-integer blit overlay extends bloodborne-runtime's native Metal
+fullscreen-triangle blit implementation. Its integer shader bodies and synthetic
+fixtures are original local additions, scoped against the
+[Vulkan blit contract](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBlitImage.html).
+No AnyPS5 or game shader code is copied.
 
 ## Pinned source revisions
 

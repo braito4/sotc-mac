@@ -76,7 +76,7 @@ def load_audio(directory):
     for line in path.read_bytes().splitlines()[:1024]:
         try:
             value = json.loads(line)
-            if isinstance(value, dict) and value.get('schema') == 1 and value.get('event') in ('audio_window', 'audio_output_error'):
+            if isinstance(value, dict) and value.get('schema') == 1 and value.get('event') in ('audio_window', 'audio_output_error', 'audio_backend_state'):
                 records.append(value)
         except (ValueError, RecursionError):
             pass
@@ -280,8 +280,9 @@ def render(directory):
     if audio:
         parts.append('<p>Audio metadata uses host monotonic timestamps and per-port windows. '
                      'Gaps and late submissions are candidates for audible cuts. Zero SDL input '
-                     'queue samples do not prove a hardware underrun: converted/device data is '
-                     'not measured. PCM is not recorded. Audio timestamps are not assigned to '
+                     'queue samples do not prove a hardware underrun. Failure snapshots may '
+                     'include available output bytes; hardware consumption is not measured. PCM '
+                     'is not recorded. Audio timestamps are not assigned to '
                      'a particular visual frame.</p><table><tr><th>Port / boundary</th><th>Accepted buffers</th>'
                      '<th>Input frames/s (target 48000)</th><th>Period (µs)</th><th>Device quantum</th><th>Input limit (bytes)</th><th>Max gap (µs)</th><th>Max queue wait (µs)</th>'
                      '<th>Max output-lock wait (µs)</th><th>Input zero samples</th></tr>')
@@ -296,6 +297,24 @@ def render(directory):
         parts.append('</table>')
         for e in [e for e in audio if e['event'] == 'audio_output_error']:
             parts.append('<p>Audio output error: '+esc(e.get('result'))+'; requested ports: '+esc(e.get('ports'))+'</p>')
+        states = [e for e in audio if e['event'] == 'audio_backend_state'][:72]
+        if states:
+            parts.append('<h3>Backend state at failure</h3><p>Sequential best-effort snapshots of all '
+                         'ports in the failing batch; at most eight failure groups. A timeout has no '
+                         'provider error string. A false paused result alone does not establish a '
+                         'valid device. A value of -1 denotes unavailable data.</p><table><tr>'
+                         '<th>Failure / stage</th><th>Failed port / sampled port</th><th>Device / format valid</th>'
+                         '<th>Paused query</th><th>Input / available output bytes</th>'
+                         '<th>Failed wait: first / last / minimum bytes</th><th>Polls / changes</th><th>Provider error</th></tr>')
+            for e in states:
+                def pair(*keys):
+                    return ' / '.join(str(e.get(k, 'unknown')) for k in keys)
+                fields = [pair('failure_group','stage'), pair('failed_port','port'), pair('device','device_format_ok'),
+                          e.get('paused_result','unknown'), pair('input_queue_bytes','available_output_bytes'),
+                          pair('failed_wait_first_bytes','failed_wait_last_bytes','failed_wait_min_bytes'),
+                          pair('failed_wait_polls','failed_wait_changes'), e.get('provider_error','')]
+                parts.append('<tr>'+''.join('<td>'+esc(value)+'</td>' for value in fields)+'</tr>')
+            parts.append('</table>')
     else:
         parts.append('<p>No audio delivery metadata was recorded for this run.</p>')
     if warnings:

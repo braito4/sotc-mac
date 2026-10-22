@@ -68,8 +68,39 @@ int main(void) {
                 self.assertTrue(any(e['input_queue_zero_samples'] > 0 for e in windows))
                 self.assertTrue(any(e['queue_wait_failures'] == 1 and e['max_queue_wait_us'] >= 1_900_000 for e in windows))
                 self.assertTrue(any(e['event'] == 'audio_output_error' and e['result'] < 0 for e in events))
+                states = [e for e in events if e['event'] == 'audio_backend_state']
+                timeouts = [e for e in states if e['stage'] == 'queue_timeout']
+                self.assertEqual(len(timeouts), 3)
+                self.assertEqual([e['input_queue_bytes'] for e in timeouts], [65536, 0, 0])
+                self.assertTrue(all(e['failed_wait_first_bytes'] == 65536 and
+                                    e['failed_wait_last_bytes'] == 65536 and
+                                    e['failed_wait_min_bytes'] == 65536 and
+                                    e['failed_wait_changes'] == 0 and e['failed_wait_polls'] > 1
+                                    for e in timeouts))
+                self.assertTrue(all(e['paused_result'] == 1 and e['device_format_ok'] == 1
+                                    and e['device_frames'] == 1024 for e in timeouts))
+                self.assertTrue(all(e['provider_error'] == '' and not e['provider_error_captured']
+                                    for e in timeouts))
+                put = [e for e in states if e['stage'] == 'put']
+                self.assertEqual(len(put), 3)
+                self.assertTrue(all(e['provider_error'] == 'synthetic "put"\\failure\n' for e in put))
+                self.assertTrue(all(e['failure_group'] <= 8 for e in states))
                 self.assertFalse(any('underrun' in str(e) or 'pcm' in e for e in events))
                 self.assertLessEqual(len(events), 1024)
+
+    @unittest.skipUnless((ROOT/'work/test_audio_output').is_file(), 'built native AudioOut fixture required')
+    def test_missing_optional_getters_keep_output_and_mark_unknown(self):
+        for jit in ('0', '1'):
+            with self.subTest(jit=jit), tempfile.TemporaryDirectory(prefix='audio optional ') as temp:
+                run = subprocess.run([str(ROOT/'work/test_audio_output'), '--missing-diagnostics'],
+                    env=dict(os.environ, BB_JIT=jit, BB_GPU_USER_DIR=temp, SOTC_AUDIO_TRACE='1'),
+                    capture_output=True, text=True, timeout=20)
+                self.assertEqual(run.returncode, 0, run.stdout+run.stderr)
+                events = [json.loads(line) for line in (Path(temp)/'audio.jsonl').read_text().splitlines()]
+                states = [e for e in events if e['event'] == 'audio_backend_state']
+                self.assertTrue(states)
+                self.assertTrue(all(e['paused_result'] == -1 and e['available_output_bytes'] == -1
+                                    and not e['provider_error_captured'] for e in states))
 
 
 if __name__ == '__main__':

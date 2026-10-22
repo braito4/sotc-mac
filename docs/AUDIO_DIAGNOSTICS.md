@@ -1,5 +1,50 @@
 # Audio delivery diagnostics
 
+The **15:27 UTC comparison on 2026-10-22** records 52 healthy windows, 26 per
+port, spanning about 130.227 seconds per port and delivering **47,734 input
+frames/s**. The largest submission gap is **95.384 ms**; no queue wait failure,
+output error or backend-failure snapshot is recorded. Device quantum remains
+1024 frames / 48 kHz. Delivery continues after the final recorded presentation.
+The run stops on GPU progress, with supervisor exit 1 and child exit unconfirmed;
+this neither validates audible continuity nor resolves the earlier queue stop.
+The failure-only diagnostics are still not exercised natively.
+
+The **14:58 UTC comparison on 2026-10-22** ends on Metal OOM after 120.309
+supervisor seconds, with **no audio queue failure, output error or backend-failure
+snapshot**. Its 44 complete windows (22 per port, about 110.17 seconds per port)
+deliver about **47,270 input frames/s**. The maximum submission gap is **448.116
+ms**; the device remains 1024 frames / 48 kHz. Audio windows continue during the
+long presentation gap. Immediate Metal-error exit omits the final partial window.
+This does not establish uninterrupted speaker output or fix the previous queue
+stop. The new failure-only snapshots are present in the prepared build but are
+not exercised by this capture.
+
+The prepared comparison adds bounded `audio_backend_state` records under
+`SOTC_AUDIO_TRACE=1`. ARM64 build and full JIT/interpreter contracts pass; native
+device evidence from this addition is pending. It does not repair or restart a
+stalled stream. The existing queue policy, two-second deadline, exact PCM and
+real provider errors remain.
+
+The **14:23 UTC comparison on 2026-10-22** exposes a new queue-progress failure.
+The first fifteen healthy windows per port deliver about **47,919 input
+frames/s**. At 80.176 seconds from the audio window origin, the first port
+times out waiting for input consumption. Seventeen failing windows record
+roughly two-second waits; after the first, sixteen accept zero new buffers,
+with the input queue fixed at **40,960 bytes** against a **32,768-byte** limit.
+This is the allowed full quantum plus one submitted block; the evidence is
+that it stops draining, not that the bound must be raised. The actual device
+still reports 1024 frames / 48 kHz. Maximum observed submission gap is 263.645 ms.
+
+The output batch returns `0x80260010`; its sixteen error records reach the
+diagnostic cap, so they undercount failures. First-port failure returns before
+second-port submission. The absence of later second-port windows does not prove
+that both devices stopped consuming. No pause/removal status, callback progress
+or SDL error detail identifies the underlying backend failure. This is distinct
+from an empty input queue and does not measure hardware underruns. The later
+SIGBUS at 120.001 supervisor seconds has no established causal link to audio.
+This run motivates the bounded backend/device evidence described below; it
+predates the new snapshots and cannot establish those device states.
+
 The **13:55 UTC comparison on 2026-10-22** records 66 complete native audio
 windows, 33 per port, delivering about **47,815 input frames/s per port**.
 Maximum submission gap is **182.876 ms**, maximum output-lock wait is 514
@@ -91,6 +136,28 @@ error exit can still omit the pending, less-than-five-second audio window.
 Diagnostic I/O itself can affect timing, so compare tracing on/off if overhead
 becomes material. The HTML reader bounds audio input and tolerates a partial tail.
 
+The first eight backend failure groups also sample every port selected by the
+failed batch (at most nine active ports). A first-port failure does not establish
+anything about the others. Each sequential, best-effort snapshot records:
+
+- Failure stage and failed/sampled port, device ID, format-query success and
+  current frames/frequency/channels.
+- SDL pause-query result, current input queue and available converted/resampled
+  output bytes. Missing optional queries use `-1`. A false pause result alone
+  does not prove the device is valid; consult the separate format-query result.
+- First/last/minimum input bytes and poll/change counts from the failed port's
+  wait. These values describe that wait, not a separate wait on each peer.
+- A provider error copied before diagnostic getters, only after an actual failed
+  provider call. Timeouts and clock failures have no provider error string.
+  Error text is limited to 128 bytes and JSON-escaped; all snapshots share the
+  existing 1024-line cap. Missing error-query support remains explicit.
+
+These read-only getters do not consume, flush, resume, reopen or replace streams.
+`SDL_GetAudioStreamAvailable` reports converted/resampled bytes available from a
+stream, not hardware playback or callback progress. The HTML report exposes
+these failure groups with the same limitations. Optional getters are resolved
+from the selected SDL library and are never required for playback.
+
 [SDL_GetAudioStreamQueued](https://wiki.libsdl.org/SDL3/SDL_GetAudioStreamQueued)
 reports bytes of **input**, not the amount ready at the device. A zero input queue
 does not prove an audible underrun; a long submission gap is a timing lead, not
@@ -107,7 +174,11 @@ alignment still need verification. Larger renderer stalls can interrupt audio.
 CPU tests use original synthetic PCM and timing inputs. They cover timing/reset
 thresholds and run the actual guest-output fixture in both interpreter and JIT
 with tracing enabled, including exact PCM/channel mapping, partial provider
-failures, bounded queue waiting and a real two-second simulated timeout. Metadata
+failures, bounded queue waiting and a real two-second simulated timeout. A stalled
+first stream and two healthy peers verify per-port queue observations without
+new submissions. A getter deliberately overwrites a synthetic provider error to
+verify immediate capture; quotes, backslashes and newline survive JSON decoding.
+Missing optional getters preserve playback and report unknown state. Metadata
 must preserve those existing contracts. These CPU tests do not play audio; the
 separate native comparison and owner report establish the audible improvement.
 

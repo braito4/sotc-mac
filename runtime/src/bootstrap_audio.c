@@ -34,7 +34,7 @@ static AudioPort ports[PORTS];
 static uint64_t init_requests, open_requests, opened, closed, failures, state_queries;
 static uint64_t output_calls, output_errors, submitted_buffers, submitted_bytes, drains;
 static int trace_enabled, trace_open_attempted;
-static unsigned trace_lines, trace_error_lines;
+static unsigned trace_lines, trace_error_lines, trace_failure_groups;
 static FILE *trace_file;
 static uint64_t audio_now(void);
 /* audio_lock serializes all trace state. Input queue zero is not a device
@@ -185,14 +185,72 @@ static uint64_t audio_now(void) {
     if(clock_gettime(CLOCK_MONOTONIC,&now)) return 0;
     return (uint64_t)now.tv_sec*UINT64_C(1000000000)+(uint64_t)now.tv_nsec;
 }
-static int wait_queue(AudioPort *port,int limit,uint64_t timeout,int *level) {
+typedef struct {
+    int first, last, minimum;
+    unsigned polls, changes;
+} AudioQueueObservation;
+enum { QUEUE_READY, QUEUE_PROVIDER_ERROR, QUEUE_TIMEOUT, QUEUE_CLOCK_ERROR };
+/* SDL errors are thread-local and may be stale on a timeout. Copy only an
+ * actual failed provider call's error, before any diagnostic getter runs. */
+static void audio_error_json(char out[769],int provider_error) {
+    const char *error=provider_error && backend.error ? backend.error():NULL;
+    size_t n=0;
+    for(unsigned i=0;error && error[i] && i<128;++i) {
+        unsigned char c=(unsigned char)error[i];
+        if(c=='"' || c=='\\') { out[n++]='\\';out[n++]=(char)c; }
+        else if(c<32 || c>=127) {
+            memcpy(out+n,"\\u00",4);n+=4;
+            out[n++]="0123456789abcdef"[c>>4];out[n++]="0123456789abcdef"[c&15];
+        } else out[n++]=(char)c;
+    }
+    out[n]=0;
+}
+static void audio_trace_failure(AudioPort *const *selected,unsigned count,unsigned failed,
+                                const char *stage,int provider_error,const AudioQueueObservation *q) {
+    if(!trace_enabled || trace_failure_groups>=8) return;
+    char error[769];audio_error_json(error,provider_error);
+    const unsigned group=++trace_failure_groups;
+    const uint64_t now=audio_now();
+    /* A first-port failure does not establish anything about its peers. Sample
+     * every selected stream without consuming, resuming, flushing or replacing it. */
+    for(unsigned i=0;i<count;++i) {
+        AudioPort *p=selected[i];BootstrapAudioSpec spec={0};int frames=0;
+        const uint32_t device=backend.device ? backend.device(p->stream):0;
+        const int format_ok=device && backend.device_format && backend.device_format(device,&spec,&frames);
+        const int paused=device && backend.paused ? (int)backend.paused(device):-1;
+        const int queued=backend.queued ? backend.queued(p->stream):-1;
+        const int available=backend.available ? backend.available(p->stream):-1;
+        char line[2048];
+        snprintf(line,sizeof(line),
+            "{\"schema\":1,\"event\":\"audio_backend_state\",\"monotonic_ns\":%llu,"
+            "\"failure_group\":%u,\"stage\":\"%s\",\"failed_port\":%d,\"port\":%d,\"batch_index\":%u,"
+            "\"device\":%u,\"device_format_ok\":%d,\"device_frames\":%d,\"device_frequency\":%d,"
+            "\"device_channels\":%d,\"paused_result\":%d,\"input_queue_bytes\":%d,"
+            "\"available_output_bytes\":%d,\"input_queue_limit_bytes\":%d,"
+            "\"failed_wait_first_bytes\":%d,\"failed_wait_last_bytes\":%d,\"failed_wait_min_bytes\":%d,"
+            "\"failed_wait_polls\":%u,\"failed_wait_changes\":%u,\"provider_error_captured\":%d,\"provider_error\":\"%s\"}",
+            (unsigned long long)now,group,stage,selected[failed]->handle,p->handle,i,
+            device,format_ok,frames,spec.frequency,spec.channels,paused,queued,available,p->queue_limit,
+            q && q->polls ? q->first:-1,q && q->polls ? q->last:-1,q && q->polls ? q->minimum:-1,
+            q ? q->polls:0,q ? q->changes:0,provider_error && backend.error!=NULL,error);
+        audio_trace_write(line);
+    }
+}
+static int wait_queue(AudioPort *port,int limit,uint64_t timeout,int *level,AudioQueueObservation *observation) {
     for(;;) {
         const int queued=backend.queued(port->stream);
         if(level) *level=queued;
-        if(queued<0) return -1;
-        if(queued<=limit) return 0;
+        if(observation) {
+            if(!observation->polls) observation->first=observation->minimum=queued;
+            else observation->changes+=queued!=observation->last;
+            if(queued<observation->minimum) observation->minimum=queued;
+            observation->last=queued;++observation->polls;
+        }
+        if(queued<0) return QUEUE_PROVIDER_ERROR;
+        if(queued<=limit) return QUEUE_READY;
         const uint64_t now=audio_now();
-        if(!now || now>=timeout) return -1;
+        if(!now) return QUEUE_CLOCK_ERROR;
+        if(now>=timeout) return QUEUE_TIMEOUT;
         bb_sleep_until(now+UINT64_C(500000));
     }
 }
@@ -227,8 +285,17 @@ static int32_t output_batch(const void *parameters,uint32_t count,uint64_t lock_
         BootstrapAudioSpec spec={0};
         int device_frames=0;
         const uint32_t device=backend.device(selected[i]->stream);
-        if(!device || !backend.device_format(device,&spec,&device_frames) || spec.channels<=0 || spec.frequency<=0 || !spec.format ||
-           backend.queued(selected[i]->stream)<0 || (!batch[i].data && !backend.flush)) return AUDIO_ERROR(0x10);
+        if(!device) {
+            audio_trace_failure(selected,count,i,"device_missing",0,NULL);return AUDIO_ERROR(0x10);
+        }
+        if(!backend.device_format(device,&spec,&device_frames)) {
+            audio_trace_failure(selected,count,i,"device_format",1,NULL);return AUDIO_ERROR(0x10);
+        }
+        if(spec.channels<=0 || spec.frequency<=0 || !spec.format || (!batch[i].data && !backend.flush))
+            return AUDIO_ERROR(0x10);
+        if(backend.queued(selected[i]->stream)<0) {
+            audio_trace_failure(selected,count,i,"queue_query",1,NULL);return AUDIO_ERROR(0x10);
+        }
         AudioPort *p=selected[i];
         const int limit=sotc_audio_queue_limit(p->frames,(unsigned)p->channels,(unsigned)p->sample_bytes,
                                                device_frames,spec.frequency);
@@ -266,7 +333,16 @@ static int32_t output_batch(const void *parameters,uint32_t count,uint64_t lock_
         AudioPort *p=selected[i];
         const int bytes=(int)(p->frames*(unsigned)p->channels*(unsigned)p->sample_bytes);
         if(!batch[i].data) {
-            if(!backend.flush(p->stream) || wait_queue(p,0,timeout,NULL)) goto done;
+            if(!backend.flush(p->stream)) {
+                audio_trace_failure(selected,count,i,"flush",1,NULL);goto done;
+            }
+            AudioQueueObservation observation={0};
+            const int waited=wait_queue(p,0,timeout,NULL,trace_enabled ? &observation:NULL);
+            if(waited) {
+                audio_trace_failure(selected,count,i,waited==QUEUE_TIMEOUT ? "drain_timeout":
+                    waited==QUEUE_CLOCK_ERROR ? "drain_clock":"drain_query",waited==QUEUE_PROVIDER_ERROR,&observation);
+                goto done;
+            }
             ++drains;p->next_deadline=0;
             if(trace_enabled) { audio_trace_port(p,audio_now(),2);p->metrics.last_submit_ns=0; }
         } else {
@@ -275,12 +351,20 @@ static int32_t output_batch(const void *parameters,uint32_t count,uint64_t lock_
              * stalled production at roughly half rate. No PCM is fabricated. */
             const uint64_t before=trace_enabled ? audio_now():0;
             int queued=-1;
-            const int waited=wait_queue(p,p->queue_limit,timeout,trace_enabled ? &queued:NULL);
+            AudioQueueObservation observation={0};
+            const int waited=wait_queue(p,p->queue_limit,timeout,trace_enabled ? &queued:NULL,trace_enabled ? &observation:NULL);
             if(trace_enabled) {
                 const uint64_t after=audio_now();
                 sotc_audio_wait(&p->metrics,after>=before ? after-before:0,queued,waited);
             }
-            if(waited || !backend.put(p->stream,pcm+offsets[i],bytes)) {
+            if(waited) {
+                audio_trace_failure(selected,count,i,waited==QUEUE_TIMEOUT ? "queue_timeout":
+                    waited==QUEUE_CLOCK_ERROR ? "queue_clock":"queue_query",waited==QUEUE_PROVIDER_ERROR,&observation);
+                if(trace_enabled) audio_trace_port(p,audio_now(),3);
+                goto done;
+            }
+            if(!backend.put(p->stream,pcm+offsets[i],bytes)) {
+                audio_trace_failure(selected,count,i,"put",1,&observation);
                 if(trace_enabled) audio_trace_port(p,audio_now(),3);
                 goto done;
             }

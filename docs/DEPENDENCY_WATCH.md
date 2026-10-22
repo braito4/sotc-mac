@@ -1,8 +1,9 @@
 # Dependency and reference watch
 
-The owner requested continuing review of upstream changes. A daily public-source
-watch is configured to notify only about relevant new commits, releases or PR
-updates. It is a review/notification task, not an automatic dependency updater.
+The owner requested continuing review of upstream changes. The broader daily
+public-source watch exists but is paused as checked on 2026-10-22. A separate
+hourly watch of the owner-requested AnyPS5 macOS thread is now enabled, notifying
+only about relevant new findings. Neither task automatically updates dependencies.
 Development sessions should also check these sources before treating an old
 limitation as current. Resolve each repository's actual default branch, record
 the reviewed SHA and inspect the diff and tests.
@@ -23,6 +24,94 @@ cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | Installed Vulkan-on-Metal driver; native memory, resource lifetime and experimental PerVertexKHR #2858. |
 | [KhronosGroup/SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | Installed SPIR-V-to-MSL compiler; interface lowering and proposals #2699/#2697. |
 | [shadexternals/mesa-kosmickrisp](https://github.com/shadexternals/mesa-kosmickrisp) | Alternative driver used by bmy's port; ARM64, sparse buffers and geometry/interface support. Not installed here. |
+| [AnyPS5 macOS issue #1](https://github.com/boykopovar/AnyPS5/issues/1) | Owner-requested discussion watch; follow linked memory-ordering, shader, Metal and host-contract fixes. Different PS5/Rosetta implementation; not a dependency. |
+
+## Pre-comparison integer blit review: 2026-10-22 15:25 UTC
+
+The public refresh started with the
+[SotC reference](https://github.com/AjncSystem/ShadowOfTheColossus-PC), then the
+preferred [bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac)
+reference and its runtime/CPU links, followed by bmy, MoltenVK, SPIRV-Cross and
+KosmicKrisp. Reachable repository pages show `main` except bmy's
+`macos-native-0.6`. The reference's
+[latest release](https://github.com/AjncSystem/ShadowOfTheColossus-PC/releases/latest)
+still resolves to v0.60.5; the runtime page shows its CPU gitlink at b9652d7.
+
+Root pages do not expose exact latest commit SHAs. Requested reference/runtime
+histories, MoltenVK #2858, SPIRV-Cross #2699/#2697 and driver/compiler release
+pages are unavailable. Targeted public search establishes no additional typed-
+blit patch, but this is not proof that none exists. A complete fresh head/diff
+comparison is unavailable; preserve the last known exact revisions in the
+[dependency inventory](DEPENDENCIES.md), not an assumed empty diff.
+
+The local candidate is independently motivated by the two captured integer-
+format pipeline errors and the selected renderer source: its fragment output
+was always float for color. The prepared overlay adds exact integer reads and
+typed outputs for same-format nearest 2D copies, with explicit unsupported-case
+errors. The [Vulkan contract](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBlitImage.html)
+requires matching integer signedness and defines conversion/clamping rules;
+this first implementation intentionally excludes format conversion. ARM64/CPU
+checks are separate from pending native Metal shader/pixel validation. No pins,
+installed libraries, cache versions or renderer settings change. This review
+starts no game/GPU test and establishes no OOM or corruption fix.
+
+## Pre-comparison audio diagnostic review: 2026-10-22 14:55 UTC
+
+Public refresh again started with the SotC reference, followed by the preferred
+bloodborne-mac reference, runtime and CPU. Repository pages show `main` for those
+four projects, MoltenVK and KosmicKrisp; bmy shows `macos-native-0.6`.
+SPIRV-Cross's repository page is reachable, but this check does not resolve its
+exact current head. The reference's
+[latest release](https://github.com/AjncSystem/ShadowOfTheColossus-PC/releases/latest)
+still resolves to v0.60.5; [SDL's latest release](https://github.com/libsdl-org/SDL/releases/latest)
+resolves to 3.4.18, matching the selected library. The installed SDL headers
+define all three optional diagnostic getters used by this change.
+
+Requested reference/runtime/CPU commit histories and GitHub API endpoints were
+unavailable, as were the refreshed MoltenVK #2858 and SPIRV-Cross #2699/#2697
+pages. The rendered root pages omit exact latest SHAs. No fresh complete head
+or diff comparison is claimed, and unavailable diffs must not be treated as
+empty. The earlier same-session AnyPS5 proposal review below remains a candidate
+baseline, not a selected update. No new source change was established as a
+prerequisite for these local diagnostic additions. Retain the known inventory,
+runtime b2ff9cd0, CPU b9652d75, reference 411fdd86 and cache 24/9.
+
+The prepared owner comparison adds bounded audio backend/queue failure evidence
+and fatal CPU frame-local candidates. It preserves 640x360, DMA/async off,
+metadata on and pixel capture off. Full offline contracts pass; this review does
+not run the native game/GPU or validate a fix for either failure.
+
+## AnyPS5 macOS thread review: 2026-10-22
+
+The [macOS thread](https://github.com/boykopovar/AnyPS5/issues/1) is open.
+Its initial and latest visible discussion and the four PRs below were read;
+GitHub collapses older comments, so this is not a complete archival review.
+Latest visible posts include imported-image write-back/protection observations
+and M1 network negative controls. Discussion reports are leads, not SotC results.
+The hourly notification task compares new/edited comments and linked changes
+against this baseline. It does not post comments, change pins or run games.
+
+| Candidate | Observed state / revision | Relevance and limit |
+|---|---|---|
+| [#6747](https://github.com/boykopovar/AnyPS5/pull/6747) | Open; `0b5ba4470391f61f53e8e0283fcd8663223c65e8` | Orders already-pending overlapping GPU writes before CPU command allocation. A useful write-provenance/regression pattern; not proof of our guest allocator fault's cause. |
+| [#9193](https://github.com/boykopovar/AnyPS5/pull/9193) | Open; `e0d54227c8a8f6e97a846888557c1decdb21a742` | Uses barycentric built-ins for eligible remaining I/J reads while retaining ordinary interpolated attributes. Excludes raw per-vertex parameters, mixed modes and offset/sample reads; not general PerVertexKHR support. |
+| [#8612](https://github.com/boykopovar/AnyPS5/pull/8612) | Open; `5e58f2e8af97821ada44f04349c9616f6858816f` | MoltenVK arithmetic forms and signed-zero/separate-rounding regression ideas. Review NaN/denormal behavior and cache identity before considering an adaptation. |
+| [#8578](https://github.com/boykopovar/AnyPS5/pull/8578) | Merged in AnyPS5 on October 20; `1b81383137eae9ee0f6854d9aab69cb0b9e88029` | Measures native f32 flush behavior before selecting it; preserves emulation on a mismatch. Different compiler; no local integration. |
+
+Revisions come from each PR's commit links. The rendered changed-file views
+were inspected, including the command overlap guard and float-control predicate;
+individual commit pages were inaccessible. This is a targeted candidate review,
+not full compatibility validation or a refresh of every tracked upstream head.
+
+The thread also separates cross-workgroup visibility from forward-progress
+limits and reports intermittent resident-image write-back with watched host
+imports. These motivate review against our ownership/download guards; they do
+not authorize disabling protection or imports. The proposed exact NaN-region
+optimization is still a design, distinct from experiments that relax semantics.
+AnyPS5 uses PS5 AGC and the discussed Mac integrations use x86-64/Rosetta;
+our PS4 GNM/native ARM64 path needs independent source and synthetic checks.
+Do not transfer another title's FPS or another Apple chip's correctness to SotC.
+Keep current dependencies and cache 24/9.
 
 ## Pre-comparison access-limited review: 2026-10-22 13:54 UTC
 

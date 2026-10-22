@@ -16,6 +16,10 @@ typedef struct {
     bool (*put)(void *stream, const void *data, int bytes);
     int (*queued)(void *stream);
     bool (*flush)(void *stream);
+    /* Optional, read-only failure diagnostics; never required for playback. */
+    bool (*paused)(uint32_t device);
+    int (*available)(void *stream);
+    const char *(*error)(void);
 } BootstrapAudioBackend;
 int bootstrap_audio_bind(const BootstrapAudioBackend *backend);
 uintptr_t bootstrap_audio_resolve(const char *name);

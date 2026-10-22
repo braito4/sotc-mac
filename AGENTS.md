@@ -4,8 +4,26 @@ This repository develops a native ARM64 macOS diagnostic for Shadow of the Colos
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
 The consolidated checkout is the only active project. Read
 `docs/guide/workspace.md` and the continuation checkpoint before resuming.
+The owner confirms reaching the first gameplay image on Apple M1; the port is not
+playable yet. The integer-blit overlay is built and CPU-contract-tested, with
+same-format nearest 2D uint/int copies and explicit unsupported-case errors.
+The native comparison no longer reports the two float-output/integer-target
+errors; exact GPU copy pixels and full-case coverage remain unverified.
+This is not an OOM/corruption fix.
+Read the first handoff checkpoint and preserve the existing testing guards.
 The busy-queue maintenance overlay is integrated, with dependencies/cache 24/9
-unchanged and native game validation pending. Keep input, selected sources,
+unchanged and native proxy destruction observed. The latest owner run (15:27 UTC)
+stops on GPU progress; the supervisor ends after 136.225 seconds, exit 1, with
+child exit unconfirmed despite its cancellation notice. Process-status lookup is
+denied; confirm the old process/window is closed before another comparison.
+Image replay records 1,037 proxies destroyed / 26 live and 464 total live images /
+1,135.69 MiB. Native allocation peaks at 11.584 GiB before the stop; final pressure
+is unknown. The 3 GiB upload and registered-image growth remain. The preceding
+Metal OOM, SIGBUS allocator corruption and audio queue failure remain unresolved;
+none recurs in this capture. Read the current handoff first.
+Bounded all-port audio failure snapshots and candidate frame-local CPU reads
+are now built and contract-tested; native validation of these additions is pending.
+Keep input, selected sources,
 installed libraries and new diagnostics under this root. Previous build/source
 snapshots are historical; do not launch from an older folder or generated cache.
 If moving this checkout, run `tools/relocate_workspace.py` before rebuilding.
@@ -26,7 +44,10 @@ Use docs/DEVELOPMENT_HANDOFF.md for the current reproduction steps, stopping bou
 Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred upstream reference when resolving doubts. Follow its runtime/recomp links and review relevant changes against our pins; do not assume Bloodborne-specific layouts apply to SotC or silently update dependencies.
 Also review bmy/bbport-mac, MoltenVK, SPIRV-Cross and KosmicKrisp as requested by
 the owner. Read docs/DEPENDENCY_WATCH.md and record branch/SHA changes; the daily
-public-source watch notifies about relevant changes but does not update pins.
+public-source watch does not update pins and is currently paused. The owner also
+requested close tracking of https://github.com/boykopovar/AnyPS5/issues/1;
+its separate hourly public-source watch is enabled. Review linked PRs against
+our PS4/native ARM64 contracts; PS5/Rosetta results are not SotC/M1 validation.
 Before each new native game/GPU comparison, refresh public upstream state,
 starting with AjncSystem/ShadowOfTheColossus-PC and the relevant tracked runtime,
 compiler and driver sources. Resolve current default branches and compare new

@@ -4,13 +4,41 @@ The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these addition
 observations. This instruments the current renderer without changing shader code,
 cache versions, buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
-The latest owner run (2026-10-22 13:55 UTC) ends after 182.664 seconds on a CPU
-SIGSEGV, child/supervisor exit 139, without a recorded Metal OOM. The last
-resource summary records 1,263 proxy creations / 1,233 actual destructions /
-30 live proxies (27.32 MiB). Native allocation still peaks at 11.423 GiB and the
-3 GiB upload remains. The detailed image journal reaches its cap, with 5,729
+The latest owner run (2026-10-22 15:27 UTC) stops on GPU progress, with supervisor
+exit 1 after 136.225 seconds and child exit unconfirmed. Native allocation peaks
+at **11.584 GiB** before the stop; no forced final snapshot records later pressure.
+Image-event replay matches the last bounded summary, then continues 18.844 seconds:
+**464 live images / 1,135.69 MiB**, including 435 registered images / 1,107.32 MiB
+and **26 proxies / 23.46 MiB after 1,037 actual destructions**. Two other images
+have deletion queued (4.91 MiB); one small image has no association yet. The
+image journal stays below its cap with no unmatched replay events. The buffer
+journal is capped, and the 3 GiB upload's last staging sample is already 57.953
+seconds old at the final presentation. These observations are not safe-release
+permission, proof of a leak or a final native-memory measurement. See the
+[current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The preceding owner run (2026-10-22 14:58 UTC) ends after **120.309 seconds on Metal
+OOM 8**, child/supervisor exit 23. Native allocation is 11.571 GiB at failure,
+with a sampled peak of 11.577 GiB. The forced ledger and complete event replay
+agree: **383 live images / 899.23 MiB**, including **23 proxies / 20.30 MiB**
+after 900 actual proxy destructions. The other 360 images are 357 registered
+(852.91 MiB) and three recently queued for deletion (26.02 MiB); retirement
+observations are only 5.9–7.6 ms old. No dropped record or tracking error occurs.
+One early cross-window copy allocates the retained 3 GiB upload. From the first
+presentation result after 20 seconds, all 386.20 MiB of tracked Vulkan growth
+is image growth. This narrows the pressure accounting, not the failing resource
+or a proven leak. The last collection sample is 3.430 seconds old; a preceding
+30.006-second sampling gap coincides with a long presentation gap, then sampling
+resumes. See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The preceding owner run (2026-10-22 14:23 UTC) ends after 120.001 seconds on a CPU
+SIGBUS, child/supervisor exit 138, without a recorded Metal OOM. The last
+resource summary records 1,535 proxy creations / 1,505 actual destructions /
+30 live proxies (27.32 MiB). Native allocation still peaks at 11.435 GiB and the
+3 GiB upload remains (3,112 MiB total dedicated upload in the last staging
+sample). The detailed image journal reaches its cap, with 875
 dropped image events by the final summary; the bounded ledger reports no
-tracking errors. SIGSEGV does not force a resource snapshot, so these are last
+tracking errors. CPU faults do not force a resource snapshot, so these are last
 sampled values. Sustained memory stability remains unverified.
 The preceding integrated-cohort run ended on Metal OOM 8 after 78.963 seconds,
 retaining 336 proxies without retirement despite 317 source UIDs being destroyed.
@@ -23,7 +51,8 @@ contents when a neighboring page write makes download unsafe. The recorder now
 counts those decisions as `gc_kept_unresolved_gpu`, separately from tiled
 downloads and downloads kept without pressure. These are decision counts, not
 distinct-image counts. That correctness fix can increase retained memory and
-now records 53 retention decisions in the latest native summary; correctness of
+records 37 retention decisions in the 14:58 failure summary, separately from 67
+tiled-download decisions (51 unresolved-GPU decisions in the preceding run); correctness of
 the retained contents remains unverified.
 
 The earlier scene-proxy retirement overlay retired no proxy in the OOM run.
