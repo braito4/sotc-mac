@@ -1,5 +1,50 @@
 # Upstream review: 2026-10-22
 
+## Reduced-scene proxy retirement
+
+Fresh public API and raw-source review on **2026-10-22** finds a directly relevant
+cleanup in bmy's current default branch `macos-native-0.6`, head
+`a69f56af2069df45357e86c27396baa945b53231`:
+[`gpu/upscale/vk_scene_resolution.cpp`](https://github.com/bmy/bbport-mac/blob/a69f56af2069df45357e86c27396baa945b53231/gpu/upscale/vk_scene_resolution.cpp).
+Comparing exact parent 72e5c8ce to
+[8185b88d8057](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935)
+on **2026-10-19 at 06:30:55Z** identifies the addition of
+`SceneTargets::CleanupStaleEntries`. It scans original ImageId/UID lookup, calls
+`scheduler.Finish`, erases stale entries and clears recent pointers. The same
+commit adds a temporal-upscaler call every 60 observed frames; the source remains
+on the current branch. This is committed default-branch code, not an unmerged PR.
+Our pinned source and current bloodborne runtime main
+`22923f08022909b7e22f7ae8c02ad4c3f6554bfd` lack this cleanup.
+
+Only that lifetime problem is adapted here through a checked local overlay,
+preserving bbport/shadPS4/bmy GPL credits. Maintenance runs in our already-drained
+`OnSubmit`, without requiring temporal upscaling or a GPU-wide wait. Stale entries
+move into a callback owning images and views through actual past-next completion.
+Tracked UIDs and recent pointers are removed and scene generation is advanced to
+invalidate texture-set views. Live originals, including still-pending native
+deletion, keep their proxies. Source pins, cache 23/9, 640x360, DMA/async off,
+large staging and other memory policies remain unchanged. New role metadata makes
+the hypothesis testable. This is an original adaptation, not an unchanged cherry-
+pick or import of bmy's large 0.6 commit.
+
+The production-method CPU comparison reproduces 204 retained proxies before and
+two active/202 destroyed after correction, with UID/mip, cache and real-tick
+ownership checks. ARM64 incremental compilation and all current CPU/source
+checks pass; our game and M1 have not validated this change. bmy's source comment
+describes VRAM-leak prevention, while its flicker investigation says this cleanup
+did not trigger in those particular runs. Neither is a measured SotC/M1 result.
+No claim is made that all 981 untagged allocations in our preceding log have this
+role or that their full 806.35 MiB will be reclaimed.
+
+Relevant current heads/releases and PRs were refreshed, with full PR file lists:
+MoltenVK #2858 remains open/draft/unmerged at
+`6ed66f1b5d3575eed04b04e6332b389f398f9533`; SPIRV-Cross #2699 remains
+open/draft/unmerged at `81739edf516c2bef043ac61f510b4bd78e126a22`, and #2697
+open/non-draft/unmerged at `aa7879476d018098bd2c1279893409ba61cf3f03`.
+There are no changed heads relative to the preceding review. Ajnc's v0.60.5 and
+coroutine-fix/PR distinction below remain current. The independent CPU coroutine
+backport stays deferred so the next native comparison isolates proxy retirement.
+
 ## SotC reference v0.60.5 comparison
 
 Checked public GitHub metadata and affected source on **2026-10-22**. The reference

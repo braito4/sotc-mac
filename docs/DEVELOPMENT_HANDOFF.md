@@ -8,6 +8,64 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Stale reduced-scene proxy retirement: built, native comparison pending
+
+The new `sotc-scene-proxy-retirement` checked overlay addresses the retained
+per-UID/mip map identified below. `Rasterizer::OnSubmit` already drains the draw
+pipe before maintenance. It now calls `SceneTargets::CleanupStaleEntries` there,
+after the ordinary texture collector. A proxy is eligible only when lookup of
+its original **ImageId and exact UID** fails. Native images still present,
+including normal deferred deletion, retain their proxies. Dirty live proxies
+and all native-access/resolve semantics are preserved.
+
+Stale entries leave the map, tracked-UID set and recent-pointer cache; scene
+generation advances to invalidate texture sets holding old proxy views. A moved
+collection owns **both views and images** through `DeferOperationPastNext` and
+releases them only on real completion at current tick + 1. No new `Finish`,
+fault-thread mutation, forced eviction, timer or fabricated completion is added.
+Entry destruction releases views before their image. This is a local adaptation
+of [bmy 8185b88d](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935),
+not a dependency bump; [source review](UPSTREAM_REVIEW.md#reduced-scene-proxy-retirement)
+records the original global-wait approach and its limits.
+
+`image_scene_proxy` events now tag the allocation's source UID/mip and role 1.
+Role arrays distinguish unspecified allocations from reduced scene proxies;
+created/destroyed and pending counts/bytes distinguish retirement from actual VMA
+destruction. A pending event's tick is its required completion tick. These are
+private metadata; no pixel capture is enabled and old runs remain readable.
+
+`tools/check_scene_proxy_retirement.py` compiles the production `Get`, `Entry`,
+cleanup, `OnSubmit`, scheduler past-next deferral and image destructor with CPU
+resource doubles. The pinned control retains **204 proxies / zero destructions**;
+the adapted case retains **two active proxies / 202 actual destructions**. It
+checks reused ImageIds, two source mips, recent-pointer hits/invalidation,
+generation, tracked UIDs, live dirty-content preservation, idempotence, view-before-
+image destruction and survival until current tick + 1. This is a synthetic
+ownership regression, not a GPU-driver or Apple M1 result.
+
+Validation: ARM64-only incremental renderer build passes using existing
+dependencies/generated shaders; a fresh dependency build still needs external
+glslang. Seven renderer source regressions, 28 builder tests including exact
+memory-state migration, 46/46 host-import coverage and full JIT/interpreter
+contracts pass. No tool-driven game/GPU run has validated the correction.
+The confirmed native failure remains the 09:41Z Metal OOM 8 below.
+
+Fresh public review on 2026-10-22 resolves the watched default heads to the same
+SHAs already listed in [dependency watch](DEPENDENCY_WATCH.md). Ajnc remains at
+411fdd86/v0.60.5; its coroutine fix and PR status remain separate. MoltenVK #2858
+and SPIRV-Cross #2699 remain open drafts; #2697 remains open/non-draft, all
+unmerged at their recorded heads. Their shaders/drivers are not changed here.
+
+Next: one owner-supervised run through the same introduction, **640x360,
+DMA/async off, cache 23/9**, with memory/audio/visual metadata on and pixel capture
+off. Refresh upstream again if there is a delay before that comparison. Inspect
+role-1 live/pending/destroyed counts and bytes against native allocation growth;
+verify released proxies do not return via cached views and note any changed
+visual artifact, device error or stop. Do not equate the old 806.35 MiB untagged
+inventory with guaranteed savings. The retained 2.5/3 GiB upload allocation,
+other image roles, Metal pressure and shader defects remain separate candidates.
+Stop after that run and inspect its log before another experiment.
+
 ### Complete repeat trace: unassociated reduced images accumulate without destruction
 
 The newest owner run starts at **09:41Z on 2026-10-22** and ends after

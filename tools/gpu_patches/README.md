@@ -1,5 +1,18 @@
 # Reviewed renderer adaptations
 
+`sotc-scene-proxy-retirement` adapts stale-proxy detection introduced in
+[bmy 8185b88d8057](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935)
+(bbport/shadPS4/bmy, GPL-2.0-or-later). At the already-drained `OnSubmit`, proxies
+whose exact original ImageId/UID no longer exists leave the active map, tracked
+set and recent cache; generation invalidates remembered texture-set views. Moved
+entries own views and images through real past-next completion. This replaces
+the reference's global `Finish` with our existing conservative deferred lifetime;
+live originals/content are preserved. New role/UID/mip counters are observational.
+The actual-source CPU regression retains 204 proxies before versus two active/202
+destroyed after, and checks mip/UID reuse, invalidation and deferred destruction.
+The ARM64 incremental build passes; native savings/OOM behavior remain unverified.
+The builder accepts the exact preceding memory state and rejects mixed changes.
+
 `sotc-memory-trace` is an original observational overlay for large buffer origins,
 staging selection, actual image allocation/destruction, cache/deferred lifetimes
 and collector thresholds. It changes no resource size, lifetime, shader or cache

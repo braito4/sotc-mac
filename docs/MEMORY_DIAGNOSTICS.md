@@ -9,6 +9,11 @@ seconds in the 09:41Z owner run on 2026-10-22, now with a complete image history
 The owner previously recovered visible
 output after the earlier experiment was withdrawn. These traces are not a fix.
 
+The separate checked scene-proxy retirement overlay is now built, with native
+validation pending. It changes stale proxy lifetime only; the recorder remains
+observational. [Current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
+describes deferred image/view ownership and cached-view invalidation.
+
 ## Recorded evidence
 
 Each fresh private `BB_GPU_USER_DIR/memory/` contains:
@@ -44,6 +49,18 @@ sample backings are associated with their existing cache image UID. Registration
 unregistration and deletion requests update that association. Actual destruction
 is observed only after `vmaDestroyImage` returns, including explicit destruction
 and the destructor. Moving ownership does not create another allocation.
+
+`image_scene_proxy` tags reduced-scene allocations with role **1**, original UID
+and source mip (`source_level`). Role 0 means unspecified. These proxies are not
+registered guest-cache images: their active state remains 0, while retirement
+sets state 3 and records the required completion tick (current + 1).
+`role_count`/`role_bytes` arrays contain unspecified/proxy live inventory;
+`scene_proxy_created_*` and `scene_proxy_destroyed_*` count tagged creations and
+actual destructions, while `scene_proxy_pending_*` remains live and owned by the
+deferred callback. A capped event file does not stop these bounded-ledger
+summaries. Tracker overflow makes per-role inventory/counters incomplete too.
+Old logs have no role tags; their unassociated images cannot be retroactively
+classified as proven scene proxies.
 
 Snapshots retain allocation/destruction totals, net live bytes/count, bounded
 tracked totals, size buckets and cache-state buckets. States are 0 constructed or

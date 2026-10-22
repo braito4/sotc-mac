@@ -18,6 +18,19 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
+    def test_memory_state_migrates_to_scene_proxy_retirement(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            manifest = gpu.backport_manifest()
+            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
+                              for name in manifest['memory_patches'])
+            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
+                           capture_output=True, check=True)
+            self.assertEqual(gpu.backport_state(source), 'memory')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source), 'after')
+
     def test_untracked_and_ignored_compile_sources_are_rejected_without_changes(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary)

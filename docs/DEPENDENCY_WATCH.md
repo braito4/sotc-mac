@@ -37,6 +37,17 @@ new work; production pins remain separate.
 
 ## bmy review: 2026-10-22
 
+The later focused source review also finds stale reduced-scene proxy cleanup in
+[8185b88d8057](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935),
+still present at the current head. Its exact parent/source diff and call site are
+verified. A local adaptation now retires stale images/views with past-next
+completion and cache invalidation at a drained submission boundary, instead of
+the upstream global `Finish`. CPU regression and ARM64 build pass; native SotC/M1
+memory savings remain unverified. See the
+[focused review](UPSTREAM_REVIEW.md#reduced-scene-proxy-retirement). All watched
+default heads and the three PerVertex PR heads/statuses are freshly rechecked and
+unchanged; no dependency or compiler/driver pin is updated.
+
 GitHub's repository API resolves the current default branch to
 `macos-native-0.6`, head `a69f56af2069df45357e86c27396baa945b53231`.
 The cached repository webpage still showed `macos-0.4`; the current API, branch

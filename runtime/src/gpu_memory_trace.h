@@ -60,6 +60,8 @@ struct ImageDescription {
 struct Image {
     U64 id{}, bytes{}, created_ns{}, retired_ns{}, owner{}, guest_address{}, guest_bytes{}, tick{}, flags{};
     unsigned state{}; // 0 unknown/constructed, 1 registered, 2 unregistered, 3 deletion queued
+    unsigned role{}; // 0 unspecified, 1 reduced scene proxy (not a registered cache image)
+    U64 source_level{};
     ImageDescription description{};
 };
 
@@ -135,6 +137,9 @@ public:
     }
     void Free(U64 id, U64 bytes) {
         std::lock_guard lock{mutex};
+        if (const auto* image = images.Find(id); image && image->role == 1) {
+            ++scene_proxy_destroyed_count; scene_proxy_destroyed_bytes += bytes;
+        }
         ++freed_count; freed_bytes += bytes;
         if (live_count && live_bytes >= bytes) { --live_count; live_bytes -= bytes; }
         else ++unmatched_frees;
@@ -160,6 +165,21 @@ public:
         out << ",\"result\":" << result; ImageFields(out, Image{.description = description});
         Write(2, out.str() + '}');
     }
+    void SceneProxy(U64 id, U64 owner, U64 level, U64 tick, bool retired) {
+        std::lock_guard lock{mutex};
+        if (auto* image = images.Find(id)) {
+            if (image->role != 1) {
+                ++scene_proxy_created_count; scene_proxy_created_bytes += image->bytes;
+            }
+            image->role = 1; image->owner = owner; image->source_level = level;
+            image->tick = tick; image->state = retired ? 3 : 0;
+            if (retired && !image->retired_ns) image->retired_ns = Now();
+        }
+        auto out = Start("image_scene_proxy");
+        out << ",\"id\":" << id << ",\"owner\":" << owner << ",\"source_level\":" << level
+            << ",\"tick\":" << tick << ",\"role\":1,\"state\":" << (retired ? 3 : 0);
+        Write(0, out.str() + '}');
+    }
     void Keep(bool tiled_download) { (tiled_download ? kept_tiled : kept_download).fetch_add(1, std::memory_order_relaxed); }
     void Collection(const GC& value) {
         const auto now = Now(); auto previous = last_snapshot.load(std::memory_order_relaxed);
@@ -181,6 +201,7 @@ private:
         out << ",\"id\":" << image.id << ",\"bytes\":" << image.bytes
             << ",\"owner\":" << image.owner << ",\"guest_address\":" << image.guest_address
             << ",\"guest_bytes\":" << image.guest_bytes << ",\"state\":" << image.state
+            << ",\"role\":" << image.role << ",\"source_level\":" << image.source_level
             << ",\"flags\":" << image.flags << ",\"tick\":" << image.tick
             << ",\"created_ns\":" << image.created_ns << ",\"retired_ns\":" << image.retired_ns
             << ",\"width\":" << d.width << ",\"height\":" << d.height << ",\"depth\":" << d.depth
@@ -190,11 +211,17 @@ private:
     void Summary(const char* event, std::int64_t code, U64 allocated, U64 recommended) {
         std::array<const Image*, 12> largest{};
         std::array<U64, 4> state_bytes{}, state_count{};
+        std::array<U64, 2> role_bytes{}, role_count{};
+        U64 scene_proxy_pending_count = 0, scene_proxy_pending_bytes = 0;
         std::array<U64, 5> size_bytes{}, size_count{};
         U64 tracked_bytes = 0, tracked_count = 0;
         for (const auto& slot : images.slots) if (slot.occupied == 1) {
             const auto& image = slot.image; tracked_bytes += image.bytes; ++tracked_count;
             state_bytes[image.state] += image.bytes; ++state_count[image.state];
+            role_bytes[image.role] += image.bytes; ++role_count[image.role];
+            if (image.role == 1 && image.state == 3) {
+                ++scene_proxy_pending_count; scene_proxy_pending_bytes += image.bytes;
+            }
             const unsigned bin = image.bytes < (1ull << 20) ? 0 : image.bytes < (4ull << 20) ? 1 :
                 image.bytes < (16ull << 20) ? 2 : image.bytes < (64ull << 20) ? 3 : 4;
             size_bytes[bin] += image.bytes; ++size_count[bin];
@@ -227,6 +254,13 @@ private:
             out << ']';
         };
         array("state_bytes", state_bytes); array("state_count", state_count);
+        array("role_bytes", role_bytes); array("role_count", role_count);
+        out << ",\"scene_proxy_created_count\":" << scene_proxy_created_count
+            << ",\"scene_proxy_created_bytes\":" << scene_proxy_created_bytes
+            << ",\"scene_proxy_destroyed_count\":" << scene_proxy_destroyed_count
+            << ",\"scene_proxy_destroyed_bytes\":" << scene_proxy_destroyed_bytes
+            << ",\"scene_proxy_pending_count\":" << scene_proxy_pending_count
+            << ",\"scene_proxy_pending_bytes\":" << scene_proxy_pending_bytes;
         array("size_bytes", size_bytes); array("size_count", size_count); array("dropped_records", dropped);
         out << ",\"largest\":["; bool comma = false;
         for (const auto* image : largest) if (image) {
@@ -279,6 +313,7 @@ private:
     std::array<U64, 3> dropped{};
     U64 sequence{}, allocated_count{}, allocated_bytes{}, freed_count{}, freed_bytes{}, live_count{}, live_bytes{};
     U64 tracking_overflow{}, untracked_frees{}, unmatched_frees{}, copies{}, copy_requested_bytes{}, completed_copies{}, copy_completed_bytes{};
+    U64 scene_proxy_created_count{}, scene_proxy_created_bytes{}, scene_proxy_destroyed_count{}, scene_proxy_destroyed_bytes{};
     std::atomic<U64> last_snapshot{}, kept_tiled{}, kept_download{};
     GC gc{}; U64 gc_ns{}; bool attempted{};
 };
@@ -294,6 +329,9 @@ inline void ImageAllocated(U64 id, U64 bytes, const ImageDescription& value) noe
 inline void ImageFreed(U64 id, U64 bytes) noexcept { Observe([&](Recorder& r) { r.Free(id, bytes); }); }
 inline void ImageOwner(U64 id, U64 owner, U64 address, U64 bytes, U64 flags, U64 tick, unsigned state) noexcept {
     Observe([&](Recorder& r) { r.Owner(id, owner, address, bytes, flags, tick, state); });
+}
+inline void ImageSceneProxy(U64 id, U64 owner, U64 level, U64 tick, bool retired) noexcept {
+    Observe([&](Recorder& r) { r.SceneProxy(id, owner, level, tick, retired); });
 }
 inline void ImageAllocationFailed(std::int64_t result, const ImageDescription& value) noexcept { Observe([&](Recorder& r) { r.AllocationFailed(result, value); }); }
 inline void Collection(const GC& value) noexcept { Observe([&](Recorder& r) { r.Collection(value); }); }

@@ -33,6 +33,18 @@ silently update dependencies. This pre-test review is separate from the daily wa
   with an original-vs-adapted CPU capacity regression. PerVertex proposals remain
   isolated: docs/PERVERTEX_REVIEW.md records draft status and synthetic conversion
   results, not runtime integration or correct M1 pixels.
+- Read the new scene-proxy checkpoint first: the checked retirement overlay removes
+  stale UID/mip proxies during OnSubmit, with the draw pipe drained. Images AND
+  views remain owned through DeferOperationPastNext (real completion at current
+  tick + 1). Clear recent pointers, tracked UIDs and increment scene generation.
+  Role/UID/mip evidence distinguishes active/pending/destroyed proxies. The
+  production-method CPU regression retains 204 proxies before versus 2 active/202
+  destroyed after correction; this is synthetic, not native memory savings.
+  The ARM64 incremental build, seven renderer source regressions, 28 builder tests,
+  symbol audit and full JIT/interpreter contracts pass. Native validation is pending.
+  This adapts bmy's 8185b88d stale-proxy detection without its GPU-wide Finish.
+  Keep the coroutine leak candidate separate and the 2.5/3 GiB staging guards intact.
+  Read docs/UPSTREAM_REVIEW.md and docs/DEVELOPMENT_HANDOFF.md.
 - The combined launcher also defaults SOTC_MEMORY_TRACE=1. Read
   docs/MEMORY_DIAGNOSTICS.md: bounded private buffer origins, real image
   allocation/destruction, queued deletion and GC summaries now accompany the

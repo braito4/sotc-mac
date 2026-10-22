@@ -7,6 +7,10 @@ This project is built on the work of:
   presentation used as this repository's reference.
 - [bbport / bloodborne_pc](https://github.com/deadinside28/bloodborne_pc) by **deadinside28**:
   foundational native PS4 game runtime and porting work.
+- [bmy/bbport-mac](https://github.com/bmy/bbport-mac): reviewed buffer-copy batching
+  and stale reduced-scene proxy detection, adapted through checked local overlays.
+  The proxy correction adds deferred ownership and cache invalidation specific to
+  this integration; see the [source review](UPSTREAM_REVIEW.md#reduced-scene-proxy-retirement).
 - [shadPS4](https://github.com/shadps4-emu/shadPS4): PS4 runtime foundations and API reference,
   including the fiber HLE on which the SotC reference is based, the internal module-loader
   ABI, DiscMap query/error definitions, event-flag contracts, and dialog and network ABI/error

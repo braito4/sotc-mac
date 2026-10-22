@@ -2,6 +2,19 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
+**New isolated correction, native validation pending:** stale reduced-scene
+proxies now leave the active cache at a drained submission boundary. Their views
+and images remain owned until real completion past the following submission;
+recent pointers, tracked UIDs and texture-set generation are invalidated together.
+This adapts bmy's existing stale-proxy detection, without its GPU-wide `Finish`.
+New role/UID/mip evidence separates active, pending and actually destroyed proxies.
+The actual-source CPU comparison retains 204 proxies before versus two active and
+202 destroyed after correction. These are synthetic counts, not M1 memory savings.
+ARM64 incremental compilation, seven renderer regressions, 28 builder tests,
+46/46 host imports and full JIT/interpreter contracts pass. No game was launched.
+Scene remains 640x360, DMA/async off, cache 23/9; large staging and all pins stay
+unchanged. See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
 **Newest native boundary (09:41Z):** repeat Metal OOM code 8 after **101.864
 seconds**, child/supervisor exit 23. Staging is 2.5 GiB this time. Complete,
 uncapped lifetime records prove that **981 unassociated reduced-size images

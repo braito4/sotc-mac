@@ -134,6 +134,9 @@ def render_memory(directory):
                       'destroyed_count','destroyed_bytes','tracked_count','tracked_bytes',
                       'tracking_overflow','untracked_frees','unmatched_frees','observation_errors','dropped_records',
                       'state_count','state_bytes','size_count','size_bytes',
+                      'role_count','role_bytes','scene_proxy_created_count','scene_proxy_created_bytes',
+                      'scene_proxy_destroyed_count','scene_proxy_destroyed_bytes',
+                      'scene_proxy_pending_count','scene_proxy_pending_bytes',
                       'large_copy_requests','large_copy_requested_bytes','large_copy_completions',
                       'large_copy_completed_bytes','gc_sample_known','gc_age_ns','gc_enabled',
                       'gc_uses_driver_usage','gc_used_bytes','gc_trigger_bytes','gc_pressure_bytes',
@@ -141,6 +144,8 @@ def render_memory(directory):
                       'gc_kept_tiled_download','gc_kept_download_no_pressure'):
             parts.append('<tr><td>'+esc(field)+'</td><td>'+esc(last.get(field,'unknown'))+'</td></tr>')
         parts.append('</table><p>State arrays: constructed/unknown, registered, unregistered, deletion queued. '
+                     'Role arrays: unspecified, reduced scene proxy. Proxy ownership is the original UID '
+                     'and source mip, not cache registration; queued proxies remain live until actual destruction. '
                      'Size bins: &lt;1, 1–4, 4–16, 16–64, ≥64 MiB. Tracked inventory is bounded to 8192 '
                      'images; overflow or dropped records make per-resource history incomplete. '
                      'Cumulative copied bytes measure traffic, not simultaneous allocation. '
@@ -150,7 +155,7 @@ def render_memory(directory):
                      'available on the failure snapshot and zero on ordinary snapshots.</p>')
         parts.append('<h3>Largest images still allocated at the last snapshot</h3><table><tr>'
                      '<th>Resource / owner</th><th>Bytes</th><th>Dimensions / levels / layers / samples</th>'
-                     '<th>Vulkan format / usage</th><th>State / flags</th><th>Age / pending deletion (s)</th></tr>')
+                     '<th>Vulkan format / usage</th><th>Role / state / flags</th><th>Age / pending deletion (s)</th></tr>')
         largest = last.get('largest',[])
         for e in (largest[:12] if isinstance(largest,list) else []):
             if not isinstance(e,dict):
@@ -162,7 +167,8 @@ def render_memory(directory):
                    ' × '.join(str(e.get(k)) for k in ('width','height','depth'))+' / '+
                    ' / '.join(str(e.get(k)) for k in ('levels','layers','samples')),
                    str(e.get('format'))+' / '+str(e.get('usage')),
-                   str(e.get('state'))+' / '+str(e.get('flags')),age('created_ns')+' / '+age('retired_ns')]
+                   str(e.get('role','unknown'))+' / '+str(e.get('state'))+' / '+str(e.get('flags')),
+                   age('created_ns')+' / '+age('retired_ns')]
             parts.append('<tr>'+''.join('<td>'+esc(x)+'</td>' for x in row)+'</tr>')
         parts.append('</table>')
     parts.append('<h3>Early large-buffer origins and copies (≥64 MiB)</h3><table><tr>'
