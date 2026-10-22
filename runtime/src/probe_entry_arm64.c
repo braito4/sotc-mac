@@ -193,6 +193,10 @@ static void *run_guest(void *opaque) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    if (sotc_cpu_fault_fields_init(getenv("SOTC_CPU_FAULT_FIELDS"))) {
+        fputs("Invalid SOTC_CPU_FAULT_FIELDS: expected reg:offset[:words], up to 16 fields and 1..8 words each\n",stderr);
+        return 24;
+    }
     if (sotc_diagnostic_control_start()) return 28;
     /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
     if (argc == 3 && !strcmp(argv[1], "--gpu-load-check"))

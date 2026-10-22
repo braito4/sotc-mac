@@ -13,6 +13,27 @@ unresolved-image collector guard remains intact and receives its own observation
 retention counter. See [current versions](../../docs/DEPENDENCIES.md) and the
 [current review](../../docs/UPSTREAM_REVIEW.md#owner-requested-five-source-refresh-and-selected-adaptation).
 
+`sotc-metal-inflight` adds a CPU admission gate to the actual native commit
+wrapper: default eight reserved/inflight commands, `SOTC_METAL_INFLIGHT=0` for
+uncapped control, explicit 1..64 limits. Only native completion releases capacity;
+errors keep fatal exit 23 and do not become progress. Unsubmitted abandonment is
+separate. CPU gate, real-wrapper Foundation/ARC and real cancellation-channel
+fixtures run without Metal/device/game initialization. Existing chunks, resource
+retention and ordering within each producer remain. Native savings/liveness/FPS
+are unverified; eight is not a measured optimum or a total memory cap. The exact
+previous cohort migrates as `inflight_previous`; pins/cache remain fixed.
+
+`sotc-shader-decode` is an original defensive overlay on the shadPS4 decoder.
+It enforces supplied slice ends for peeks/32-bit/64-bit reads, copies 64-bit
+values without alignment/aliasing assumptions and rejects empty main/copy input
+before indexing it. Failure-only private provenance distinguishes main/fetch/copy
+and prints the supplied parent hash, offset and captured token. Errors still stop
+through the real assertion handler; no unsupported instruction is emulated or
+skipped. `tools/check_shader_decode.py` runs thirteen synthetic installed-decoder
+modes with guard pages and a pinned-header overread control, without GPU/game
+input. Fetch's synthetic end and borrowed-memory lifetime remain separate gaps.
+The exact preceding cohort migrates as `decode_previous`; pins/cache stay fixed.
+
 `sotc-metal-tess-instances` adapts bloodborne-runtime `dcaf50060880` (credited
 to Wooloomooloo2 `4565225`, GPL-2.0-or-later). It routes each tessellated
 instance through the existing single-instance encoder and preserves its base

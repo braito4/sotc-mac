@@ -4,7 +4,7 @@ Checked against public upstream sources on **2026-10-22T10:51:27Z**. This page i
 
 The lock selects qualified runtime/CPU/reference commits and library releases or tags; newer reviewed heads are listed separately. An available version is not proof of correct Apple M1 rendering. Native game validation after this dependency update remains pending.
 
-Integration: **integrated selected base with checked local overlays; ARM64 renderer build, fifteen renderer regressions, 25 builder tests and full JIT/interpreter contracts pass; base integration native CPU checks passed**.
+Integration: **integrated selected base with checked local overlays; ARM64 renderer build, seventeen renderer regressions, 25 builder tests, full JIT/interpreter contracts and 46/46 host-symbol audit pass; base integration native CPU checks passed**.
 
 ## Runtime and reference sources
 

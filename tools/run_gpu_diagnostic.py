@@ -106,7 +106,7 @@ def supervise(command, seconds, log_path, cooperative=False):
                     'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER', 'BB_FRAME_STATS',
                     'BB_FRAME_LOG', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES', 'BB_OUTPUT_RES',
                     'SOTC_GPU_SUBMIT_TRACE', 'SOTC_VISUAL_TRACE', 'SOTC_VISUAL_CAPTURE', 'SOTC_AUDIO_TRACE',
-                    'SOTC_MEMORY_TRACE')}
+                    'SOTC_MEMORY_TRACE', 'SOTC_METAL_INFLIGHT', 'SOTC_CPU_FAULT_FIELDS')}
         wall_budget = f'{seconds}s' if seconds else 'none'
         emit((f'GPU supervisor: wall budget={wall_budget}, stop on GPU watchdog, no retries; '
               f'stop_mode={"cooperative" if cooperative else "process-group"}; '

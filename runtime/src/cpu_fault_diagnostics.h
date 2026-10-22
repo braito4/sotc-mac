@@ -15,6 +15,62 @@
 
 extern unsigned runtime_memory_trap_reasons(uintptr_t address);
 
+enum { SOTC_FAULT_FIELDS_MAX = 16, SOTC_FAULT_FIELD_WORDS_MAX = 8 };
+typedef struct { unsigned reg, words; int64_t offset; } SotcFaultField;
+static SotcFaultField sotc_fault_fields[SOTC_FAULT_FIELDS_MAX];
+static unsigned sotc_fault_field_count;
+
+/* Parse once before starting guest threads. No environment access, parsing or
+ * allocation is needed in the terminating signal handler. Syntax:
+ * decimal-register:signed-byte-offset[:decimal-word-count], ... (no spaces).
+ * Offsets accept decimal or 0x hexadecimal; no guest layout is built in. */
+static int sotc_fault_number(const char **cursor, unsigned base, uint64_t limit,
+                             uint64_t *value) {
+    const char *p=*cursor; unsigned digits=0; uint64_t n=0;
+    if (base==0) {
+        base=10;
+        if (p[0]=='0' && (p[1]=='x' || p[1]=='X')) {base=16;p+=2;}
+    }
+    for (;;) {
+        unsigned d=*p>='0' && *p<='9' ? (unsigned)(*p-'0') :
+                   *p>='a' && *p<='f' ? (unsigned)(*p-'a'+10) :
+                   *p>='A' && *p<='F' ? (unsigned)(*p-'A'+10) : 16;
+        if (d>=base) break;
+        if (d>limit || n>(limit-d)/base) return -1;
+        n=n*base+d;++p;++digits;
+    }
+    if (!digits) return -1;
+    *cursor=p;*value=n;return 0;
+}
+static int sotc_cpu_fault_fields_init(const char *config) {
+    SotcFaultField fields[SOTC_FAULT_FIELDS_MAX];unsigned count=0;
+    const char *p=config;size_t length=0;
+    if (!p || !*p) {sotc_fault_field_count=0;return 0;}
+    while (length<1024 && p[length]) ++length;
+    if (length==1024) return -1;
+    while (*p) {
+        uint64_t reg,offset,words=1;
+        if (count==SOTC_FAULT_FIELDS_MAX ||
+            sotc_fault_number(&p,10,15,&reg) || *p++!=':') return -1;
+        int negative=*p=='-';if (negative || *p=='+') ++p;
+        const uint64_t limit=(uint64_t)INT64_MAX+(unsigned)negative;
+        if (sotc_fault_number(&p,0,limit,&offset)) return -1;
+        if (*p==':') {
+            ++p;
+            if (sotc_fault_number(&p,10,SOTC_FAULT_FIELD_WORDS_MAX,&words) || !words)
+                return -1;
+        }
+        if (*p && *p!=',') return -1;
+        const int64_t signed_offset=negative ?
+            (offset==(uint64_t)INT64_MAX+1 ? INT64_MIN : -(int64_t)offset) :
+            (int64_t)offset;
+        fields[count++]=(SotcFaultField){(unsigned)reg,(unsigned)words,signed_offset};
+        if (*p==',' && !*++p) return -1;
+    }
+    for (unsigned i=0;i<count;++i) sotc_fault_fields[i]=fields[i];
+    sotc_fault_field_count=count;return 0;
+}
+
 static size_t sotc_fault_text(char *out, const char *text) {
     size_t n=0;
     while (*text) out[n++]=*text++;
@@ -74,6 +130,22 @@ static void sotc_cpu_fault_context(int fd,const BbGuestRegs *regs,
         int duplicate=0;
         for (unsigned j=0;j<i;++j) if (j!=4 && j!=5 && regs->r[i]==regs->r[j]) duplicate=1;
         if (!duplicate) sotc_fault_words(fd,names[i],regs->r[i],4);
+    }
+    for (unsigned i=0;i<sotc_fault_field_count;++i) {
+        const SotcFaultField field=sotc_fault_fields[i];
+        const uint64_t base=regs->r[field.reg];
+        const uint64_t magnitude=field.offset<0 ?
+            (uint64_t)(-(field.offset+1))+1 : (uint64_t)field.offset;
+        const int overflow=field.offset<0 ? base<magnitude : base>UINT64_MAX-magnitude;
+        char line[192];size_t n=sotc_fault_text(line,"  CPU fault field candidate reg=");
+        n+=sotc_fault_text(line+n,names[field.reg]);
+        n+=sotc_fault_text(line+n," offset=");
+        if (field.offset<0) line[n++]='-';
+        n+=sotc_fault_hex(line+n,magnitude);
+        if (overflow) n+=sotc_fault_text(line+n," address_overflow; not read");
+        line[n++]='\n';(void)write(fd,line,n);
+        if (!overflow) sotc_fault_words(fd,"configured_field_candidate",
+            field.offset<0 ? base-magnitude : base+magnitude,field.words);
     }
     sotc_fault_words(fd,"rsp",regs->r[4],16);
     uint64_t frame=regs->r[5];

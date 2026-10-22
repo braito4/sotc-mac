@@ -9,7 +9,287 @@ older boundaries, not the present state.
 ## Continuation checkpoint
 
 
-### Latest owner comparison: native probe confirms Metal OOM on the 16 GB M1
+### Latest owner comparison: Metal OOM despite active admission cap
+
+The **2026-10-22 20:08 UTC** owner capture ends after **122.026 seconds** on
+Metal insufficient-memory error **8**, with confirmed child/supervisor exits
+**23/23**. The fresh native probe and completion callback agree on status 5/error
+8, retained references, **13,388,939,264 bytes (12.469 GiB)** allocated against
+**12,713,115,648 bytes (11.840 GiB)** recommended. No SIGSEGV/SIGBUS, decoder
+assertion or GPU-progress watchdog is recorded. Their earlier causes remain open.
+
+Admission is active with limit/peak **8**. At the failure report it counts
+**4 reserved/inflight commands**, 97,316 acquisitions, 97,312 completions, zero
+abandoned tickets and 3,243 waits / **1,053.599 ms** accumulated admission wait.
+The failing command takes **4,222.347 ms** to report scheduled and **4,226.833 ms**
+to report completed after callback registration; commit returned in **0.019 ms**.
+These are host observations, not GPU execution time or proof of scheduling cause.
+The batch contains **45,662 CPU notes**, not independent GPU instructions. The cap
+does not bound a single command's resources or the total working set, and another
+arbitrary cap reduction is not established as a remedy.
+
+There are **1,190 `present_result` events** (also 1,190 `present_recorded` and
+1,190 `queue_submitted` events). The 3,571 JSON rows include these three lifecycle
+events plus the failure. Last presentation is at recorder time **114.1262 s**,
+scene work **640x360**, output **1280x720**; the failure observation is **120.8699 s**.
+These clocks do not share the supervisor's origin, and observations are not
+correct-pixel or gameplay validation. **Count correction:** the preceding 19:53
+capture had **1,115 presentations**, not 3,345; 3,345 was its three lifecycle rows
+per presentation. Its sampled memory and SIGSEGV diagnosis are unchanged.
+
+Fresh failure inventory/full image replay agree on **485 live images / 1,163.47
+MiB**, after 6,623 allocations and 6,138 destructions. There are **23 live proxies /
+22.18 MiB**, with **793 destroyed** and none pending. No journal drops, overflow
+or unmatched frees are reported. The large upload is still **3 GiB**; a separate
+**96 MiB** allocation is also recorded. Seven large copy completions are traffic,
+not seven simultaneous 3 GiB buffers. No shared-binding/staging-tail event occurs.
+The staging snapshot is **4.211 s** old and GC sample **7.635 s** old: neither grants
+permission to release live storage. Image accounting is not full Metal accounting.
+
+There are **376 PerVertexKHR messages**, **431 pipeline-creation failures**, 805
+SRT-offset errors, 21,720 buffer clamps, 282 incomplete GPU-mapping warnings and
+589 unimplemented LOD-stat command messages. Counts are messages, not distinct
+shader/resource failures. Audio reports no queue-wait failures but a **15.012 s**
+delivery gap; averaged input is about **41,262 frames/s/port** including it.
+Its cause is unknown; do not call audio continuous. No additional guest resource
+FileNotFound messages occur in this capture. `SOTC_CPU_FAULT_FIELDS` is unset,
+and no fatal CPU context exercises its optional windows. The supervisor's new
+settings header is exercised; absent admission override correctly uses default 8.
+
+This analysis changes documentation only; no runtime/configuration/dependency
+change or new game/GPU test is performed. Continue investigation of the retained
+working set and invalid shader buffer bounds independently of the CPU-pointer
+corruption, without discarding unresolved GPU contents or weakening lifetimes.
+
+
+### Latest owner comparisons: bounded admission exercised; CPU pointer fault remains
+
+The **2026-10-22 19:53 UTC** owner capture ends after **118.281 seconds** on
+translated **SIGSEGV**, with confirmed child/supervisor exits **139**. It records
+**1,115 presentation observations**, requested scene work at 640x360 and a sampled
+native allocation peak of **11.646 GiB**. There is no recorded Metal OOM, decode
+failure or GPU-progress watchdog in this capture. These observations do not prove
+correct images, stable performance or resolution of previous memory failures.
+
+The native admission limit is exercised: **limit/peak 8**, with the last logged
+admission checkpoint reporting 2,048 waits and 643.091 ms cumulative admission
+wait. These are checkpoint values, not final totals. The preceding **19:49 UTC**
+capture also exercised the cap but still ended on **Metal OOM 8 after 121.100 s**,
+confirmed exits 23/23 and fresh native allocation **12.404 GiB**. Thus the cap is
+working as a bound, not an established OOM fix. Different run lengths, workloads
+and stopping reasons prevent attributing presentation-count changes to it.
+
+The newest fatal context identifies an invalid pointer load. Private offline
+disassembly relates that pointer to an earlier field load from a readable object,
+outside the first four words captured at register bases. The fault address agrees
+with the saved pointer plus the instruction displacement. The originating field's
+value was not captured and cannot be reconstructed after exit. No writer,
+allocation lifetime, race or translation defect is established. Do not substitute
+a null pointer, skip the load, patch game bytes or treat neighboring values as
+validated object metadata. Exact instructions, addresses and analysis remain in
+ignored private `work/analysis` output.
+
+Full image-event replay at that CPU stop has **379 live images / 877.01 MiB**;
+there is no synchronized failure-time Metal/image snapshot from the CPU handler.
+The bounded buffer journal records a **3 GiB** allocation, no adjacent shared-copy
+or staging-tail event, and no dropped records in the last summary. PerVertexKHR
+appears **380** times. Audio windows contain **zero queue-wait failures**, but
+one delivery gap reaches **28.474 seconds** on both ports; its cause is unknown.
+The roughly 35,913 input frames/s average includes that gap and is not a hardware
+underrun counter or proof of continuous playback.
+
+**Prepared improvement:** `SOTC_CPU_FAULT_FIELDS` selects up to sixteen explicit
+register-relative field windows, one to eight 64-bit words each, only at a fatal
+translated stop. Syntax is `decimal-register:signed-byte-offset[:word-count]`,
+comma-separated; offsets accept decimal or hex. Configuration is parsed before
+guest threads or GPU initialization; malformed input stops with exit 24. Empty
+or absent configuration performs no additional reads. Checked address addition
+rejects underflow/overflow before the protected reader. Low/user guest-range and
+GPU-tracking exclusions remain active, short/unreadable fields are explicit,
+and no pointer is followed automatically. The original fatal exit is preserved.
+The supervisor's private settings header now retains the selected fields and
+native admission override without logging unrelated environment variables.
+
+Original synthetic tests cover a field beyond the old snapshot, unaligned reads,
+guarded page edges, both signed offset limits, register/count/configuration bounds,
+invalid startup configuration and the actual JIT/interpreter terminating paths.
+A UBSan reader run, the ARM64 diagnostic build and full JIT/interpreter contracts
+pass. Selected candidate windows for this specific owner
+capture are prepared privately, not hardcoded in public source or enabled by
+default. This is better evidence collection, not a correction to the corrupted
+pointer or a completed coroutine/queued-consumer ownership review. No game/GPU
+test or production dependency/renderer-setting change is performed here.
+
+
+### Prepared native admission limit after the latest Metal OOM
+
+The **2026-10-22 18:22 UTC** owner comparison ends after **100.149 seconds**
+with confirmed child/supervisor exits **23**, on Metal insufficient-memory error
+**8**. It does not exercise the new decoder failure path: no decode assertion,
+SIGBUS/SIGSEGV or GPU-progress watchdog is recorded. The new decoder guards are
+not proven to resolve the previous slot-15 input; that input simply did not
+recur. The native probe observes status 5/error 8, retained references and
+**13,351,354,368 bytes (12.434 GiB)** allocated against a recommendation of
+**12,713,115,648 bytes (11.840 GiB)**. This is shared M1 memory, not additional VRAM.
+
+The failed batch has **45,774 CPU notes**, including 2,785 guest draw candidates,
+13 guest dispatch candidates and native observations that overlap those counts.
+Commit returns after 0.017 ms; scheduled/completed callbacks occur about
+**8,858.529 / 8,881.566 ms** after registration. This establishes a long native
+scheduling interval, not its cause or a specific failing shader. No retrospective
+inflight high-water measurement exists; queue accumulation is a review hypothesis.
+There are **1,074 presentation results** and scene work at 640x360; correct pixels
+are unverified. PerVertexKHR appears **385** times; SRT/pipeline/clamp errors remain.
+
+The fresh failure image inventory and full replay agree: **6,351 allocations /
+5,876 destructions / 475 live / 1,161.42 MiB**, including **23 proxies / 22.18 MiB**
+after **993** proxy destructions. Registered images are 450 / 1,134.34 MiB;
+two non-proxy images / 4.91 MiB are queued for deletion. No journal drops or
+unmatched events are reported. The last GC observation is **13.619 s** old;
+the staging snapshot is **8.451 s** old. They are not current release permissions.
+The early buffer journal records one **3 GiB** upload allocation and one 96 MiB
+allocation, with five large completed copies. No shared-binding/tail event is
+recorded. Audio has 19 windows per port, about 47,950 input frames/s and no queue
+failures, with a 65.114 ms maximum gap; audible continuity is unverified.
+
+The checked **sotc-metal-inflight-v1** overlay introduces application admission
+control in the native `CommitCommandBuffer` wrapper, covering ordinary and split
+chunks through that common method. Default **SOTC_METAL_INFLIGHT=8** permits at
+most eight reserved-or-submitted unfinished native commands in this path. A
+full budget waits for actual Metal completion, after existing error handling;
+commit return, scheduled callback and Vulkan timeline advancement do not release
+slots. No command is submitted early, reordered within a producer, skipped or
+reported complete artificially. Resource retention, staging reuse, shader code,
+resolution, pins/cache 24/9, timeout and watchdog policies remain unchanged.
+The independent cancellation thread still exits while admission is blocked.
+
+**Eight is a proposed bounded admission policy, not a measured M1 optimum.**
+This can reduce accumulation of unfinished native batches but does not cap
+unsubmitted recording objects, MoltenVK-internal work, a single huge batch or
+the total shared working set. The 3 GiB reservation and unsupported rendering
+remain. Admission can slow CPU submission and affect title progress/performance;
+native validation is pending, not an established OOM fix. The control **0** removes
+the admission cap; valid explicit values are 0..64, invalid values stop with
+configuration exit 24. Existing guarded/supervised comparison rules and the
+nested-coroutine queued-consumer review remain prerequisites for another test.
+
+CPU evidence: an unlimited model retains 32 outstanding tickets; the bounded
+model admits eight and blocks the ninth until completion. Duplicate/out-of-order
+callbacks, uncommitted cleanup, concurrent producers and state lifetime pass.
+The actual production wrapper runs against Foundation-only command doubles,
+proving ARC callback capture, unchanged fatal Metal exit 23, and no successful
+completion counted for an error. The real cooperative cancellation channel exits
+21 with admission already blocked. No GPU/device/game is initialized. Private
+`Metal inflight` logs report active/peak/waits/completed/abandoned counts; abandoned
+unsubmitted work is not GPU progress. The exact preceding source cohort migrates
+as `inflight_previous`, preserving digest and unknown-source rejection checks.
+ARM64 build, seventeen renderer regressions, 25 builder tests, full
+JIT/interpreter contracts and the 46/46 host-symbol audit pass. No new game
+run has been started. Native savings/progress/performance remain unverified.
+
+
+### Prepared decoder correction: bounded reads and failure provenance
+
+The latest owner assertion has been narrowed against the selected source:
+`OpcodeMap::OP_MAP_SMRD` is **1586**, so reported opcode **1601** is SMRD slot
+**15**. That slot has no defined format in the current decoder tables. This
+mapping is reproduced with original synthetic fields; it does not identify the
+owner shader or establish that its bytes were valid, corrupt or stale.
+
+The checked `sotc-shader-decode-v1` overlay protects `GcnCodeSlice::at`, `readu32`
+and `readu64` against reading beyond the supplied end. The 64-bit read uses
+`memcpy`, avoiding an unaligned/aliased u64 dereference. Main/copy translation
+also checks empty input before the first word, instead of indexing `code[0]`.
+Valid decode semantics and explicit assertion termination remain; the patch
+does not implement slot 15, skip shaders or turn errors into successful draws.
+
+Failures now print bounded private provenance: main/fetch/copy phase, parent
+shader hash when supplied, hardware-stage enum, code origin and word offset,
+requested/remaining words for truncation, and the already-read token/opcode/
+encoding for unknown formats. Unknown counts are **-1**, not an assertion of an
+empty shader. Failure reporting reads no additional guest bytes. Nested scopes
+restore prior context and threads have independent context. These are CPU
+compiler observations, not executed GPU commands. No code dump is enabled.
+
+This correction is limited to the **supplied slice boundary**. Fetch parsing
+still obtains its end from the existing synthetic maximum, not a measured guest
+mapping; cache-hit `memcmp` and guest-pointer lifetime are not repaired here.
+The overlay does not prove a live input span cannot be modified concurrently,
+validate every mapped address, or resolve the nested-coroutine ownership lead.
+Neither the latest assertion nor the 16 GB memory-pressure problem is declared
+fixed. Preserve the existing pre-comparison ownership review and GPU guards.
+
+The installed-decoder CPU fixture covers thirteen modes: valid scalar/control/
+literal words, aligned-to-u32 64-bit reads, guarded reads/peeks, truncated 64-bit,
+literal, SDWA and DPP encodings, illegal encoding, synthetic SMRD slot 15,
+fetch provenance and empty main/copy input. It checks nested/thread-local scopes.
+The old production `readu64` crosses the protected page and faults; adapted
+malformed cases stop explicitly through the real exit-23 assertion handler.
+The actual-library tests initialize no renderer or GPU and use no game input.
+ARM64 rebuild, sixteen renderer regressions, 25 builder tests, full
+JIT/interpreter contracts and the 46/46 host-symbol audit pass. Native owner
+validation is pending.
+Selected source/library pins, cache 24/9, resolution, resource ownership and
+synchronization are unchanged. Exact preceding sources migrate through the
+`decode_previous` cohort; unknown or mixed source modifications stay rejected.
+
+
+### Earlier owner comparison: shader decoder assertion, not a recorded Metal OOM
+
+The **2026-10-22 18:06 UTC** owner comparison (20:06 local time) ends after
+**95.239 seconds**, with confirmed child/supervisor exits **23**, on a GPU-library
+assertion in `GcnDecodeContext::updateInstructionMeta`, `frontend/decode.cpp`.
+The instruction format has an undefined source or destination type: the decoder
+prints opcode **1601**, with an empty symbolic name and encoding class
+**0xc0000000 (SMRD)**, then stops. The encoding value identifies a family; it is
+not a captured raw instruction word. Exit 23 is shared with other GPU failures
+and must not be interpreted as OOM by itself. No Metal OOM callback, watchdog,
+SIGBUS or SIGSEGV is recorded in this capture.
+
+This is a new concrete shader-decoding boundary. It does not distinguish a
+valid unsupported instruction from stale/corrupted code, a wrong shader range,
+or decode desynchronization. No shader identifier/raw words are attached to the
+assertion, and preceding asynchronous pipeline messages cannot identify the
+faulting shader. Next inspect the opcode mapping/format tables, then prepare
+bounded decoder provenance with synthetic invalid/truncated/unsupported inputs.
+Preserve explicit failure; do not bypass the assertion or invent an instruction.
+The existing nested-coroutine queued-consumer ownership review remains relevant
+but is not a demonstrated cause.
+
+There are **905 presentation results**, last recorder time **91.8833 s**, with
+scene work requested at **640x360** and output **1280x720**. Peak sampled Metal
+allocation is **11.447 GiB**; no failure-time native memory probe is triggered
+by this assertion, so final pressure is unknown. The owner's M1 has 16 GB unified
+memory; lower scene work does not eliminate original-size resources or the
+large upload reservation. The early buffer journal records one **3 GiB** staging
+allocation and one 96 MiB allocation, with six large completed copies reusing
+storage. Cumulative copy traffic is not simultaneous capacity. No large sharing
+or tail event is retained, but the bounded buffer journal has **3,457 dropped
+records** at the last summary: absence cannot establish those cases never ran.
+The last staging-pool snapshot is **40.102 s** old at the final presentation.
+
+The image journal has no reported dropped image records or unmatched destroys.
+Lifecycle replay records **5,326 allocations / 5,018 destructions / 308 live /
+769.83 MiB**. Owner/role updates identify **19 live proxies / 19.25 MiB**.
+The last periodic snapshot is 2.183 s older than the last image event: its
+303 live images / 784.53 MiB and 777 destroyed / 18 live proxies are historical
+snapshot values, not the final replay. These are application/VMA lifetimes,
+not complete Metal/driver accounting or safe-eviction proof.
+
+Audio has 18 windows per port, about **47,948 input frames/s**, maximum delivery
+gap **38.151 ms**, and no queue-wait/backend failures. Audible continuity remains
+unverified. PerVertexKHR appears **337** times; SRT/clamp and pipeline failures
+persist, without recurrence of the integer-blit type mismatch. No new pixel
+validation is available. Two intervening short owner runs, at 18:01 and 18:02
+UTC, still ended on explicit Metal OOM after 14.161 and 9.868 s; the newest
+assertion does not resolve that memory problem. Do not attribute the variation
+to a fix or compare these runs as controlled performance measurements.
+
+This analysis starts no new game/GPU run and changes no runtime, selected pin,
+cache, memory ownership, graphics configuration or stopping guard.
+
+
+### Preceding owner comparison: native probe confirms Metal OOM on the 16 GB M1
 
 The **2026-10-22 17:57 UTC** owner comparison ends after **77.670 seconds**
 with confirmed child/supervisor exit **23**, on Metal insufficient-memory error

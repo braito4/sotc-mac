@@ -343,3 +343,26 @@ selection, not hardware execution, system stability or game-image correctness.
 Do not rerun real-library experiments during incident containment. No GPU rebuild
 is required for the host rollback. PerVertexKHR conversion and GPU memory mapping
 remain unresolved source-analysis tasks.
+
+## Shader-decoder CPU regression
+
+`python3 tools/check_shader_decode.py` runs thirteen original synthetic modes
+against the rebuilt library without initializing a renderer or GPU. Guard pages
+exercise peeks, 32/64-bit and literal/SDWA/DPP truncation, unknown formats and
+empty main/copy input; main/fetch/copy failure context is checked. A pinned-header
+negative control reproduces the unchecked 64-bit read. The builder includes this
+regression automatically. These slice guards do not validate guest mappings for
+fetch parsing or establish why the owner shader reached an unknown format.
+
+## Native Metal admission control
+
+The checked native path defaults `SOTC_METAL_INFLIGHT` to 8. It waits before a
+new commit when eight commands have reserved admission or await real native
+completion. `0` restores uncapped admission; explicit limits 1..64 are accepted.
+Invalid settings stop with exit 24. This is an experimental working-set control,
+not a proven M1 memory reduction or a replacement for the watchdog. It does not
+remove the large upload reservation or submit chunks before their normal boundary.
+`python3 tools/check_metal_inflight.py` tests admission, production completion/error
+callbacks with Foundation doubles and cooperative cancellation while blocked,
+without a GPU. Future native comparisons must preserve the existing review,
+one-change and stopping guards; inspect `Metal inflight` counters and real memory.

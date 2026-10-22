@@ -96,3 +96,12 @@ The isolated renderer now includes three reviewed upstream backports for auxilia
 tessellation locations, cache invalidation and Metal resource lifetime. Their exact
 commits, adaptations and regression evidence are recorded in the
 [upstream review](UPSTREAM_REVIEW.md); patch files preserve upstream license notices.
+
+The shader-slice bounds and private failure-provenance overlay is original local
+work on the selected shadPS4 decoder (GPL-2.0-or-later). Its synthetic instructions
+and protected-page fixture contain no extracted game code. Upstream decoder
+source retains its original copyright and license notices.
+
+The native Metal command-admission gate is original local code. Its CPU/Fundation
+fixtures exercise the selected runtime commit wrapper without a Metal device or
+game content; they do not establish native memory savings or title compatibility.

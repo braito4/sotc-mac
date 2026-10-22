@@ -2,7 +2,61 @@
 
 Updated 2026-10-22. **Reaches the first gameplay image on Apple M1; not playable yet.**
 
-**Latest owner comparison (17:57 UTC):** Metal OOM error 8 after **77.670 s**,
+**Latest owner comparison (20:08 UTC):** Metal OOM 8 after **122.026 s**,
+confirmed exits 23/23 and fresh **12.469 GiB** native allocation. Admission has
+limit/peak 8 but only four reserved/inflight commands at failure. There are
+**1,190 presentations**, 485 live images / 1,163.47 MiB, 23 proxies after 793
+destructions, and the retained 3 GiB upload. No CPU fault/decoder/watchdog stop
+recurs. Shader/SRT failures remain; audio has a 15.012 s delivery gap without
+queue-wait failures. No native memory fix is claimed. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Newest owner comparisons (19:53 / 19:49 UTC):** the newest run ends on translated
+SIGSEGV after **118.281 s**, confirmed exits 139/139, 1,115 presentation observations
+and **11.646 GiB** sampled native peak. The eight-command admission cap is
+exercised. The preceding capped run still ends on **Metal OOM after 121.100 s**,
+12.404 GiB at failure; the cap is not an OOM fix. An invalid pointer originates
+from an earlier object-field load outside the existing snapshot. Its writer and
+lifetime are unknown. Prepared opt-in fatal field windows preserve protected
+reads and termination while capturing selected member candidates; no game run
+or pointer-correctness claim follows. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Latest owner comparison (18:22 UTC):** Metal OOM 8 after **100.149 s**,
+confirmed exits 23/23, fresh **12.434 GiB** native allocation on the 16 GB M1.
+There are 1,074 presentation results, 475 live images / 1,161.42 MiB, a retained
+3 GiB upload and 385 PerVertexKHR messages. The prior decoder assertion does not
+recur. No CPU fault, audio queue failure or watchdog is recorded.
+
+**Prepared native admission limit:** default eight reserved/inflight native
+commands, blocked on real completion rather than Vulkan timelines; no early
+split or resource release. CPU admission, production ARC completion/error bridge
+and actual blocked cooperative cancellation pass, with ARM64/seventeen renderer
+regressions, 25 builder tests, full JIT/interpreter contracts and symbol audit. Native savings,
+title progress and performance are unverified; this does not cap one huge batch
+or total unified memory. The 0 control is uncapped. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared decoder correction:** bounded reads now reject truncated instructions
+before reading past their supplied slice; 64-bit reads avoid alignment/aliasing
+assumptions, and empty main/copy inputs are checked. Failure reports identify
+phase, parent shader, offset and already-read opcode/token. Thirteen installed-
+decoder CPU cases, ARM64 rebuild, sixteen renderer regressions and 25 builder
+tests, full JIT/interpreter contracts and the symbol audit pass. The slot-15 assertion,
+fetch mapping/ownership and native memory pressure remain unresolved. No native
+GPU run is started. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Earlier owner comparison (18:06 UTC):** shader-decoder assertion after
+**95.239 s**, confirmed child/supervisor exits **23**. Opcode 1601 has no known
+instruction format in SMRD encoding class 0xc0000000; the log does not distinguish
+unsupported code from incorrect/corrupted shader input. No Metal OOM, watchdog or
+CPU fatal signal is recorded. There are 905 presentation results at reduced scene
+640x360; native sampled peak is 11.447 GiB, final pressure unknown. Image replay
+has 308 live / 769.83 MiB, including 19 proxies / 19.25 MiB. The 3 GiB upload
+remains; 3,457 dropped buffer records limit absence-of-event conclusions. Audio
+averages 47,948 input frames/s/port without queue failures. PerVertexKHR/SRT
+failures persist. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding owner comparison (17:57 UTC):** Metal OOM error 8 after **77.670 s**,
 confirmed child/supervisor exits **23**. The new native probe confirms status 5,
 error 8, retained references and **11.603 GiB** allocation at failure. There are
 859 presentation results; requested scene work remains 640x360. Final application

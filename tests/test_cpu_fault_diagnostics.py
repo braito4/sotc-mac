@@ -40,13 +40,16 @@ class CpuFaultDiagnosticsTests(unittest.TestCase):
             image[64:64+len(code)] = code
             bad_size = 0x1234567800000055
             image[512:544] = struct.pack('<4Q', 0x1111, 0x2222, bad_size, 0x4444)
+            field_marker = 0x9876543212345678
+            image[512+305:512+313] = struct.pack('<Q', field_marker)
             boot.write_bytes(struct.pack('<8s9Q', b'BBPROBE2', len(image), 0, 1, 0, 0, 0,
                                          0, len(image), 5)+image)
             for mode in ('1', '0'):
                 with self.subTest(mode=mode):
                     result = subprocess.run([str(PROBE), str(boot)], capture_output=True, text=True,
                         timeout=10, env=dict(os.environ, BB_JIT=mode, BB_DMEM_MB='16',
-                                            BB_DMEM_EXTRA_MB='0', SOTC_DIAGNOSTIC_SECONDS='5'))
+                                            BB_DMEM_EXTRA_MB='0', SOTC_DIAGNOSTIC_SECONDS='5',
+                                            SOTC_CPU_FAULT_FIELDS='12:305'))
                     self.assertEqual(result.returncode, 139, result.stdout+result.stderr)
                     self.assertEqual(result.stderr.count('STOP_EXECUTION_FAULT: SIGSEGV'), 1)
                     if mode == '1':
@@ -54,9 +57,20 @@ class CpuFaultDiagnosticsTests(unittest.TestCase):
                         self.assertIn(hex(bad_size), result.stderr)
                         self.assertIn('image_offset=0x5', result.stderr)
                         self.assertIn('CPU fault context: end', result.stderr)
+                        self.assertIn('CPU fault field candidate reg=r12 offset=0x131', result.stderr)
+                        self.assertIn(hex(field_marker), result.stderr)
                     else:
                         self.assertIn('CPU fault context: unavailable outside translated code', result.stderr)
                         self.assertNotIn('CPU fault memory', result.stderr)
+                        self.assertNotIn('CPU fault field candidate', result.stderr)
+
+    @unittest.skipUnless(PROBE.is_file(), 'built native diagnostic required')
+    def test_invalid_fields_stop_before_loading_input(self):
+        result = subprocess.run([str(PROBE), '/missing/synthetic-input'], capture_output=True,
+            text=True, timeout=10, env=dict(os.environ, SOTC_CPU_FAULT_FIELDS='12:0:9'))
+        self.assertEqual(result.returncode, 24, result.stderr)
+        self.assertIn('Invalid SOTC_CPU_FAULT_FIELDS', result.stderr)
+        self.assertNotIn('STOP_EXECUTION_FAULT', result.stderr)
 
 
 if __name__ == '__main__':

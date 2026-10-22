@@ -14,12 +14,29 @@ The owner confirms this milestone on 2026-10-22. Rendering defects, memory failu
 and instability remain; correct graphics, sustained gameplay, audiovisual
 synchronization and save persistence are not validated.
 
-The latest analyzed native run stops on Metal insufficient memory after
-77.670 seconds, with confirmed child/supervisor exit 23. The failure-time
-native probe reports 11.603 GiB allocated. This M1 has 16 GB of unified memory;
-CPU and GPU share it. Reduced scene work at 640x360 does not shrink every output,
-original-size resource or large upload reservation. Memory stability remains
-unresolved; earlier CPU faults and GPU stalls remain separate open problems.
+The newest analyzed native run stops on Metal insufficient memory after
+122.026 seconds, with confirmed exits 23 and 12.469 GiB native allocation.
+The admission limit is active, with four unfinished commands at failure; the
+3 GiB upload remains. It is not an established OOM fix. There are 1,190
+presentation observations, not correct-pixel or gameplay validation.
+
+An earlier native run stops on a translated CPU SIGSEGV after
+118.281 seconds, with confirmed exits 139 and 11.646 GiB sampled native peak.
+The eight-command admission cap is exercised, but the preceding capped run
+still ends on Metal OOM. An opt-in protected fatal field reader is prepared to
+trace the invalid pointer's source; its cause and correction remain unresolved.
+No additional game run validates that diagnostic preparation.
+
+An earlier native run stops on Metal insufficient memory after
+100.149 seconds, with confirmed child/supervisor exit 23 and 12.434 GiB native
+allocation at failure. Earlier shader-decoder assertions, CPU faults and GPU
+stalls remain unresolved. This M1 has 16 GB of unified memory; CPU and GPU share
+it. Scene work at 640x360 does not shrink every output, original-size resource
+or large upload. A prepared native admission limit bounds unfinished command
+batches; native memory savings and performance remain unverified.
+A checked decoder correction rejects reads beyond supplied shader slices and
+adds private failure provenance. ARM64 and synthetic contracts pass; the cause
+of the game's unsupported opcode remains unverified.
 A correction for duplicated
 read-only upload snapshots is built and CPU-tested; the latest captures do not
 exercise the duplicate case, so native memory savings remain unverified. Earlier GPU

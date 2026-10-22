@@ -4,6 +4,24 @@ This repository develops a native ARM64 macOS diagnostic for Shadow of the Colos
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
 The consolidated checkout is the only active project. Read
 `docs/guide/workspace.md` and the continuation checkpoint before resuming.
+The latest 20:08 UTC owner capture ends on Metal OOM 8 after 122.026 s,
+confirmed exits 23/23, fresh native allocation 12.469 GiB. Admission is active
+(limit/peak 8), but four reserved/inflight commands remain at failure. The
+3 GiB upload persists; 485 live images / 1,163.47 MiB and 23 proxies remain.
+There are 1,190 presentations: count present_result, not all three JSON lifecycle
+events. The preceding 19:53 capture had 1,115 presentations, not 3,345. Audio has
+a 15.012 s delivery gap without queue failures. No CPU/decoder/watchdog stop
+recurs; their causes remain open. Read the newest handoff; no native fix claimed.
+The newest 19:53 UTC owner capture ends on translated SIGSEGV after 118.281 s,
+confirmed exits 139/139; the native admission cap is exercised (peak 8). The
+preceding 19:49 UTC capped capture still ends on Metal OOM after 121.100 s.
+An invalid loaded pointer's source field is outside the previous four-word
+snapshot; no writer/lifetime/translation cause is proven. The prepared optional
+SOTC_CPU_FAULT_FIELDS reader parses bounded register-relative windows before
+threads, preserves guest/GPU guards, rejects address overflow and keeps fatal
+exit behavior. Default empty; owner selections/disassembly remain private.
+Read the first handoff; do not hardcode game fields, skip loads or claim an OOM
+or corruption fix. No new game test is performed for this preparation.
 The owner confirms reaching the first gameplay image on Apple M1; the port is not
 playable yet. The integer-blit overlay is built and CPU-contract-tested, with
 same-format nearest 2D uint/int copies and explicit unsupported-case errors.
@@ -11,7 +29,34 @@ The native comparison no longer reports the two float-output/integer-target
 errors; exact GPU copy pixels and full-case coverage remain unverified.
 This is not an OOM/corruption fix.
 Read the first handoff checkpoint and preserve the existing testing guards.
-The newest 17:57 UTC owner comparison supersedes the older native boundaries:
+The newest 18:22 UTC owner comparison ends on Metal OOM 8 after 100.149 s,
+confirmed exits 23/23 and fresh native allocation 12.434 GiB; the decoder failure
+is not reproduced. The checked native admission overlay defaults to eight
+reserved/inflight commands in CommitCommandBuffer, releasing slots on actual
+completion only; no early split, fake fence or resource eviction. CPU/Foundation
+bridge and blocked cooperative-cancellation controls pass, as do ARM64/seventeen
+renderer regressions/25 builder tests, full JIT/interpreter contracts and the
+46/46 host-symbol audit. Native
+memory/performance effects are unverified; eight is not a measured optimum.
+SOTC_METAL_INFLIGHT=0 is the uncapped control, 1..64 are explicit limits. Keep
+pins/cache, retained references, scene 640x360 and the nested-consumer review.
+The checked shader-decode overlay adds supplied-slice bounds checks, safe 64-bit
+reads and main/fetch/copy failure provenance, with real exit 23 preserved.
+Thirteen installed-decoder CPU cases reproduce a pinned guarded-page overread
+and verify explicit adapted rejection. ARM64, sixteen renderer regressions and
+25 builder tests, full JIT/interpreter contracts and 46/46 symbol audit pass;
+native validation is pending.
+SMRD slot 15 is unsupported by current tables, not automatically a new valid
+instruction. Fetch synthetic ends/cache memcmp and borrowed-code ownership are
+not fixed by these finite-slice guards. Do not claim the last assertion or OOM
+resolved. Read the prepared checkpoint before another native comparison.
+The earlier 18:06 UTC owner comparison records:
+shader-decoder assertion at 95.239 s, confirmed exits 23/23, unknown opcode
+1601 in SMRD family 0xc0000000. No recorded Metal OOM/watchdog/CPU fatal signal;
+11.447 GiB sampled native peak, final pressure unknown. Preserve explicit decode
+failure; unsupported versus corrupt/stale shader input is not distinguished.
+Buffer journal saturation limits missing-event claims. Read the first handoff.
+The preceding 17:57 UTC owner comparison records:
 Metal OOM 8 after 77.670 s, confirmed exits 23/23, native allocation 11.603 GiB.
 The weak report-time probe is exercised with status 5/error 8 and real callbacks;
 it is diagnostic validation, not an OOM fix. The owner specifies 16 GB unified

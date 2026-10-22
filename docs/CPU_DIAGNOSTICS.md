@@ -1,5 +1,42 @@
 # Private CPU fault diagnostics
 
+The newest captured CPU boundary (**19:53 UTC on 2026-10-22**) is a translated
+SIGSEGV after **118.281 seconds**, with confirmed exits 139/139. Private offline
+disassembly relates the invalid loaded pointer to an earlier field load outside
+the existing four-word register snapshot. Its source value/writer/lifetime remain
+unknown. The preceding capped run still ends on Metal OOM; neither failure is
+declared fixed. See the current [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+## Optional register-relative field windows
+
+`SOTC_CPU_FAULT_FIELDS` adds targeted evidence at a terminating translated fault.
+For example, `12:0x130:2,3:-16` reads two 64-bit words at r12+0x130 and one at
+rbx-16. These are generic syntax examples, not game layouts or recommended fields.
+The default is empty. Register indices are 0..15 in `BbGuestRegs` order (rax,
+rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8..r15). At most sixteen comma-separated
+entries and eight words per entry are accepted; offsets are signed byte counts
+in decimal or `0x` hex. Spaces, incomplete entries and out-of-range values are
+rejected before loading input, with configuration exit 24. Parsing happens once
+before guest threads; there is no environment access or parsing in the handler.
+
+Each entry prints the chosen register/offset and a `configured_field_candidate`
+window through the existing protected reader. Address wraparound is rejected;
+unmapped, guarded, non-guest or short reads stay explicit. No automatic pointer
+chase, synchronization, memory write, permission change or recovery is added.
+Candidate words can race with other threads and are not validated members. The
+fatal signal retains its original exit status. Interpreter-mode register state
+remains unavailable. Exact owner selections and output stay private under `work`.
+The supervisor records the explicit field setting and native admission override
+in its private settings header; unrelated environment variables remain excluded.
+
+The original synthetic fixture verifies a field beyond the old snapshot, an
+unaligned field, signed-offset and address arithmetic limits, configuration
+bounds, GPU-guard exclusion and unchanged source bytes. Actual-loader tests
+check JIT field output, interpreter unavailability, invalid startup input and
+retained exit 139; the reader is also checked under UBSan.
+
+## Earlier observations
+
 The latest owner run (14:58 UTC on 2026-10-22) stops on Metal OOM after 120.309
 seconds without a CPU-fault report. It provides no new fatal context and does
 not validate the new candidate frame-local reads or resolve earlier corruption.
