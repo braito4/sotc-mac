@@ -17,18 +17,23 @@ def render(data):
     lines=['# Current dependency versions','',
            'Checked against public upstream sources on **'+data['checked_at']+'**. '
            'This page is generated from [the dependency lock](../tools/dependencies.json).',
-           '', 'The lock selects the current runtime/CPU/reference heads and stable library releases or tags. '
+           '', 'The lock selects qualified runtime/CPU/reference commits and library releases or tags; newer reviewed heads are listed separately. '
            'An available version is not proof of correct Apple M1 rendering. '
            'Native game validation after this dependency update remains pending.', '',
            'Integration: **'+data['validation']['integration']+'**.', '',
            '## Runtime and reference sources','',
-           '| Component | Previous pin | Selected / latest reviewed head | Scope |',
-           '|---|---|---|---|']
+           'The five owner-requested sources were refreshed on **'+data.get('sources_checked_at',data['checked_at'])+
+           '**. Selected commits and reviewed upstream heads are separate; '+
+           'the library release review above retains its own date. Additional source references appear below.', '',
+           '| Component | Previous pin | Selected head | Latest reviewed head | Scope |',
+           '|---|---|---|---|---|']
     for name in ('runtime','cpu','reference'):
         item=data[name]
         lines.append('| '+name+' | '+link(item['repository'],item['previous_revision'][:12],item['previous_revision'])+
                      ' | '+link(item['repository'],item['revision'][:12],item['revision'])+' | '+
-                     item.get('scope','Integrated source; exact commit is pinned.')+' |')
+                     link(item['repository'],item.get('latest_reviewed_revision',item['revision'])[:12],
+                          item.get('latest_reviewed_revision',item['revision']))+' | '+
+                     item.get('scope','Integrated source; exact commit is pinned.')+' '+item.get('review_scope','')+' |')
     lines += ['', 'The SotC reference update includes preparation/reference sources. Its Windows renderer '
               'does not replace the macOS renderer. The nested-command coroutine correction is separately '
               'adapted into our renderer, alongside the existing ARM64/SRT, staging and scene-proxy fixes.', '',

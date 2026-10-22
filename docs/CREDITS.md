@@ -2,6 +2,19 @@
 
 This project is built on the work of:
 
+- [Wooloomooloo2/bloodborne_mac_port](https://github.com/Wooloomooloo2/bloodborne_mac_port)
+  `4565225`, through bloodborne-runtime
+  [`dcaf50060880`](https://github.com/bloodborne-native/bloodborne-runtime/commit/dcaf500608806c5811dc35273125614a6ee7dae9):
+  native Metal instanced tessellation routing and deferred base-instance replay,
+  adapted under GPL-2.0-or-later. The CPU regression fixture is original.
+- [luizgustavs/Pink-shadPS4](https://github.com/luizgustavs/Pink-shadPS4): permanent
+  SotC/shadPS4 investigation reference for memory writeback/order and optional
+  floating-point semantics. No Pink implementation is imported by this review.
+- [MoltenVK PR #2860](https://github.com/KhronosGroup/MoltenVK/pull/2860) by
+  **jamesdolan**: reference for the distinction between Vulkan timeline signaling
+  and Metal command-buffer completion. Our local native-Metal retention overlay
+  applies that lifetime principle at its two command-buffer creation sites;
+  it does not import or replace the driver. The ownership fixture is original.
 - [bloodborne-native](https://github.com/bloodborne-native): macOS ARM64 runtime and bbcpu.
   [bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac) also provides the README
   presentation used as this repository's reference.
@@ -40,6 +53,12 @@ fullscreen-triangle blit implementation. Its integer shader bodies and synthetic
 fixtures are original local additions, scoped against the
 [Vulkan blit contract](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBlitImage.html).
 No AnyPS5 or game shader code is copied.
+
+The local binding-copy sharing and staging-tail overlays and their fixtures are
+original additions to bloodborne-runtime's unified-memory fallback and
+staging-pool contracts.
+The regression compiles the credited upstream methods with synthetic CPU
+doubles; no game code or data is included.
 
 ## Pinned source revisions
 

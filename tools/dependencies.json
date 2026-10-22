@@ -4,19 +4,35 @@
   "runtime": {
     "repository": "https://github.com/bloodborne-native/bloodborne-runtime",
     "previous_revision": "3170535f59cadbe5ce9c38e6bb961ed5fd215194",
-    "revision": "b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548"
+    "revision": "b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548",
+    "branch": "main",
+    "latest_reviewed_revision": "dcaf500608806c5811dc35273125614a6ee7dae9",
+    "latest_reviewed_commit_date": "2026-10-22T18:37:39+01:00",
+    "reviewed_commits_ahead": 11,
+    "review_scope": "Selected base retained; dcaf500 instanced tessellation adapted as a checked overlay. Critical-pressure content discard is not integrated."
   },
   "cpu": {
     "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
     "previous_revision": "f749c155c2ff3bb932795de85c9c8fe9c4aa59ad",
-    "revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70"
+    "revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70",
+    "branch": "main",
+    "latest_reviewed_revision": "ef153b8d35768aff86fa1643c12e7d0340b16501",
+    "latest_reviewed_commit_date": "2026-10-22T17:51:55+01:00",
+    "reviewed_commits_ahead": 3,
+    "review_scope": "Three commits ahead: CI and linker test flags only; no CPU implementation changes, selected translator unchanged."
   },
   "reference": {
     "repository": "https://github.com/AjncSystem/ShadowOfTheColossus-PC",
     "previous_revision": "2250f328feafab953aac85e758e7bddb2e80e891",
     "revision": "411fdd86dadce347dcc4443228b009ae9265a548",
     "release": "v0.60.5",
-    "scope": "Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations."
+    "scope": "Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations.",
+    "branch": "main",
+    "latest_reviewed_revision": "40ec52a5a246bbaf20402520fe8fc9682f0a30c0",
+    "latest_reviewed_commit_date": "2026-10-22T13:40:58-03:00",
+    "reviewed_commits_ahead": 10,
+    "review_scope": "v0.60.6 reviewed; speculative readback fix has no matching local mechanism. Nested-task retirement warning requires follow-up against our draw-pipe ownership.",
+    "latest_reviewed_release": "v0.60.6"
   },
   "packages": [
     {
@@ -235,11 +251,11 @@
     }
   ],
   "validation": {
-    "integration": "integrated; fresh ARM64 renderer/dependency build, nine renderer source regressions, 22 builder tests, native CPU checks and full JIT/interpreter contracts pass",
-    "native_game": "not run after this dependency update; last confirmed boundary predates it: Metal OOM 8 at 101.864 seconds",
+    "integration": "integrated selected base with checked local overlays; ARM64 renderer build, fifteen renderer regressions, 25 builder tests and full JIT/interpreter contracts pass; base integration native CPU checks passed",
+    "native_game": "latest owner comparison at 2026-10-22 17:57 UTC ends on Metal OOM 8 after 77.670 seconds, child/supervisor 23; weak native probe confirms status/error and 11.603 GiB allocation; instanced-tessellation pixels and staging sharing/tail savings remain unverified",
     "renderer_cache": "24/9",
     "symbol_coverage": "46/46 host imports present; ABI/device rendering not established",
-    "latest_runtime_guard": "b2ff9cd protects unresolved GPU image contents; this can retain additional memory",
+    "latest_runtime_guard": "selected b2ff9cd protects unresolved GPU image contents; reviewed ab31a4c critical-pressure content discard is not integrated",
     "hosted_ci": "not yet observed for this commit"
   },
   "transitive": [
@@ -293,8 +309,11 @@
       "id": "bloodborne-mac",
       "repository": "https://github.com/bloodborne-native/bloodborne-mac",
       "branch": "main",
-      "revision": "ab1f0c57d1e25cc130c59be9a874e98099822cc4",
-      "scope": "App/reference project, not a linked dependency."
+      "revision": "906c3a1dcfd6ec9fbc83e0b88a62a116505f077a",
+      "scope": "Preferred app reference; runtime gitlink dcaf500 and CPU gitlink ef153b8 verified. App/launcher and Bloodborne-specific trophy/guest hooks are not imported.",
+      "previous_reviewed_revision": "ab1f0c57d1e25cc130c59be9a874e98099822cc4",
+      "commit_date": "2026-10-22T18:37:44+01:00",
+      "checked_at": "2026-10-22T17:51:00Z"
     },
     {
       "id": "bbport-mac",
@@ -323,6 +342,15 @@
       "branch": "main",
       "revision": "52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1",
       "scope": "Alternative driver reference; not installed in the active renderer."
+    },
+    {
+      "id": "Pink-shadPS4",
+      "repository": "https://github.com/luizgustavs/Pink-shadPS4",
+      "branch": "main",
+      "revision": "4a3511ba9aa33b59ab0e57048013b0b85d29402a",
+      "commit_date": "2026-10-15T19:45:05-03:00",
+      "scope": "Permanent SotC/shadPS4 reference requested by the owner. Reviewed readback lifetime, pending label writes, optional GCN NaN/MAD and heap/stack workarounds; no Windows/NVIDIA-specific settings or code imported.",
+      "checked_at": "2026-10-22T17:51:00Z"
     }
   ],
   "proposals": [
@@ -361,5 +389,6 @@
       "scope": "Source-check CI action, pinned by commit; hosted runner execution is separate from local validation."
     }
   ],
-  "workspace_key": "22923f080229"
+  "workspace_key": "22923f080229",
+  "sources_checked_at": "2026-10-22T17:51:00Z"
 }

@@ -17,6 +17,8 @@ cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 
 | Repository | Role and review focus |
 |---|---|
+| [AjncSystem/ShadowOfTheColossus-PC](https://github.com/AjncSystem/ShadowOfTheColossus-PC) | Permanent SotC reference; guest memory writeback, nested task ownership, shaders and loader contracts. Windows results require separate native ARM64 validation. |
+| [luizgustavs/Pink-shadPS4](https://github.com/luizgustavs/Pink-shadPS4) | Permanent owner-requested SotC/shadPS4 reference; memory reuse, pending CPU/GPU writes, command recording and GCN floating-point semantics. Do not copy hardcoded heap/stack workarounds or NVIDIA-specific assumptions. |
 | [bloodborne-native/bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac) | Preferred app/reference upstream; follow its runtime links rather than copying app-specific assumptions. |
 | [bloodborne-native/bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime) | Our pinned renderer/runtime base; shader, memory, synchronization and lifetime changes. |
 | [bloodborne-native/bloodborne-recomp](https://github.com/bloodborne-native/bloodborne-recomp) | Our pinned native CPU translator; instruction/ABI fixes and interpreter/JIT parity. |
@@ -25,6 +27,73 @@ cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 | [KhronosGroup/SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | Installed SPIR-V-to-MSL compiler; interface lowering and proposals #2699/#2697. |
 | [shadexternals/mesa-kosmickrisp](https://github.com/shadexternals/mesa-kosmickrisp) | Alternative driver used by bmy's port; ARM64, sparse buffers and geometry/interface support. Not installed here. |
 | [AnyPS5 macOS issue #1](https://github.com/boykopovar/AnyPS5/issues/1) | Owner-requested discussion watch; follow linked memory-ordering, shader, Metal and host-contract fixes. Different PS5/Rosetta implementation; not a dependency. |
+
+## Owner-requested five-source refresh: 2026-10-22
+
+The owner explicitly requested reviewing and selectively updating from SotC,
+Pink-shadPS4 and bloodborne-mac/runtime/recomp, and retaining them as future
+references. All five are now recorded in the version lock/inventory, with
+selected pins separate from reviewed heads. Public Git resolves exact histories
+despite the earlier web-page limits. The
+[new source review](UPSTREAM_REVIEW.md#owner-requested-five-source-refresh-and-selected-adaptation)
+records dates, exact SHAs, diff scope, author reports, controls and decisions.
+The checked Metal instanced-tessellation adaptation is separate from a runtime
+base update. The latest reference's nested-coroutine warning is a new local
+ownership-review priority; speculative readbacks are absent locally and lossy
+critical-pressure image eviction is not adopted.
+
+For future updates, resolve default branches again, compare against both selected
+and last-reviewed SHAs, and follow the app's exact runtime/CPU gitlinks. Record
+why each candidate is integrated, already present, inapplicable or pending, with
+a negative control and validation boundary. Review Pink changes by individual
+contract rather than replacing our renderer or importing its entire settings.
+The refresh changes neither existing automation schedules nor the broader
+driver/compiler watch requirements before a new native comparison.
+
+## Owner-requested problem review: 2026-10-22 17:10 UTC
+
+The [problem review](GITHUB_PROBLEM_REVIEW.md) records newly inspected MoltenVK
+#2860/#2853/#2873 lifetime, conversion and descriptor proposals, AnyPS5 ordering
+and loop-lowering controls, and SotC #238/#215 eviction/preload proposals.
+It contrasts them with our timeline-based retirement, existing view destruction,
+typed copies and current overlays. bmy's command-allocator pooling fix belongs
+to KosmicKrisp, not our installed MoltenVK. Relevant diffs and comments were
+read; unavailable exact-source/history pages remain explicitly unresolved.
+No production dependency, reviewed default-branch head, runtime setting or
+native validation claim changes. These are candidates for isolated source and
+synthetic review, not qualified dependency updates or a completed pre-test gate.
+
+The owner's subsequent implementation request produced a local native-Metal
+retained-reference overlay, documented in the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint). This applies the #2860
+lifetime principle without changing the installed driver, dependencies or cache.
+It is not an additional public-head refresh or native comparison.
+
+## Pre-comparison staging review: 2026-10-22 16:57 UTC
+
+Public refresh began with the SotC reference, then bloodborne-mac/runtime/recomp,
+bmy, MoltenVK, SPIRV-Cross and KosmicKrisp. Root pages are reachable; the
+[reference release](https://github.com/AjncSystem/ShadowOfTheColossus-PC/releases/latest)
+still resolves to v0.60.5. The
+[bloodborne-mac root](https://github.com/bloodborne-native/bloodborne-mac) now
+displays a runtime gitlink abbreviated as **e10eb58**, different from our selected
+b2ff9cd0. The linked commit, comparison and requested commit histories cannot be
+retrieved. The full SHA, commit date, ancestry and diff are unresolved, so this
+is a new review lead, not an approved update or a claim about its memory fixes.
+Preserve the last known exact revisions in the dependency inventory.
+
+MoltenVK #2858 and SPIRV-Cross #2699/#2697 remain inaccessible in this refresh;
+their prior status is retained, not revalidated. The AnyPS5 macOS issue remains
+reachable, but this pre-comparison check is not a complete new/edited-comment
+or linked-PR audit. No empty diff or unchanged proposal state is inferred from
+access failures. No dependencies are changed.
+
+The local staging-tail candidate is based on the pinned allocation/ownership
+code and original synthetic requests. It keeps the same allocation classes and
+retained resources, using only unused aligned tails in the current recording
+tick. It does not adopt another port's shader, guest-layout or Metal-lifetime
+assumptions. The owner's native comparison will test this single local change;
+CPU checks do not establish savings, correct pixels or OOM avoidance on M1.
 
 ## Pre-comparison integer blit review: 2026-10-22 15:25 UTC
 

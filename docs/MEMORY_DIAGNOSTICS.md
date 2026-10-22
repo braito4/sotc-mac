@@ -4,7 +4,63 @@ The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these addition
 observations. This instruments the current renderer without changing shader code,
 cache versions, buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
-The latest owner run (2026-10-22 15:27 UTC) stops on GPU progress, with supervisor
+
+The separate `sotc-staging-tail-v1` overlay permits aligned non-deferred CPU
+uploads to use unused tails within the same tick when no completed buffer fits.
+Offsets advance monotonically without overlapping occupied bytes; original
+rounding, retention and completion checks remain. `staging_selected` now records
+the actual offset; `staging_tail_selected` additionally identifies an appended
+request. Both are bounded observations for requests at least 64 MiB. An appended
+slice is not another allocation, a duplicate snapshot or proof that the buffer
+has completed. CPU fixtures show 3,296 to 3,072 MiB symbolic capacity for one
+concurrent-upload sequence; native savings remain unverified. Do not count
+each slice's reported backing capacity as an independent allocation.
+
+The separate `sotc-binding-copy-sharing-v1` correction shares an exact read-only
+fallback snapshot between consecutive slots of one shader binding preparation.
+It preserves the pool's ownership/completion rules and never shares across a
+new preparation, write, formatted/intervening binding, changed effective range,
+mapping generation or tick. The CPU original/adapted fixture retains symbolic
+6 GiB before / 3 GiB after for the duplicate sequence; native savings are pending.
+The 16:26 and 16:32 UTC captures each contain one large fallback copy and no large
+shared-binding event, so neither exercises that duplicate sequence.
+`copy_binding_shared` records a shared large binding, not a new allocation/copy
+or permission to release storage. Each slot still executes mapping and barrier
+bookkeeping. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The latest owner run (2026-10-22 16:32 UTC) ends after **104.474 seconds on Metal
+OOM 8**, confirmed exit 23, with **11.588 GiB native allocation** at failure
+(11.596 GiB sampled peak). One 2.885 GiB fallback request allocates 3 GiB, with
+117.47 MiB padding. Complete image replay matches the forced ledger: 297 live
+images / 780.69 MiB, including 279 registered images / 762.37 MiB and 18 proxies /
+18.31 MiB after 938 actual destructions. No dropped records or tracker errors
+occur. The last staging inventory is 41.947 seconds old; collection is sampled
+440.292 ms before failure. Neither observation permits early resource release.
+
+The 16:26 UTC run ends on the same error after 15.167 seconds, with 11.660 GiB
+native allocation, 124 registered images / 496.39 MiB and no proxies yet. Its
+single 3.027 GiB request rounds to **3.5 GiB**, leaving 484.47 MiB padding.
+The rounding function is unchanged from the pinned runtime. These differing
+effective ranges expose a 512 MiB allocation-class boundary, not an established
+cause of the difference in progress. Smaller classes need synthetic growing-
+request controls to avoid retaining additional buffers. Preserve requested
+bytes, ownership, held guards and actual GPU completion. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The preceding owner run (2026-10-22 15:58 UTC) ends after **11.704 seconds on Metal
+OOM 8**, with confirmed child/supervisor exit 23 and **13.889 GiB native allocation**.
+The uncapped buffer journal identifies two separate 3 GiB upload buffers. The
+first is reused between submissions, then two read-only/unformatted slots of the
+same shader/submission copy the same effective range into distinct buffers.
+The failure staging sample is 773.754 ms old and contains 6 GiB dedicated upload.
+Complete image replay agrees with the forced failure ledger: 86 registered
+images / 347.54 MiB, 103 allocations / 17 destructions, no scene proxies or
+tracking losses. Sharing an exact fallback snapshot within one binding
+preparation is now prepared with synthetic lifetime/write/alias controls;
+do not reuse or release occupied allocations by weakening completion guards.
+See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The preceding owner run (2026-10-22 15:27 UTC) stops on GPU progress, with supervisor
 exit 1 after 136.225 seconds and child exit unconfirmed. Native allocation peaks
 at **11.584 GiB** before the stop; no forced final snapshot records later pressure.
 Image-event replay matches the last bounded summary, then continues 18.844 seconds:

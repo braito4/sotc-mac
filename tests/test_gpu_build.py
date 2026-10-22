@@ -108,7 +108,7 @@ needed fmt || exit 4
             self.assertEqual(once, {name: (source / name).read_bytes() for name in once})
 
     def test_previous_cohort_migrates_without_reapplying_existing_overlays(self):
-        for state in ('maintenance_previous', 'integer_previous'):
+        for state in ('maintenance_previous', 'integer_previous', 'binding_previous', 'tail_previous', 'retention_previous', 'probe_previous', 'tess_previous'):
             with self.subTest(state=state), tempfile.TemporaryDirectory() as temporary:
                 source=Path(temporary)
                 self.backport_fixture(source)
@@ -123,6 +123,46 @@ needed fmt || exit 4
                 once={name:(source/name).read_bytes() for name in manifest['files']}
                 gpu.apply_backports(source)
                 self.assertEqual(once,{name:(source/name).read_bytes() for name in once})
+
+    def test_retention_predecessor_passes_checkout_verification_before_migration(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            manifest = gpu.backport_manifest()
+            patch = ''.join('\n'.join(json.loads((gpu.PATCH_DIR / name).read_text())['lines']) + '\n'
+                            for name in manifest['retention_previous_patches'])
+            subprocess.run(['git', '-C', str(source), 'apply'], input=patch, text=True,
+                           check=True, capture_output=True)
+            for name in gpu.REQUIRED_FILES:
+                path = source / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if not path.exists():
+                    path.write_text('// fixture prerequisite\n')
+            changed = {name for name, item in manifest['files'].items()
+                       if item['retention_previous'] != item['before']}
+
+            def metadata(path, *args):
+                if path != source:
+                    if args == ('rev-parse', 'HEAD'):
+                        return manifest['submodule_overrides'][str(path.relative_to(source))]['base']
+                    return ''
+                if args == ('rev-parse', '--show-toplevel'):
+                    return str(source)
+                if args == ('rev-parse', 'HEAD'):
+                    return gpu.REVISION
+                if args == ('remote', 'get-url', 'origin'):
+                    return gpu.REPOSITORY
+                if args[:1] == ('status',):
+                    return ' M checked-source'
+                if args[:1] == ('diff',):
+                    return '\n'.join(sorted(changed))
+                return ''
+
+            with mock.patch.object(gpu, 'git_output', side_effect=metadata):
+                gpu.verify_source(source)
+                changed.add('gpu/foreign.cpp')
+                with self.assertRaisesRegex(gpu.BuildError, 'unrecognized tracked'):
+                    gpu.verify_source(source)
 
     def test_backports_reject_unknown_or_partial_sources_without_writing(self):
         with tempfile.TemporaryDirectory() as temporary:

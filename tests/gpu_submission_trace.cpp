@@ -198,6 +198,39 @@ int main(int argc, char** argv) {
         assert(snapshot.find("AWAITED tick=40") != std::string::npos);
         assert(snapshot.find("completed_callback=1 status=4") != std::string::npos);
     }
+    // Native property snapshots are independent of callback observations. A
+    // provider may reenter the recorder, proving it is called outside its lock.
+    Recorder probes;
+    const auto probe_generation = probes.Begin(800);
+    const Key probe_buffers[] = {800};
+    probes.Submit(Batch(40, 1), probe_buffers);
+    unsigned samples = 0;
+    const auto probe_chunk = probes.CommitMetal(800, probe_generation, [&] {
+        ++samples;
+        probes.Returned(40, 1, 0);
+        return MetalObservation{.available = true, .retained_references = true, .memory_available = true,
+                                .status = 2, .allocated = 12345, .recommended = 54321};
+    });
+    assert(samples == 0); // registration/normal recording does not sample the driver
+    auto native = Report(probes, 40, 1);
+    assert(samples == 1);
+    assert(native.find("scheduled_callback=0 completed_callback=0 status=0") != std::string::npos);
+    assert(native.find("probe_registered=1 available=1 probe_error=0") != std::string::npos);
+    assert(native.find("status=2 error=0 retained_references=1 memory_available=1 allocated_bytes=12345 recommended_bytes=54321") != std::string::npos);
+    assert(FailureReport(probes, probe_chunk).find("available=1 probe_error=0") != std::string::npos);
+    assert(samples == 2);
+    const auto old = probes.Begin(801);
+    const Key old_buffers[] = {801}; probes.Submit(Batch(40, 2), old_buffers);
+    probes.CommitMetal(801, old, [] { return MetalObservation{}; });
+    assert(Report(probes, 40, 2).find("available=0 probe_error=0") != std::string::npos);
+    const auto bad = probes.Begin(802);
+    const Key bad_buffers[] = {802}; probes.Submit(Batch(40, 3), bad_buffers);
+    probes.CommitMetal(802, bad, []() -> MetalObservation { throw 1; });
+    assert(Report(probes, 40, 3).find("available=0 probe_error=1") != std::string::npos);
+    // Recycling the handle cannot borrow the older native probe.
+    probes.Begin(800); probes.Submit(Batch(40, 4), probe_buffers);
+    assert(Report(probes, 40, 4).find("Metal native") == std::string::npos);
+    assert(samples == 2);
     // Eviction and missing records stay explicit, never guessed from another tick.
     for (int i = 0; i < 530; ++i) {
         recorder.Begin(5000); const Key keys[] = {5000}; recorder.Submit(Batch(200, i), keys);

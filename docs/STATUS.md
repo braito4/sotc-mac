@@ -2,11 +2,103 @@
 
 Updated 2026-10-22. **Reaches the first gameplay image on Apple M1; not playable yet.**
 
+**Latest owner comparison (17:57 UTC):** Metal OOM error 8 after **77.670 s**,
+confirmed child/supervisor exits **23**. The new native probe confirms status 5,
+error 8, retained references and **11.603 GiB** allocation at failure. There are
+859 presentation results; requested scene work remains 640x360. Final application
+image inventory is 250 / 676.18 MiB, with 255 proxies destroyed / 21 live.
+One 3 GiB upload remains; no large sharing/tail event validates those savings.
+Audio averages about 47,845 input frames/s/port, with no queue failures and a
+72.046 ms maximum delivery gap. No CPU fault or progress watchdog is recorded.
+The M1 has **16 GB unified memory**: lower scene resolution is only one part of
+reducing its total working set. Original-size images, output and large buffer
+reservations remain. Pixel correctness and the tessellation-instance path are
+unverified. See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Selective upstream update:** the five owner-requested repositories now have
+exact reviewed heads and permanent references in the inventory. A checked
+`dcaf500` adaptation recovers Metal tessellated draws with multiple instances and
+preserves deferred base-instance IDs. CPU controls, ARM64 rebuild, fifteen
+renderer regressions, 25 builder tests and full JIT/interpreter contracts pass;
+native pixels remain pending. The reference's newer nested-coroutine lifetime warning
+requires local queued-consumer review before another game comparison. See the
+[source review](UPSTREAM_REVIEW.md#owner-requested-five-source-refresh-and-selected-adaptation).
+
+**Prepared stall observation:** failure reports now query the live native
+command-buffer status/error and current device allocation through a weak observer,
+separately from callback history. Missing objects/device/provider observations
+remain explicit. CPU journal/ARC bridge checks, the ARM64 build, fourteen renderer
+regressions, 25 builder tests and full JIT/interpreter contracts pass. This adds no GPU wait or resource retention and does not resolve
+the latest watchdog. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding owner comparison (17:29 UTC):** GPU-progress watchdog after **116.824 s**,
+confirmed child exit **21** / supervisor **31**. There are 1,052 presentation
+results and a full 26,020-note summary of the awaited submission. Metal commit
+returned but its scheduled/completed callbacks were not observed; this is not
+identification of a failing shader. Native allocation sampled at presentations
+peaks at 11.485 GiB; final pressure is unknown. Complete image replay records
+448 live images / 1,111.45 MiB, including 23 proxies after 817 destructions.
+The 3 GiB fallback remains, and no large tail/shared-copy event exercises the
+prepared savings. Audio averages about 47,975 input frames/s/port without queue
+failures. PerVertexKHR/SRT errors persist. No Metal OOM or CPU fault is recorded;
+their causes remain unresolved. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared native lifetime improvement:** initial and split Metal batches now
+request retained resource references. Production-method CPU doubles reproduce
+premature release with the old policy and retain the encoded objects with the
+new policy; completion, reset and scratch ownership controls pass. The ARM64
+rebuild, fourteen renderer regressions, 25 builder tests and full JIT/interpreter
+contracts pass. The next owner comparison above stops on GPU progress; native
+correctness and the effects on OOM and guest corruption remain unverified.
+See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
 The owner confirms seeing the first gameplay image. Rendering correctness, stable
 play and saves remain unverified. This observation is separate from synthetic
 checks and the latest captured failure below.
 
-**Current native boundary (15:27 UTC):** the renderer reports ten seconds without
+**Prepared staging improvement:** aligned CPU uploads may use disjoint unused
+tails of a retained buffer in the same recording tick, avoiding another
+allocation. Completed-buffer reuse and held/deferred guards remain; no occupied
+range is overwritten and no retained buffer is destroyed. The actual-source CPU
+fixture reduces symbolic concurrent capacity from 3,296 to 3,072 MiB while
+preserving payload and flush offsets. ARM64 build, thirteen renderer regressions,
+24 builder tests and full JIT/interpreter contracts pass. Native savings and OOM avoidance remain pending; the
+single 3 GiB fallback is not removed. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared duplicate-upload correction:** consecutive identical read-only
+fallback bindings within one shader preparation now share one staging snapshot.
+Mapping-generation, physical-range, tick, write, formatting and adjacency guards
+preserve the narrow scope and existing resource ownership. Actual-source CPU
+fixtures reproduce 6 GiB before / 3 GiB after in symbolic capacity, with exact
+small payload checks. The ARM64 rebuild, twelve renderer regressions, 24 builder
+tests and full JIT/interpreter contracts pass. Native savings and OOM avoidance
+remain unverified. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Current native boundary (16:32 UTC):** Metal OOM 8 after **104.474 seconds**,
+confirmed child/supervisor exit **23**, **11.588 GiB native allocation** at failure.
+The renderer advances to reduced-scene work and records 983 presentation results;
+this does not validate pixels or playable gameplay. One large fallback copy
+allocates 3 GiB; no large shared-binding event occurs, so native savings from the
+prepared correction remain untested. Complete image replay records 297 live
+images / 780.69 MiB, including 18 proxies / 18.31 MiB after 938 destructions.
+PerVertexKHR errors persist (252 messages). No CPU, watchdog or audio queue
+failure is recorded. The immediately preceding 16:26 run stopped at 15.167 seconds
+with one copy rounded to 3.5 GiB and no reduced-scene decisions; the owner saw
+only logos. The rounding rule is unchanged, and the variation has no established
+causal attribution. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding native boundary (15:58 UTC):** Metal OOM 8 after **11.704 seconds**,
+with confirmed child/supervisor exit **23** and **13.889 GiB native allocation**.
+The complete journal records two distinct 3 GiB upload buffers: two bindings in
+one submission copy the same effective read-only range into separate storage.
+The image ledger has 86 registered images / 347.54 MiB and no scene proxies yet.
+The subsequent exact-range snapshot-sharing correction is prepared above;
+GPU completion and ownership guards remain. The new
+submission summaries and host timing are exercised on the native error path.
+No CPU/audio fault or watchdog occurs. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding native boundary (15:27 UTC):** the renderer reports ten seconds without
 submission completion. The supervisor ends after **136.225 seconds**, exit **1**,
 with child exit unconfirmed despite a cooperative cancellation notice. A targeted
 process check is denied, so absence remains unverified. No Metal OOM, CPU fault
@@ -22,8 +114,9 @@ note in a submission and retain the first/last guest draw and dispatch candidate
 after tail eviction. Monotonic host timings distinguish commit/queue-call returns
 and callbacks; missing observations remain explicit. The ARM64 rebuild, eleven
 renderer regressions, submission fixtures and full JIT/interpreter contracts pass.
-Native validation is pending, and
-the stall remains unresolved. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+The 15:58 run exercises the native error report; native large-tail retention and
+the watchdog timing path remain untested. The stall remains unresolved. See the
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 **Integer-copy correction:** typed uint/int blits replace the float
 output for supported same-format nearest 2D integer copies. The ARM64 build,

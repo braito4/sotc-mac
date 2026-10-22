@@ -8,6 +8,442 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+
+### Latest owner comparison: native probe confirms Metal OOM on the 16 GB M1
+
+The **2026-10-22 17:57 UTC** owner comparison ends after **77.670 seconds**
+with confirmed child/supervisor exit **23**, on Metal insufficient-memory error
+**8**. It is not a duration timer, GPU-progress watchdog or recorded CPU fault.
+The weak native observer is now exercised: it reports an available command with
+status **5**, error **8**, retained references enabled and current device
+allocation **12,458,835,968 bytes (11.603 GiB)** against a recommended working set
+of **12,713,115,648 bytes (11.840 GiB)**. Callback history agrees: scheduled and
+completed callbacks are present, with completion about 14.147 ms after commit
+registration. The failed chunk's summary contains 19 guest compute candidates
+and 19 native dispatch observations, not 38 independent dispatches and not proof
+of a specific failing instruction. Private shader/resource identifiers stay local.
+
+The owner clarifies that this M1 has **16 GB of unified memory** and that reduced
+graphics are intended to relieve GPU pressure. CPU and GPU share physical memory;
+Metal's allocation figure is not extra dedicated VRAM to add to the process's
+full memory footprint. The comparison uses preset 4 and records requested scene
+work at **640x360**, but output remains **1280x720**, with original-resolution
+resources still present. The failure inventory includes 1920x1080 images and a
+large fallback upload; reducing scene resolution alone does not shrink them all.
+Prioritize lowering the total retained working set without discarding unresolved
+GPU contents, prematurely releasing resources or weakening synchronization.
+
+There are **859 presentation results**, the last at recorder time **76.5835 s**;
+these are API observations, not correct-pixel or playable-game validation.
+The error snapshot is at recorder time 76.8828 s; recorder and supervisor clocks
+have different origins. PerVertexKHR still appears **206** times. Integer-blit
+type errors do not recur; other shader/SRT and clamp failures remain.
+
+The fresh failure inventory reports **3,707 image allocations / 3,457 destructions
+/ 250 live images / 676.18 MiB**, with **255 scene proxies destroyed / 21 live /
+19.60 MiB** and no queued proxies. Registered images are 229 / 656.58 MiB. No
+tracking overflow, unmatched frees, observation errors or dropped records are
+reported. These application/VMA figures do not account for every Metal/driver
+allocation or prove no resource remains retained after a VMA destruction event.
+
+One large copy requests **3,098,044,176 bytes**, selecting one **3 GiB** buffer.
+No large shared-binding or staging-tail event occurs; the next observed new
+large allocation is 96 MiB. Native savings from those prepared cases remain
+unverified. The final staging-pool snapshot is **29.452 seconds old**, so its
+reusable-byte estimate must not be treated as current or as permission to free
+live storage. The failure-time native allocation and image snapshot are fresh.
+
+Audio has 15 periodic windows per port, averaging about **47,845 input frames/s**
+with no queue-wait failures or backend errors; maximum delivery gap **72.046 ms**.
+This does not validate audible continuity. Earlier SIGBUS corruption and queue
+failures remain unresolved despite not recurring in this capture.
+
+The native probe is validated as failure-reporting evidence, not an OOM fix.
+The build contains the tessellation-instance adaptation, but no instance-specific
+pixel/readback result proves that path correct. The nested-coroutine queued-
+consumer ownership review above remains a prerequisite for another comparison.
+No new game/GPU run or dependency/configuration change is performed for this
+analysis. Keep all guards and selected pins/cache 24/9.
+
+### Five-source refresh: tessellation adaptation and coroutine review priority
+
+The owner's requested SotC/Pink/bloodborne-mac/runtime/recomp source refresh is
+recorded in [Upstream review](UPSTREAM_REVIEW.md#owner-requested-five-source-refresh-and-selected-adaptation)
+and [Dependency versions](DEPENDENCIES.md). All five are permanent references;
+the inventory now distinguishes selected pins from newer reviewed heads.
+Exact public Git history/diffs are available despite earlier web-page failures.
+The selected runtime/CPU/reference remain b2ff9cd0/b9652d75/411fdd86.
+
+Runtime `dcaf50060880` is selectively integrated through the checked
+`sotc-metal-tess-instances-v1` overlay: multi-instance tessellated draws use the
+existing single-instance path and deferred patch draws preserve their base
+instance. `BB_TESS_INSTANCES=0` restores the old multi-instance skip for a future
+supervised comparison. No launcher setting or shader cache changes. The CPU
+fixture reproduces the old skip and checks actual routing/pending/replay with
+negative controls; kernel encoding is replaced by a CPU leaf. ARM64 rebuild,
+fifteen renderer regressions, 25 builder tests and full JIT/interpreter
+contracts pass. No game/GPU run or correct-pixel claim follows.
+
+**New pre-comparison priority:** reference `0127e36` reports corruption with
+completed nested-task destruction, including after recording-thread deferral,
+and disables that optimization by default. Our earlier `c9be8142` adaptation
+still frees completed child frames. Its synthetic leak/count check proves
+completion, not that asynchronous consumers have stopped borrowing frame data.
+Review all five local completion sites against draw/preparation ownership and
+add deferred-consumer controls before proposing another native comparison.
+The reference has different queue machinery; this warning does not prove our
+SIGBUS, OOM or GPU stall cause, and its Windows allocator/rollback is not copied.
+
+The reference's speculative hot-readback corruption fix has no matching local
+hot-region gatherer. Runtime `ab31a4c` deliberately discards unresolved GPU image
+contents over a critical mark; keep our content-preserving guard. Pink's
+pending-write, readback lifetime and optional NaN/MAD changes are tracked as
+separate candidates, not enabled settings. Preserve scene 640x360, DMA/async off,
+cache 24/9, upload guards, deferred retirement and watchdogs.
+
+### Prepared improvement: observe native state when reporting a stalled batch
+
+The new `sotc-metal-probe-v1` overlay registers a weak observer for each traced
+native command buffer. A stall or Metal failure report now prints `Metal native`
+with fresh command-buffer status/error, retained-reference policy and the
+device's current allocation/recommendation, alongside the existing callback
+history. This targets the gap in the 17:29 UTC capture: `status=0` in the old
+callback record was an unobserved default, not proof Metal reported NotEnqueued.
+The new property observation is separate and does not overwrite that history.
+
+The observer promotes its weak reference only during the query. A reclaimed
+command, an unregistered probe, an unavailable device and a C++ provider failure
+are explicit; unavailable memory must not be interpreted as zero pressure.
+Properties are sampled sequentially outside the journal mutex, not as an atomic
+GPU snapshot. No command-buffer/resource ownership, GPU waits, semaphore values,
+submission ordering, watchdog thresholds or staging sizes are changed. Direct
+property status does not identify an executing shader or establish why a queue
+is delayed. The bounded 1,024-chunk journal stores weak observers and does not
+keep old command buffers alive. Normal recording registers observers without
+querying native properties. The existing `SOTC_GPU_SUBMIT_TRACE=1` controls this
+addition; no extra experiment setting is introduced.
+
+CPU journal fixtures verify native-vs-callback separation, fresh/absent/failed
+providers, safe reentry outside the lock and recording-generation isolation.
+An Objective-C ARC fixture runs the actual weak bridge against Foundation-only
+objects: status/error/memory change, missing device, expired/nil command and
+observer copies that retain neither the command nor its resources. No Metal
+framework, device or GPU is loaded by that fixture. The ARM64 rebuild, fourteen
+renderer regressions, 25 builder tests and full JIT/interpreter contracts pass;
+native validation is pending.
+No game/GPU run has been started and no stall fix is claimed. Pins/cache 24/9
+and the retained-reference/staging/proxy protections remain.
+
+### Latest owner comparison: GPU progress stop with confirmed child exit
+
+The **2026-10-22 17:29 UTC** owner comparison ends after **116.824 seconds**
+on the ten-second GPU-progress watchdog, with confirmed child exit **21** and
+supervisor exit **31**. Cooperative cancellation is acknowledged 1.326 ms after
+the request. No duration limit, Metal insufficient-memory error, CPU fault or
+audio queue failure is recorded. This capture follows the retained-reference
+ARM64 build; the launcher's native Metal path is active. It does not establish
+that the lifetime change caused the different stop reason or resolved prior
+OOM/corruption. No additional game/GPU test was started during this analysis.
+
+There are **1,052 presentation results**, the last at visual-recorder time
+91.819 seconds, with scene decisions at 640x360. Metadata is not pixel validation;
+the capture option remains off. The maximum native allocation sampled alongside
+presentations is **11.485 GiB** (last **11.477 GiB**); no forced final native
+allocation snapshot exists at the watchdog, so final pressure is unknown.
+
+The awaited submission retains a full summary of **26,020 observed CPU notes**
+with a 96-note tail: 1,567 guest draw candidates and 13 guest dispatch candidates,
+plus native draw/dispatch/copy/blit/state observations. Guest and native notes
+may describe the same work; these are not GPU execution totals. The queue call
+returned success after 0.093 ms, and Metal commit returned after 0.028 ms. At the
+report, neither scheduled nor completed callback was observed for that chunk.
+The preceding submission has both callbacks and successful Metal completion.
+No journal callback/note loss is reported. These observations locate the missing
+completion boundary, not an executing instruction or proven failing shader.
+Do not disable the watchdog, simulate completion or extend the timeout as a fix.
+
+Complete image replay records **5,651 allocations / 5,203 destructions / 448 live
+images / 1,111.45 MiB**, with no unmatched events. Proxy cleanup records **817
+destroyed / 23 live / 22.18 MiB**, including two queued proxies / 4.91 MiB. The
+registered inventory is 423 images / 1,084.37 MiB. The last periodic memory
+summary precedes the last image event by 20.623 seconds and must not be called
+the final image inventory. No dropped image/buffer/summary records are reported
+in that last summary; actual retained Metal objects may outlive VMA destruction
+observations, so this replay is not complete driver-memory accounting.
+
+One fallback requests **3,218,630,416 bytes** and allocates **3 GiB**, leaving
+only **2.47 MiB** of padding. No large `staging_tail_selected` or
+`copy_binding_shared` event is recorded; all observed large staging offsets are
+zero. Small requests below the 64 MiB observation threshold remain outside this
+event evidence. The next observed large new allocation is 96 MiB for an 85.63
+MiB request, so it cannot fit that large buffer's padding. Native savings from
+the prepared staging-tail/sharing cases are not validated by this run. The last
+presentation's staging snapshot is already 44.503 seconds old.
+
+Audio records 22 windows per port at approximately **47,975 input frames/s**,
+maximum delivery gap **31.533 ms**, with zero queue-wait failures. This measures
+input delivery, not uninterrupted playback or audiovisual alignment. Shader
+rejections persist: **354 PerVertexKHR messages**, 805 SRT-offset errors and 270
+pipeline-creation failures in the last asynchronous presentation snapshot. The
+two float-output/integer-attachment errors do not recur. Next review should
+separate queue scheduling/dependencies from actual shader execution, preserving
+the complete batch summary and tracking driver retention versus application
+image accounting. OOM, CPU metadata corruption and prior audio failure remain
+unresolved even though none is the recorded stop in this comparison.
+
+### Prepared improvement: retain native Metal batch resources
+
+The `sotc-metal-retention-v1` overlay changes both native Metal command-buffer
+creation sites (initial `OwnBuffer` and `CommitChunk` rollover) from
+`commandBufferWithUnretainedReferences` to `commandBuffer`. Explicitly encoded
+resources therefore use Metal's retained-reference contract independently of
+the following Vulkan timeline signal. The combined launcher already selects this
+native command path with `BB_METAL_FRAME=1`; this does not replace MoltenVK or
+change its installed implementation. The lifetime pattern is informed by
+[MoltenVK #2860](https://github.com/KhronosGroup/MoltenVK/pull/2860), not a wholesale
+driver patch or a proven cause of an earlier SotC fault.
+
+Existing past-next Vulkan retirement, scratch-completion handlers, residency,
+indirect/device-address resource declarations, error completion, watchdog and
+staging guards remain. Retaining directly encoded objects does not prove that
+every indirectly addressed allocation is declared or kept correctly. It may
+hold resources longer; no memory reduction, OOM avoidance or stall/corruption
+fix is claimed. Runtime/CPU/reference revisions and cache 24/9 are unchanged.
+
+The new `tools/check_metal_retention.py` extracts production `OwnBuffer`,
+`CommitOwned`, `CommitChunk` and `ReturnScratchWhenDone` into an Objective-C ARC
+fixture linked only to Foundation. CPU queue doubles model the documented Metal
+retention contract. The original code records six premature-release observations
+across three encoded resources; the adapted code records zero. Independent
+batch completion, wrapper deletion, reset without submission and scratch-pool
+completion controls pass. This tests production API selection/ownership with
+CPU doubles, not Apple's GPU execution or the driver's actual timeline window.
+The ARM64 renderer rebuild and symbol/source audit, fourteen renderer regressions,
+25 builder tests (including exact predecessor checkout acceptance and rejection
+of a foreign tracked file) and full JIT/interpreter contracts pass. The built
+library records the new overlay in its build metadata. Native validation remains
+pending at that build checkpoint; the subsequent owner comparison above does
+not establish correct native resource lifetime or recovery. Resource retention can raise
+in-flight memory pressure, so the next independently authorized comparison must
+inspect both completion progress and memory before calling this a stability fix.
+
+### Prepared improvement: append uploads into unused staging tails
+
+The checked `sotc-staging-tail-v1` overlay avoids creating another dedicated
+upload buffer when an existing upload has enough unused space in the same
+recording tick. It first preserves the existing best-fit selection of fully
+completed, non-held buffers. Only if no such buffer fits may an explicitly
+aligned, non-deferred `HostUncached` request append beyond the previous used
+range. The previous allocation must also have allowed tail use and belong to
+the exact current tick. Each slice has its own offset and exact requested size;
+its start satisfies the caller alignment, noncoherent atom size and a 64 KiB
+minimum. Invalid alignments, overflow, full tails, earlier ticks, held/deferred
+storage, downloads and device-local requests retain the ordinary allocation path.
+
+This is fresh storage within a retained allocation, not reuse of occupied bytes
+or sharing of a snapshot. GPU tick completion is still required to reset the
+prefix. Returned mapped pointers and flush offsets follow the selected slice.
+The existing synchronous and deferred upload consumers use these offsets;
+`RunGuestCopy` flushes relative to the actual buffer mapping. Host-copy waits,
+barriers, descriptor ranges and the separate adjacent-binding sharing guard are
+unchanged. No buffer is freed, shrunk or remapped, and large-buffer trimming
+remains unchanged. Runtime/CPU/reference pins, cache 24/9, requested scene and
+DMA/async settings are unchanged. Large appended requests add the private
+`staging_tail_selected` event alongside `staging_selected`, with buffer, offset,
+length and tick. Both remain subject to the existing 64 MiB observation threshold.
+
+The actual-source original/adapted CPU fixture retains **3,296 MiB before versus
+3,072 MiB after** for three concurrent synthetic uploads into a retained large
+buffer. A separate boundary case avoids an additional 96 MiB allocation by
+using padding in a 3.5 GiB buffer. Multi-GiB capacities are symbolic; small exact
+payloads verify nonoverlap, mapped pointers and the production flush method.
+Negative controls cover ownership, pending ticks, type, invalid/stronger
+alignment, noncoherent atoms, full tails and integer overflow. Completed-buffer
+reuse resets offsets only after real simulated completion, without destruction.
+
+The rejected alternative was simply rounding allocations more tightly. The
+growth control shows a 64 MiB rounding policy retaining **6,336 MiB** for two
+successive growing requests where the existing class reuses **3,584 MiB**.
+The overlay therefore leaves allocation rounding intact. The ARM64 rebuild and
+symbol audit, thirteen renderer source regressions, 24 builder tests and full
+JIT/interpreter contracts pass.
+Native tail use, savings, pixel correctness and OOM avoidance are still unverified;
+the single 3 GiB fallback itself remains. This is a targeted allocation reduction,
+not a claimed fix for the latest OOM, PerVertexKHR failures or earlier corruption.
+
+The [pre-comparison review](DEPENDENCY_WATCH.md#pre-comparison-staging-review-2026-10-22-1657-utc)
+records access limits and a newly observed abbreviated app runtime gitlink whose
+diff is unavailable. It is not integrated. No tool-driven game/GPU run is started.
+The owner's next comparison uses the same combined launcher, once, with preset 4,
+DMA/async off and metadata enabled. Inspect nonzero staging offsets/tail events,
+new dedicated allocations, native pressure and the final stop reason.
+
+### Latest comparison: scene rendering resumes; Metal OOM remains
+
+The **2026-10-22 16:32 UTC** owner run ends after **104.474 seconds** on Metal
+error **8 / Insufficient Memory**, with confirmed child/supervisor exit **23**.
+It advances substantially beyond the immediately preceding logo-only owner
+report: **983 presentation results**, with reduced-scene decisions first observed
+at recorder time 55.792 seconds and the last presentation at 97.623 seconds.
+There are 63,879 reduced-scene decisions by the failure report. These counters
+establish renderer progress, not correct pixels or a new owner-confirmed gameplay
+milestone. The largest presentation gap is 5.736 seconds. Requested scene remains
+640x360, DMA/async off, metadata on, pixel capture off and no duration limit.
+
+The complete buffer journal records **one large fallback copy**, requesting
+2.885 GiB and allocating **3 GiB**, with 117.47 MiB of rounding padding and a
+0.721-second CPU copy. There is **no large `copy_binding_shared` event** and no
+dropped buffer record: this run does not exercise the duplicate-copy sequence
+that motivated the prepared correction below. It neither validates its native
+savings nor identifies that correction as the cause of run-to-run variation.
+
+Native allocation is **11.588 GiB at failure**, with a sampled peak of 11.596
+GiB, below the device recommendation of 11.840 GiB. The recommendation is not a
+hard guarantee of allocation success, and these values are not physical RAM
+consumption. Complete image-event replay matches the forced failure ledger:
+**5,550 allocations / 5,253 destructions / 297 live images / 780.69 MiB**.
+Of these, 279 registered images retain 762.37 MiB; **18 scene proxies retain
+18.31 MiB after 938 actual proxy destructions**. There are no dropped records,
+tracker errors or pending proxy deletions. This is not evidence of an unbounded
+proxy leak. The last staging inventory is already **41.947 seconds old** and
+cannot authorize releasing its reported reusable bytes; the collector sample
+is 440.292 ms old. Guest-written-image retention remains a separate correctness
+constraint, not permission to discard content under pressure.
+
+The failing batch retains all twelve observed CPU notes, including two guest
+dispatch candidates and two native dispatch notes, with no draw/blit/copy note.
+Metal commit returns at 0.017 ms, scheduled is observed at 3.350 ms and error
+completion at 32.022 ms. These are host observations and CPU candidates, not
+identification of an exact failing GPU instruction or a shader-specific cause.
+There are **252 PerVertexKHR conversion errors**, 280 pipeline-creation failures
+in the asynchronous counter snapshot and continuing SRT/Phi errors. No CPU fault,
+GPU watchdog or audio queue failure is recorded. Thirty-eight audio windows
+(nineteen per port) deliver about 47,873-47,874 input frames/s, maximum gap
+76.525 ms; audible continuity remains unverified.
+
+For comparison, the **16:26 UTC** run ends after **15.167 seconds**, also on
+Metal OOM 8 with confirmed exit 23, and the owner reports only logos. It records
+87 presentation results, no reduced-scene decisions, and one 3.027 GiB fallback
+request rounded to **3.5 GiB** (484.47 MiB padding). Native allocation is 11.660
+GiB at failure, sampled peak 11.670 GiB. Complete image replay matches 124
+registered images / 496.39 MiB with no scene proxies or tracking losses. Its
+four audio windows deliver about 43,823-43,882 input frames/s, with a 345.414 ms
+maximum gap and no queue failure. No large shared-binding event is recorded.
+
+Source comparison confirms that allocation rounding is unchanged from the pinned
+runtime: requests around this boundary round in 512 MiB steps. The effective
+guest range differs between captures; the records do not establish why. The
+new run recovers scene-renderer progress without any intervening code or setting
+change by this review, so the earlier logo-only outcome does not establish a
+deterministic regression from sharing. A controlled causal comparison is still
+missing. Next isolate the single multi-GiB fallback and the retained-memory
+baseline using original synthetic boundary/growth sequences. Any smaller
+allocation class must retain the complete requested range and account for later
+growth creating additional retained buffers; do not restore the withdrawn range
+truncation experiment or weaken held/completion guards. This review changes
+documentation only and launches no game. Private replay stays with the captures.
+
+### Prepared correction: share adjacent identical read-only fallback copies
+
+The checked `sotc-binding-copy-sharing-v1` overlay addresses the duplicate upload
+identified in the 15:58 UTC capture below. `BindBuffers` owns a local, fixed-size
+scope for one shader-stage binding preparation. Consecutive read-only,
+unformatted slots with the same **effective clamped address and length** can use
+one already-copied staging snapshot. Different original declared lengths do not
+prevent sharing when both clamp to exactly the same effective range.
+
+Every slot still executes `ObtainBuffer` and its mapping/page-table processing.
+Sharing is considered only after the ordinary unified-memory lookup falls back
+to a copy and only for a complete single pool mapping. The runtime mapping-table
+generation must be even and unchanged, with the same physical mapping, mapping
+end and scheduler tick. The first copy is not reusable if these observations
+change while it is made or an unmap is pending. Writes, formatted buffers,
+different ranges, nonconsecutive slots, intervening special/direct bindings and
+new stage/draw/dispatch preparations obtain fresh results. Exceptions invalidate
+the candidate. This does not cache snapshots between GPU operations or replace
+CPU/GPU synchronization for guest writes.
+
+The staging pool keeps ownership and its existing held/completion checks.
+Sharing neither frees nor overwrites an occupied buffer. Descriptor offsets,
+binding ranges, write invalidation and access/barrier bookkeeping still run for
+each slot. Large shared bindings emit the bounded private `copy_binding_shared`
+event, distinct from a new allocation, CPU copy or completion-based pool reuse.
+The allocation rounding, split imports, scene configuration and cache 24/9 stay
+unchanged; runtime, CPU and reference pins are unchanged.
+
+`tools/check_binding_copy.py` compiles the actual unified `ObtainBuffer` route,
+`UnifiedCopy` and staging allocation methods against original CPU doubles. The
+synthetic sequence reproduces **6 GiB retained / three copies before**, versus
+**3 GiB / two copies after**, including the earlier completed-buffer reuse. These
+are symbolic capacities with small exact-byte payload checks, not native memory
+measurements. Guard cases cover remaps (including changes during a copy), odd
+mapping generations, sparse/short mappings, writes, formatting, slot gaps,
+changed ranges/ticks, new dispatch contents, exceptions and real pool-method
+retention until completion. The ARM64 build/symbol audit, twelve renderer source
+regressions, 24 builder tests and full JIT/interpreter contracts pass. Builder
+fixtures cover clean application, all three earlier cohorts, idempotence and
+rejection of incomplete/unknown sources. No game/GPU run is started. Native
+confirmation of sharing and memory savings remains pending: the two newer runs
+above each record only one large fallback copy and no large shared-binding event.
+OOM persists in both.
+
+### Early native OOM: two 3 GiB upload buffers and duplicate read-only bindings
+
+The **2026-10-22 15:58 UTC** owner comparison closes after **11.704 seconds**
+with confirmed **child/supervisor exit 23**, following an actual Metal command-
+buffer error **8 / Insufficient Memory**. There is no watchdog, CPU-fault or
+cooperative-stop failure in this capture. Settings remain 640x360 requested,
+DMA/async off, JIT/statistics and metadata on, pixel capture off, no duration
+limit. This early failure does not reproduce or revoke the owner's first-
+gameplay-image observation from the preceding run.
+
+The forced native failure snapshot reports **13.889 GiB allocated**, versus a
+device recommendation of **11.840 GiB**. This is native allocation accounting,
+not physical RAM consumption or a hard memory limit. The uncapped buffer journal
+records three large cross-window copies and **two distinct 3 GiB upload buffers**.
+The first request creates one buffer; the next submission reuses it. A second
+binding in that same submission creates the other buffer. The latter two
+requests have the **same address, clamped length, shader and scheduler tick**,
+but different slots; both are read-only and unformatted. Their original declared
+lengths differ, while their effective copied ranges are identical. The failure
+event's staging sample is 773.754 ms old and reports **6 GiB dedicated upload**.
+Three completed CPU copies are traffic, not three simultaneous allocations.
+
+Source inspection confirms that each ordinary binding independently calls
+`ObtainBuffer`, whose cross-window fallback copies into a staging allocation.
+The staging pool correctly excludes allocations that are held or whose GPU tick
+has not completed. Do not weaken those guards to reuse the in-flight copy. The
+next specific candidate is sharing an exact read-only fallback snapshot within
+one binding preparation, with original/adapted synthetic tests for writes,
+aliasing, different ranges, intervening operations and ownership/completion.
+The observed duplicate is not yet proof that arbitrary snapshot sharing is safe,
+nor that eliminating it resolves all native OOM/stalls.
+
+The complete image history exactly matches the forced ledger: **103 allocations,
+17 destructions, 86 registered images / 347.54 MiB**, with **no scene proxies**
+created yet, no dropped records and no tracker errors. This is an earlier memory
+boundary than the previous long-run registered-image growth. There are twenty
+presentation results, ending at recorder time 8.400 seconds; the largest gap is
+5.692 seconds. No reduced-scene decision or correct-pixel evidence is recorded.
+Two complete audio windows deliver approximately 47,520–47,533 input frames/s,
+with a 29.515 ms maximum gap and no queue/output failure. PerVertexKHR messages
+do not occur before this early stop; that is not validation of those paths.
+
+The new submission extension is exercised natively on the Metal-error path:
+the complete thirty-note failing batch includes four guest dispatch candidates,
+five native dispatch notes and one buffer-to-image copy, with no draw/blit notes.
+Commit returns at 1.177 ms, the scheduled callback is observed at 16.188 ms and
+the error-completion callback at 23.046 ms, relative to commit registration.
+These are host observations, not precise GPU instruction timing. The journal
+still does not identify the exact failing command. Native large-tail retention
+and the new watchdog timing report remain untested by this early failure.
+
+Keep the earlier OOM, GPU stall, CPU corruption and audio failure separate.
+This analysis changes documentation only; no dependency, code, setting or game
+input is changed and no additional game run is started. Private offline replay
+and calculations remain with the ignored capture. The previously requested
+diagnostic commits are now present in the local history.
+
 ### Prepared full-batch submission summaries and host timing
 
 The **2026-10-22 15:27 UTC** comparison below retains only the last 96 of 26,764

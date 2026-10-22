@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <functional>
 #include <mutex>
 #include <span>
 #include <unordered_map>
@@ -108,6 +109,13 @@ struct Submission {
     U64 missing_buffers{};
     Commands commands;
 };
+struct MetalObservation {
+    bool available{}, retained_references{}, memory_available{};
+    int status{-1};
+    std::int64_t error{};
+    U64 allocated{}, recommended{};
+};
+using MetalProbe = std::function<MetalObservation()>;
 struct MetalChunk {
     U64 id{};
     Key buffer{};
@@ -116,6 +124,9 @@ struct MetalChunk {
     int status{};
     std::int64_t error{};
     U64 commit_ns{}, returned_ns{}, scheduled_ns{}, completed_ns{};
+    // The native bridge captures only a weak command-buffer reference.
+    // Invoke outside the journal lock and only while reporting a failure/stall.
+    MetalProbe probe;
 };
 inline U64 MonotonicNs() {
     return static_cast<U64>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -174,12 +185,12 @@ public:
                 it->returned = true; it->result = result; return;
             }
     }
-    U64 CommitMetal(Key buffer, U64 recording) {
+    U64 CommitMetal(Key buffer, U64 recording, MetalProbe probe = {}) {
         std::lock_guard lock{mutex};
         if (metal.size() == MaxMetal) { metal.pop_front(); ++evictions; }
         const U64 id = ++metal_serial;
         metal.push_back({.id = id, .buffer = buffer, .recording = recording,
-                         .commit_ns = clock_ns()});
+                         .commit_ns = clock_ns(), .probe = std::move(probe)});
         return id;
     }
     // 0: commit returned, 1: scheduled callback, 2: completion callback.
@@ -242,7 +253,10 @@ public:
                      (unsigned long long)failed.recording, (unsigned long long)scheduler,
                      (unsigned long long)tick, failed.status, (long long)failed.error,
                      (unsigned long long)commands.total, commands.tail.size(), source);
-        if (retained) PrintMetalTiming(output, failed, now);
+        if (retained) {
+            PrintMetalTiming(output, failed, now);
+            PrintMetalObservation(output, failed, now);
+        }
         PrintCommands(output, commands);
         std::fflush(output);
     }
@@ -296,6 +310,7 @@ public:
                                  int(chunk.scheduled), int(chunk.callback), chunk.status,
                                  (long long)chunk.error);
                     PrintMetalTiming(output, chunk, now);
+                    PrintMetalObservation(output, chunk, now);
                 }
             }
             PrintCommands(output, submission.commands);
@@ -304,6 +319,24 @@ public:
         std::fflush(output);
     }
 private:
+    static void PrintMetalObservation(std::FILE* output, const MetalChunk& chunk, U64 now) {
+        MetalObservation state{};
+        bool failed = false;
+        try {
+            if (chunk.probe) state = chunk.probe();
+        } catch (...) {
+            failed = true;
+        }
+        std::fprintf(output, "GPU submission trace: Metal native chunk=%llu probe_registered=%d "
+                     "available=%d probe_error=%d report_ns=%llu status=%d error=%lld "
+                     "retained_references=%d memory_available=%d allocated_bytes=%llu recommended_bytes=%llu; "
+                     "point-in-time CPU property observation, unavailable is not zero pressure\n",
+                     (unsigned long long)chunk.id, int(bool(chunk.probe)), int(state.available),
+                     int(failed), (unsigned long long)now,
+                     state.available ? state.status : -1, (long long)state.error,
+                     int(state.retained_references), int(state.memory_available), (unsigned long long)state.allocated,
+                     (unsigned long long)state.recommended);
+    }
     static double Milliseconds(U64 end, U64 start) {
         return end >= start ? double(end - start) / 1e6 : -1.0;
     }

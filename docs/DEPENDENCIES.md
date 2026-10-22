@@ -2,17 +2,19 @@
 
 Checked against public upstream sources on **2026-10-22T10:51:27Z**. This page is generated from [the dependency lock](../tools/dependencies.json).
 
-The lock selects the current runtime/CPU/reference heads and stable library releases or tags. An available version is not proof of correct Apple M1 rendering. Native game validation after this dependency update remains pending.
+The lock selects qualified runtime/CPU/reference commits and library releases or tags; newer reviewed heads are listed separately. An available version is not proof of correct Apple M1 rendering. Native game validation after this dependency update remains pending.
 
-Integration: **integrated; fresh ARM64 renderer/dependency build, nine renderer source regressions, 22 builder tests, native CPU checks and full JIT/interpreter contracts pass**.
+Integration: **integrated selected base with checked local overlays; ARM64 renderer build, fifteen renderer regressions, 25 builder tests and full JIT/interpreter contracts pass; base integration native CPU checks passed**.
 
 ## Runtime and reference sources
 
-| Component | Previous pin | Selected / latest reviewed head | Scope |
-|---|---|---|---|
-| runtime | [3170535f59ca](https://github.com/bloodborne-native/bloodborne-runtime/commit/3170535f59cadbe5ce9c38e6bb961ed5fd215194) | [b2ff9cd0b982](https://github.com/bloodborne-native/bloodborne-runtime/commit/b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548) | Integrated source; exact commit is pinned. |
-| cpu | [f749c155c2ff](https://github.com/bloodborne-native/bloodborne-recomp/commit/f749c155c2ff3bb932795de85c9c8fe9c4aa59ad) | [b9652d75edc0](https://github.com/bloodborne-native/bloodborne-recomp/commit/b9652d75edc0a281f06cec0da6ff72e9f5150a70) | Integrated source; exact commit is pinned. |
-| reference | [2250f328feaf](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/2250f328feafab953aac85e758e7bddb2e80e891) | [411fdd86dadc](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/411fdd86dadce347dcc4443228b009ae9265a548) | Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations. |
+The five owner-requested sources were refreshed on **2026-10-22T17:51:00Z**. Selected commits and reviewed upstream heads are separate; the library release review above retains its own date. Additional source references appear below.
+
+| Component | Previous pin | Selected head | Latest reviewed head | Scope |
+|---|---|---|---|---|
+| runtime | [3170535f59ca](https://github.com/bloodborne-native/bloodborne-runtime/commit/3170535f59cadbe5ce9c38e6bb961ed5fd215194) | [b2ff9cd0b982](https://github.com/bloodborne-native/bloodborne-runtime/commit/b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548) | [dcaf50060880](https://github.com/bloodborne-native/bloodborne-runtime/commit/dcaf500608806c5811dc35273125614a6ee7dae9) | Integrated source; exact commit is pinned. Selected base retained; dcaf500 instanced tessellation adapted as a checked overlay. Critical-pressure content discard is not integrated. |
+| cpu | [f749c155c2ff](https://github.com/bloodborne-native/bloodborne-recomp/commit/f749c155c2ff3bb932795de85c9c8fe9c4aa59ad) | [b9652d75edc0](https://github.com/bloodborne-native/bloodborne-recomp/commit/b9652d75edc0a281f06cec0da6ff72e9f5150a70) | [ef153b8d3576](https://github.com/bloodborne-native/bloodborne-recomp/commit/ef153b8d35768aff86fa1643c12e7d0340b16501) | Integrated source; exact commit is pinned. Three commits ahead: CI and linker test flags only; no CPU implementation changes, selected translator unchanged. |
+| reference | [2250f328feaf](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/2250f328feafab953aac85e758e7bddb2e80e891) | [411fdd86dadc](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/411fdd86dadce347dcc4443228b009ae9265a548) | [40ec52a5a246](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/40ec52a5a246bbaf20402520fe8fc9682f0a30c0) | Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations. v0.60.6 reviewed; speculative readback fix has no matching local mechanism. Nested-task retirement warning requires follow-up against our draw-pipe ownership. |
 
 The SotC reference update includes preparation/reference sources. Its Windows renderer does not replace the macOS renderer. The nested-command coroutine correction is separately adapted into our renderer, alongside the existing ARM64/SRT, staging and scene-proxy fixes.
 
@@ -70,11 +72,12 @@ macOS frameworks (Metal, MetalFX, CoreAudio and platform libraries), Clang/SDK, 
 
 | Project | Default branch | Latest reviewed head | Integration scope |
 |---|---|---|---|
-| bloodborne-mac | main | [ab1f0c57d1e2](https://github.com/bloodborne-native/bloodborne-mac/commit/ab1f0c57d1e25cc130c59be9a874e98099822cc4) | App/reference project, not a linked dependency. |
+| bloodborne-mac | main | [906c3a1dcfd6](https://github.com/bloodborne-native/bloodborne-mac/commit/906c3a1dcfd6ec9fbc83e0b88a62a116505f077a) | Preferred app reference; runtime gitlink dcaf500 and CPU gitlink ef153b8 verified. App/launcher and Bloodborne-specific trophy/guest hooks are not imported. |
 | bbport-mac | macos-native-0.6 | [a69f56af2069](https://github.com/bmy/bbport-mac/commit/a69f56af2069df45357e86c27396baa945b53231) | Selected copy batching and stale-proxy detection adapted; its Rosetta/KosmicKrisp architecture is not substituted. |
 | MoltenVK development | main | [5189f8de86ec](https://github.com/KhronosGroup/MoltenVK/commit/5189f8de86ec365860f63bf1da736815cfaea5cd) | Development head tracked; selected installed release is v1.4.2. |
 | SPIRV-Cross development | main | [300681bbcb83](https://github.com/KhronosGroup/SPIRV-Cross/commit/300681bbcb8365a8d1eacdacdbdd0249bbf1d6b1) | Development head tracked; selected compiler uses the latest SDK tag. |
 | mesa-kosmickrisp | main | [52d87b35f3a4](https://github.com/shadexternals/mesa-kosmickrisp/commit/52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1) | Alternative driver reference; not installed in the active renderer. |
+| Pink-shadPS4 | main | [4a3511ba9aa3](https://github.com/luizgustavs/Pink-shadPS4/commit/4a3511ba9aa33b59ab0e57048013b0b85d29402a) | Permanent SotC/shadPS4 reference requested by the owner. Reviewed readback lifetime, pending label writes, optional GCN NaN/MAD and heap/stack workarounds; no Windows/NVIDIA-specific settings or code imported. |
 
 ## Open proposals
 

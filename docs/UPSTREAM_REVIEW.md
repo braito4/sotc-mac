@@ -1,6 +1,110 @@
 # Upstream review: 2026-10-22
 
+## Owner-requested five-source refresh and selected adaptation
+
+Public Git transport now permits exact source/history inspection, superseding
+the earlier web-page retrieval limits for these five repositories. Default
+branches were resolved with `git ls-remote --symref ... HEAD`; isolated review
+copies preserve the histories without changing the selected submodules. All
+five default branches are `main`. Dates below are commit dates converted to UTC.
+The [inventory](DEPENDENCIES.md) separates selected pins from reviewed heads.
+
+| Source | Reviewed head / commit date | Comparison and decision |
+|---|---|---|
+| [SotC reference](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/40ec52a5a246bbaf20402520fe8fc9682f0a30c0) | `40ec52a5a246`, 2026-10-22 16:40:58Z, v0.60.6 | Ten commits beyond selected `411fdd86`; retain preparation pin. Readback safety and nested-coroutine warnings are directly relevant review leads, not an entire Windows renderer update. |
+| [Pink-shadPS4](https://github.com/luizgustavs/Pink-shadPS4/commit/4a3511ba9aa33b59ab0e57048013b0b85d29402a) | `4a3511ba9aa3`, 2026-10-15 22:45:05Z | Newly registered permanent reference. Reviewed selected memory-order/lifetime and GCN floating-point diffs below. No direct dependency or blanket configuration import. |
+| [bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac/commit/906c3a1dcfd6ec9fbc83e0b88a62a116505f077a) | `906c3a1dcfd6`, 2026-10-22 17:37:44Z | Runtime gitlink is exactly `dcaf500608806c5811dc35273125614a6ee7dae9`; launcher is `8ed9076933a7a4fe3c51bf83805b2d9a72422476`. App release/trophy changes do not supply SotC guest layouts. |
+| [bloodborne-recomp](https://github.com/bloodborne-native/bloodborne-recomp/commit/ef153b8d35768aff86fa1643c12e7d0340b16501) | `ef153b8d3576`, 2026-10-22 16:51:55Z | Three commits beyond selected `b9652d75`. Diff changes CI, instructions and the upstream JIT test's `-no_fixup_chains` linker flag; no translator implementation change. Keep selected CPU. |
+| [bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime/commit/dcaf500608806c5811dc35273125614a6ee7dae9) | `dcaf50060880`, 2026-10-22 17:37:39Z | Eleven commits beyond selected `b2ff9cd0`. Reviewed renderer diff; adapt instanced tessellation only. Keep the qualified base and local overlays. |
+
+### Integrated code: Metal tessellation instance routing
+
+Committed main change [`dcaf500`](https://github.com/bloodborne-native/bloodborne-runtime/commit/dcaf500608806c5811dc35273125614a6ee7dae9)
+replaces the unconditional skip for more than one tessellated instance with the
+existing single-instance path for each instance. Each path obtains its own
+kernel/scratch plan. `PendingPatch` carries the instance through to Metal's
+`baseInstance`; previously even a single nonzero base instance became zero at
+patch replay. This is adapted unchanged in the checked
+`sotc-metal-tess-instances-v1` overlay. It credits upstream and
+Wooloomooloo2's `4565225`, GPL-2.0-or-later. `BB_TESS_INSTANCES=0` retains the
+old multi-instance skip as an explicit comparison control. Cache stays 24/9:
+this changes host command encoding, not shader serialization.
+
+The author reports missing Bloodborne trees in the source fork and a copied-save
+test in an area without instanced tessellation. That is not validation of the
+recovered objects, SotC, or Apple M1. Our CPU fixture runs the production instance
+routing, parameter/pending construction and complete `FlushPending` against a
+Foundation encoder double. It reproduces the old skip, verifies three distinct
+instance IDs, nonzero single-instance replay, indexed argument forwarding,
+zero count/instances, unavailable pass, rejected preparation, state restoration
+and the opt-out. Kernel encoding/allocation is replaced by a CPU leaf; actual
+GPU scratch separation, shaders, pixels and performance remain unverified.
+The handoff records the final ARM64/regression/contract results. No game ran.
+
+### Relevant source warnings and candidates kept separate
+
+* **Stale speculative readbacks:** SotC commit
+  [`54f6545`](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/54f6545a43a12408ad8bed28698a1bde69913595),
+  2026-10-22 16:25:34Z, sets `SOTC_RB_HOT` default from 2 to 0 and filters
+  CPU-modified pages if enabled. The author reports clean repeated reloads
+  after earlier graphical corruption/heap failures. Source confirms the old
+  gatherer added recently requested regions to unrelated downloads. Our selected
+  Mac buffer cache has no `GatherDownloads`, hot-region list or `SOTC_RB_HOT`
+  switch, so that patch has no matching mechanism here. It does not establish
+  our earlier SIGBUS cause. Future synthetic review should model CPU reuse
+  between GPU production and writeback, with stale generations rejected.
+* **Nested coroutine lifetime:** SotC commit
+  [`0127e36`](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/0127e36a00b12783b0723d448ac968863802947a),
+  2026-10-22 05:53:49Z, disables its previously immediate child-frame destruction
+  by default. The author reports corruption with immediate release and remaining
+  defects even after deferring to recording-thread consumption. Our
+  `c9be8142` adaptation still destroys completed nested frames; the prior fixture
+  proves coroutine completion/reclamation only, not that every queued consumer
+  has released borrowed data. Architectures differ: our draw pipe/preparation
+  machinery is not that reference's back-thread ring. Do not copy its Windows
+  page-guard allocator or assume its rollback proves local causality. Review
+  packet/lambda/span ownership across all five local completion sites before
+  another native comparison; add a deferred-consumer synthetic regression.
+  No new claim that the leak correction is safe for every asynchronous consumer
+  follows from the earlier CPU count test.
+* **Critical-pressure image discard:** runtime commit
+  [`ab31a4c`](https://github.com/bloodborne-native/bloodborne-runtime/commit/ab31a4c27ea5f267862f259732e8a7918833368f),
+  2026-10-22 16:46:25Z, adds `!aggresive` to unresolved GPU-content retention.
+  Source confirms it permits eviction of the only unresolved GPU contents above
+  the critical mark. Author's forced-budget M3 Pro test lost clothing lighting.
+  Keep our existing retention guard; do not present lossy eviction as a safe OOM
+  correction. Next review should prove preservable contents or explicit resource
+  invalidation with real completion before changing ownership.
+* **Pink readbacks and ordering:**
+  [`ff9e616`](https://github.com/luizgustavs/Pink-shadPS4/commit/ff9e61666a0c7ccb4ef4d00a84a8995aa470e66e)
+  resolves current arena identity, excludes pending writes from grouped readbacks
+  and defers replaced download buffers until completion.
+  [`c7ee8fb`](https://github.com/luizgustavs/Pink-shadPS4/commit/c7ee8fb3e737377ec3740cea65d6ad46eda6180e)
+  tracks pending CPU fence labels so its optional constant ring cannot snapshot
+  an old label before the queued write. Our consecutive read-only snapshot
+  sharing is scoped to one shader preparation and is not Pink's cross-packet
+  constant ring. Preserve our mapping/tick/write/adjacency guards; independently
+  model label-write ordering before considering a ring or broader reuse.
+* **Pink floating point:**
+  [`9e8ae58`](https://github.com/luizgustavs/Pink-shadPS4/commit/9e8ae58303cf254cfc3cdc8f9b0e418079637f84)
+  implements optional GCN NaN compare/min/max/clamp and legacy MAD semantics.
+  Its SPIR-V test checks emitted NMin/NMax opcodes, not exact M1 execution,
+  NaN payloads or all FP controls. This is implemented Pink code, distinct from
+  the AnyPS5 thread's unimplemented exact-NaN proposal. No shader setting/cache
+  change is imported. Next isolate dynamic NaN/Inf/signed-zero/denormal inputs,
+  inspect MSL conversion and only then propose an M1 synthetic GPU test.
+
+Pink documents a Windows/NVIDIA test scope and warns of regressions. Its
+hardcoded BPE-heap protection, CPU-authoritative stacks, loop caps, forced
+barriers and game arguments are references for investigation, not portable
+ARM64 contracts. No game input, driver/compiler package, CPU pin, shader cache,
+scene size, DMA/async setting or watchdog is changed by this review.
+
 ## Current dependency integration
+
+This section records the earlier base-pin integration. The newer reviewed heads
+and selective adaptation above supersede its last-head observation, not its
+selected pins.
 
 At the owner's explicit request, the runtime is advanced from 3170535f to
 [b2ff9cd0b982](https://github.com/bloodborne-native/bloodborne-runtime/commit/b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548),

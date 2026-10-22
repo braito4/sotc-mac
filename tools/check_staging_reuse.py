@@ -14,6 +14,8 @@ def fixture(tree):
         'u64 RoundAllocationSize(', 'StagingBufferRef StagingBufferPool::RequestLarge(',
         'void StagingBufferPool::FreeDeferred('))
     old = 'entry_size > max_size' in methods
+    declaration = function(source, 'StagingBufferRef StagingBufferPool::RequestLarge(').split('{',1)[0]
+    declaration = declaration.replace('StagingBufferPool::','').replace('u64 alignment)', 'u64 alignment=0)').strip()+';'
     return r'''
 #include <algorithm>
 #include <array>
@@ -30,7 +32,7 @@ constexpr u64 MB=1024*1024,LARGE_MIN_GRANULARITY=64_KB;
 #define ASSERT_MSG(condition, message) assert(condition)
 namespace Common { u64 AlignUp(u64 value,u64 step){return (value+step-1)&~(step-1);} }
 namespace SotcVisual { enum Counter {StagingNewBuffers,StagingReuses,StagingOversizeReuses};void Count(Counter){} }
-struct Instance {};
+struct Instance {u64 NonCoherentAtomSize()const{return 256;}};
 namespace VideoCore {
 enum class MemoryType {DeviceLocal,HostUncached,HostCached};
 struct Buffer {
@@ -43,10 +45,10 @@ using MemoryType=VideoCore::MemoryType;
 struct Scheduler {u64 current=10,completed=1;u64 CurrentTick()const{return current;}bool IsFree(u64 tick)const{return tick<=completed;}};
 struct StagingBufferRef {VideoCore::Buffer* buffer{};u64 offset{},size{};u8* mapped{};MemoryType type{};};
 struct StagingBufferPool {
-    struct LargeBuffer {std::unique_ptr<VideoCore::Buffer> buffer;u64 tick,last_used_frame;bool held;};
+    struct LargeBuffer {std::unique_ptr<VideoCore::Buffer> buffer;u64 tick,last_used_frame;bool held;u64 used_bytes=0;bool tail_open=false;};
     std::array<std::vector<LargeBuffer>,3> large_caches;
     Instance instance;Scheduler scheduler;u64 frame=0;
-    StagingBufferRef RequestLarge(u64,MemoryType,bool);
+    @REQUEST_DECLARATION@
     void FreeDeferred(const StagingBufferRef&);
     void PublishStats()const{}
     VideoCore::Buffer* Seed(u64 size,MemoryType type,bool held=false,u64 tick=0) {
@@ -92,7 +94,7 @@ int main(){
         sequence.large_caches[1].size(),(unsigned long long)total);
     return old?2:0;
 }
-'''.replace('@METHODS@', methods).replace('@OLD@', 'true' if old else 'false')
+'''.replace('@METHODS@', methods).replace('@OLD@', 'true' if old else 'false').replace('@REQUEST_DECLARATION@', declaration)
 
 
 def main():

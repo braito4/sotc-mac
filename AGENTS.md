@@ -11,6 +11,34 @@ The native comparison no longer reports the two float-output/integer-target
 errors; exact GPU copy pixels and full-case coverage remain unverified.
 This is not an OOM/corruption fix.
 Read the first handoff checkpoint and preserve the existing testing guards.
+The newest 17:57 UTC owner comparison supersedes the older native boundaries:
+Metal OOM 8 after 77.670 s, confirmed exits 23/23, native allocation 11.603 GiB.
+The weak report-time probe is exercised with status 5/error 8 and real callbacks;
+it is diagnostic validation, not an OOM fix. The owner specifies 16 GB unified
+memory and wants reduced graphics to lower total pressure. Scene work is 640x360
+but original-size images/output and the 3 GiB upload remain; do not equate Metal
+allocations with additional dedicated VRAM. Read the first handoff checkpoint.
+The new native-state probe adds weak, report-time status/error/device allocation
+observations alongside callbacks. CPU journal and actual ARC weak-bridge fixtures
+pass, together with the ARM64 build/full contracts; the error path is exercised
+in the latest owner comparison. Stall-time probing remains unverified. Never
+interpret missing callback status=0 as a sampled NotEnqueued state, or unavailable
+native memory as zero pressure. No timeout/order/ownership behavior changes.
+The newest 17:29 UTC owner comparison supersedes older boundaries below: GPU
+watchdog after 116.824 seconds, confirmed child/supervisor exits 21/31. The awaited
+batch has a 26,020-note CPU summary; commit returned, scheduled/completed callbacks
+were not observed. Native sampled peak is 11.485 GiB, final pressure unknown.
+Image replay records 448 live / 1,111.45 MiB, 817 proxies destroyed / 23 live.
+No large staging-tail/shared-copy event, OOM, CPU or audio queue failure occurs.
+Prior memory/corruption causes remain unresolved. Do not identify an executing
+shader from those CPU notes. Read the current handoff first.
+The native Metal retention overlay now requests retained references for initial
+and split batches. Production-method Foundation CPU doubles check explicit-resource
+lifetime, independent completion, reset and scratch return. ARM64, fourteen
+renderer regressions, 25 builder tests and full JIT/interpreter contracts pass;
+native validation is pending. This does not fix the installed MoltenVK driver or prove indirect/BDA
+ownership, OOM avoidance, corruption resolution or stall recovery. Preserve the
+past-next, residency, staging, watchdog and failure-reporting guards.
 The submission journal now retains full-batch note summaries and first/last
 guest draw/dispatch candidates, with monotonic host observation timings.
 ARM64 build and full contracts pass; native validation is pending. Counts are CPU
@@ -46,6 +74,15 @@ The versioned workspace key is an integration identifier, not the required HEAD;
 the builder verifies the exact selected b2ff9cd0 revision independently.
 Use docs/DEVELOPMENT_HANDOFF.md for the current reproduction steps, stopping boundary and debugging priorities; keep it current when those change.
 Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred upstream reference when resolving doubts. Follow its runtime/recomp links and review relevant changes against our pins; do not assume Bloodborne-specific layouts apply to SotC or silently update dependencies.
+The owner also permanently tracks AjncSystem/ShadowOfTheColossus-PC and
+luizgustavs/Pink-shadPS4, alongside bloodborne-mac/runtime/recomp. Resolve current
+branches and compare selected and last-reviewed SHAs in tools/dependencies.json;
+docs/UPSTREAM_REVIEW.md records the five-source review and decisions. The new
+dcaf500 instanced Metal tessellation correction is a checked local adaptation,
+not a base-pin update. SotC 0127e36 now questions completed child-frame release;
+review queued consumer ownership before another native comparison. Existing CPU
+reclamation tests do not establish asynchronous consumer safety. Do not import
+Pink's hardcoded heap/stack workarounds or runtime ab31a4c's lossy image eviction.
 Also review bmy/bbport-mac, MoltenVK, SPIRV-Cross and KosmicKrisp as requested by
 the owner. Read docs/DEPENDENCY_WATCH.md and record branch/SHA changes; the daily
 public-source watch does not update pins and is currently paused. The owner also

@@ -14,9 +14,27 @@ The owner confirms this milestone on 2026-10-22. Rendering defects, memory failu
 and instability remain; correct graphics, sustained gameplay, audiovisual
 synchronization and save persistence are not validated.
 
-The latest analyzed native run stops on a GPU-progress watchdog; the supervisor
-ends after 136.225 seconds without confirming child exit. Earlier Metal OOM,
-CPU allocation-metadata corruption and an audio queue stop remain unresolved.
+The latest analyzed native run stops on Metal insufficient memory after
+77.670 seconds, with confirmed child/supervisor exit 23. The failure-time
+native probe reports 11.603 GiB allocated. This M1 has 16 GB of unified memory;
+CPU and GPU share it. Reduced scene work at 640x360 does not shrink every output,
+original-size resource or large upload reservation. Memory stability remains
+unresolved; earlier CPU faults and GPU stalls remain separate open problems.
+A correction for duplicated
+read-only upload snapshots is built and CPU-tested; the latest captures do not
+exercise the duplicate case, so native memory savings remain unverified. Earlier GPU
+stalls, CPU allocation-metadata corruption and an audio queue stop remain unresolved.
+A further prepared staging improvement uses disjoint unused buffer tails for
+aligned uploads in one recording tick. CPU fixtures and the ARM64 build pass;
+native memory savings and OOM avoidance remain unverified.
+Native Metal batches also request retained resource references at initial
+creation and after splitting a batch. This strengthens explicit-resource
+lifetime through Metal completion; native stability and memory effects remain
+unverified.
+The latest selective upstream adaptation preserves Metal tessellation instance
+IDs and handles multiple instances; GPU correctness remains unverified. The
+[upstream review](docs/UPSTREAM_REVIEW.md) records all five owner-requested
+references and a new nested-coroutine ownership warning to investigate.
 See the [current status](docs/STATUS.md) and
 [developer handoff](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
@@ -42,8 +60,8 @@ it is not a source rebuild of the game's engine. There is no downloadable game a
 The current [dependency inventory](docs/DEPENDENCIES.md) records updated runtime,
 CPU and SotC reference pins, stable library versions and exact source revisions.
 The ARM64 build and CPU/source checks pass. Ordered frame maintenance now
-destroys stale proxies in native owner comparisons. The latest run ends on a
-GPU-progress stop; memory stability remains unresolved.
+destroys stale proxies in native owner comparisons. The latest run ends on
+Metal OOM; memory stability remains unresolved.
 
 - **Native Apple Silicon host:** the diagnostic and bbcpu are built as ARM64 binaries.
 - **JIT and interpreter checks:** both modes are compared at explicit initialization boundaries.
@@ -94,13 +112,17 @@ The owner confirms the first image of the gameplay section on Apple M1.
 and crashes remain, and no stable gameplay performance or working save support
 is claimed.
 
-The latest owner comparison reports a **GPU submission without completion for
-ten seconds**. The supervisor ends after **136.225 seconds**, with exit **1**
-and child exit unconfirmed despite a cancellation notice. No Metal OOM or CPU
-fault is recorded in this capture. Native allocation peaks at **11.584 GiB**
-before the stop. The image journal records **1,037 proxies destroyed / 26 live**,
-but registered-image growth and the 3 GiB upload remain. Earlier guest allocator
-corruption, Metal OOM and a stopped audio queue have not been fixed.
+The latest owner comparison ends on **Metal OOM 8 after 104.474 seconds**, with
+confirmed child/supervisor exit **23** and **11.588 GiB native allocation**.
+It records 983 presentation results and reduced-scene rendering activity; these
+are progress measurements, not correct-pixel or gameplay validation. One large
+fallback copy allocates 3 GiB. The previous comparison stopped much earlier,
+with one copy rounded to 3.5 GiB. The existing rounding rule is unchanged.
+A correction for adjacent duplicate read-only snapshots passes actual-source CPU
+fixtures, the ARM64 build and contracts, but neither of these two runs exercises
+that large duplicate case. Native savings remain unverified and OOM persists.
+Earlier GPU stalls, guest allocator corruption and a stopped audio queue remain
+unresolved.
 
 The renderer adds typed integer image blits, addressing the float-output
 mismatch reported for R32Uint and RG32Uint. ARM64 compilation, actual-source CPU

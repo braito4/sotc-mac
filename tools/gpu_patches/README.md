@@ -11,7 +11,37 @@ Unknown/partial source sets remain rejected; obsolete cross-base migrations are
 not accepted as if they were the new base. Cache is **24/9**. The upstream
 unresolved-image collector guard remains intact and receives its own observational
 retention counter. See [current versions](../../docs/DEPENDENCIES.md) and the
-[current review](../../docs/UPSTREAM_REVIEW.md#current-dependency-integration).
+[current review](../../docs/UPSTREAM_REVIEW.md#owner-requested-five-source-refresh-and-selected-adaptation).
+
+`sotc-metal-tess-instances` adapts bloodborne-runtime `dcaf50060880` (credited
+to Wooloomooloo2 `4565225`, GPL-2.0-or-later). It routes each tessellated
+instance through the existing single-instance encoder and preserves its base
+instance in `PendingPatch` replay. `BB_TESS_INSTANCES=0` restores the previous
+multi-instance skip. `tools/check_metal_tess_instances.py` exercises production
+routing/parameter/pending fragments and complete `FlushPending` with a CPU
+encoder double; kernel encoding and GPU pixels remain untested. The preceding
+weak-probe sources migrate through the exact `tess_previous` cohort. No shader
+cache, selected source pin, resource-lifetime or queue-completion rule changes.
+
+`sotc-metal-retention` requests retained references for initial and rollover native
+Metal batches, following the lifetime distinction described by MoltenVK #2860.
+It keeps the existing past-next, residency and scratch completion guards and
+changes no dependency or cache version. `tools/check_metal_retention.py` extracts
+the production creation/commit/rollover/scratch methods and uses Foundation CPU
+doubles to check explicit-resource retention, independent completion and reset.
+Native memory behavior and GPU correctness remain unverified. Exact preceding
+staging-tail sources migrate through the checked `retention_previous` cohort;
+mixed/unrecognized inputs remain rejected.
+
+`sotc-metal-probe` registers the repository-owned weak Objective-C bridge for
+each traced native command buffer. Only stall/failure reports query its current
+status/error/retention policy and device allocation; unavailable evidence is
+explicit. The probe changes neither ownership nor queue synchronization and
+does not wait for GPU completion. Journal fixtures check reentry outside the
+lock and handle-generation isolation. The retention regression additionally
+compiles the actual bridge with Foundation doubles and checks ARC weak ownership.
+The checked `probe_previous` cohort migrates the preceding retained-reference
+build without accepting unknown source changes. Native validation is pending.
 
 `sotc-scene-proxy-retirement` adapts stale-proxy detection introduced in
 [bmy 8185b88d8057](https://github.com/bmy/bbport-mac/commit/8185b88d80573fa300595d5c54450183b4109935)

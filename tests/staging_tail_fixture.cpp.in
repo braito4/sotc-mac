@@ -1,0 +1,156 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Original CPU resource/completion doubles, with actual renderer methods injected.
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <memory>
+#include <vector>
+#include "gpu_memory_trace.h"
+using u64=std::uint64_t;using u32=std::uint32_t;using u8=std::uint8_t;
+constexpr u64 operator""_KB(unsigned long long n){return n*1024;}
+constexpr u64 KB=1024,MB=1024*KB,GB=1024*MB,LARGE_MIN_GRANULARITY=64*KB;
+constexpr bool adapted=@ADAPTED@;
+#define ASSERT_MSG(condition, message) assert(condition)
+namespace Common {u64 AlignUp(u64 n,u64 step){return (n+step-1)&~(step-1);}}
+namespace SotcVisual {enum Counter {StagingNewBuffers,StagingReuses,StagingOversizeReuses};void Count(Counter){}}
+struct Instance {u64 atom=256;u64 NonCoherentAtomSize()const{return atom;}};
+namespace VideoCore {
+enum class MemoryType {DeviceLocal,HostUncached,HostCached};
+struct Buffer {
+    static inline unsigned destroyed=0;
+    u64 size,flush_offset=0,flush_size=0;
+    std::vector<u8> mapped_data;
+    Buffer(const Instance&,int,u64 n,MemoryType,const char*):size(n){
+        // Multi-GiB capacities are symbolic; exact payload tests use <= 1 MiB.
+        if(n<=4*MB)mapped_data.resize(n);
+    }
+    ~Buffer(){++destroyed;}
+    u64 SizeBytes()const{return size;}
+    void Flush(u64 off,u64 len){assert(off<=size && len<=size-off);flush_offset=off;flush_size=len;}
+};
+}
+using MemoryType=VideoCore::MemoryType;using Buffer=VideoCore::Buffer;
+struct Scheduler {u64 current=10,completed=0;u64 CurrentTick()const{return current;}bool IsFree(u64 n)const{return n<=completed;}};
+struct StagingBufferRef {
+    Buffer* buffer{};u64 offset{},size{};u8* mapped{};MemoryType type{};
+    @FLUSH@
+};
+struct StagingBufferPool {
+    struct LargeBuffer {std::unique_ptr<Buffer> buffer;u64 tick,last_used_frame;bool held;u64 used_bytes=0;bool tail_open=false;};
+    std::array<std::vector<LargeBuffer>,3> large_caches;
+    Instance instance;Scheduler scheduler;u64 frame=0;
+    @REQUEST_DECLARATION@
+    void FreeDeferred(const StagingBufferRef&);
+    void PublishStats()const{}
+    StagingBufferRef Get(u64 size,MemoryType type=MemoryType::HostUncached,bool held=false,u64 alignment=256){
+        (void)alignment;return RequestLarge(size,type,held@ALIGNMENT_ARGUMENT@);
+    }
+    Buffer* Seed(u64 size,MemoryType type=MemoryType::HostUncached){
+        auto& e=large_caches[u32(type)].emplace_back(LargeBuffer{
+            std::make_unique<Buffer>(instance,0,size,type,"synthetic"),0,0,false});
+        return e.buffer.get();
+    }
+    u64 Bytes()const{u64 sum=0;for(const auto& c:large_caches)for(const auto& e:c)sum+=e.buffer->SizeBytes();return sum;}
+};
+@METHODS@
+int main(){
+    // Rounding alone creates a second retained buffer as the next request grows.
+    // Keep the original multi-GiB classes rather than making this regression.
+    assert(RoundAllocationSize(3*GB-1)==3*GB);
+    assert(RoundAllocationSize(3*GB+1)==7*GB/2);
+    assert(RoundAllocationSize(3*GB+64*MB+1)==7*GB/2);
+    const u64 naive_fine_classes=Common::AlignUp(3*GB+1,64*MB)+Common::AlignUp(3*GB+64*MB+1,64*MB);
+    assert(naive_fine_classes==6336*MB && naive_fine_classes>7*GB/2);
+    StagingBufferPool growing;
+    auto first_growth=growing.Get(3*GB+1);
+    growing.scheduler.completed=growing.scheduler.current++;
+    auto next_growth=growing.Get(3*GB+64*MB+1);
+    assert(first_growth.buffer==next_growth.buffer && next_growth.offset==0);
+    assert(growing.Bytes()==7*GB/2);
+
+    // Occupied prefix is immutable. Appending avoids new retained resources.
+    StagingBufferPool pool;pool.Seed(3*GB);
+    auto a=pool.Get(64*MB),b=pool.Get(96*MB),c=pool.Get(128*MB);
+    assert(a.offset==0 && a.size==64*MB && b.size==96*MB && c.size==128*MB);
+    if(adapted){
+        assert(a.buffer==b.buffer && b.buffer==c.buffer);
+        assert(b.offset==64*MB && c.offset==160*MB);
+        assert(pool.Bytes()==3*GB);
+    }else{assert(a.buffer!=b.buffer && b.buffer!=c.buffer);assert(pool.Bytes()==3296*MB);}
+    std::printf("concurrent upload capacity: %llu MiB\n",(unsigned long long)(pool.Bytes()/MB));
+
+    StagingBufferPool padding;
+    auto large=padding.Get(3*GB+1),tail=padding.Get(96*MB);
+    if(adapted){
+        assert(large.buffer==tail.buffer && tail.offset==3*GB+64*KB);
+        assert(padding.Bytes()==7*GB/2);
+    }else{assert(large.buffer!=tail.buffer && padding.Bytes()==3680*MB);}
+
+    // Exact small payload, requested size, mapped pointer and production Flush.
+    StagingBufferPool payload;payload.Seed(MB);
+    auto x=payload.Get(64*KB+7);std::fill_n(x.mapped,x.size,u8(0xa5));
+    auto y=payload.Get(333);std::fill_n(y.mapped,y.size,u8(0x62));
+    assert(std::all_of(x.mapped,x.mapped+x.size,[](u8 v){return v==0xa5;}));
+    assert(std::all_of(y.mapped,y.mapped+y.size,[](u8 v){return v==0x62;}));
+    assert(y.mapped==y.buffer->mapped_data.data()+y.offset);
+    if(adapted){assert(x.buffer==y.buffer && y.offset==128*KB);assert(x.mapped[x.size]==0);}
+    y.Flush();assert(y.buffer->flush_offset==y.offset && y.buffer->flush_size==333);
+    // Stronger caller/noncoherent alignment cannot touch the preceding atom.
+    StagingBufferPool atoms;atoms.instance.atom=128*KB;atoms.Seed(MB);
+    auto atom_a=atoms.Get(1),atom_b=atoms.Get(2,MemoryType::HostUncached,false,256*KB);
+    if(adapted){assert(atom_a.buffer==atom_b.buffer && atom_b.offset==256*KB);}
+
+    // Held, unaligned/unspecified, wrong-type and earlier-tick resources remain excluded.
+    for(unsigned mode=0;mode<8;++mode){
+        StagingBufferPool excluded;
+        const auto type=mode==2?MemoryType::DeviceLocal:mode==3?MemoryType::HostCached:MemoryType::HostUncached;
+        excluded.Seed(MB,type);
+        const u64 alignment=mode==4?0:mode==5?3:256;
+        if(mode==6)excluded.instance.atom=0;
+        if(mode==7)excluded.instance.atom=3;
+        auto one=excluded.Get(64*KB+7,type,mode==0,alignment);
+        if(mode==1)++excluded.scheduler.current;
+        auto two=excluded.Get(64*KB+7,type,false,alignment);
+        assert(one.buffer!=two.buffer && two.offset==0);
+    }
+    // A deferred request cannot borrow the tail of an ordinary upload.
+    StagingBufferPool held;held.Seed(MB);
+    auto ordinary=held.Get(64*KB),deferred=held.Get(64*KB,MemoryType::HostUncached,true);
+    assert(ordinary.buffer!=deferred.buffer);
+    held.scheduler.completed=held.scheduler.current++;
+    auto while_held=held.Get(64*KB);
+    assert(while_held.buffer!=deferred.buffer);
+    held.FreeDeferred(deferred);
+    auto before_completion=held.Get(64*KB);
+    assert(before_completion.buffer!=deferred.buffer);
+    held.scheduler.completed=held.scheduler.current++;
+    auto after_completion=held.Get(64*KB);
+    assert(after_completion.buffer==deferred.buffer && after_completion.offset==0);
+
+    // Once the tail fills, allocation is required; no size truncation or wrap.
+    StagingBufferPool full;full.Seed(MB);
+    auto f=full.Get(MB-64*KB),last=full.Get(64*KB),overflow=full.Get(1);
+    if(adapted){assert(f.buffer==last.buffer && last.offset==MB-64*KB);assert(overflow.buffer!=f.buffer);}
+    StagingBufferPool malformed;auto bad=malformed.Seed(MB);
+    auto& bad_entry=malformed.large_caches[1][0];
+    bad_entry.tick=malformed.scheduler.current;bad_entry.tail_open=true;bad_entry.used_bytes=~u64(0);
+    assert(malformed.Get(1).buffer!=bad);
+    StagingBufferPool wrapping;auto huge=wrapping.Seed(~u64(0));
+    auto& huge_entry=wrapping.large_caches[1][0];
+    huge_entry.tick=wrapping.scheduler.current;huge_entry.tail_open=true;huge_entry.used_bytes=~u64(0)-7;
+    assert(wrapping.Get(1).buffer!=huge);
+    // Cross-tick reuse resets the prefix only after actual completion.
+    StagingBufferPool cycles;cycles.Seed(MB);
+    auto old=cycles.Get(64*KB);++cycles.scheduler.current;
+    auto busy=cycles.Get(64*KB);assert(old.buffer!=busy.buffer);
+    cycles.scheduler.completed=cycles.scheduler.current++;
+    auto recycled=cycles.Get(128*KB);assert(recycled.buffer==old.buffer && recycled.offset==0);
+    const unsigned destruction_before=Buffer::destroyed;
+    for(unsigned i=0;i<16;++i)cycles.Get(64*KB);
+    assert(Buffer::destroyed==destruction_before); // No live/retained buffer destruction.
+    std::puts("PASS: nonoverlap, payload/flush offsets, alignment, held/type/tick/full/growth controls");
+    return adapted?0:2;
+}

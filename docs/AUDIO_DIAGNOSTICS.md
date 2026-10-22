@@ -1,5 +1,23 @@
 # Audio delivery diagnostics
 
+The **16:32 UTC comparison on 2026-10-22** ends on Metal OOM after 104.474
+supervisor seconds, confirmed child/supervisor exit 23. Its 38 complete audio
+windows (nineteen per port, about 95.14 seconds) deliver **47,873-47,874 input
+frames/s**, with a **76.525 ms maximum gap** and no queue/output failure. The
+earlier 16:26 comparison stops after 15.167 seconds; its four complete windows
+deliver 43,823-43,882 input frames/s with a 345.414 ms maximum gap, also without
+a queue failure. Different durations prevent interpreting raw maximum gaps as
+equivalent jitter rates. Neither capture exercises the failure-only backend
+snapshots or establishes audible continuity. The newer run's closure is a Metal
+memory error, not the previously observed stopped audio input queue.
+
+The **15:58 UTC comparison on 2026-10-22** ends early on Metal OOM after 11.704
+supervisor seconds, with confirmed child/supervisor exit 23. It contains only
+two complete audio windows, one per port (about five seconds each), delivering
+47,520–47,533 input frames/s with a 29.515 ms maximum gap and no queue/output
+failure. This short capture does not establish sustained audible continuity or
+validate the failure-only backend snapshots.
+
 The **15:27 UTC comparison on 2026-10-22** records 52 healthy windows, 26 per
 port, spanning about 130.227 seconds per port and delivering **47,734 input
 frames/s**. The largest submission gap is **95.384 ms**; no queue wait failure,

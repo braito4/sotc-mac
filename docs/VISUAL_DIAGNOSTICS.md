@@ -1,5 +1,16 @@
 # Private visual diagnostics
 
+The submission journal's stall/failure dump now has separate `Metal native`
+property observations. A weak command-buffer observer samples status/error,
+retained-reference policy and device allocation only while reporting, without
+GPU waits. `probe_registered=0`, `available=0`, `probe_error=1` and
+`memory_available=0` denote distinct missing evidence; numeric zero fields do
+not supply a missing memory measurement. Callback `status=0` without a completion
+callback is still unobserved, not native NotEnqueued. Read the separate property
+line and its availability flags. These sequential CPU properties are not an
+atomic GPU-state capture or a shader progress marker. No native comparison has
+validated this addition yet; source/journal/ARC fixtures use CPU objects only.
+
 The combined graphics launcher enables `SOTC_VISUAL_TRACE=1`. Set it to `0` to
 disable the recorder. This adds CPU metadata and native allocation polling, not a
 claim that any presentation contains correct pixels. Scene configuration stays

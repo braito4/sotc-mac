@@ -20,11 +20,11 @@ def main():
         'std::pair<const Buffer*, u64> BufferCache::UnifiedCopy('))
     destruction='\n'.join(function(image,s) for s in ('UniqueImage::~UniqueImage()', 'void UniqueImage::Destroy()'))
     prefix=fixture(tree).replace('int main(){','int staging_fixture_main(){')
-    prefix=prefix.replace('struct Instance {};','struct Instance {u64 StorageMinAlignment()const{return 256;}};')
+    prefix=prefix.replace('struct Instance {','struct Instance {u64 StorageMinAlignment()const{return 256;}')
     prefix=prefix.replace('MemoryType type{};};','MemoryType type{};void Flush()const{}};')
-    prefix=prefix.replace('    StagingBufferRef RequestLarge(u64,MemoryType,bool);',
-        '    StagingBufferRef Request(u64 size,MemoryType type,u64){return RequestLarge(size,type,false);}\n'
-        '    StagingBufferRef RequestLarge(u64,MemoryType,bool);')
+    prefix=prefix.replace('    void FreeDeferred(',
+        '    StagingBufferRef Request(u64 size,MemoryType type,u64 alignment){return RequestLarge(size,type,false,alignment);}\n'
+        '    void FreeDeferred(')
     code=prefix+r'''
 #include <optional>
 using VAddr=u64;

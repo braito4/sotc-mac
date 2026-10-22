@@ -131,6 +131,25 @@ user-space timer guarantees recovery from a kernel/driver hang.
 
 ## Isolated renderer build
 
+The checked Metal retention regression (`python3 tools/check_metal_retention.py`)
+uses production batch creation, rollover, commit and scratch-return methods with
+Foundation CPU doubles. The original unretained policy must reproduce premature
+resource release and the adapted policy must preserve objects until completion.
+No Metal framework/device, native game or GPU test runs in this regression.
+
+The checked staging-tail regression (`python3 tools/check_staging_tail.py`)
+compares actual preceding/adapted allocation methods with CPU resource doubles.
+It verifies disjoint payloads/flush offsets, alignment, ownership, completion,
+full tails and growing requests without allocating multi-GiB payloads or using
+a GPU. Native memory savings remain pending.
+
+The checked binding-copy regression (`python3 tools/check_binding_copy.py`) runs
+the actual unified binding/copy and staging allocation methods against CPU
+doubles. It compares duplicate read-only bindings before/after the correction,
+checks exact synthetic payloads and verifies mapping, tick, range, write,
+formatting and scope guards. Large capacities are symbolic; the test neither
+allocates GiB of RAM nor initializes a GPU. The builder runs it automatically.
+
 The checked integer-blit regression (`python3 tools/check_integer_blit.py`) uses
 the production format selector, compatibility guards and shader bodies with CPU
 texture doubles. It checks exact signed/unsigned texels and mip selection without
@@ -171,8 +190,8 @@ auxiliary SPIR-V emitter without initializing a GPU. Keep this separate from the
 native Terminal visual verification.
 
 The current full build also checks pipeline validity, copy chunking, staging
-reuse, memory observations, deferred scene-proxy ownership, completed coroutine
-frames, collector-content safety and synthetic shader conversion without
+reuse, staging tails, adjacent binding-copy sharing, memory observations, deferred scene-proxy
+ownership, completed coroutine frames, collector-content safety and synthetic shader conversion without
 initializing a GPU. Cache is 24/9. These checks do not establish native game video.
 
 glslang 16.6.0 is selected for host shaders. The builder recognizes a locally built

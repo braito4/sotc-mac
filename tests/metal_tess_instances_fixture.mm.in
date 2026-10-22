@@ -1,0 +1,79 @@
+#import <Foundation/Foundation.h>
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
+#include <utility>
+#include <vector>
+using u32=std::uint32_t; using u64=std::uint64_t; using s32=std::int32_t;
+@protocol MTLBuffer <NSObject> @end
+struct Encoded { u32 controls; u64 patches, instance; };
+static std::vector<Encoded> encoded;
+@interface Encoder : NSObject
+- (void)setTessellationFactorBuffer:(id)b offset:(u64)o instanceStride:(u64)s;
+- (void)drawPatches:(u32)c patchStart:(u64)s patchCount:(u64)n patchIndexBuffer:(id)b
+    patchIndexBufferOffset:(u64)o instanceCount:(u64)i baseInstance:(u64)base;
+@end
+@implementation Encoder
+- (void)setTessellationFactorBuffer:(id)b offset:(u64)o instanceStride:(u64)s {
+    (void)b; assert(o%64==3 && s==0);
+}
+- (void)drawPatches:(u32)c patchStart:(u64)s patchCount:(u64)n patchIndexBuffer:(id)b
+    patchIndexBufferOffset:(u64)o instanceCount:(u64)i baseInstance:(u64)base {
+    assert(s==0 && !b && o==0 && i==1); encoded.push_back({c,n,base});
+}
+@end
+struct DrawSnap { int state{}; };
+@PENDING@
+namespace Metal {
+constexpr unsigned kTessInputBuffer=1,kTessPatchBuffer=2,kTessFactorBuffer=3;
+struct TessellationPipeline { u32 input_control_points=3,output_control_points=4; };
+namespace Tessellation { struct DrawParams { u32 num_vertices{},first_vertex{},first_instance{}; }; }
+}
+struct Entry { std::shared_ptr<Metal::TessellationPipeline> tess=std::make_shared<Metal::TessellationPipeline>(); };
+struct Owned {
+    std::shared_ptr<Entry> graphics=std::make_shared<Entry>();
+    bool last_draw_tess{},pass=true,prepare=true;
+    int state=17;
+    Encoder* render=[Encoder new];
+    std::vector<PendingPatch> pending;
+};
+struct { u64 tess_draws{},tess_after_tess{},skipped_tess{},draws{}; } stats;
+static void Log(const char*) {}
+static DrawSnap Snap(Owned& o){return {o.state};}
+static void Apply(Owned& o,DrawSnap&& snap){o.state=snap.state;}
+static bool PrepareDraw(Owned& o){return o.prepare;}
+enum class Stage { Vertex };
+static void SetBuffer(Owned&, Stage, id, u64 offset, unsigned slot){assert(offset%64==slot);}
+struct Leaf { u32 vertices,first_vertex,instance,first; s32 vertex_offset; bool indexed; u32 first_index; };
+static std::vector<Leaf> leaves;
+@DRAW@
+@FLUSH@
+static void Reset(){leaves.clear();encoded.clear();stats={};}
+int main(int argc,char** argv){ @autoreleasepool {
+    assert(argc==2); constexpr bool implementation=@IMPLEMENTATION@; const bool skip=argv[1][0]=='s';
+    Owned o;
+    TessellatedDraw(o,6,0,9,0,7,false,0); assert(leaves.empty());
+    TessellatedDraw(o,2,3,9,0,7,false,0); assert(leaves.empty());
+    o.pass=false; TessellatedDraw(o,6,1,9,0,7,false,0); assert(leaves.empty()); o.pass=true;
+    Reset();
+    TessellatedDraw(o,6,3,9,0,7,false,0);
+    const bool adapted=leaves.size()==3;
+    if(skip){assert(leaves.empty() && stats.skipped_tess==1);}
+    else if(adapted){
+        assert(stats.tess_draws==3 && stats.draws==3 && o.pending.size()==3);
+        for(unsigned i=0;i<3;++i){assert(leaves[i].instance==7+i && leaves[i].vertices==6 && leaves[i].first_vertex==9);}
+        o.state=31; FlushPending(o); assert(o.pending.empty() && o.state==31 && encoded.size()==3);
+        for(unsigned i=0;i<3;++i){assert(encoded[i].instance==7+i && encoded[i].patches==2 && encoded[i].controls==4);}
+    }else{assert(leaves.empty() && o.pending.empty());}
+    Reset();
+    TessellatedDraw(o,6,1,12,-2,5,true,11); assert(leaves.size()==1);
+    assert(leaves[0].first_vertex==u32(-2) && leaves[0].first_index==11 && leaves[0].indexed);
+    FlushPending(o); assert(encoded.size()==1);
+    assert(encoded[0].instance==(implementation?5:0));
+    Reset(); TessellatedDraw(o,6,1,0,0,0,false,0); o.prepare=false; FlushPending(o);
+    assert(encoded.empty() && o.pending.empty());
+    std::printf("multi-instance encoded=%d; skip control=%d; single/indexed/empty/replay controls passed\n",adapted,skip);
+    return skip || adapted ? 0 : 2;
+} }
