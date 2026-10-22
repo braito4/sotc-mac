@@ -1,4 +1,13 @@
-# Upstream review: 2026-10-21
+# Upstream review: 2026-10-22
+
+The new [PerVertexKHR investigation](PERVERTEX_REVIEW.md) records MoltenVK #2858,
+SPIRV-Cross #2699, relevant overhead commits and the isolated synthetic compiler
+experiment. [Dependency watch](DEPENDENCY_WATCH.md) records the requested
+bmy/bbport-mac review, current branch and continuing review sources. Its applicable
+copy-region recording fix is adapted with checked digests and an actual-source
+CPU regression. Native memory exhaustion and correct scene rendering remain
+unresolved. The historical upstream comparison below is retained with its dated
+observations.
 
 The requested [bloodborne-mac history](https://github.com/bloodborne-native/bloodborne-mac/commits/main/)
 contains newer release notes and runtime bumps than our original review. The app

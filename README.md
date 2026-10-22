@@ -161,6 +161,17 @@ See [Development status](docs/STATUS.md) for the measured scope and next checks.
 
 ## Additional diagnostics
 
+[Visual diagnostics](docs/VISUAL_DIAGNOSTICS.md) now record private presentation,
+draw-skip and allocation evidence, with optional bounded game-frame previews and
+an offline HTML report. Scene rendering stays 640x360; capture defaults off and
+native GPU validation is pending. The
+[PerVertexKHR review](docs/PERVERTEX_REVIEW.md) documents experimental upstream
+proposals and an isolated CPU conversion test. The
+[dependency watch](docs/DEPENDENCY_WATCH.md) records continuing upstream review and
+the adapted fix for oversized buffer-copy recording.
+The owner reports audio cuts; [audio delivery diagnostics](docs/AUDIO_DIAGNOSTICS.md)
+add timing/queue evidence without recording PCM. An audible fix is not yet verified.
+
 ```sh
 bash packaging/test-arm64.sh --graphics-check
 bash packaging/test-arm64.sh --content-check

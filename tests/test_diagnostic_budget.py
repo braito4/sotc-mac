@@ -140,7 +140,15 @@ class LauncherBudgetTests(unittest.TestCase):
                            'import json,os,sys\n'
                            'with open(os.environ["SOTC_FIXTURE_CALLS"],"a") as out:\n'
                            '    out.write(json.dumps({"args":sys.argv[1:],'
-                           '"budget":os.getenv("SOTC_DIAGNOSTIC_SECONDS")})+"\\n")\n',
+                           '"budget":os.getenv("SOTC_DIAGNOSTIC_SECONDS"),'
+                           '"visual":os.getenv("SOTC_VISUAL_TRACE"),'
+                           '"audio":os.getenv("SOTC_AUDIO_TRACE"),'
+                           '"capture":os.getenv("SOTC_VISUAL_CAPTURE")})+"\\n")\n'
+                           'if "run_gpu_diagnostic.py" in sys.argv[1] and "--bootstrap" in sys.argv:\n'
+                           '    os.mkdir(os.path.join(os.environ["BB_GPU_USER_DIR"],"visual"))\n'
+                           '    sys.exit(int(os.getenv("SOTC_FIXTURE_EXIT","0")))\n'
+                           'if "analyze_visual_trace.py" in sys.argv[1]:\n'
+                           '    sys.exit(int(os.getenv("SOTC_FIXTURE_REPORT_EXIT","0")))\n',
             }
             for name, source in sources.items():
                 stub = stubs/name
@@ -153,11 +161,21 @@ class LauncherBudgetTests(unittest.TestCase):
                                SOTC_FIXTURE_CALLS=str(calls), BB_DIRECT_MEMORY_ACCESS='0')
                     env.pop('SOTC_DIAGNOSTIC_SECONDS', None)
                     env.pop('BB_DEPS', None)
+                    env.pop('SOTC_VISUAL_TRACE', None)
+                    env.pop('SOTC_VISUAL_CAPTURE', None)
+                    env.pop('SOTC_AUDIO_TRACE', None)
+                    if configured == '120':
+                        env['SOTC_VISUAL_CAPTURE'] = '1'
+                    if configured == '1800':
+                        env['SOTC_VISUAL_TRACE'] = '0'
+                        env['SOTC_AUDIO_TRACE'] = '0'
+                        env['SOTC_FIXTURE_EXIT'] = '23'
+                        env['SOTC_FIXTURE_REPORT_EXIT'] = '9'
                     if configured is not None:
                         env['SOTC_DIAGNOSTIC_SECONDS'] = configured
                     result = subprocess.run(['/bin/bash',str(script),'--graphics-game-test'],
                         env=env,capture_output=True,text=True,timeout=10)
-                    self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                    self.assertEqual(result.returncode,23 if configured == '1800' else 0,result.stdout+result.stderr)
                     supervised = [json.loads(line) for line in calls.read_text().splitlines()
                                   if 'run_gpu_diagnostic.py' in line]
                     self.assertEqual(len(supervised),2)
@@ -165,4 +183,8 @@ class LauncherBudgetTests(unittest.TestCase):
                     self.assertEqual(metal['args'][metal['args'].index('--seconds')+1],'10')
                     self.assertEqual(game['args'][game['args'].index('--seconds')+1],configured or '0')
                     self.assertEqual(game['budget'],configured or '0')
+                    self.assertEqual(game['visual'], '0' if configured == '1800' else '1')
+                    self.assertEqual(game['capture'], '1' if configured == '120' else '0')
+                    self.assertEqual(game['audio'], '0' if configured == '1800' else '1')
+                    self.assertIn('analyze_visual_trace.py', calls.read_text())
                     self.assertIn('--cooperative-stop', game['args'])

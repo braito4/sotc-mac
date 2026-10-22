@@ -1,5 +1,21 @@
 # Reviewed renderer adaptations
 
+The `sotc-visual-trace` overlay adds bounded private presentation/draw/memory
+evidence and optional completed game-image readbacks; see
+[visual diagnostics](../../docs/VISUAL_DIAGNOSTICS.md). Metadata defaults on in the
+combined launcher; pixel capture defaults off. No rendering resolution, fence
+completion or existing resource lifetime is replaced.
+
+`sotc-buffer-copy-chunks` adapts
+[bmy/bbport-mac 5f381d5dd190](https://github.com/bmy/bbport-mac/commit/5f381d5dd190f55b6dae5608a162b6807c688928)
+(GPL-2.0-or-later) to both pinned buffer-copy paths. Groups of at most 4096 regions
+fit data/alignment/command headroom in a recording chunk; barriers/access tracking
+stay outside the grouping. `tools/check_buffer_copy_chunks.py` compiles actual
+source methods and the actual scheduler reservation guard, reproduces the pinned
+overflow and checks the correction without a GPU. This is separate from native
+Metal out-of-memory errors. The manifest also accepts the exact preceding
+command-error overlay state and migrates it without reapplying earlier patches.
+
 The three upstream GPL-2.0-or-later backports come from bloodborne-native/bloodborne-runtime,
 built on bbport and shadPS4. The separate `sotc-submission-trace` patch is a local
 SotC diagnostic adaptation, not an upstream fix. The separate

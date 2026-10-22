@@ -18,6 +18,19 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
+    def test_command_error_state_migrates_to_visual_evidence(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            manifest = gpu.backport_manifest()
+            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
+                              for name in manifest['command_error_patches'])
+            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
+                           capture_output=True, check=True)
+            self.assertEqual(gpu.backport_state(source), 'command_error')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source), 'after')
+
     def backport_fixture(self, root):
         for name in gpu.backport_manifest()['files']:
             target = root / name

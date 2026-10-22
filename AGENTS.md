@@ -4,6 +4,9 @@ This repository develops a native ARM64 macOS diagnostic for Shadow of the Colos
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
 Use docs/DEVELOPMENT_HANDOFF.md for the current reproduction steps, stopping boundary and debugging priorities; keep it current when those change.
 Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred upstream reference when resolving doubts. Follow its runtime/recomp links and review relevant changes against our pins; do not assume Bloodborne-specific layouts apply to SotC or silently update dependencies.
+Also review bmy/bbport-mac, MoltenVK, SPIRV-Cross and KosmicKrisp as requested by
+the owner. Read docs/DEPENDENCY_WATCH.md and record branch/SHA changes; the daily
+public-source watch notifies about relevant changes but does not update pins.
 
 - Maintain code in runtime/src, tests, tools and packaging. work, game and logs are private
   local output/input; never promote their generated content into Git.
@@ -16,6 +19,17 @@ Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
   runtime changes and native CPU checks when changing the CPU context bridge.
+- The visual journal defaults on in the combined launcher; pixel readback remains
+  opt-in via SOTC_VISUAL_CAPTURE=1. Read docs/VISUAL_DIAGNOSTICS.md for limits and
+  evidence semantics. Scene stays 640x360. ARM64 build/CPU checks pass; no new GPU
+  run validates captures or fixes memory. bmy's 4096-region copy batching is adapted
+  with an original-vs-adapted CPU capacity regression. PerVertex proposals remain
+  isolated: docs/PERVERTEX_REVIEW.md records draft status and synthetic conversion
+  results, not runtime integration or correct M1 pixels.
+- The owner reports audio cuts. Combined diagnostics now enable SOTC_AUDIO_TRACE=1
+  for bounded per-port timing/queue metadata and output errors. Read
+  docs/AUDIO_DIAGNOSTICS.md; input-queue zero is not hardware-underrun evidence.
+  Keep real PCM/error contracts; no native evidence identifies or fixes the cuts yet.
 - The newest owner-run preset-4 capture confirms Metal out-of-memory failure after
   83.45 seconds: actual NSError domain/code/description, 11.65 GiB native allocation
   versus 11.84 GiB recommended, and a complete two-compute-candidate command tail.

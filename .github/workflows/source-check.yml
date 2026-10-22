@@ -24,3 +24,7 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_gpu_supervisor.py
       - name: Check submission metadata on the CPU
         run: python3 -m unittest discover -s tests -p test_gpu_submission_trace.py
+      - name: Check bounded visual evidence without a GPU
+        run: python3 -m unittest discover -s tests -p test_visual_trace.py
+      - name: Check audio timing metrics without sound
+        run: python3 -m unittest discover -s tests -p test_audio_trace.py

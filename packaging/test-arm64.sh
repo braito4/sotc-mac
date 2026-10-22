@@ -87,6 +87,7 @@ test_cpu_sse4a() {
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_visual_trace.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_metadata.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py
@@ -156,6 +157,7 @@ contracts() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_gamepad.c" "${trial_sources[@]}" -o "$trial_root/work/test_gamepad"
     clang "${trial_flags[@]}" "$trial_root/tests/test_audio.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio"
     clang "${trial_flags[@]}" "$trial_root/tests/test_audio_output.c" "${trial_sources[@]}" -o "$trial_root/work/test_audio_output"
+    python3 -m unittest discover -s "$trial_root/tests" -p test_audio_trace.py
     clang "${trial_flags[@]}" "$trial_root/tests/test_graphics_color.c" "${trial_sources[@]}" -o "$trial_root/work/test_graphics_color"
     for trial_color_case in unequal reserved size; do
         trial_log="$trial_prefix-color-$trial_color_case.log"
@@ -335,13 +337,15 @@ case "$trial_mode" in
         if [[ "${BB_FRAME_STATS:-}" == 1 ]]; then
             export BB_FRAME_LOG="${BB_FRAME_LOG-$trial_gpu_state/frames.csv}"
             if [[ -n "$BB_FRAME_LOG" ]]; then
-                printf 'GPU flip statistics: %s (buffered; the final rows may be absent after cancellation).\n' "$BB_FRAME_LOG"
+                printf 'GPU flip statistics: %s (line-buffered when visual tracing is enabled).\n' "$BB_FRAME_LOG"
             fi
         fi
         printf 'Experimental graphics initialization; no game frame established. Log: %s\n' "$trial_log"
         if BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
             BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
             SOTC_GPU_SUBMIT_TRACE="${SOTC_GPU_SUBMIT_TRACE:-1}" \
+            SOTC_VISUAL_TRACE="${SOTC_VISUAL_TRACE:-1}" SOTC_VISUAL_CAPTURE="${SOTC_VISUAL_CAPTURE:-0}" \
+            SOTC_AUDIO_TRACE="${SOTC_AUDIO_TRACE:-1}" \
             SOTC_DIAGNOSTIC_SECONDS="${SOTC_DIAGNOSTIC_SECONDS-0}" \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \
@@ -349,6 +353,10 @@ case "$trial_mode" in
             -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
             --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build/libbbgpu.dylib"
         then trial_status=0; else trial_status=$?; fi
+        if [[ -d "$trial_gpu_state/visual" ]]; then
+            python3 "$trial_root/tools/analyze_visual_trace.py" "$trial_gpu_state/visual" || \
+                printf 'Visual report unavailable; original diagnostic status is %s.\n' "$trial_status" >&2
+        fi
         case "$trial_status" in
             20) printf 'Stopped at an unimplemented import with the graphics provider enabled; gameplay unverified.\n' ;;
             *) exit "$trial_status" ;;

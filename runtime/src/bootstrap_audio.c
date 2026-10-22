@@ -4,6 +4,7 @@
  * Output submission uses actual SDL queues; volume updates remain unresolved.
  */
 #include "bootstrap_audio.h"
+#include "audio_trace_metrics.h"
 #include "platform.h"
 #include <limits.h>
 #include <pthread.h>
@@ -24,15 +25,63 @@ typedef struct {
     int type, restricted, channels, sample_bytes, standard_layout;
     uint32_t frames;
     uint64_t next_deadline;
+    SotcAudioMetrics metrics;
     void *stream;
 } AudioPort;
 static AudioPort ports[PORTS];
 static uint64_t init_requests, open_requests, opened, closed, failures, state_queries;
 static uint64_t output_calls, output_errors, submitted_buffers, submitted_bytes, drains;
+static int trace_enabled, trace_open_attempted;
+static unsigned trace_lines, trace_error_lines;
+static FILE *trace_file;
+static uint64_t audio_now(void);
+/* audio_lock serializes all trace state. Input queue zero is not a device
+ * underrun: SDL_GetAudioStreamQueued reports unconverted input bytes only. */
+static void audio_trace_write(const char *line) {
+    if(!trace_enabled || trace_lines>=1024) return;
+    if(!trace_open_attempted) {
+        trace_open_attempted=1;
+        const char *root=getenv("BB_GPU_USER_DIR");
+        char path[PATH_MAX];
+        const int n=root && root[0]=='/' ? snprintf(path,sizeof(path),"%s/audio.jsonl",root):-1;
+        if(n>0 && (size_t)n<sizeof(path)) trace_file=fopen(path,"wx");
+    }
+    fprintf(stderr,"AudioTrace: %s\n",line);
+    if(trace_file) { fprintf(trace_file,"%s\n",line);fflush(trace_file); }
+    ++trace_lines;
+}
+static void audio_trace_port(AudioPort *p, uint64_t now, int boundary) {
+    SotcAudioMetrics *s=&p->metrics;
+    if(!trace_enabled || (!s->buffers && !s->queue_wait_failures) ||
+       (!boundary && now-s->start_ns<UINT64_C(5000000000))) return;
+    static const char *reasons[]={"periodic","close","drain","queue_or_put_error","report"};
+    char line[1400];
+    snprintf(line,sizeof(line),
+        "{\"schema\":1,\"event\":\"audio_window\",\"monotonic_ns\":%llu,\"port\":%d,"
+        "\"boundary\":\"%s\",\"frames\":%u,\"channels\":%d,\"period_us\":%llu,\"window_us\":%llu,"
+        "\"accepted_buffers\":%llu,\"accepted_bytes\":%llu,\"max_submit_gap_us\":%llu,"
+        "\"gaps_over_two_periods\":%llu,\"max_deadline_late_us\":%llu,\"late_over_period\":%llu,"
+        "\"input_queue_min_bytes\":%d,\"input_queue_max_bytes\":%d,\"input_queue_samples\":%llu,"
+        "\"input_queue_zero_samples\":%llu,\"queue_wait_us\":%llu,\"max_queue_wait_us\":%llu,"
+        "\"queue_wait_failures\":%llu,\"max_output_lock_wait_us\":%llu}",
+        (unsigned long long)now,p->handle,reasons[boundary],p->frames,p->channels,
+        (unsigned long long)((uint64_t)p->frames*1000000/48000),
+        (unsigned long long)((now>=s->start_ns ? now-s->start_ns:0)/1000),
+        (unsigned long long)s->buffers,(unsigned long long)s->bytes,
+        (unsigned long long)(s->max_gap_ns/1000),(unsigned long long)s->gaps_over_two_periods,
+        (unsigned long long)(s->max_late_ns/1000),(unsigned long long)s->late_over_period,
+        s->input_samples ? s->input_min:-1,s->input_max,(unsigned long long)s->input_samples,
+        (unsigned long long)s->input_zero_samples,(unsigned long long)(s->queue_wait_ns/1000),
+        (unsigned long long)(s->max_queue_wait_ns/1000),(unsigned long long)s->queue_wait_failures,
+        (unsigned long long)(s->max_lock_wait_ns/1000));
+    audio_trace_write(line);sotc_audio_reset(s,now);
+}
 int bootstrap_audio_bind(const BootstrapAudioBackend *input) {
     pthread_mutex_lock(&audio_lock);
     if (configured) { pthread_mutex_unlock(&audio_lock); return -1; }
     configured=1;
+    const char *trace=getenv("SOTC_AUDIO_TRACE");
+    trace_enabled=trace && !strcmp(trace,"1");
     ready=input && (input->initialized_subsystems & 0x10) && input->driver && !strcmp(input->driver,"coreaudio") &&
           input->open && input->resume && input->destroy;
     if (ready) backend=*input;
@@ -77,6 +126,7 @@ static int32_t audio_open(int32_t user,int32_t type,int32_t index,uint32_t frame
             ports[slot].channels=spec.channels;
             ports[slot].frames=frames;ports[slot].sample_bytes=spec.format==0x8120 ? 4:2;
             ports[slot].standard_layout=format>=6;
+            sotc_audio_reset(&ports[slot].metrics,audio_now());
             /* Restricted is a port attribute, never a sample-format index.
              * These streams only target playback: no capture, loopback or
              * audio dump path is exposed by this adapter. */
@@ -92,6 +142,7 @@ static int32_t audio_close(int32_t handle) {
     pthread_mutex_lock(&audio_lock);
     int32_t result=AUDIO_ERROR(3);
     for(int i=0;i<PORTS;++i) if(ports[i].stream && ports[i].handle==handle) {
+        audio_trace_port(&ports[i],audio_now(),1);
         backend.destroy(ports[i].stream);memset(&ports[i],0,sizeof(ports[i]));++closed;result=0;break;
     }
     pthread_mutex_unlock(&audio_lock);return result;
@@ -130,9 +181,10 @@ static uint64_t audio_now(void) {
     if(clock_gettime(CLOCK_MONOTONIC,&now)) return 0;
     return (uint64_t)now.tv_sec*UINT64_C(1000000000)+(uint64_t)now.tv_nsec;
 }
-static int wait_queue(AudioPort *port,int limit,uint64_t timeout) {
+static int wait_queue(AudioPort *port,int limit,uint64_t timeout,int *level) {
     for(;;) {
         const int queued=backend.queued(port->stream);
+        if(level) *level=queued;
         if(queued<0) return -1;
         if(queued<=limit) return 0;
         const uint64_t now=audio_now();
@@ -143,7 +195,7 @@ static int wait_queue(AudioPort *port,int limit,uint64_t timeout) {
 /* Called under audio_lock: close cannot destroy a stream during an output or
  * drain. Validate the entire batch and stage guest bytes before submitting any
  * PCM. A later provider failure may still leave earlier streams submitted. */
-static int32_t output_batch(const void *parameters,uint32_t count) {
+static int32_t output_batch(const void *parameters,uint32_t count,uint64_t lock_wait) {
     if(!initialized) return AUDIO_ERROR(0xf);
     if(!count || count>25) return AUDIO_ERROR(5);
     if(!parameters || (uintptr_t)parameters>UINTPTR_MAX-count*sizeof(AudioOutput)) return AUDIO_ERROR(4);
@@ -204,14 +256,29 @@ static int32_t output_batch(const void *parameters,uint32_t count) {
         AudioPort *p=selected[i];
         const int bytes=(int)(p->frames*(unsigned)p->channels*(unsigned)p->sample_bytes);
         if(!batch[i].data) {
-            if(!backend.flush(p->stream) || wait_queue(p,0,timeout)) goto done;
+            if(!backend.flush(p->stream) || wait_queue(p,0,timeout,NULL)) goto done;
             ++drains;p->next_deadline=0;
+            if(trace_enabled) { audio_trace_port(p,audio_now(),2);p->metrics.last_submit_ns=0; }
         } else {
             /* At most two input buffers may remain queued. No silence is
              * inserted and a stalled/erroring device never claims success. */
-            if(wait_queue(p,bytes,timeout) || !backend.put(p->stream,pcm+offsets[i],bytes)) goto done;
+            const uint64_t before=trace_enabled ? audio_now():0;
+            int queued=-1;
+            const int waited=wait_queue(p,bytes,timeout,trace_enabled ? &queued:NULL);
+            if(trace_enabled) {
+                const uint64_t after=audio_now();
+                sotc_audio_wait(&p->metrics,after>=before ? after-before:0,queued,waited);
+            }
+            if(waited || !backend.put(p->stream,pcm+offsets[i],bytes)) {
+                if(trace_enabled) audio_trace_port(p,audio_now(),3);
+                goto done;
+            }
             ++submitted_buffers;submitted_bytes+=(unsigned)bytes;
             now=audio_now();
+            if(trace_enabled) {
+                sotc_audio_submit(&p->metrics,now,period,due,lock_wait,(unsigned)bytes);
+                audio_trace_port(p,now,0);
+            }
             p->next_deadline=(now>due && now-due>8*period ? now:due)+period;
         }
     }
@@ -220,9 +287,17 @@ done:
     free(pcm);return result;
 }
 static int32_t audio_outputs(const void *parameters,uint32_t count) {
+    const uint64_t entered=trace_enabled ? audio_now():0;
     pthread_mutex_lock(&audio_lock);++output_calls;
-    const int32_t result=output_batch(parameters,count);
+    const uint64_t locked=trace_enabled ? audio_now():0;
+    const int32_t result=output_batch(parameters,count,locked>=entered ? locked-entered:0);
     if(result<0) ++output_errors;
+    if(trace_enabled && result<0 && trace_error_lines<16) {
+        char line[256];
+        snprintf(line,sizeof(line),"{\"schema\":1,\"event\":\"audio_output_error\",\"monotonic_ns\":%llu,\"ports\":%u,\"result\":%d,\"output_errors\":%llu}",
+            (unsigned long long)audio_now(),count,result,(unsigned long long)output_errors);
+        audio_trace_write(line);++trace_error_lines;
+    }
     if(output_calls<=8) fprintf(stderr,"AudioOut: output ports=%u result=0x%08x, PCM buffers accepted=%llu\n",
         count,(uint32_t)result,(unsigned long long)submitted_buffers);
     pthread_mutex_unlock(&audio_lock);return result;
@@ -244,7 +319,10 @@ uintptr_t bootstrap_audio_resolve(const char *name) {
 void bootstrap_audio_report(void) {
     pthread_mutex_lock(&audio_lock);
     unsigned restricted=0;
-    for(int i=0;i<PORTS;++i) if(ports[i].stream && ports[i].restricted) ++restricted;
+    for(int i=0;i<PORTS;++i) if(ports[i].stream) {
+        restricted+=ports[i].restricted;
+        audio_trace_port(&ports[i],audio_now(),4);
+    }
     if(configured) printf("AudioOut: SDL ready=%d, initialized=%d, init requests=%llu, streams opened=%llu, closed=%llu, failures=%llu, restricted live=%u, state queries=%llu, output calls=%llu, PCM buffers=%llu, PCM bytes=%llu, drains=%llu, output errors=%llu\n",
         ready,initialized,(unsigned long long)init_requests,(unsigned long long)opened,
         (unsigned long long)closed,(unsigned long long)failures,restricted,(unsigned long long)state_queries,

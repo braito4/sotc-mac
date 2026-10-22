@@ -8,6 +8,44 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Visual evidence, copy recording and upstream watch
+
+The owner now additionally reports choppy audio. [Audio delivery tracing](AUDIO_DIAGNOSTICS.md)
+is enabled by default in the combined launcher and records private periodic
+metadata in stderr/`audio.jsonl`, summarized by the visual report. It measures
+actual submission gaps, input queue observations, deadline and queue/mutex waits;
+it does not label input-queue zero as a hardware underrun. PCM handling and queue
+policy remain. The old game log records only initial accepted output batches;
+no new native run identifies the cause or demonstrates an audible fix.
+
+The latest code adds [bounded visual diagnostics](VISUAL_DIAGNOSTICS.md), enabled
+as CPU metadata by the combined launcher. Optional `SOTC_VISUAL_CAPTURE=1` adds
+completed game-frame readbacks, at most one outstanding, every five seconds and
+24 attempts, with size/headroom/staleness guards. The offline report distinguishes
+API results from pixels, dark/unchanged preview measurements and draw-skip/memory
+totals. Complete timeline lines and the optional flip CSV are flushed; completed
+capture records survive timeline rotation. Rendering stays 640x360. The native
+ARM64 build, CPU evidence fixtures and full contracts pass. No owner GPU run has
+exercised this instrumentation, so its GPU behavior/overhead and memory benefit
+are unverified. The confirmed native failure below is still the current boundary.
+
+[bmy/bbport-mac](DEPENDENCY_WATCH.md) was reviewed at its actual current default
+branch `macos-native-0.6`. Its whole renderer/driver architecture is not imported.
+Its specific 4096-region copy batching correction is adapted to our two production
+copy paths, with capacity/alignment checks and actual-source CPU regressions. The
+pinned methods reproduce the recording-size failure; the adapted ones preserve
+copy data/order and barriers through larger cases. This prevents a separate CPU
+assertion, not the native out-of-memory failure below. Pins/cache version remain.
+
+The owner also requested ongoing dependency review; a daily public-source watch
+is configured, and its source list/baseline is in [Dependency watch](DEPENDENCY_WATCH.md).
+[MoltenVK #2858 and SPIRV-Cross #2699](PERVERTEX_REVIEW.md) are open drafts, not
+production replacements. The compiler proposal builds separately and converts
+four original synthetic per-vertex cases using an actual exported producer layout;
+default and incomplete-layout paths correctly reject them. Native GPU linking,
+topology/bindings, SotC shaders, pixels and runtime memory are not validated. Keep
+the current renderer intact while designing any future isolated integration.
+
 ### Confirmed native memory failure and reduced scene draws
 
 The newest owner-run preset-4 capture starts the main loop at about 1.46 seconds,

@@ -2,6 +2,26 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
+The owner also reports **audio cutting out**. Existing logs show initial PCM
+acceptance but do not locate the later interruptions. Periodic metadata-only
+[audio diagnostics](AUDIO_DIAGNOSTICS.md) now measure delivery gaps, deadline,
+mutex/queue waits and provider errors; the offline report includes these windows.
+Synthetic timing and actual guest-output checks run without sound/GPU. The
+audible problem and audiovisual alignment remain unresolved pending native evidence.
+
+**New code, awaiting owner GPU comparison:** bounded private visual journals,
+draw-skip counters, native/staging allocation samples and an offline report are
+implemented; optional completed game-frame readbacks produce previews at most
+320x180 while the scene stays 640x360. CPU fixtures and the ARM64 build pass.
+An adapted bmy/bbport-mac fix batches large buffer-copy region lists to fit actual
+scheduler chunks; source regressions reproduce the pinned capacity failure and
+pass after batching. This is separate from Metal memory exhaustion. A daily
+dependency/reference watch is configured. MoltenVK #2858 / SPIRV-Cross #2699
+remain experimental drafts: an isolated synthetic compiler experiment passes,
+but no integration, correct pixels or memory improvement is claimed. See
+[visual diagnostics](VISUAL_DIAGNOSTICS.md), [PerVertexKHR research](PERVERTEX_REVIEW.md)
+and [dependency review](DEPENDENCY_WATCH.md).
+
 **Newest boundary:** the latest owner-run preset-4 capture confirms native Metal
 out-of-memory failure after 83.45 seconds. The new completion-error handler records
 the actual NSError and allocation counters and self-exits; both child and supervisor

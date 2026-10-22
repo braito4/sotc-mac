@@ -1,6 +1,7 @@
 // Original fatal command-buffer diagnostics. No GPU/device APIs or recovery stubs.
 #pragma once
 #include "gpu_submission_trace.h"
+#include "gpu_visual_trace.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -30,6 +31,10 @@ inline void CheckMetalCommandFailure(const MetalCommandFailure& failure) {
                  (unsigned long long)failure.recording);
     if (failure.chunk && SotcGpuTrace::Enabled())
         SotcGpuTrace::Get().ReportMetalFailure(stderr, failure.chunk);
+    if (SotcVisual::Enabled()) {
+        SotcVisual::Get().NativeMemory(failure.allocated, failure.recommended);
+        SotcVisual::Get().Failure(failure.status, failure.code, failure.domain, failure.description);
+    }
     // A failed native command is not successful GPU progress. Do not signal a
     // substitute fence, retry the workload or wait for the later stall timeout.
     std::fflush(stderr);
