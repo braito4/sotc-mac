@@ -98,8 +98,13 @@ The ARM64 library builds. CPU synthetic tests cover pixel analysis, size overflo
 cadence/memory/in-flight/attempt limits, concurrent counters, timeline rotation,
 retention of capture records, partial logs, HTML escaping and preview validation.
 Launcher fixtures check defaults/overrides and preservation of exit 23 when the
-report fails. Full native JIT/interpreter contracts pass. Two owner runs now
-exercise the metadata journal, presentation API results and native failure
-recording; the newest also exercises periodic audio metadata. Neither enables
-pixel capture. Readback, rendered pixels, an overhead comparison and the new
-staging-reuse/audio-quantum corrections still need native validation.
+report fails. Full native JIT/interpreter contracts pass. Owner runs now exercise
+the metadata journal, presentation API results and native failure recording.
+The 07:23Z run on 2026-10-22 also confirms the actual audio quantum, near-48 kHz
+input delivery and four oversized staging reuses. Dedicated upload inventory is
+512 MiB lower than in the preceding comparison, but the game still ends on native
+memory exhaustion. The final staging snapshot is 31.8 seconds old; its reusable
+counts are not proof that releasing resources at failure is safe. See the
+[current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint) for the
+comparison and limits. Pixel capture stays off. Readback, rendered pixels and a
+tracing-overhead comparison still need native validation.

@@ -21,24 +21,28 @@ public-source watch notifies about relevant changes but does not update pins.
   runtime changes and native CPU checks when changing the CPU context bridge.
 - The visual journal defaults on in the combined launcher; pixel readback remains
   opt-in via SOTC_VISUAL_CAPTURE=1. Read docs/VISUAL_DIAGNOSTICS.md for limits and
-  evidence semantics. Scene stays 640x360. ARM64 build/CPU checks pass; no new GPU
-  run validates captures or fixes memory. bmy's 4096-region copy batching is adapted
+  evidence semantics. Scene stays 640x360. ARM64 build/CPU checks pass; owner runs
+  exercise metadata, but pixel capture remains untested and memory still fails.
+  bmy's 4096-region copy batching is adapted
   with an original-vs-adapted CPU capacity regression. PerVertex proposals remain
   isolated: docs/PERVERTEX_REVIEW.md records draft status and synthetic conversion
   results, not runtime integration or correct M1 pixels.
-- The owner reports audio cuts. Combined diagnostics now enable SOTC_AUDIO_TRACE=1
+- The owner now reports audio much improved. Combined diagnostics enable SOTC_AUDIO_TRACE=1
   for bounded per-port timing/queue metadata and output errors. Read
   docs/AUDIO_DIAGNOSTICS.md; input-queue zero is not hardware-underrun evidence.
-  The newest native windows show about half-rate delivery. An actual-source device
-  simulation reproduces the old queue-cap failure; the adapter now queries actual
-  device quantum/frequency and sizes its bounded queue accordingly. Native audible
-  improvement is still unverified. Keep real PCM/error contracts.
-- The newest 07:00Z run confirms another native OOM after 59.026 seconds and
-  records 3 GiB of dedicated upload staging. The new checked staging overlay reuses
-  the smallest completed/unheld sufficient buffer across size classes; it frees
-  nothing and keeps all ownership/tick/type guards. CPU regressions/ARM64 build
-  pass, but game memory savings remain unverified. Read the newest checkpoint;
-  earlier 83/64-second summaries below are historical. Keep all pins and settings.
+  The 07:23Z run measures about 47,684 input frames/s per port, up from 23,912,
+  and confirms the actual 1024-frame/48 kHz device quantum. Gaps still reach
+  121.85 ms; complete playback and audiovisual alignment remain unverified.
+  Keep real PCM/error contracts.
+- The newest 07:23Z run confirms native OOM after 137.642 seconds, child/supervisor
+  exit 23, at 11.70 GiB native allocation. It exercises four oversized staging
+  reuses; dedicated upload inventory is 2,560 MiB versus 3,072 MiB previously.
+  Total staging is 2,972 versus 3,500 MiB, but image allocations grow later and
+  memory exhaustion remains. The last staging snapshot is 31.8 seconds old:
+  reported reusable bytes are not permission to free live resources. Investigate
+  the single 2.5 GiB upload allocation and image lifetimes without changing
+  ownership/tick/import guards. Read the newest checkpoint; earlier summaries
+  below are historical. Keep all pins and settings.
 - An earlier owner-run preset-4 capture confirms Metal out-of-memory failure after
   83.45 seconds: actual NSError domain/code/description, 11.65 GiB native allocation
   versus 11.84 GiB recommended, and a complete two-compute-candidate command tail.

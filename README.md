@@ -13,11 +13,12 @@
 > **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
 > The owner has visually confirmed the logos/menu, opening introduction audio and
-> now the 3D animation with rendering defects. The latest preset-4 capture confirms
-> no duration deadline and detects a DualSense, then stops on confirmed native Metal
-> memory exhaustion after about 59 seconds. The error handler records the real
-> failure and exits with confirmed status; the latest run also records reduced scene
-> draws. Correct rendering and the memory cause remain unresolved. See the
+> now the 3D animation with rendering defects. Audio is now reported much improved,
+> with measured input delivery close to 48 kHz. The latest preset-4 capture detects
+> a DualSense and runs without a duration deadline, then stops on confirmed native
+> Metal memory exhaustion after about 138 seconds. Staging reuse is exercised with
+> less retained upload memory, but correct rendering and memory stability remain
+> unresolved. The error handler exits with confirmed status. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 > The diagnostic reaches the main loop with game GPU commands and a physical controller.
 > Introduction video correctness, entering a playable scene,
@@ -105,16 +106,18 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 supersedes the historical run summaries below. The owner now sees defective 3D
 animation; the latest preset-4 run stops on a confirmed native Metal memory error
-after about 59 seconds. The updated completion handler records the failure and
+after about 138 seconds. The updated completion handler records the failure and
 native memory details, with confirmed child exit. The scene setting remains
 640x360 and later statistics now contain reduced scene draws. General PerVertexKHR,
 dynamic SRT and buffer-clamp failures persist. The resource exhausting memory,
 correct rendering and gameplay stability remain unverified.
-New audio evidence shows roughly half the requested input delivery rate. The
-adapter now sizes its queue to the actual device quantum; a deterministic
-production-adapter test restores simulated delivery. A staging-cache correction
-also avoids allocating smaller buffers when larger completed ones can be reused.
-Both changes still need a native comparison for audible and memory improvement.
+The owner reports audio much improved: native delivery rises from about 23,912 to
+47,684 input frames/s per port after sizing the queue to the actual device quantum.
+A staging-cache correction now exercises four reuses previously rejected by size
+class, with 512 MiB less dedicated upload inventory. The run lasts 137.642 seconds
+versus 59.026 previously, but image allocations grow and Metal still runs out of
+memory. Residual audio gaps, the large upload allocation and image lifetimes need
+further investigation; this is not a gameplay performance or stability result.
 
 **Experimental: earlier runs reached the logos/menu on Apple M1; the last
 uninstrumented 30-second comparison showed only the first logo.**
@@ -131,7 +134,7 @@ with status 21; supervisor status 31 preserves the GPU-stall reason. Its CSV ret
 438 complete flip rows; cancellation can discard buffered rows. A record
 of presentation calls does not establish correct image contents or gameplay performance.
 
-The newest capture omits the low-resolution preset and uses a 30-second budget. It
+An earlier capture omits the low-resolution preset and uses a 30-second budget. It
 stops on the GPU watchdog after about 19.49 seconds; the supervisor observes the
 cancellation notice but cannot confirm child exit. A later targeted check finds
 the process absent. Its pending batch includes compute, transfers and one draw in
@@ -169,13 +172,14 @@ See [Development status](docs/STATUS.md) for the measured scope and next checks.
 [Visual diagnostics](docs/VISUAL_DIAGNOSTICS.md) now record private presentation,
 draw-skip and allocation evidence, with optional bounded game-frame previews and
 an offline HTML report. Scene rendering stays 640x360; capture defaults off and
-native GPU validation is pending. The
+optional readback remains untested on the native GPU. The
 [PerVertexKHR review](docs/PERVERTEX_REVIEW.md) documents experimental upstream
 proposals and an isolated CPU conversion test. The
 [dependency watch](docs/DEPENDENCY_WATCH.md) records continuing upstream review and
 the adapted fix for oversized buffer-copy recording.
-The owner reports audio cuts; [audio delivery diagnostics](docs/AUDIO_DIAGNOSTICS.md)
-add timing/queue evidence without recording PCM. An audible fix is not yet verified.
+[Audio delivery diagnostics](docs/AUDIO_DIAGNOSTICS.md) record timing/queue evidence
+without PCM. The owner and native delivery measurements confirm substantial audio
+improvement; residual gaps and audiovisual alignment remain open.
 
 ```sh
 bash packaging/test-arm64.sh --graphics-check

@@ -1,21 +1,29 @@
 # Audio delivery diagnostics
 
-The owner reports audible cuts during the defective 3D animation. The newest
-07:00Z comparison now includes **22 native audio windows** from two active ports.
-Each delivers about **23,912 input frames/s instead of 48,000**, around 470
-256-frame blocks per five seconds instead of 938. Maximum observed submission gap
-is 74.33 ms; output-lock waits peak at 8 microseconds, and no output/queue failure
-is recorded. Queue waits occupy a substantial part of the windows. This is direct
-delivery evidence consistent with the audible cuts, not a recording of speaker
-output. The earlier uninstrumented logs recorded only the first eight calls.
+The owner now reports audio **much improved**. The newest 07:23Z comparison on
+2026-10-22 includes **52 native audio windows**, 26 per active port, spanning about
+130 seconds per port. Mean delivery is **47,684 input frames/s of the requested
+48,000**, about 99.34%; median window rates are 47,988–47,995 frames/s. The native
+device reports a **1024-frame quantum at 48 kHz**. The bounded input limit is
+32,768 bytes before adding the next 8,192-byte guest block, allowing five blocks.
+Output-lock waits peak at 54 microseconds, with no queue/output failure recorded.
+Submission gaps still reach **121.85 ms**; audible improvement does not establish
+uninterrupted output or audiovisual synchronization.
+
+The preceding 07:00Z comparison contains 22 windows and delivers about **23,912
+input frames/s per port**, around half rate, with a maximum 74.33 ms gap. Delivery
+has roughly doubled after the device-quantum correction. These are input delivery
+measurements, not speaker recordings; maximum gaps from recordings of different
+lengths are not directly comparable jitter rates. Earlier uninstrumented logs
+recorded only the first eight calls.
 
 Source review finds that the old queue bound admitted only two guest blocks
 (512 input frames), independently of the hardware callback size. The actual
 preceding adapter, tested against a deterministic 1024-frame device, reproduces
 the measured half-rate pattern: 471 blocks in five simulated seconds, with half
 the requested input unavailable at the callbacks. This model fits the native
-observations; the old log did not query the actual native device quantum, so
-1024 frames is not yet a measured hardware value for that run.
+observations. The old log did not query the native device quantum; the corrected
+07:23Z run now confirms 1024 frames on the actual device.
 
 The adapter now obtains the real device buffer size and frequency from
 [SDL_GetAudioDeviceFormat](https://wiki.libsdl.org/SDL3/SDL_GetAudioDeviceFormat).
@@ -26,7 +34,8 @@ quanta return the existing provider error rather than silently underfeeding the
 device. The same production-adapter simulation now delivers **939 blocks** and
 239,616 input frames in five seconds, with no simulated callback input deficit.
 No silence padding, sample duplication or time-stretched output is introduced.
-Native device behavior and audible improvement still need owner verification.
+The newest native comparison and owner report now confirm delivery and audible
+improvement; larger scheduling gaps remain.
 
 The combined launcher now enables `SOTC_AUDIO_TRACE=1`; `0` disables it. This adds
 metadata to stderr and a fresh private `BB_GPU_USER_DIR/audio.jsonl`. No sound,
@@ -60,16 +69,16 @@ particular video frame from an audio metadata window.
 
 PCM handling, channel conversion, cadence, drain behavior, real provider errors
 and the guest frame-count return are preserved. The two-block queue bound is
-replaced by the bounded device-quantum policy above. The next owner run should
-record the real quantum and compare per-port delivery rates/gaps before claiming
-the audible problem is fixed. Larger renderer stalls can still interrupt audio.
+replaced by the bounded device-quantum policy above. Keep the measured correction
+while investigating residual gaps and rendering stalls; complete playback and
+alignment still need verification. Larger renderer stalls can interrupt audio.
 
 CPU tests use original synthetic PCM and timing inputs. They cover timing/reset
 thresholds and run the actual guest-output fixture in both interpreter and JIT
 with tracing enabled, including exact PCM/channel mapping, partial provider
 failures, bounded queue waiting and a real two-second simulated timeout. Metadata
-must preserve those existing contracts. These tests do not play audio or validate
-that the owner's audible cuts have been fixed.
+must preserve those existing contracts. These CPU tests do not play audio; the
+separate native comparison and owner report establish the audible improvement.
 
 `python3 tools/check_audio_quantum.py` compares the reviewed preceding adapter
 at commit `54d8b45` with the current adapter, using two synthetic streams, known

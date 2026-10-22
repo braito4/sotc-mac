@@ -2,20 +2,25 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Newest measured boundary (07:00Z):** confirmed Metal out-of-memory stop after
-59.026 seconds, child/supervisor exit 23. Native audio windows now show each
-active port delivering roughly 23,912 of the requested 48,000 input frames/s,
-with negligible output-lock wait and no queue/provider failure. The two-block
-queue policy reproduces half-rate output against a 1024-frame fake device;
-the corrected adapter queries the real device quantum and restores simulated
-delivery without fabricating samples. Native audible improvement is pending.
+**Newest measured boundary (07:23Z):** the owner reports audio much improved.
+Native audio delivery is now about **47,684 of 48,000 input frames/s per port**,
+versus 23,912 previously, with a measured 1024-frame/48 kHz device quantum.
+There are 52 complete windows and no queue/output failure; submission gaps still
+reach 121.85 ms. Uninterrupted playback and audiovisual alignment remain open.
 
-The new checked staging overlay reuses completed, unheld larger buffers across
-size classes and adds fresh inventory/reuse accounting. Both native logs retain
-3,072 MiB of dedicated upload buffers, but actual game savings from the correction
-are unmeasured. No retained resource is freed. The ARM64 build, source regressions
-and full JIT/interpreter contracts pass. Scene remains 640x360, DMA/async off;
-correct pixels, general PerVertexKHR/SRT support and memory stability remain open.
+The game runs **137.642 seconds versus 59.026**, then stops on confirmed Metal
+out-of-memory failure, child/supervisor exit 23. Native allocation is 11.70 GiB
+against an 11.84 GiB recommendation, which is not a hard memory limit. Four
+oversized staging reuses occur; dedicated upload inventory drops from 3,072 to
+2,560 MiB, and total staging from 3,500 to 2,972 MiB. Image inventory grows later,
+reaching 1,562 MiB; the longer run does not prove memory stability or performance.
+The final staging snapshot is 31.8 seconds old and does not justify releasing
+resources. Investigate the single 2.5 GiB upload allocation and image lifetimes.
+
+No runtime change or tool-driven GPU run accompanies this evidence update. The
+preceding ARM64 build, source regressions and full JIT/interpreter contracts pass.
+Scene remains 640x360, DMA/async off; pixel capture remains off, and correct pixels,
+general PerVertexKHR/SRT support and memory stability remain open.
 See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 **Earlier audio investigation:** the owner reports audio cutting out. Earlier logs show initial PCM
@@ -23,7 +28,8 @@ acceptance but do not locate the later interruptions. Periodic metadata-only
 [audio diagnostics](AUDIO_DIAGNOSTICS.md) now measure delivery gaps, deadline,
 mutex/queue waits and provider errors; the offline report includes these windows.
 Synthetic timing and actual guest-output checks run without sound/GPU. The
-audible problem and audiovisual alignment remain unresolved pending native evidence.
+initial audible problem is improved in the newest native comparison above;
+residual gaps and audiovisual alignment remain unresolved.
 
 **Earlier instrumentation checkpoint:** bounded private visual journals,
 draw-skip counters, native/staging allocation samples and an offline report are

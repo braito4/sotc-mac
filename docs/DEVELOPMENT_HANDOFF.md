@@ -8,9 +8,70 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
-### Native half-rate audio and retained staging memory
+### Native audio improvement and exercised staging reuse
 
-The newest owner run starts at 07:00Z on 2026-10-22, after the previous 06:39Z
+The newest owner run starts at **07:23Z on 2026-10-22**, using the corrections in
+`a49852f`. The owner reports that audio is much better. The native prerequisite
+draw/readback passes on Apple M1; the game starts its main loop in 1.49 seconds,
+detects a DualSense and runs for **137.642 seconds**, versus 59.026 seconds in the
+preceding comparison. It still stops on actual Metal out-of-memory failure,
+`MTLCommandBufferErrorDomain` code 8, with confirmed child/supervisor exit 23.
+There is no duration deadline, GPU-watchdog or import stop; a targeted lookup
+finds the process absent. Scene stays **640x360**, DMA/async off and cache 23.
+The longer run is not a gameplay stability or performance result.
+
+There are 52 complete five-second audio windows, 26 per active port, spanning
+about 130 seconds per port. They confirm an actual **1024-frame, 48 kHz device**.
+The input limit is 32,768 bytes before accepting the next 8,192-byte guest block,
+allowing five blocks instead of the former two. Mean delivery is **47,684 input
+frames/s per port**, versus 23,912 previously; median window rates are about
+47,988–47,995 frames/s. This is native evidence for the queue correction and
+agrees with the owner's audible improvement. Maximum submission gaps still reach
+121.85 ms, output-lock waits peak at 54 microseconds and no queue/output failure
+is recorded. Zero input-queue observations do not establish hardware underruns;
+uninterrupted playback and audiovisual alignment remain unverified. See
+[Audio diagnostics](AUDIO_DIAGNOSTICS.md).
+
+The new staging path is exercised: four new dedicated buffers, nineteen reuses
+and **four reuses that the old size restriction rejected**. Dedicated upload
+inventory is **2,560 MiB versus 3,072 MiB**, one retained buffer. Dedicated
+device-local inventory is 140 MiB; device-local/upload rings are 144/128 MiB.
+Total staging is **2,972 MiB versus 3,500 MiB**, a 528 MiB reduction in this
+comparison, including 512 MiB less upload inventory. These counters overlap other
+allocation classes; do not add them to native allocation or physical RAM.
+No retained buffer is freed. The final staging snapshot is **31.8 seconds old**,
+so its reusable-byte counts do not establish safety to release resources at the
+failure. Preserve actual tick, held, memory-type and import lifetime guards.
+
+Native allocation at failure is 12,562,169,856 bytes (**11.70 GiB**) against a
+12,713,115,648-byte recommendation, a 143.95 MiB margin. The recommendation is not
+a hard allocation or physical-memory limit. Tracked Vulkan allocation peaks at
+4,851 MiB, including 1,562 MiB of images, versus 4,771/953 MiB previously.
+Image inventory grows later while staging remains stable. The two runs reach
+different work, so staging savings do not establish lower total pressure or
+identify the exact resource that exhausts memory. The failed chunk retains its
+complete twelve-note CPU tail, with the same two compute candidates seen in an
+earlier failure; this is not a precise failing instruction or proof of causation.
+
+The visual journal has 3,769 events, including 1,256 presentations with API
+success and one native error. Pixel capture stays off; correct pixels remain
+unverified. The CSV has 1,242 complete rows and a different clock origin. Final
+asynchronous counters include 715,689 missing-pipeline draws out of 1,571,829
+requests, 412 pipeline-creation failures and 141,161 reduced decisions out of
+141,347 scene decisions. There are 354 PerVertexKHR messages, 271 SRT-walk errors
+and 22,799 clamps; totals from this longer run are not comparable error rates.
+
+Next investigate the request and size rounding that produce the single 2.5 GiB
+upload buffer, and the later image working set/lifetimes. Keep the audio correction
+and existing settings. Do not trim retained buffers or disable split imports:
+upstream documents late resource/argument-buffer lifetime failures. No runtime
+change or tool-driven GPU run accompanies this evidence update; the prior ARM64
+build, source regressions and full JIT/interpreter contracts remain the validation
+baseline. Pixel readback and a tracing-overhead comparison still need native tests.
+
+### Earlier half-rate audio and retained staging memory
+
+The earlier owner run starts at 07:00Z on 2026-10-22, after the previous 06:39Z
 comparison. Both stop on the actual Metal out-of-memory error (code 8) with
 confirmed child/supervisor exit 23, after 59.026 and 64.496 seconds respectively.
 The newest starts the main loop in 1.39 seconds, detects a DualSense, and has no
@@ -36,8 +97,9 @@ a 1024-frame quantum reproduces half-rate delivery: **471 blocks in five seconds
 The corrected adapter queries actual device frames/frequency, sizes a bounded
 queue for a complete quantum plus a guest block, and produces **939 blocks** in
 the same deterministic test without fabricated PCM. The native device's quantum
-was not recorded in the old run; new windows include it. Native audible improvement
-and residual scheduling stalls remain unverified. See [Audio diagnostics](AUDIO_DIAGNOSTICS.md).
+was not recorded in the old run; new windows include it. At this checkpoint,
+native improvement was still unverified; the 07:23Z comparison above supersedes
+that boundary. See [Audio diagnostics](AUDIO_DIAGNOSTICS.md).
 
 Staging inventory is identical in both native comparisons: 3,072 MiB dedicated
 upload, 140 MiB dedicated device-local and rings of 128/160 MiB, **3,500 MiB total**.
@@ -54,8 +116,8 @@ classes, preserving memory type, deferred ownership and actual GPU-tick guards.
 It frees no retained buffer and changes no import or fence behavior. Actual-source
 CPU fixtures reproduce 288 MiB/five buffers for a sequential synthetic workload;
 the adapted path retains 128 MiB/one buffer and preserves pending/held/type/best-fit
-checks. This is not a measurement of game memory savings. Native working-set
-improvement still needs an owner run; do not enable large-buffer trimming.
+checks. At this checkpoint, these were CPU results rather than measured game
+savings. The native comparison above now exercises reuse; do not enable trimming.
 
 The newest counters also show 69,033 missing-pipeline draw requests out of 198,029
 requests, with 195 failed pipeline creations, 180 PerVertexKHR log messages, 271
@@ -64,9 +126,9 @@ or a partition of every draw outcome. Reduced scene decisions are recorded for
 21,722 of 21,756 scene decisions. General shader support remains unresolved.
 
 The ARM64 library and full JIT/interpreter contracts pass with the new corrections.
-No new tool-driven GPU run was launched. Repeat only the owner-supervised native
-comparison with the current built library/adapter; logs should establish the real
-audio quantum, delivery rate and staging allocation/reuse before claiming a fix.
+No tool-driven GPU run was launched. The later owner-supervised comparison above
+establishes the real quantum, delivery improvement and staging reuse while still
+ending at the native memory boundary.
 
 ### Earlier visual evidence, copy recording and upstream watch
 
@@ -85,9 +147,9 @@ completed game-frame readbacks, at most one outstanding, every five seconds and
 API results from pixels, dark/unchanged preview measurements and draw-skip/memory
 totals. Complete timeline lines and the optional flip CSV are flushed; completed
 capture records survive timeline rotation. Rendering stays 640x360. The native
-ARM64 build, CPU evidence fixtures and full contracts pass. No owner GPU run has
-exercised this instrumentation, so its GPU behavior/overhead and memory benefit
-are unverified. The confirmed native failure below is still the current boundary.
+ARM64 build, CPU evidence fixtures and full contracts pass. Later owner runs above
+exercise metadata and reuse accounting; optional pixel capture and an overhead
+comparison remain untested. Native memory exhaustion remains the current boundary.
 
 [bmy/bbport-mac](DEPENDENCY_WATCH.md) was reviewed at its actual current default
 branch `macos-native-0.6`. Its whole renderer/driver architecture is not imported.
