@@ -2,6 +2,11 @@
 
 This repository develops a native ARM64 macOS diagnostic for Shadow of the Colossus PS4.
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
+Current cache is 27/9: SetPC uses defined unsigned arithmetic, CFG rejects invalid
+boundaries before block indexing and emits explicit fatal provenance. Original
+UBSan defect control, 60 targets/eight valid graphs/nine rejection cases and
+ARM64/20 renderer CPU checks/25 builder tests pass. No native shader fix is
+established; read the first handoff. Older cache numbers below are historical.
 Newest owner boundary (22:02:30 UTC / Oct 23 00:02:30 Madrid): shader CFG::LinkBlocks
 missing-target assertion after 118.513 s, exits 23/23; zero large copies, last
 native sample 10.379 GiB. No OOM/SIGSEGV recorded; shader cause unknown. The

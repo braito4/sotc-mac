@@ -170,9 +170,10 @@ regressions and JIT/interpreter contracts pass. Those two errors do not recur in
 the native comparison, but exact GPU copy pixels and all supported cases still
 need validation. PerVertexKHR failures persist. This is not an OOM or corruption fix.
 
-Dependencies remain unchanged; shader cache is now 26/9 for the finite-choice SRT
-correction described in the handoff. The current comparison keeps
-640x360, DMA/async off and metadata diagnostics on. Native comparisons remain
+Dependencies remain unchanged; shader cache is now 27/9 after the defined SetPC
+arithmetic and CFG target-validation correction described in the handoff.
+The current launcher uses original scene resolution, a windowed default,
+DMA/async off and metadata diagnostics on. Native comparisons remain
 one brief supervised run at a time; see the
 [developer handoff](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint) for the
 procedure, known limits and historical evidence.

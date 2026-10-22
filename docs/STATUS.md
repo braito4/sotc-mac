@@ -2,6 +2,13 @@
 
 Updated 2026-10-23. **Reaches the first gameplay image on Apple M1; not playable yet.**
 
+**Prepared CFG correction:** the SetPC target resolver now uses defined unsigned
+arithmetic instead of signed negation/addition overflow. Original UBSan controls
+reproduce the defect; 60 target cases, eight actual valid CFGs and nine explicit
+rejection cases pass. Targets must name decoded instruction boundaries; no block
+is fabricated to bypass the owner's assertion. ARM64 / 20 renderer CPU checks /
+25 builder tests pass. Cache **27/9**, pins unchanged; native effect unverified.
+
 **Latest owner result (October 23 00:02:30 Madrid):** shader CFG block-linking
 assertion after 118.513 s, exits 23/23. Balanced imports still avoid large
 snapshots; last sampled Metal allocation is 10.379 GiB. No OOM or SIGSEGV is

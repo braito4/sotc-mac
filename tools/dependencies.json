@@ -253,7 +253,7 @@
   "validation": {
     "integration": "integrated selected base with checked local overlays; ARM64 renderer build, seventeen renderer regressions, 25 builder tests, full JIT/interpreter contracts and 46/46 host-symbol audit pass; base integration native CPU checks passed",
     "native_game": "latest owner comparison at 2026-10-22 18:22 UTC ends on Metal OOM 8 after 100.149 seconds, child/supervisor 23, fresh native allocation 12.434 GiB; decoder assertion not reproduced; native admission-limit memory/progress/performance effects remain unverified",
-    "renderer_cache": "26/9",
+    "renderer_cache": "27/9",
     "symbol_coverage": "46/46 host imports present; ABI/device rendering not established",
     "latest_runtime_guard": "selected b2ff9cd protects unresolved GPU image contents; reviewed ab31a4c critical-pressure content discard is not integrated",
     "hosted_ci": "not yet observed for this commit"

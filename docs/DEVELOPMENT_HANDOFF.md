@@ -8,6 +8,33 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Shader CFG follow-up: defined SetPC arithmetic and explicit target validation
+
+The `sotc-shader-cfg` overlay corrects signed C++ overflow in the local static
+S_SETPC resolver. The old code negates INT32_MIN and can overflow signed
+base-plus-offset addition; the original-source UBSan control reproduces the
+failure. The adapted resolver uses modulo-2^32 unsigned add/subtract before the
+existing alignment mask, preserving valid target arithmetic. It also rejects
+out-of-range resolver indices/PC-map accesses before reading them. This is a
+demonstrated source defect, not an established cause of the owner's CFG assertion.
+
+Before creating blocks, CFG construction now rejects empty input, zero/non-dword/
+overflowing instruction lengths, targets outside decoded code and targets inside
+multiword instructions. Empty block graphs cannot enter the old next(empty)
+path. Missing branch/fallthrough blocks and unresolved initial SetPC patterns
+produce explicit fatal provenance with phase, shader, stage, target, instruction
+count and available source/size fields. No end block is fabricated, instruction
+skipped, target clamped or guest memory reread. Exit 23 remains fatal.
+
+Sixty original SetPC cases cover positive/negative immediates, INT32_MIN and
+wrapping bases under UBSan. Eight valid actual installed CFGs cover forward/
+backward/conditional/empty-conditional/multiword and SetPC graphs; nine malformed
+or unsupported controls stop explicitly. ARM64 build, all 20 renderer CPU checks
+and 25 builder tests pass. Native shader behavior and the last assertion's cause
+remain unverified. Shader cache is now **27/9**, dependency pins unchanged;
+the exact preceding cohort migrates as `cfg_previous` without changing captures.
+No game was launched. Windowed default and removed Game Mode integration remain.
+
 ### Latest owner result: shader CFG assertion, no large snapshots
 
 The October 22 22:02:30 UTC capture (October 23 00:02:30 Madrid) ends after

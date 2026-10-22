@@ -108,7 +108,7 @@ needed fmt || exit 4
             self.assertEqual(once, {name: (source / name).read_bytes() for name in once})
 
     def test_previous_cohort_migrates_without_reapplying_existing_overlays(self):
-        for state in ('maintenance_previous', 'integer_previous', 'binding_previous', 'tail_previous', 'retention_previous', 'probe_previous', 'tess_previous', 'decode_previous', 'inflight_previous', 'srt_previous', 'uniform_previous', 'finite_previous', 'task_previous', 'pool_previous'):
+        for state in ('maintenance_previous', 'integer_previous', 'binding_previous', 'tail_previous', 'retention_previous', 'probe_previous', 'tess_previous', 'decode_previous', 'inflight_previous', 'srt_previous', 'uniform_previous', 'finite_previous', 'task_previous', 'pool_previous', 'cfg_previous'):
             with self.subTest(state=state), tempfile.TemporaryDirectory() as temporary:
                 source=Path(temporary)
                 self.backport_fixture(source)

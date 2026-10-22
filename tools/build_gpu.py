@@ -84,7 +84,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -96,7 +96,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -359,7 +359,7 @@ def verify_source(source):
             for name, override in backport_manifest().get('submodule_overrides', {}).items():
                 if git_output(source / name, 'rev-parse', 'HEAD') == override['after']:
                     expected.add(name)
-            if state not in ('pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
+            if state not in ('cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -485,6 +485,7 @@ def build(root, runner, jobs, compiler):
     runner.run([sys.executable, root / 'tools/check_collection_safety.py'])
     runner.run([sys.executable, root / 'tools/check_shader_compat.py'])
     runner.run([sys.executable, root / 'tools/check_shader_decode.py'])
+    runner.run([sys.executable, root / 'tools/check_shader_cfg.py'])
     runner.run([sys.executable, root / 'tools/check_shader_memory.py'])
     runner.run([sys.executable, root / 'tools/check_metal_inflight.py'])
     undefined = subprocess.check_output(['nm', '-u', library], text=True)

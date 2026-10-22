@@ -1,5 +1,13 @@
 # Reviewed renderer adaptations
 
+`sotc-shader-cfg` uses defined modulo-32-bit SetPC target arithmetic and checks
+resolver index/PC-map bounds. CFG labels must match decoded instruction boundaries;
+empty graphs, malformed sizes and missing destinations stop with scoped shader
+provenance. It does not invent blocks or skip dispatches. Original UBSan control
+reproduces signed overflow; 60 targets/eight valid graphs/nine negative cases
+exercise actual installed methods. Cache 27/9 prevents old shader reuse; exact
+cohort `cfg_previous` migrates with pins fixed. Native effects remain unverified.
+
 `sotc-pool-windows` shortens the first import to 2.5 GiB and positions the next
 3.5 GiB import at 2 GiB, then uses 3 GiB strides with 512 MiB overlap. Complete
 bindings and BDA table entries use explicit recorded window origins. The private
