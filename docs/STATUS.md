@@ -1,22 +1,20 @@
 # Development status
 
-Updated 2026-10-21. **CPU and graphics bring-up; not playable.**
+Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Newest boundary:** two owner-run preset-4 tests stop earlier on the GPU watchdog,
-after about 16.61 and 107.54 seconds. The preceding run reached missing shader
-metadata after 156.90 seconds. The latest native chunk records status 5/error 8,
-which the Apple SDK defines as a command-buffer error from insufficient memory.
-Child exits remain unconfirmed by their supervisors; later PID checks find both
-absent. Both runs retain the 640x360 setting, but the latest statistics record no
-reduced scene draws. General PerVertexKHR, dynamic SRT and buffer clamps persist.
+**Newest boundary:** the latest owner-run preset-4 capture confirms native Metal
+out-of-memory failure after 83.45 seconds. The new completion-error handler records
+the actual NSError and allocation counters and self-exits; both child and supervisor
+exit 23, without a GPU-watchdog stop. Native allocation is 11.65 GiB versus an
+11.84 GiB recommended working set, about 195 MiB apart. This confirms the error and
+its handling; the allocation responsible is still unknown.
 
-A checked overlay now stops immediately on a failed native Metal completion,
-records the real NSError and device allocation/budget counters, and preserves its
-bounded CPU candidate tail when available. It applies with tracing on/off and
-never substitutes fence success. Native rebuilding, full contracts, 23 builder
-fixtures and CPU-only failure/journal tests pass. No new GPU test validates the
-stop or fixes exhaustion. CPU replay of the latest capture converts 778/1,059
-modules; all 281 failures are PerVertexKHR. See the current
+The scene setting remains 640x360, DMA/async off. This time three later samples
+record reduced scene draws, unlike the previous attempt. Correct visible output
+remains unverified. PerVertexKHR failures, dynamic SRT and buffer clamps persist.
+Tracked Vulkan memory reaches 4,793 MiB, including 992 MiB of images; large pools
+and native allocations remain material beyond pixel count. Do not equate tracked
+Vulkan counters or overlapping pool windows with total physical RAM. See the
 [handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 **Continuation checkpoint:** the owner now sees the 3D animation with rendering

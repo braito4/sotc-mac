@@ -1,12 +1,69 @@
 # Development and debugging handoff
 
-Snapshot: 2026-10-21. This is the starting point for the next developer. Read
+Snapshot: 2026-10-22. This is the starting point for the next developer. Read
 [AGENTS.md](../AGENTS.md), this page and [Build instructions](guide/building.md)
 before changing code. [Status](STATUS.md) and [Graphics bring-up](GRAPHICS_BRINGUP.md)
 contain chronological investigations; their earlier “latest run” sections describe
 older boundaries, not the present state.
 
 ## Continuation checkpoint
+
+### Confirmed native memory failure and reduced scene draws
+
+The newest owner-run preset-4 capture starts the main loop at about 1.46 seconds,
+detects a DualSense, and self-exits after **83.45 seconds** with confirmed child
+and supervisor exit 23. The native prerequisite synthetic draw/readback passes.
+There is no duration deadline, GPU-watchdog stop, import stop or shader-metadata
+failure. The new Metal completion-error path is now exercised on the real device:
+
+- The NSError domain is `MTLCommandBufferErrorDomain`, code 8, with description
+  `Insufficient Memory` and an explicit IOGPU out-of-memory callback reason.
+- At failure `currentAllocatedSize` is 12,508,184,576 bytes (**11.65 GiB**), versus
+  `recommendedMaxWorkingSetSize` 12,713,115,648 bytes (**11.84 GiB**). The counters
+  are about 195.44 MiB apart (98.39% of the recommendation). The recommendation is
+  not a hard allocation limit; these are device/process counters, not total macOS
+  RAM pressure or a complete resource inventory.
+- The failing native chunk is retained and matched to a submitted command-buffer
+  generation. Its complete twelve-note CPU tail contains two guest compute dispatch
+  candidates, with group counts 1x1x1 and 4x1x1, plus bindings/barriers. One shader
+  identity also appeared in the preceding run's erroneous native chunk; it is a
+  repeated lead, not proof of the shader or exact GPU instruction that exhausted
+  memory. A small dispatch does not establish a small total resource working set.
+- CPU-only replay of both recorded compute modules converts successfully through
+  the installed SPIRV-Cross MSL path. This checks conversion, not execution, GPU
+  memory accesses, native pipeline acceptance or which resource caused the error.
+- The error path terminates before the later watchdog/cancellation sequence. The
+  supervisor confirms child exit, and a later targeted PID check finds it absent.
+  This validates failure handling, not a repair for memory exhaustion. Its shorter
+  elapsed time is not directly comparable to older runs that waited for a watchdog.
+
+The scene configuration remains **640x360**, half targets 320x180 and UI 1920x1080;
+DMA and async submission remain off. Unlike the preceding 107.54-second capture,
+three later statistics windows now record reduced scene draws: 106/106, 406/407
+and 499/501 per frame. This is evidence of the reduced scene path being used for
+those draws, not complete image correctness. Other windows still record no scene
+draws. There is no new owner visual report to validate scene contents.
+
+Sampled tracked Vulkan allocations peak at 4,793 MiB and images at 992 MiB. The
+final sample therefore has roughly 3,801 MiB beyond the counted images. The guest
+backing pool is 6,592 MiB, imported through two overlapping windows whose declared
+sizes sum to 7,104 MiB (512 MiB overlap). These figures include aliases and distinct
+sampling times; do not add them as a physical-memory/RSS measurement. Reducing
+scene pixels cannot shrink all these pools, temporary buffers, native resources
+or compiled pipelines. Allocation-class accounting and safe reuse/lifetime are
+now the main memory investigation; the exact allocation causing exhaustion remains
+unknown. Keep the split imports: upstream documents incorrect MoltenVK offsets
+past 4 GiB. Large staging buffers are intentionally retained upstream because
+premature destruction caused later argument-buffer references/device loss; do not
+enable `BB_STAGING_TRIM_LARGE` or disable residency as an untested remedy.
+
+Rendering failures remain: 230 PerVertexKHR messages, 262 failed graphics pipelines,
+271 SRT-walk failures and 19,605 buffer-size clamps. These are message counts across
+different progress windows, not comparable unique-shader or error-rate reductions.
+Unsupported-Phi messages and undeclared shared-U32 errors are absent. The frame CSV
+retains 1,035 complete rows through about 66.30 seconds relative to its first row;
+a partial final row and buffered loss prevent treating that timestamp as exit time.
+No new GPU test was launched by the restricted tool process for this analysis.
 
 ### Earlier native stalls after the lookup/SRT update
 

@@ -16,20 +16,19 @@ Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
   runtime changes and native CPU checks when changing the CPU context bridge.
-- Two newer owner-run preset-4 attempts stop earlier on the GPU watchdog after
-  about 16.61/107.54 seconds, versus the previous 156.90-second metadata stop.
-  The latest native chunk reports status 5/error 8 (Metal command-buffer error,
-  insufficient memory in the Apple SDK). Supervisor child exits are unconfirmed;
-  later PID checks find both absent. The latest statistics have zero reduced scene
-  draws despite the unchanged 640x360 setting. Do not claim reduced pixel load.
-  A checked overlay now stops on native completion failure with real NSError and
-  allocation/budget counters, even with tracing off, and reports originating CPU
-  candidates without inventing fences or progress. CPU tests, full contracts and
-  native rebuilding pass; no GPU run validates this correction or fixes exhaustion.
-  Latest standalone replay converts 778/1059 shaders; all 281 failures are
-  PerVertexKHR. Pins/cache version 23, DMA off, async off and scene setting 640x360
-  remain unchanged. Tool GPU access and fresh-build glslang remain unavailable.
-  Read the current handoff before the historical summaries below.
+- The newest owner-run preset-4 capture confirms Metal out-of-memory failure after
+  83.45 seconds: actual NSError domain/code/description, 11.65 GiB native allocation
+  versus 11.84 GiB recommended, and a complete two-compute-candidate command tail.
+  The completion-error handler self-exits; child/supervisor exit 23 is confirmed,
+  without a GPU-watchdog stop. This validates failure handling, not the memory fix.
+  Three later samples now contain reduced scene draws; correct pixels remain
+  unverified. Keep scene 640x360, DMA/async off and all pins/cache version 23.
+  Track allocation classes and safe lifetimes; the culprit resource is unknown.
+  Imported windows overlap and device recommendations are not hard physical limits.
+  Do not disable split imports or prematurely free retained large staging buffers:
+  upstream records rendering/argument-buffer lifetime failures with those changes.
+  General PerVertexKHR, dynamic SRT and clamps remain. Read the current handoff
+  before the historical summaries below; tool GPU access/glslang are still blocked.
 - Read the handoff's Continuation checkpoint first: it supersedes the older run summaries below. The owner now sees the 3D animation with defects. The latest preset-4 run reaches its 120-second wall deadline without a GPU-watchdog/import/CPU-fault report, detects a DualSense, and continues recording activity after connection. Cooperative child exit is unconfirmed (supervisor exit 1); a later targeted lookup finds the process absent. The authorized removal of the automatic game-duration limit is implemented: zero disables both game-duration timers, and the combined launcher defaults to zero and passes it to both layers. Keep GPU-progress cancellation, DMA protection, cooperative stopping and the independent prerequisite budgets. Headless probes still default to 30 seconds; explicit 1..1800-second game runs remain available. No real GPU experiment validates this change yet.
 - The owner has visually confirmed game logos/menu, opening introduction audio and now defective 3D animation. Correct scene rendering and audiovisual synchronization remain unverified. Gameplay stability, a playable app and save support remain unverified. Keep claims tied to measured tests.
 - The newest owner-run capture omits the low-resolution preset and uses a 30-second budget. It stops on the GPU watchdog after about 19.49 seconds, with unknown child status and supervisor exit 1 despite a cancellation notice; a later targeted lookup finds the PID absent. Its awaited batch retains 96 of 164 metadata notes, including eight guest compute dispatch candidates, transfers and one three-vertex draw. The last compute candidate also has 31 buffer-size clamp warnings. Its queue call returned success and its Metal chunk returned from commit, without scheduled/completed callbacks observed; the preceding chunk completed. These are CPU candidates, not the precise executing GPU command. The CSV is empty. No reduced-scene transition or physical-controller connection is logged. Preserve this changed configuration separately from the preceding complete low-resolution capture.

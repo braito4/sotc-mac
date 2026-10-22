@@ -14,11 +14,10 @@
 >
 > The owner has visually confirmed the logos/menu, opening introduction audio and
 > now the 3D animation with rendering defects. The latest preset-4 capture confirms
-> no duration deadline and detects a DualSense, but stops earlier on the GPU watchdog.
-> A native command-buffer error reports insufficient memory. Immediate error handling
-> now has CPU tests and an ARM64 rebuild; a native comparison remains pending.
-> Earlier yield/shared-U32 corrections pass their checks; rendering is still defective.
-> Earlier captures stalled on the GPU watchdog. See the
+> no duration deadline and detects a DualSense, then stops on confirmed native Metal
+> memory exhaustion after about 83 seconds. The new error handler records the real
+> failure and exits with confirmed status; the latest run also records reduced scene
+> draws. Correct rendering and the memory cause remain unresolved. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 > The diagnostic reaches the main loop with game GPU commands and a physical controller.
 > Introduction video correctness, entering a playable scene,
@@ -32,8 +31,8 @@
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. The latest
-> reviewed capture stopped on the GPU watchdog with native memory-error evidence; earlier captures stopped on the
-> renderer's GPU watchdog, with both confirmed and unconfirmed cooperative exits.
+> reviewed capture stops on a confirmed native memory error; earlier captures
+> stopped on the GPU watchdog, with both confirmed and unconfirmed cooperative exits.
 > At the owner's request, game-duration limits now default to disabled; GPU-progress
 > supervision, manual cancellation and prerequisite budgets remain active.
 > Integer-format image-copy errors remain, and lower total memory pressure has
@@ -105,14 +104,12 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 supersedes the historical run summaries below. The owner now sees defective 3D
-animation; two newer preset-4 runs stop on GPU progress before the previous
-shader-metadata boundary. The latest has a native Metal insufficient-memory error.
-The updated completion handler stops on real failure and records native error and
-memory details; CPU tests pass, while native validation is pending. Standalone
-replay converts 778/1,059 latest captured shader modules; all 281 failures are
-unsupported PerVertexKHR inputs. The scene setting remains 640x360, but actual
-reduced scene draws are absent from the latest statistics. Correct rendering and
-gameplay stability remain unverified.
+animation; the latest preset-4 run stops on a confirmed native Metal memory error
+after about 83 seconds. The updated completion handler records the failure and
+native memory details, with confirmed child exit. The scene setting remains
+640x360 and later statistics now contain reduced scene draws. General PerVertexKHR,
+dynamic SRT and buffer-clamp failures persist. The resource exhausting memory,
+correct rendering and gameplay stability remain unverified.
 
 **Experimental: earlier runs reached the logos/menu on Apple M1; the last
 uninstrumented 30-second comparison showed only the first logo.**
