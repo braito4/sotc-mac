@@ -145,7 +145,8 @@ bool SDL_ResumeAudioStreamDevice(void *stream) { if(stream!=&audio_stream || !au
 void SDL_DestroyAudioStream(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();audio_opened=0; }
 uint32_t SDL_GetAudioStreamDevice(void *stream) { if(stream!=&audio_stream || !audio_opened) abort();return 100; }
 bool SDL_GetAudioDeviceFormat(uint32_t device,AudioSpec *spec,int *frames) {
-    if(device!=100 || !audio_opened || frames) abort();
+    if(device!=100 || !audio_opened) abort();
+    if(frames) *frames=1024;
     *spec=(AudioSpec){0x8120,2,48000};puts("FIXTURE_AUDIO_DEVICE_QUERY");return true;
 }
 bool SDL_PutAudioStreamData(void *stream,const void *data,int bytes) {

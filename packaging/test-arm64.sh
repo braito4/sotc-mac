@@ -88,6 +88,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_visual_trace.py
+    python3 "$trial_root/tools/check_audio_quantum.py"
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_metadata.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_link.py

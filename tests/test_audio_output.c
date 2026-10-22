@@ -14,7 +14,7 @@ static bool put_pcm(void *stream,const void *data,int bytes) {
     assert(stream && data && bytes>0 && bytes<=65536);
     ++put_calls;
     if(put_fail_at && put_calls==put_fail_at) return false;
-    assert(pending<=bytes); /* At most one old input buffer before this put. */
+    assert(pending<=4*bytes); /* The default 1024-frame quantum fits before a 256-frame put. */
     const size_t i=(unsigned char *)stream-streams;assert(i<32);
     lengths[i]=bytes;memcpy(captured[i],data,(size_t)bytes);++accepted;return true;
 }
@@ -101,17 +101,21 @@ int main(int argc,char **argv) {
     assert((uint32_t)call(single,(uint32_t)handles[0],(uintptr_t)(pages+16384-8191),0,0,0,0)==0x80260004 && accepted==prior);
     assert(!munmap(pages,32768));
     queue_fail=1;assert((uint32_t)call(single,(uint32_t)handles[0],(uintptr_t)source,0,0,0,0)==0x80260010 && accepted==prior);queue_fail=0;
+    physical_frames=0;
+    assert((uint32_t)call(single,(uint32_t)handles[0],(uintptr_t)source,0,0,0,0)==0x80260010 && accepted==prior);
+    physical_frames=1024;
     for(int i=0;i<3;++i) params[i]=(Descriptor){handles[i],0,(uintptr_t)source};
     put_fail_at=put_calls+2;
     assert((uint32_t)batch_call(multi,params,3)==0x80260010 && accepted==prior+1);put_fail_at=0;
-    pending=8192*7;drain_step=8192;
+    pending=8192*12;drain_step=8192;
     const int queries_before=queue_calls;
-    assert(batch_call(multi,params,3)==256 && queue_calls>queries_before+6 && !pending);
+    assert(batch_call(multi,params,3)==256 && queue_calls>queries_before+6 && pending<=32768);
+    pending=0;
     prior=accepted;
     flush_fail=1;assert((uint32_t)call(single,(uint32_t)handles[0],0,0,0,0,0)==0x80260010 && accepted==prior);flush_fail=0;
     pending=16384;drain_step=8192;
     assert(call(single,(uint32_t)handles[0],0,0,0,0,0)==256 && !pending && accepted==prior && flush_calls>=2);
-    pending=8193;stalled=1;started=now_ns();
+    pending=8192*8;stalled=1;started=now_ns();
     assert((uint32_t)call(single,(uint32_t)handles[0],(uintptr_t)source,0,0,0,0)==0x80260010 && accepted==prior);
     assert(now_ns()-started>=UINT64_C(1900000000));pending=stalled=0;
     for(unsigned i=0;i<4;++i) assert(!call(close,(uint32_t)handles[i],0,0,0,0,0));

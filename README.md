@@ -15,7 +15,7 @@
 > The owner has visually confirmed the logos/menu, opening introduction audio and
 > now the 3D animation with rendering defects. The latest preset-4 capture confirms
 > no duration deadline and detects a DualSense, then stops on confirmed native Metal
-> memory exhaustion after about 83 seconds. The new error handler records the real
+> memory exhaustion after about 59 seconds. The error handler records the real
 > failure and exits with confirmed status; the latest run also records reduced scene
 > draws. Correct rendering and the memory cause remain unresolved. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
@@ -105,11 +105,16 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 supersedes the historical run summaries below. The owner now sees defective 3D
 animation; the latest preset-4 run stops on a confirmed native Metal memory error
-after about 83 seconds. The updated completion handler records the failure and
+after about 59 seconds. The updated completion handler records the failure and
 native memory details, with confirmed child exit. The scene setting remains
 640x360 and later statistics now contain reduced scene draws. General PerVertexKHR,
 dynamic SRT and buffer-clamp failures persist. The resource exhausting memory,
 correct rendering and gameplay stability remain unverified.
+New audio evidence shows roughly half the requested input delivery rate. The
+adapter now sizes its queue to the actual device quantum; a deterministic
+production-adapter test restores simulated delivery. A staging-cache correction
+also avoids allocating smaller buffers when larger completed ones can be reused.
+Both changes still need a native comparison for audible and memory improvement.
 
 **Experimental: earlier runs reached the logos/menu on Apple M1; the last
 uninstrumented 30-second comparison showed only the first logo.**

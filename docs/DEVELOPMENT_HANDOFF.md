@@ -8,7 +8,67 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
-### Visual evidence, copy recording and upstream watch
+### Native half-rate audio and retained staging memory
+
+The newest owner run starts at 07:00Z on 2026-10-22, after the previous 06:39Z
+comparison. Both stop on the actual Metal out-of-memory error (code 8) with
+confirmed child/supervisor exit 23, after 59.026 and 64.496 seconds respectively.
+The newest starts the main loop in 1.39 seconds, detects a DualSense, and has no
+duration deadline, GPU-watchdog stop or import-stop report. A targeted lookup
+afterwards finds its PID absent. Keep scene 640x360, DMA/async off and cache 23.
+
+The latest failure records 12,465,848,320 native allocated bytes against a
+12,713,115,648-byte recommendation, a 235.81 MiB margin. The failed native chunk
+retains 96 of 160 CPU notes, including a compute dispatch and indirect/final draw
+candidates. This does not identify the exact GPU instruction/resource responsible.
+The visual journal retains 2,119 records, including 706 presentations with API
+success and the native error. Pixel capture is off, so correct pixels remain
+unverified. The line-buffered CSV has 693 complete rows; its clock origin differs
+from the supervisor and visual journal.
+
+Two active audio ports now have eleven five-second windows each. They deliver
+about **23,912 input frames/s**, 49.82% of the requested 48 kHz; submission gaps
+reach 74.33 ms. Output-lock waits peak at 8 microseconds, and no queue/provider
+failure is recorded. This identifies a delivery problem rather than proving a
+hardware underrun from zero input-queue samples. The old two-block queue cap can
+feed only 512 input frames before waiting. An actual-source fake-device test with
+a 1024-frame quantum reproduces half-rate delivery: **471 blocks in five seconds**.
+The corrected adapter queries actual device frames/frequency, sizes a bounded
+queue for a complete quantum plus a guest block, and produces **939 blocks** in
+the same deterministic test without fabricated PCM. The native device's quantum
+was not recorded in the old run; new windows include it. Native audible improvement
+and residual scheduling stalls remain unverified. See [Audio diagnostics](AUDIO_DIAGNOSTICS.md).
+
+Staging inventory is identical in both native comparisons: 3,072 MiB dedicated
+upload, 140 MiB dedicated device-local and rings of 128/160 MiB, **3,500 MiB total**.
+This is a subset of tracked/native allocations, not memory to add to them.
+Zero held bytes do not prove buffers are reusable: outstanding ticks were not
+counted. The old inventory was published only on frame ticks, so early all-zero
+arrays mean unknown accounting. New snapshots include age, counts and completed,
+unheld reusable bytes, with publishing after prewarm/new allocations too.
+
+Source review finds a retained-cache inefficiency: completed sufficiently large
+buffers were rejected when more than roughly 25% above a new request. The new
+checked staging overlay selects the smallest sufficient buffer across size
+classes, preserving memory type, deferred ownership and actual GPU-tick guards.
+It frees no retained buffer and changes no import or fence behavior. Actual-source
+CPU fixtures reproduce 288 MiB/five buffers for a sequential synthetic workload;
+the adapted path retains 128 MiB/one buffer and preserves pending/held/type/best-fit
+checks. This is not a measurement of game memory savings. Native working-set
+improvement still needs an owner run; do not enable large-buffer trimming.
+
+The newest counters also show 69,033 missing-pipeline draw requests out of 198,029
+requests, with 195 failed pipeline creations, 180 PerVertexKHR log messages, 271
+SRT-walk errors and 10,865 clamps. Asynchronous totals are not per-frame results
+or a partition of every draw outcome. Reduced scene decisions are recorded for
+21,722 of 21,756 scene decisions. General shader support remains unresolved.
+
+The ARM64 library and full JIT/interpreter contracts pass with the new corrections.
+No new tool-driven GPU run was launched. Repeat only the owner-supervised native
+comparison with the current built library/adapter; logs should establish the real
+audio quantum, delivery rate and staging allocation/reuse before claiming a fix.
+
+### Earlier visual evidence, copy recording and upstream watch
 
 The owner now additionally reports choppy audio. [Audio delivery tracing](AUDIO_DIAGNOSTICS.md)
 is enabled by default in the combined launcher and records private periodic
@@ -16,7 +76,7 @@ metadata in stderr/`audio.jsonl`, summarized by the visual report. It measures
 actual submission gaps, input queue observations, deadline and queue/mutex waits;
 it does not label input-queue zero as a hardware underrun. PCM handling and queue
 policy remain. The old game log records only initial accepted output batches;
-no new native run identifies the cause or demonstrates an audible fix.
+that initial run did not yet identify the delivery problem described above.
 
 The latest code adds [bounded visual diagnostics](VISUAL_DIAGNOSTICS.md), enabled
 as CPU metadata by the combined launcher. Optional `SOTC_VISUAL_CAPTURE=1` adds
@@ -46,7 +106,7 @@ default and incomplete-layout paths correctly reject them. Native GPU linking,
 topology/bindings, SotC shaders, pixels and runtime memory are not validated. Keep
 the current renderer intact while designing any future isolated integration.
 
-### Confirmed native memory failure and reduced scene draws
+### Earlier confirmed native memory failure and reduced scene draws
 
 The newest owner-run preset-4 capture starts the main loop at about 1.46 seconds,
 detects a DualSense, and self-exits after **83.45 seconds** with confirmed child

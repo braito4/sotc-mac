@@ -5,6 +5,7 @@
  */
 #include "bootstrap_audio.h"
 #include "audio_trace_metrics.h"
+#include "audio_queue_policy.h"
 #include "platform.h"
 #include <limits.h>
 #include <pthread.h>
@@ -23,6 +24,7 @@ static uint32_t sequence;
 typedef struct {
     int32_t handle;
     int type, restricted, channels, sample_bytes, standard_layout;
+    int device_frames, device_frequency, queue_limit;
     uint32_t frames;
     uint64_t next_deadline;
     SotcAudioMetrics metrics;
@@ -58,13 +60,15 @@ static void audio_trace_port(AudioPort *p, uint64_t now, int boundary) {
     char line[1400];
     snprintf(line,sizeof(line),
         "{\"schema\":1,\"event\":\"audio_window\",\"monotonic_ns\":%llu,\"port\":%d,"
-        "\"boundary\":\"%s\",\"frames\":%u,\"channels\":%d,\"period_us\":%llu,\"window_us\":%llu,"
+        "\"boundary\":\"%s\",\"frames\":%u,\"channels\":%d,\"device_frames\":%d,"
+        "\"device_frequency\":%d,\"input_queue_limit_bytes\":%d,\"period_us\":%llu,\"window_us\":%llu,"
         "\"accepted_buffers\":%llu,\"accepted_bytes\":%llu,\"max_submit_gap_us\":%llu,"
         "\"gaps_over_two_periods\":%llu,\"max_deadline_late_us\":%llu,\"late_over_period\":%llu,"
         "\"input_queue_min_bytes\":%d,\"input_queue_max_bytes\":%d,\"input_queue_samples\":%llu,"
         "\"input_queue_zero_samples\":%llu,\"queue_wait_us\":%llu,\"max_queue_wait_us\":%llu,"
         "\"queue_wait_failures\":%llu,\"max_output_lock_wait_us\":%llu}",
         (unsigned long long)now,p->handle,reasons[boundary],p->frames,p->channels,
+        p->device_frames,p->device_frequency,p->queue_limit,
         (unsigned long long)((uint64_t)p->frames*1000000/48000),
         (unsigned long long)((now>=s->start_ns ? now-s->start_ns:0)/1000),
         (unsigned long long)s->buffers,(unsigned long long)s->bytes,
@@ -221,9 +225,15 @@ static int32_t output_batch(const void *parameters,uint32_t count,uint64_t lock_
     if(!backend.put || !backend.queued || !backend.device || !backend.device_format) return AUDIO_ERROR(0x10);
     for(uint32_t i=0;i<count;++i) {
         BootstrapAudioSpec spec={0};
+        int device_frames=0;
         const uint32_t device=backend.device(selected[i]->stream);
-        if(!device || !backend.device_format(device,&spec,NULL) || spec.channels<=0 || spec.frequency<=0 || !spec.format ||
+        if(!device || !backend.device_format(device,&spec,&device_frames) || spec.channels<=0 || spec.frequency<=0 || !spec.format ||
            backend.queued(selected[i]->stream)<0 || (!batch[i].data && !backend.flush)) return AUDIO_ERROR(0x10);
+        AudioPort *p=selected[i];
+        const int limit=sotc_audio_queue_limit(p->frames,(unsigned)p->channels,(unsigned)p->sample_bytes,
+                                               device_frames,spec.frequency);
+        if(limit<0) return AUDIO_ERROR(0x10);
+        p->device_frames=device_frames;p->device_frequency=spec.frequency;p->queue_limit=limit;
     }
     unsigned char *pcm=total ? malloc(total) : NULL;
     if(total && !pcm) return AUDIO_ERROR(0x10);
@@ -260,11 +270,12 @@ static int32_t output_batch(const void *parameters,uint32_t count,uint64_t lock_
             ++drains;p->next_deadline=0;
             if(trace_enabled) { audio_trace_port(p,audio_now(),2);p->metrics.last_submit_ns=0; }
         } else {
-            /* At most two input buffers may remain queued. No silence is
-             * inserted and a stalled/erroring device never claims success. */
+            /* A full device quantum plus one guest block must fit. Two 256-frame
+             * blocks cannot feed a 1024-frame callback at 48 kHz: the old bound
+             * stalled production at roughly half rate. No PCM is fabricated. */
             const uint64_t before=trace_enabled ? audio_now():0;
             int queued=-1;
-            const int waited=wait_queue(p,bytes,timeout,trace_enabled ? &queued:NULL);
+            const int waited=wait_queue(p,p->queue_limit,timeout,trace_enabled ? &queued:NULL);
             if(trace_enabled) {
                 const uint64_t after=audio_now();
                 sotc_audio_wait(&p->metrics,after>=before ? after-before:0,queued,waited);

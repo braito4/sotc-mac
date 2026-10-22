@@ -126,10 +126,14 @@ def render(directory):
         parts.append('<p>No native memory sample recorded.</p>')
     parts.append('<table><tr><th>Latest retained snapshot</th><th>Value</th></tr>')
     for field in ('native_allocated_bytes', 'native_recommended_bytes', 'native_sample_age_ms',
-                  'vulkan_tracked_bytes', 'image_bytes', 'staging_bytes'):
+                  'vulkan_tracked_bytes', 'image_bytes', 'staging_bytes', 'staging_sample_age_ms',
+                  'staging_allocations', 'staging_reusable_bytes'):
         parts.append(f'<tr><td>{esc(field)}</td><td>{esc(last.get(field, "unknown"))}</td></tr>')
     parts.append('</table><p>staging_bytes: ring device-local/upload/download; dedicated device-local/upload/download; '
                  'held subset of those dedicated buffers. Held bytes are already included in dedicated bytes.</p>')
+    parts.append('<p>Allocation counts use ring[3] then dedicated[3]; reusable bytes use device-local/upload/download '
+                 'and require both released ownership and completed GPU ticks. These are asynchronous snapshots. '
+                 'A negative or absent sample age means unknown; earlier zero-valued journals do not prove an empty pool.</p>')
     parts.append('<h2>Latest cumulative draw counters</h2><table>')
     counters = last.get('counters', {})
     for key, value in (counters.items() if isinstance(counters, dict) else []):
@@ -164,11 +168,15 @@ def render(directory):
                      'queue samples do not prove a hardware underrun: converted/device data is '
                      'not measured. PCM is not recorded. Audio timestamps are not assigned to '
                      'a particular visual frame.</p><table><tr><th>Port / boundary</th><th>Accepted buffers</th>'
-                     '<th>Period (µs)</th><th>Max gap (µs)</th><th>Max queue wait (µs)</th>'
+                     '<th>Input frames/s (target 48000)</th><th>Period (µs)</th><th>Device quantum</th><th>Input limit (bytes)</th><th>Max gap (µs)</th><th>Max queue wait (µs)</th>'
                      '<th>Max output-lock wait (µs)</th><th>Input zero samples</th></tr>')
         for e in [e for e in audio if e['event'] == 'audio_window'][-60:]:
+            e = dict(e)
+            fields = [e.get(k) for k in ('accepted_buffers', 'frames', 'window_us')]
+            e['input_frames_per_s'] = (f'{fields[0] * fields[1] * 1e6 / fields[2]:.1f}'
+                if all(number(value) for value in fields) and fields[2] > 0 else 'unknown')
             parts.append('<tr><td>'+esc(str(e.get('port'))+' / '+str(e.get('boundary')) )+'</td>'+''.join(
-                '<td>'+esc(e.get(k, 'unknown'))+'</td>' for k in ('accepted_buffers', 'period_us',
+                '<td>'+esc(e.get(k, 'unknown'))+'</td>' for k in ('accepted_buffers', 'input_frames_per_s', 'period_us', 'device_frames', 'input_queue_limit_bytes',
                 'max_submit_gap_us', 'max_queue_wait_us', 'max_output_lock_wait_us', 'input_queue_zero_samples'))+'</tr>')
         parts.append('</table>')
         for e in [e for e in audio if e['event'] == 'audio_output_error']:

@@ -28,11 +28,13 @@ class VisualReportTests(unittest.TestCase):
             self.assertIn('&lt;script&gt;', report)
             self.assertNotIn('<script>', report)
             self.assertIn('partial record ignored', report)
-            audio = {'schema': 1, 'event': 'audio_window', 'boundary': '<script>', 'accepted_buffers': 2}
+            audio = {'schema': 1, 'event': 'audio_window', 'boundary': '<script>', 'accepted_buffers': 470,
+                     'frames': 256, 'window_us': 5_000_000}
             (root.parent/'audio.jsonl').write_text(json.dumps(audio)+'\n{"partial":')
             try:
                 self.assertIn('Audio delivery evidence', visual.render(root))
                 self.assertIn('&lt;script&gt;', visual.render(root))
+                self.assertIn('24064.0', visual.render(root))
                 self.assertEqual(len(visual.load_audio(root)), 1)
             finally:
                 (root.parent/'audio.jsonl').unlink()
@@ -70,6 +72,9 @@ class VisualReportTests(unittest.TestCase):
             self.assertEqual(events[-1]['event'], 'native_command_error')
             self.assertEqual(events[-1]['counters']['draw_requests'], 100)
             self.assertEqual(events[-1]['counters']['missing_pipeline_draws'], 100)
+            self.assertEqual(events[-1]['staging_allocations'], [1,2,3,4,5,6])
+            self.assertEqual(events[-1]['staging_reusable_bytes'], [10,11,12])
+            self.assertGreaterEqual(events[-1]['staging_sample_age_ms'], 0)
             self.assertEqual(len(list(directory.glob('frame-*.ppm'))), 2)
             subprocess.run([os.sys.executable, str(ROOT/'tools/analyze_visual_trace.py'), str(directory)],
                            check=True, capture_output=True, text=True)

@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # The AudioOut regression compiles the reviewed preceding adapter.
       - name: Check public source index and documentation
         run: python3 tools/check_repository.py
       - name: Check shell syntax
@@ -28,3 +30,5 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_visual_trace.py
       - name: Check audio timing metrics without sound
         run: python3 -m unittest discover -s tests -p test_audio_trace.py
+      - name: Reproduce and prevent half-rate audio delivery
+        run: python3 tools/check_audio_quantum.py

@@ -35,9 +35,11 @@ inline std::string Quote(const char* value) {
     return out + '"';
 }
 enum Counter : unsigned { DrawRequests, MissingPipeline, EmptyDraws, ResourceBindFailed,
-    BoundDraws, SceneDecisions, ReducedDecisions, PipelineCreateFailed, CounterCount };
+    BoundDraws, SceneDecisions, ReducedDecisions, PipelineCreateFailed,
+    StagingNewBuffers, StagingReuses, StagingOversizeReuses, CounterCount };
 inline constexpr const char* CounterNames[] = {"draw_requests", "missing_pipeline_draws", "empty_draws",
-    "resource_bind_failures", "bound_draw_requests", "scene_decisions", "reduced_decisions", "pipeline_creation_failures"};
+    "resource_bind_failures", "bound_draw_requests", "scene_decisions", "reduced_decisions", "pipeline_creation_failures",
+    "staging_new_buffers", "staging_reuses", "staging_oversize_reuses"};
 struct Frame {
     std::uint64_t id{}, ready_tick{};
     unsigned width{}, height{}, window_width{}, window_height{}, requested_width{}, requested_height{};
@@ -77,8 +79,14 @@ public:
     void NativeMemory(std::uint64_t allocated, std::uint64_t recommended) {
         native_allocated.store(allocated); native_recommended.store(recommended); native_sample_ns.store(Now());
     }
-    void StagingMemory(const std::array<std::uint64_t, 9>& values) {
-        if (Enabled()) for (unsigned i = 0; i < values.size(); ++i) staging[i].store(values[i], std::memory_order_relaxed);
+    void StagingMemory(const std::array<std::uint64_t, 9>& values,
+                       const std::array<std::uint64_t, 6>& counts = {},
+                       const std::array<std::uint64_t, 3>& reusable = {}) {
+        if (!Enabled()) return;
+        for (unsigned i = 0; i < values.size(); ++i) staging[i].store(values[i], std::memory_order_relaxed);
+        for (unsigned i = 0; i < counts.size(); ++i) staging_counts[i].store(counts[i], std::memory_order_relaxed);
+        for (unsigned i = 0; i < reusable.size(); ++i) staging_reusable[i].store(reusable[i], std::memory_order_relaxed);
+        staging_sample_ns.store(Now());
     }
     Frame BeginFrame(unsigned width, unsigned height, unsigned ww, unsigned wh, unsigned rw,
                      unsigned rh, std::uint64_t ready_tick, bool reused, bool game,
@@ -180,6 +188,12 @@ private:
             << ",\"vulkan_tracked_bytes\":" << vulkan_bytes.load() << ",\"image_bytes\":" << images.load()
             << ",\"staging_bytes\":[";
         for (unsigned i = 0; i < staging.size(); ++i) out << (i ? "," : "") << staging[i].load();
+        const auto staging_time = staging_sample_ns.load();
+        out << "],\"staging_sample_age_ms\":" << (staging_time ? (now >= staging_time ? now - staging_time : 0) / 1e6 : -1.0)
+            << ",\"staging_allocations\":[";
+        for (unsigned i = 0; i < staging_counts.size(); ++i) out << (i ? "," : "") << staging_counts[i].load();
+        out << "],\"staging_reusable_bytes\":[";
+        for (unsigned i = 0; i < staging_reusable.size(); ++i) out << (i ? "," : "") << staging_reusable[i].load();
         out << ']'; return out;
     }
     bool Open() {
@@ -223,6 +237,9 @@ private:
     std::mutex mutex;
     std::array<std::atomic<std::uint64_t>, CounterCount> counters{};
     std::array<std::atomic<std::uint64_t>, 9> staging{}; // ring[3], dedicated[3], held dedicated[3]
+    std::array<std::atomic<std::uint64_t>, 6> staging_counts{}; // ring[3], dedicated[3]
+    std::array<std::atomic<std::uint64_t>, 3> staging_reusable{}; // !held and actual tick complete
+    std::atomic<std::uint64_t> staging_sample_ns{};
     std::atomic<std::uint64_t> sequence{}, memory_poll{}, native_allocated{}, native_recommended{}, native_sample_ns{};
     std::atomic<std::uint64_t> vulkan_bytes{}, images{};
     CapturePolicy policy;

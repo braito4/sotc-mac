@@ -27,6 +27,14 @@ image and staging bytes are separate observations. Staging arrays use device-loc
 host-uncached/upload and host-cached/download order, repeated for rings, dedicated
 buffers and the held subset of dedicated buffers. Categories overlap; do not add
 them to native allocation or interpret them as physical RAM.
+The newest overlay publishes inventory after prewarming/new allocations as well
+as frame ticks; previously it could remain all-zero until the first pool tick.
+`staging_sample_age_ms` is negative until a real inventory exists. New fields
+record ring/dedicated allocation counts and reusable dedicated bytes per memory
+type, admitted only when not held and the actual GPU tick has completed. An old
+journal's zero array with no sample-age field must be treated as unknown inventory.
+Counters also track dedicated allocations, reuse and reuse that the former size
+class restriction would have rejected.
 
 `present_result=1` is the swapchain API result. It does not establish image
 contents, scanout or a completed game scene. Native failure events associate with
@@ -90,5 +98,8 @@ The ARM64 library builds. CPU synthetic tests cover pixel analysis, size overflo
 cadence/memory/in-flight/attempt limits, concurrent counters, timeline rotation,
 retention of capture records, partial logs, HTML escaping and preview validation.
 Launcher fixtures check defaults/overrides and preservation of exit 23 when the
-report fails. Full native JIT/interpreter contracts pass. No new real GPU run
-validates readback, rendered pixels, diagnostic overhead or memory improvement.
+report fails. Full native JIT/interpreter contracts pass. Two owner runs now
+exercise the metadata journal, presentation API results and native failure
+recording; the newest also exercises periodic audio metadata. Neither enables
+pixel capture. Readback, rendered pixels, an overhead comparison and the new
+staging-reuse/audio-quantum corrections still need native validation.

@@ -1,5 +1,15 @@
 # Reviewed renderer adaptations
 
+`sotc-staging-reuse` removes the upper size-class exclusion from best-fit dedicated
+buffer reuse while preserving type, held ownership and actual GPU completion.
+It releases no retained allocation. Inventory is now published after prewarm/new
+allocations and includes sample age, allocation counts and reusable bytes.
+`tools/check_staging_reuse.py` compiles actual allocation/release methods: the
+pinned sequential fixture retains 288 MiB across five buffers; the adapted one
+retains 128 MiB in one, with held/pending/type/best-fit checks passing. These are
+synthetic capacities, not measured native game savings. The builder accepts and
+migrates the exact preceding visual/copy overlay state through checked digests.
+
 The `sotc-visual-trace` overlay adds bounded private presentation/draw/memory
 evidence and optional completed game-image readbacks; see
 [visual diagnostics](../../docs/VISUAL_DIAGNOSTICS.md). Metadata defaults on in the

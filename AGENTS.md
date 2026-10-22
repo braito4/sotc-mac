@@ -29,8 +29,17 @@ public-source watch notifies about relevant changes but does not update pins.
 - The owner reports audio cuts. Combined diagnostics now enable SOTC_AUDIO_TRACE=1
   for bounded per-port timing/queue metadata and output errors. Read
   docs/AUDIO_DIAGNOSTICS.md; input-queue zero is not hardware-underrun evidence.
-  Keep real PCM/error contracts; no native evidence identifies or fixes the cuts yet.
-- The newest owner-run preset-4 capture confirms Metal out-of-memory failure after
+  The newest native windows show about half-rate delivery. An actual-source device
+  simulation reproduces the old queue-cap failure; the adapter now queries actual
+  device quantum/frequency and sizes its bounded queue accordingly. Native audible
+  improvement is still unverified. Keep real PCM/error contracts.
+- The newest 07:00Z run confirms another native OOM after 59.026 seconds and
+  records 3 GiB of dedicated upload staging. The new checked staging overlay reuses
+  the smallest completed/unheld sufficient buffer across size classes; it frees
+  nothing and keeps all ownership/tick/type guards. CPU regressions/ARM64 build
+  pass, but game memory savings remain unverified. Read the newest checkpoint;
+  earlier 83/64-second summaries below are historical. Keep all pins and settings.
+- An earlier owner-run preset-4 capture confirms Metal out-of-memory failure after
   83.45 seconds: actual NSError domain/code/description, 11.65 GiB native allocation
   versus 11.84 GiB recommended, and a complete two-compute-candidate command tail.
   The completion-error handler self-exits; child/supervisor exit 23 is confirmed,

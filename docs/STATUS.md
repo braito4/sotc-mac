@@ -2,14 +2,30 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-The owner also reports **audio cutting out**. Existing logs show initial PCM
+**Newest measured boundary (07:00Z):** confirmed Metal out-of-memory stop after
+59.026 seconds, child/supervisor exit 23. Native audio windows now show each
+active port delivering roughly 23,912 of the requested 48,000 input frames/s,
+with negligible output-lock wait and no queue/provider failure. The two-block
+queue policy reproduces half-rate output against a 1024-frame fake device;
+the corrected adapter queries the real device quantum and restores simulated
+delivery without fabricating samples. Native audible improvement is pending.
+
+The new checked staging overlay reuses completed, unheld larger buffers across
+size classes and adds fresh inventory/reuse accounting. Both native logs retain
+3,072 MiB of dedicated upload buffers, but actual game savings from the correction
+are unmeasured. No retained resource is freed. The ARM64 build, source regressions
+and full JIT/interpreter contracts pass. Scene remains 640x360, DMA/async off;
+correct pixels, general PerVertexKHR/SRT support and memory stability remain open.
+See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Earlier audio investigation:** the owner reports audio cutting out. Earlier logs show initial PCM
 acceptance but do not locate the later interruptions. Periodic metadata-only
 [audio diagnostics](AUDIO_DIAGNOSTICS.md) now measure delivery gaps, deadline,
 mutex/queue waits and provider errors; the offline report includes these windows.
 Synthetic timing and actual guest-output checks run without sound/GPU. The
 audible problem and audiovisual alignment remain unresolved pending native evidence.
 
-**New code, awaiting owner GPU comparison:** bounded private visual journals,
+**Earlier instrumentation checkpoint:** bounded private visual journals,
 draw-skip counters, native/staging allocation samples and an offline report are
 implemented; optional completed game-frame readbacks produce previews at most
 320x180 while the scene stays 640x360. CPU fixtures and the ARM64 build pass.
@@ -22,7 +38,7 @@ but no integration, correct pixels or memory improvement is claimed. See
 [visual diagnostics](VISUAL_DIAGNOSTICS.md), [PerVertexKHR research](PERVERTEX_REVIEW.md)
 and [dependency review](DEPENDENCY_WATCH.md).
 
-**Newest boundary:** the latest owner-run preset-4 capture confirms native Metal
+**Previous native boundary (05:47Z):** the earlier owner-run preset-4 capture confirms native Metal
 out-of-memory failure after 83.45 seconds. The new completion-error handler records
 the actual NSError and allocation counters and self-exits; both child and supervisor
 exit 23, without a GPU-watchdog stop. Native allocation is 11.65 GiB versus an

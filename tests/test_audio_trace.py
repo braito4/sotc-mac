@@ -15,8 +15,18 @@ class AudioTraceTests(unittest.TestCase):
     def test_gap_wait_reset_and_deadline_metrics(self):
         code = r'''
 #include "audio_trace_metrics.h"
+#include "audio_queue_policy.h"
 #include <assert.h>
 int main(void) {
+    assert(sotc_audio_queue_limit(256,8,4,1024,48000)==32768);
+    assert(sotc_audio_queue_limit(256,8,4,1024,44100)==40960);
+    assert(sotc_audio_queue_limit(256,1,2,1024,48000)==2048);
+    assert(sotc_audio_queue_limit(2048,8,4,1024,48000)==65536);
+    assert(sotc_audio_queue_limit(256,8,4,9216,48000)==294912);
+    assert(sotc_audio_queue_limit(256,8,4,9472,48000)==-1);
+    assert(sotc_audio_queue_limit(256,8,4,0,48000)==-1);
+    assert(sotc_audio_queue_limit(256,8,4,INT_MAX,1)==-1);
+    assert(sotc_audio_queue_limit(256,8,4,1024,0)==-1);
     SotcAudioMetrics s={0}; sotc_audio_reset(&s,100);
     sotc_audio_wait(&s,10,0,0); sotc_audio_wait(&s,20,1024,0);
     sotc_audio_wait(&s,30,-1,1);
@@ -54,6 +64,7 @@ int main(void) {
                 self.assertTrue(events)
                 windows = [e for e in events if e['event'] == 'audio_window']
                 self.assertTrue(any(e['accepted_buffers'] > 0 for e in windows))
+                self.assertTrue(any(e['device_frames'] == 1024 and e['input_queue_limit_bytes'] == 32768 for e in windows))
                 self.assertTrue(any(e['input_queue_zero_samples'] > 0 for e in windows))
                 self.assertTrue(any(e['queue_wait_failures'] == 1 and e['max_queue_wait_us'] >= 1_900_000 for e in windows))
                 self.assertTrue(any(e['event'] == 'audio_output_error' and e['result'] < 0 for e in events))

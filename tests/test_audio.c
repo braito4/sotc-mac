@@ -12,12 +12,14 @@ static BootstrapAudioSpec received;
 static unsigned char streams[32];
 static int no_device,query_fail,device_queries;
 static BootstrapAudioSpec physical={0x8120,2,48000};
+static int physical_frames=1024;
 static uint32_t stream_device(void *stream) {
     assert((unsigned char *)stream>=streams && (unsigned char *)stream<streams+created);
     return no_device ? 0:100;
 }
 static bool device_format(uint32_t device,BootstrapAudioSpec *spec,int *frames) {
-    assert(device==100 && spec && !frames);++device_queries;
+    assert(device==100 && spec);++device_queries;
+    if(frames) *frames=physical_frames;
     *spec=physical;return !query_fail;
 }
 static void *open_stream(uint32_t device,const BootstrapAudioSpec *spec,void *callback,void *userdata) {

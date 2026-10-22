@@ -32,6 +32,7 @@ int main() {
     assert(std::strcmp(policy.Reserve(110, 640, 360, 0, 1ull<<30, 0), "capture_limit") == 0);
     Recorder recorder{CapturePolicy{.interval_ns = 0, .limit = 3}};
     recorder.NativeMemory(1024, 2ull << 30);
+    recorder.StagingMemory({1,2,3,4,5,6,7,8,9}, {1,2,3,4,5,6}, {10,11,12});
     auto frame = recorder.BeginFrame(640, 360, 1920, 1080, 640, 360, 42, false, true, 2048, 1024);
     recorder.Event("present_result", frame, "quoted\"\\\n<script>", 1);
     if (!Enabled()) return 0;
