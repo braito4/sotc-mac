@@ -2,6 +2,7 @@
 // SotC diagnostic: bounded CPU records, not GPU execution breadcrumbs. No GPU reads.
 #pragma once
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -28,12 +29,66 @@ struct Command {
     std::array<char, 48> name{};
     U64 shader[2]{}, count[3]{};
 };
+enum class NoteKind : std::size_t {
+    GuestPass, GuestDraw, GuestDispatch, NativeDraw, NativeDispatch, NativeCopy,
+    NativeBlit, NativeClear, NativeBarrier, NativeState, NativeRenderScope, Other, Count
+};
+inline NoteKind ClassifyNote(const char* name) {
+    const auto starts = [name](const char* prefix) {
+        return std::strncmp(name, prefix, std::strlen(prefix)) == 0;
+    };
+    if (std::strcmp(name, "pass") == 0) return NoteKind::GuestPass;
+    if (std::strcmp(name, "draw") == 0 || std::strcmp(name, "draw_indexed") == 0 ||
+        std::strcmp(name, "draw_indirect") == 0) return NoteKind::GuestDraw;
+    if (std::strcmp(name, "dispatch") == 0 || std::strcmp(name, "dispatch_indirect") == 0)
+        return NoteKind::GuestDispatch;
+    if (starts("vkCmdDraw")) return NoteKind::NativeDraw;
+    if (starts("vkCmdDispatch")) return NoteKind::NativeDispatch;
+    if (starts("vkCmdCopy") || starts("vkCmdResolveImage") || starts("vkCmdUpdateBuffer"))
+        return NoteKind::NativeCopy;
+    if (starts("vkCmdBlitImage")) return NoteKind::NativeBlit;
+    if (starts("vkCmdClear") || starts("vkCmdFillBuffer")) return NoteKind::NativeClear;
+    if (starts("vkCmdPipelineBarrier")) return NoteKind::NativeBarrier;
+    if (starts("vkCmdBind") || starts("vkCmdSet") || starts("vkCmdPush"))
+        return NoteKind::NativeState;
+    if (starts("vkCmdBeginRendering") || starts("vkCmdEndRendering"))
+        return NoteKind::NativeRenderScope;
+    return NoteKind::Other;
+}
 struct Commands {
     static constexpr std::size_t Limit = 96;
     U64 recording{}, total{};
     std::deque<Command> tail;
+    // Counts cover all observed notes, including those evicted from the tail.
+    // Guest and native notes can describe the same work; never sum them as draws.
+    std::array<U64, static_cast<std::size_t>(NoteKind::Count)> counts{};
+    Command first_draw{}, last_draw{}, first_dispatch{}, last_dispatch{};
     void Add(const Command& command) {
         ++total;
+        const auto kind = ClassifyNote(command.name.data());
+        ++counts[static_cast<std::size_t>(kind)];
+        if (kind == NoteKind::GuestDraw) Remember(first_draw, last_draw, command);
+        if (kind == NoteKind::GuestDispatch) Remember(first_dispatch, last_dispatch, command);
+        AppendTail(command);
+    }
+    void Merge(const Commands& other) {
+        total += other.total;
+        for (std::size_t i = 0; i < counts.size(); ++i) counts[i] += other.counts[i];
+        MergeCandidates(first_draw, last_draw, other.first_draw, other.last_draw);
+        MergeCandidates(first_dispatch, last_dispatch, other.first_dispatch, other.last_dispatch);
+        for (const auto& command : other.tail) AppendTail(command);
+    }
+private:
+    static void Remember(Command& first, Command& last, const Command& command) {
+        if (!first.ordinal) first = command;
+        last = command;
+    }
+    static void MergeCandidates(Command& first, Command& last,
+                                const Command& other_first, const Command& other_last) {
+        if (!first.ordinal) first = other_first;
+        if (other_last.ordinal) last = other_last;
+    }
+    void AppendTail(const Command& command) {
         if (tail.size() == Limit) tail.pop_front();
         tail.push_back(command);
     }
@@ -44,6 +99,7 @@ struct Submission {
     U64 tick{};
     int result{};
     bool returned{};
+    U64 submitted_ns{}, returned_ns{};
     std::array<Dependency, 4> waits{}, signals{};
     std::uint32_t wait_count{}, signal_count{};
     std::array<Key, 32> buffers{};
@@ -59,10 +115,16 @@ struct MetalChunk {
     bool commit_returned{}, scheduled{}, callback{};
     int status{};
     std::int64_t error{};
+    U64 commit_ns{}, returned_ns{}, scheduled_ns{}, completed_ns{};
 };
+inline U64 MonotonicNs() {
+    return static_cast<U64>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
+}
 class Recorder {
 public:
     static constexpr std::size_t MaxOpen = 256, MaxSubmissions = 512, MaxMetal = 1024;
+    explicit Recorder(U64 (*clock)() = MonotonicNs) : clock_ns(clock) {}
     U64 Begin(Key buffer) {
         std::lock_guard lock{mutex};
         if (!open.contains(buffer) && open.size() == MaxOpen) {
@@ -87,15 +149,14 @@ public:
     }
     void Submit(Submission submission, std::span<const Key> buffers) {
         std::lock_guard lock{mutex};
+        submission.submitted_ns = clock_ns();
         submission.buffer_count = static_cast<std::uint32_t>(buffers.size());
         std::size_t buffer_index = 0;
         for (Key buffer : buffers) {
             if (auto it = open.find(buffer); it != open.end()) {
                 if (buffer_index < submission.recordings.size())
                     submission.recordings[buffer_index] = it->second.recording;
-                const U64 omitted = it->second.total - it->second.tail.size();
-                submission.commands.total += omitted;
-                for (const auto& command : it->second.tail) submission.commands.Add(command);
+                submission.commands.Merge(it->second);
                 open.erase(it);
             } else ++submission.missing_buffers;
             ++buffer_index;
@@ -109,6 +170,7 @@ public:
         std::lock_guard lock{mutex};
         for (auto it = submissions.rbegin(); it != submissions.rend(); ++it)
             if (it->scheduler == scheduler && it->tick == tick) {
+                if (!it->returned) it->returned_ns = clock_ns();
                 it->returned = true; it->result = result; return;
             }
     }
@@ -116,16 +178,24 @@ public:
         std::lock_guard lock{mutex};
         if (metal.size() == MaxMetal) { metal.pop_front(); ++evictions; }
         const U64 id = ++metal_serial;
-        metal.push_back({.id = id, .buffer = buffer, .recording = recording});
+        metal.push_back({.id = id, .buffer = buffer, .recording = recording,
+                         .commit_ns = clock_ns()});
         return id;
     }
     // 0: commit returned, 1: scheduled callback, 2: completion callback.
     void MetalEvent(U64 id, int event, int status = 0, std::int64_t error = 0) {
         std::lock_guard lock{mutex};
         for (auto it = metal.rbegin(); it != metal.rend(); ++it) if (it->id == id) {
-            if (event == 0) it->commit_returned = true;
-            if (event == 1) it->scheduled = true;
-            if (event == 2) { it->callback = true; it->status = status; it->error = error; }
+            if (event == 0 && !it->commit_returned) {
+                it->returned_ns = clock_ns(); it->commit_returned = true;
+            }
+            if (event == 1 && !it->scheduled) {
+                it->scheduled_ns = clock_ns(); it->scheduled = true;
+            }
+            if (event == 2 && !it->callback) {
+                it->completed_ns = clock_ns(); it->callback = true;
+                it->status = status; it->error = error;
+            }
             return;
         }
         ++missing_metal_events;
@@ -137,9 +207,11 @@ public:
         U64 tick{};
         bool retained = false;
         bool submitted = false;
+        U64 now{};
         const char* source = "not-retained";
         {
             std::lock_guard lock{mutex};
+            now = clock_ns();
             for (const auto& chunk : metal) if (chunk.id == id) {
                 failed = chunk; retained = true; break;
             }
@@ -170,6 +242,7 @@ public:
                      (unsigned long long)failed.recording, (unsigned long long)scheduler,
                      (unsigned long long)tick, failed.status, (long long)failed.error,
                      (unsigned long long)commands.total, commands.tail.size(), source);
+        if (retained) PrintMetalTiming(output, failed, now);
         PrintCommands(output, commands);
         std::fflush(output);
     }
@@ -177,9 +250,10 @@ public:
         // Copy under lock; printing must not block recording/completion callbacks.
         std::deque<Submission> selected;
         std::deque<MetalChunk> chunks;
-        U64 lost{}, notes_lost{}, callbacks_lost{};
+        U64 lost{}, notes_lost{}, callbacks_lost{}, now{};
         {
             std::lock_guard lock{mutex};
+            now = clock_ns();
             for (const auto& submission : submissions)
                 if (submission.scheduler == scheduler &&
                     (submission.tick == tick || submission.tick == completed))
@@ -203,6 +277,9 @@ public:
                          int(submission.returned), submission.result, submission.buffer_count,
                          (unsigned long long)submission.missing_buffers,
                          (unsigned long long)submission.commands.total, submission.commands.tail.size());
+            std::fprintf(output, "GPU submission trace: submit_timing age_ms=%.3f return_after_ms=%.3f; "
+                         "host observations, missing=-1\n", Milliseconds(now, submission.submitted_ns),
+                         submission.returned ? Milliseconds(submission.returned_ns, submission.submitted_ns) : -1.0);
             for (std::uint32_t i = 0; i < submission.wait_count && i < 4; ++i)
                 PrintDependency(output, "wait", submission.waits[i]);
             for (std::uint32_t i = 0; i < submission.signal_count && i < 4; ++i)
@@ -212,12 +289,14 @@ public:
                              (unsigned long long)submission.buffers[i],
                              (unsigned long long)submission.recordings[i]);
                 for (const auto& chunk : chunks) if (chunk.buffer == submission.buffers[i] &&
-                                                     chunk.recording == submission.recordings[i])
+                                                     chunk.recording == submission.recordings[i]) {
                     std::fprintf(output, "GPU submission trace: Metal chunk=%llu commit_returned=%d "
                                  "scheduled_callback=%d completed_callback=%d status=%d error=%lld\n",
                                  (unsigned long long)chunk.id, int(chunk.commit_returned),
                                  int(chunk.scheduled), int(chunk.callback), chunk.status,
                                  (long long)chunk.error);
+                    PrintMetalTiming(output, chunk, now);
+                }
             }
             PrintCommands(output, submission.commands);
         }
@@ -225,7 +304,34 @@ public:
         std::fflush(output);
     }
 private:
+    static double Milliseconds(U64 end, U64 start) {
+        return end >= start ? double(end - start) / 1e6 : -1.0;
+    }
+    static void PrintMetalTiming(std::FILE* output, const MetalChunk& chunk, U64 now) {
+        std::fprintf(output, "GPU submission trace: Metal timing chunk=%llu age_ms=%.3f "
+                     "commit_return_after_ms=%.3f scheduled_after_ms=%.3f completed_after_ms=%.3f; "
+                     "host observations from commit registration, missing=-1\n", (unsigned long long)chunk.id,
+                     Milliseconds(now, chunk.commit_ns),
+                     chunk.commit_returned ? Milliseconds(chunk.returned_ns, chunk.commit_ns) : -1.0,
+                     chunk.scheduled ? Milliseconds(chunk.scheduled_ns, chunk.commit_ns) : -1.0,
+                     chunk.callback ? Milliseconds(chunk.completed_ns, chunk.commit_ns) : -1.0);
+    }
     static void PrintCommands(std::FILE* output, const Commands& commands) {
+        static constexpr const char* names[] = {
+            "guest_pass", "guest_draw", "guest_dispatch", "native_draw", "native_dispatch",
+            "native_copy", "native_blit", "native_clear", "native_barrier", "native_state",
+            "native_render_scope", "other"
+        };
+        static_assert(std::size(names) == static_cast<std::size_t>(NoteKind::Count));
+        std::fprintf(output, "GPU submission trace: note_summary total=%llu",
+                     (unsigned long long)commands.total);
+        for (std::size_t i = 0; i < commands.counts.size(); ++i)
+            std::fprintf(output, " %s=%llu", names[i], (unsigned long long)commands.counts[i]);
+        std::fputs("; all observed CPU notes, guest/native may describe the same work\n", output);
+        PrintCandidate(output, "first_guest_draw", commands.first_draw);
+        PrintCandidate(output, "last_guest_draw", commands.last_draw);
+        PrintCandidate(output, "first_guest_dispatch", commands.first_dispatch);
+        PrintCandidate(output, "last_guest_dispatch", commands.last_dispatch);
         for (const auto& command : commands.tail)
             std::fprintf(output, "GPU submission trace: cb_command=%llu recording=%llu buffer=%#llx %s "
                          "shader=%016llx,%016llx count=%llu,%llu,%llu\n",
@@ -235,6 +341,16 @@ private:
                          (unsigned long long)command.shader[1], (unsigned long long)command.count[0],
                          (unsigned long long)command.count[1], (unsigned long long)command.count[2]);
     }
+    static void PrintCandidate(std::FILE* output, const char* label, const Command& command) {
+        if (!command.ordinal) return;
+        std::fprintf(output, "GPU submission trace: %s_candidate ordinal=%llu recording=%llu buffer=%#llx %s "
+                     "shader=%016llx,%016llx count=%llu,%llu,%llu\n", label,
+                     (unsigned long long)command.ordinal, (unsigned long long)command.recording,
+                     (unsigned long long)command.buffer, command.name.data(),
+                     (unsigned long long)command.shader[0], (unsigned long long)command.shader[1],
+                     (unsigned long long)command.count[0], (unsigned long long)command.count[1],
+                     (unsigned long long)command.count[2]);
+    }
     static void PrintDependency(std::FILE* output, const char* kind, const Dependency& d) {
         std::fprintf(output, "GPU submission trace: %s semaphore=%#llx value=%llu\n", kind,
                      (unsigned long long)d.semaphore, (unsigned long long)d.value);
@@ -243,6 +359,7 @@ private:
     std::unordered_map<Key, Commands> open;
     std::deque<Submission> submissions;
     std::deque<MetalChunk> metal;
+    U64 (*clock_ns)();
     U64 record_serial{}, metal_serial{}, evictions{}, missing_notes{}, missing_metal_events{};
 };
 // Completion handlers may outlive ordinary C++ static destruction.

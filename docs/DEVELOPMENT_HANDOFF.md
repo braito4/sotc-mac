@@ -8,6 +8,41 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Prepared full-batch submission summaries and host timing
+
+The **2026-10-22 15:27 UTC** comparison below retains only the last 96 of 26,764
+CPU notes for the awaited batch. The submission recorder now also keeps fixed-
+size counters for all observed notes, separating guest draw/dispatch candidates
+from native API draw, dispatch, copy, blit, clear, barrier and state notes. The
+first and last guest draw/dispatch candidates survive tail eviction, with their
+own recording generation and ordinal. Combining command buffers merges these
+summaries without recounting their retained tails. Empty/missing recordings and
+handle reuse remain explicit. Missing source recordings make these counts
+incomplete. These are metadata counts: guest and native notes can describe the
+same operation, and recording is not proof of GPU execution. The candidates
+describe a logical batch/open recording, not a precise Metal chunk boundary.
+
+Monotonic host timestamps now distinguish submission registration/return and
+Metal commit registration/return, scheduled callback and completion callback.
+Reports show observation ages and elapsed times, with **-1 for an observation
+not seen**. A callback may precede the return from `commit`; its first observed
+time is retained. These include host scheduling and recorder overhead, not
+precise GPU start/end times. Existing watchdog and native-error reports print
+the new metadata without adding GPU markers, resource reads or new submissions.
+
+The CPU fixture covers a 26,775-note multi-buffer batch whose early candidates
+are absent from its tail, missing/empty buffers, reused handles, callbacks before
+commit return, duplicate callbacks, concurrency and cooperative cancellation.
+Summary storage is bounded below 1 KiB per recording/submission, in addition to
+the existing 96-note tail. The ARM64 rebuild and symbol audit, eleven renderer
+regressions, 24 builder tests, full JIT/interpreter contracts and the submission
+fixtures pass. The submission fixtures are now included in `--contracts-test`.
+Native validation of this extension remains pending. This improves evidence for
+the unresolved stall; it does not fix it or the earlier OOM/corruption. Keep all
+pins, cache 24/9, memory ownership, scene settings and stopping guards. No game or
+GPU comparison is started. Confirm the previous child/window has closed and
+refresh the tracked public upstream state before any next native comparison.
+
 ### First gameplay image confirmed; native comparison stops on GPU progress
 
 The owner reports seeing the **first image of the gameplay section** in the

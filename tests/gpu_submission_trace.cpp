@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 using namespace SotcGpuTrace;
+static U64 fixture_now;
+static U64 FixtureClock() { return fixture_now; }
 extern "C" int fixture_control_start(void);
 static std::string Report(Recorder& recorder, Key scheduler, U64 tick, U64 done = 0) {
     auto* file = std::tmpfile(); assert(file);
@@ -102,6 +104,81 @@ int main(int argc, char** argv) {
     assert(bounded.find("cb_command=200 ") != std::string::npos);
     assert(bounded.find("cb_command=1 ") == std::string::npos);
 
+    // A large tail must not hide early compute/draw candidates. Aggregate two
+    // buffers without counting their retained tails twice, including an empty
+    // buffer and an unknown buffer whose missing evidence stays explicit.
+    Recorder summaries;
+    summaries.Begin(600);
+    summaries.Note(600, "dispatch", 101, 0, 2, 3, 4);
+    summaries.Note(600, "draw_indexed", 202, 303, 6, 2);
+    for (int i = 0; i < 26762; ++i) summaries.Note(600, "vkCmdBindPipeline");
+    summaries.Begin(601);
+    summaries.Note(601, "draw_indirect", 404, 505, 8, 3);
+    summaries.Note(601, "dispatch_indirect", 606, 0, 9, 10, 11);
+    summaries.Note(601, "vkCmdDrawIndexedIndirect");
+    summaries.Note(601, "vkCmdDispatchIndirect");
+    summaries.Note(601, "vkCmdCopyBufferToImage");
+    summaries.Note(601, "vkCmdBlitImage");
+    summaries.Note(601, "vkCmdFillBuffer");
+    summaries.Note(601, "vkCmdPipelineBarrier2KHR");
+    summaries.Note(601, "vkCmdBeginRenderingKHR");
+    summaries.Note(601, "future_unknown_command");
+    summaries.Note(601, "pass");
+    summaries.Begin(602);
+    const Key many[] = {600, 601, 602, 603};
+    summaries.Submit(Batch(20, 1), many);
+    auto all = Report(summaries, 20, 1);
+    assert(all.find("missing_buffers=1 notes=26775 retained=96") != std::string::npos);
+    assert(all.find("note_summary total=26775 guest_pass=1 guest_draw=2 guest_dispatch=2 "
+                    "native_draw=1 native_dispatch=1 native_copy=1 native_blit=1 "
+                    "native_clear=1 native_barrier=1 native_state=26762 "
+                    "native_render_scope=1 other=1") != std::string::npos);
+    assert(all.find("first_guest_dispatch_candidate ordinal=1 recording=1 buffer=0x258 dispatch "
+                    "shader=0000000000000065,0000000000000000 count=2,3,4") != std::string::npos);
+    assert(all.find("last_guest_dispatch_candidate ordinal=2 recording=2 buffer=0x259 dispatch_indirect ") != std::string::npos);
+    assert(all.find("first_guest_draw_candidate ordinal=2 recording=1 buffer=0x258 draw_indexed ") != std::string::npos);
+    assert(all.find("last_guest_draw_candidate ordinal=1 recording=2 buffer=0x259 draw_indirect ") != std::string::npos);
+    assert(all.find("cb_command=1 recording=1") == std::string::npos);
+    // Summary storage is fixed, below 1 KiB per recording/submission, plus the
+    // original bounded 96-note tail. It cannot grow with batch length.
+    static_assert(sizeof(Commands) <= 1024);
+    summaries.Begin(600); summaries.Note(600, "vkCmdCopyImage");
+    const Key recycled[] = {600}; summaries.Submit(Batch(20, 2), recycled);
+    auto reset = Report(summaries, 20, 2);
+    assert(reset.find("guest_draw=0 guest_dispatch=0") != std::string::npos);
+    assert(reset.find("_candidate ordinal=") == std::string::npos);
+
+    // Host timestamps use one monotonic clock, with absent observations -1.
+    // Metal callbacks can run before commit returns: do not infer GPU order
+    // from CPU call return order or overwrite the first observed timestamp.
+    Recorder timed(FixtureClock);
+    fixture_now = 1000000;
+    const auto timed_generation = timed.Begin(700);
+    const Key timed_buffers[] = {700}; timed.Submit(Batch(30, 1), timed_buffers);
+    fixture_now = 2000000;
+    const auto timed_chunk = timed.CommitMetal(700, timed_generation);
+    fixture_now = 3000000; timed.MetalEvent(timed_chunk, 1);
+    fixture_now = 4000000; timed.MetalEvent(timed_chunk, 2, 4);
+    fixture_now = 5000000; timed.MetalEvent(timed_chunk, 0);
+    fixture_now = 6000000; timed.Returned(30, 1, 0);
+    fixture_now = 10000000;
+    timed.MetalEvent(timed_chunk, 1); timed.MetalEvent(timed_chunk, 2, 5, 8);
+    auto timing = Report(timed, 30, 1);
+    assert(timing.find("submit_timing age_ms=9.000 return_after_ms=5.000") != std::string::npos);
+    assert(timing.find("age_ms=8.000 commit_return_after_ms=3.000 "
+                       "scheduled_after_ms=1.000 completed_after_ms=2.000") != std::string::npos);
+    assert(timing.find("status=4 error=0") != std::string::npos);
+    const auto pending_generation = timed.Begin(700);
+    timed.Submit(Batch(30, 2), timed_buffers);
+    const auto pending_chunk = timed.CommitMetal(700, pending_generation);
+    fixture_now = 20000000;
+    auto pending = Report(timed, 30, 2);
+    assert(pending.find("submit_timing age_ms=10.000 return_after_ms=-1.000") != std::string::npos);
+    assert(pending.find("age_ms=10.000 commit_return_after_ms=-1.000 "
+                        "scheduled_after_ms=-1.000 completed_after_ms=-1.000") != std::string::npos);
+    assert(pending.find("Metal chunk=1 ") == std::string::npos);
+    assert(FailureReport(timed, pending_chunk).find("completed_after_ms=-1.000") != std::string::npos);
+
     // Concurrent recorders/callbacks and a concurrent report use one coherent snapshot.
     std::vector<std::thread> workers;
     for (int t = 0; t < 12; ++t) workers.emplace_back([&,t] {
@@ -126,5 +203,5 @@ int main(int argc, char** argv) {
         recorder.Begin(5000); const Key keys[] = {5000}; recorder.Submit(Batch(200, i), keys);
     }
     assert(Report(recorder, 200, 1).find("not retained or submit not reached") != std::string::npos);
-    std::puts("PASS: bounded submission metadata, reuse, callbacks, dependencies and concurrent snapshots");
+    std::puts("PASS: bounded submission metadata, full-batch summaries, host timings, reuse, callbacks, dependencies and concurrent snapshots");
 }

@@ -11,6 +11,10 @@ The native comparison no longer reports the two float-output/integer-target
 errors; exact GPU copy pixels and full-case coverage remain unverified.
 This is not an OOM/corruption fix.
 Read the first handoff checkpoint and preserve the existing testing guards.
+The submission journal now retains full-batch note summaries and first/last
+guest draw/dispatch candidates, with monotonic host observation timings.
+ARM64 build and full contracts pass; native validation is pending. Counts are CPU
+metadata, not draw totals or GPU execution progress. Do not treat this as a stall fix.
 The busy-queue maintenance overlay is integrated, with dependencies/cache 24/9
 unchanged and native proxy destruction observed. The latest owner run (15:27 UTC)
 stops on GPU progress; the supervisor ends after 136.225 seconds, exit 1, with

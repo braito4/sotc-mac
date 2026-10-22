@@ -17,6 +17,14 @@ the stop; final pressure is unknown. Image replay records 464 live images /
 sample. Audio delivers about 47,734 input frames/s per port, maximum gap 95.384 ms.
 PerVertexKHR errors persist. See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
+**Prepared stall diagnostics:** bounded summaries now cover every observed CPU
+note in a submission and retain the first/last guest draw and dispatch candidates
+after tail eviction. Monotonic host timings distinguish commit/queue-call returns
+and callbacks; missing observations remain explicit. The ARM64 rebuild, eleven
+renderer regressions, submission fixtures and full JIT/interpreter contracts pass.
+Native validation is pending, and
+the stall remains unresolved. See the [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
 **Integer-copy correction:** typed uint/int blits replace the float
 output for supported same-format nearest 2D integer copies. The ARM64 build,
 eleven renderer regressions, 24 builder tests and full JIT/interpreter contracts
