@@ -2,6 +2,15 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
+**CPU investigation prepared:** the rebuilt diagnostic now records bounded
+protected object-base/stack words and frame-pointer candidates at a fatal JIT
+stop. Tracked GPU pages are skipped; failed reads and unavailable interpreter
+context remain explicit. A new original synthetic indexed-load fixture passes
+8,064 cases per CPU mode, and native fatal-path fixtures preserve exit 139.
+ARM64/native CPU checks and contracts pass. The underlying corruption is not
+reproduced or fixed, and the new context has no game validation. See
+[CPU diagnostics](CPU_DIAGNOSTICS.md).
+
 **Current native boundary (13:55 UTC):** the consolidated-workspace owner run
 ends after **182.664 seconds on SIGSEGV**, child/supervisor exit **139**, in
 translated guest code. No Metal OOM or GPU-watchdog stop is recorded. Busy-queue

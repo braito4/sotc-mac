@@ -8,6 +8,32 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### CPU fault investigation: bounded context and indexed-load regression
+
+The host diagnostic now collects protected, bounded register-base memory,
+guest-stack words and frame-pointer candidates on a terminating translated
+fault. GPU-tracked pages and non-guest ranges are skipped; partial reads remain
+explicit. There is no new execution-path hook, game patch, renderer mutation,
+dependency update or change to exit 139. The implementation adapts the pinned
+bloodborne-runtime probe's field/stack diagnostics without its game assumptions.
+See [CPU fault diagnostics](CPU_DIAGNOSTICS.md) for bounds and evidence semantics.
+
+An original synthetic masked-index fixture passes **8,064 cases in each of JIT
+and interpreter**, including 64-bit indices, wraparound, scales, displacement,
+unaligned reads and protected page edges. The real diagnostic's fatal path
+retains exit 139 and records the fixture's metadata/frame candidate; protected
+and unmapped read fixtures pass too. ARM64 build, native emitter/JIT/vector
+checks and full JIT/interpreter contracts pass. This has not reproduced the
+native corruption or established its cause. The added context has no new game
+validation; the **182.664-second SIGSEGV** below remains the measured boundary.
+
+Next, use any subsequent owner-run fatal context to compare object words with
+the saved size/index register and identify frame candidates privately. Only
+then select an allocation-lifetime/write-origin or narrower CPU reproduction.
+Keep CPU metadata corruption and the still-high GPU memory use as separate
+unresolved problems. Fresh public upstream review is still required before
+supplying another native comparison, with unavailable sources recorded.
+
 ### Native busy-queue comparison: proxy destruction observed, CPU fault boundary
 
 The **2026-10-22 13:55 UTC** owner run uses the consolidated Documents checkout,
