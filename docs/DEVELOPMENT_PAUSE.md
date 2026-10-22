@@ -1,11 +1,27 @@
-# Development paused: unified-memory exhaustion
+# Development pause and resumption record
 
-Updated October 22, 2026. Development is paused at the owner's request because
-the native Apple M1 execution still exhausts the available Metal memory budget.
-The first gameplay image has been reached, but the port is not playable yet.
-The pause is a project decision, not a claim that every crash has one cause.
+Updated October 23, 2026. **Development has resumed at the owner's request.**
+The pause below is historical. The subsequent balanced import layout avoids the
+recorded 3 GiB staging snapshot in the latest native capture, with zero recorded
+large copies and a last sampled Metal allocation of 8.917 GiB. The preceding
+capture stopped on memory exhaustion at 11.697 GiB; stopping/workload boundaries
+differ, so this is not a controlled performance or memory benchmark.
 
-## Latest owner-run evidence
+The latest run instead ends on an unmapped host instruction SIGSEGV after
+82.902 s, exits 139/139. Its cause remains unknown; the port is not playable yet.
+Current work targets native fault provenance, resource lifetime, PerVertex and
+SRT compatibility. The bounded host-register/startup-image diagnostic is prepared
+and CPU-tested; no game was launched for that preparation. See the current
+[handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+## Historical pause: October 22, 2026
+
+The owner paused development because native execution repeatedly exhausted the
+Metal memory budget on the 16 GB M1. This was a project decision, not a claim
+that every failure had one cause. The original observations and proposed
+resumption criteria below remain evidence rather than current project status.
+
+## Evidence at the time of the pause
 
 The October 22, 2026 **21:16 UTC** run stops after **185.769 seconds** with
 `MTLCommandBufferErrorDomain`, status 5, error 8 (`Insufficient Memory`). Child

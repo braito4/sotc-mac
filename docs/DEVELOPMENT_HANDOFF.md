@@ -1,12 +1,171 @@
 # Development and debugging handoff
 
-Snapshot: 2026-10-22. This is the starting point for the next developer. Read
+Snapshot: 2026-10-23. This is the starting point for the next developer. Read
 [AGENTS.md](../AGENTS.md), this page and [Build instructions](guide/building.md)
 before changing code. [Status](STATUS.md) and [Graphics bring-up](GRAPHICS_BRINGUP.md)
 contain chronological investigations; their earlier “latest run” sections describe
 older boundaries, not the present state.
 
 ## Continuation checkpoint
+
+### Latest owner result: shader CFG assertion, no large snapshots
+
+The October 22 22:02:30 UTC capture (October 23 00:02:30 Madrid) ends after
+118.513 s, exits 23/23, on a shader `CFG::LinkBlocks` assertion: the requested
+destination does not match a known block. This does not identify the shader's
+source or distinguish unsupported control flow, malformed/stale input and a
+compiler bug. Do not fabricate the missing block or skip the dispatch. No Metal
+OOM, SIGSEGV or metadata stop is recorded in this capture.
+
+Balanced imports remain active. The cumulative memory recorder still reports
+zero large-copy requests/completions with no journal drops/tracker errors.
+Last presentation-sampled native allocation is 10.379 GiB, 656 ms old, versus
+11.840 GiB recommended; this is not a failure-time measurement or sustained
+stability proof. Dedicated upload sample is 560 MiB, 3.358 s old; remaining
+small/medium uploads must not be mistaken for a revived 3 GiB snapshot. The run
+records 1,119 presentations, 467 pipeline failures / 429 shader pairs (412 adjacent
+PerVertex rejections), 805 SRT errors and an audio submit gap of 4.260 s with zero
+queue-wait failures. Scene/output remain 1920x1080 / predominantly 2560x1440.
+
+The startup image diagnostic is exercised: 512 of 1,158 loaded images are
+recorded, including the renderer. No native fatal register context is expected
+for this explicit assertion exit. It still uses BB_FULLSCREEN=1 and the previous
+fullscreen-start settings; it does not validate the newly removed Game Mode
+integration/windowed default. No game was launched during this analysis.
+
+### Development resumed: bounded native register and binary provenance
+
+The owner explicitly resumed development after native evidence that balanced
+imports avoid the large staging snapshot. No stable/playable result is claimed.
+The latest unmapped host-instruction SIGSEGV remains unexplained; do not skip
+the fault or presume that memory-import or coroutine changes caused it.
+
+`host_fault_diagnostics.h` now prints x0..x28, FP, LR, SP and PC from the supplied
+ARM64 signal context before guest-specific lookup. It works even when guest
+register reconstruction is unavailable. It uses bounded local formatting and
+write calls, without dereferencing the registers, reading host/guest stacks,
+unwinding, symbol lookup, allocation or recovery. Existing speculative/GPU fault
+recovery still returns before the fatal path; real fatal exits remain 128+signal.
+The existing concurrent/nested-report guard remains unchanged.
+
+Outside the signal handler, startup records at most 512 loaded image names,
+UUIDs, load addresses and text ranges, after graphics-provider initialization
+when relevant. Later library loads may be absent. This is private evidence for
+matching candidate addresses to actual binaries, not validated callers or objects.
+`tools/analyze_host_fault.py` performs that range lookup offline, handles old/
+truncated logs, and never reads process memory or guesses a stack. Old captures
+cannot retroactively supply missing LR/register information.
+
+Original CPU tests check bounded output with guarded FP/SP values, an actual
+native jump into unmapped memory, unchanged fatal exit, real signal registers,
+startup UUID/ranges, and offline boundary/truncation/unknown-address controls.
+The launcher-budget fixture checks the direct executable path, windowed default
+and unchanged budgets without GPU execution. The owner-requested Game Mode
+integration has been removed, including its plist and app-bundle startup.
+The full synthetic contract suite passes in JIT and interpreter, including the
+four native fault tests and three offline-analysis tests. No game was launched
+by the assistant. The owner's new capture exercises startup image inventory;
+fatal native register output still awaits a matching fault.
+
+### Latest owner result: large snapshot absent; host instruction fault
+
+The October 22 21:54:46 UTC run confirms `pool layout=balanced`, three windows,
+7,616 MiB imported aliases and 1,024 MiB overlap. It records zero large-copy
+requests/completions, zero cross-window events and zero dedicated upload bytes
+in the last staging sample. There are no dropped journal records/tracker errors.
+This exercises the targeted allocation-avoidance mechanism in a native run.
+
+The last presentation's native memory sample is **8.917 GiB**, approximately
+one second old; presentation-observed peak is **8.928 GiB**. The preceding run's
+failure-time allocation was 11.697 GiB: 2.780 GiB more, but the captures end at
+different workload boundaries. Do not treat that difference as a controlled
+benchmark or the presentation sample as memory at the instant of the new fault.
+The staging sample is 22.474 s old; cumulative forced memory snapshots separately
+confirm zero large-copy events through their latest observation.
+
+This run stops after **82.902 s**, exits **139/139**, on `SIGSEGV` with an unmapped
+host instruction address, outside translated code. The log supplies no translated
+CPU context or original writer/branch source. Neither the new pool layout nor
+the task-retirement change is established as its cause. No Metal OOM or shader
+metadata stop is recorded before this different boundary; sustained OOM avoidance
+and correct pixels remain unproven. There are **905 presentation results**,
+scene/output 1920x1080 / predominantly 2560x1440, **306 pipeline failures / 281
+shader pairs** (268 adjacent PerVertex rejections), **271 SRT errors**, and zero
+finite-choice expansion messages. Audio has a maximum 2.084 s submit gap and
+zero queue-wait failures. Next diagnosis should preserve the native instruction
+fault and identify its thread/call source rather than infer corruption causality
+from timing. No game was launched during this analysis.
+
+### Memory follow-up: avoid the cross-window multi-GiB staging copy
+
+The owner requested a change targeting actual graphics-memory pressure after
+the 21:42:49 UTC capture still stopped on Metal OOM 8 after 51.599 s, exits 23/23,
+at 11.697 GiB native allocation. There were 667 presentations, 152 pipeline
+failures and 271 SRT errors. Lower counters do not establish shader improvements.
+Scene/output remain 1920x1080 / predominantly 2560x1440. Audio's maximum gap is
+36.048 ms with no queue-wait failures; no CPU fatal or shader-metadata stop occurs.
+
+That capture's contiguous 2.880 GiB binding starts within the original import's
+first 3 GiB region but extends beyond its 3.5 GiB buffer. It therefore requests
+a complete 3 GiB staging snapshot. The new checked `sotc-pool-windows` overlay
+uses balanced import geometry: prefix [0, 2.5 GiB), middle [2, 5.5 GiB), then
+origins 5, 8, ... GiB with at most 3.5 GiB per window. Each neighboring pair
+overlaps by 512 MiB. Direct bindings and BDA table entries both use recorded
+window origins; no remaining index-times-3-GiB calculation is used. Imports
+remain alive, no buffer is released early, and complete out-of-window/noncontiguous
+ranges still use the original fallback. Mapping/range arithmetic rejects overflow.
+
+The actual C++ planner replay of all **219 retained large-range observations** in
+that capture agrees with the legacy decisions, avoids its one giant snapshot,
+and introduces zero new cross-window fallbacks among those observations.
+For the recorded 6,592 MiB pool, imported aliases increase by **512 MiB** (7,104
+to 7,616 MiB). Avoiding the recorded 3 GiB snapshot therefore gives **2.5 GiB of
+potential allocation-budget reduction before other allocation/reuse changes**,
+not measured native savings. Do not add repeated copy events as independent
+allocations. Journal limits mean this is not a proof for every binding or scene.
+An independent negative control demonstrates that some long prefix ranges can
+newly require a full fallback; the balanced layout is not universally better.
+
+`BB_POOL_LAYOUT=legacy` restores exact old origins and sizes for comparison.
+`BB_POOL_SPLIT=0` preserves the existing single-import opt-out. The startup log
+prints actual layout, import count/bytes and overlap; the supervisor records both
+settings. Use the guarded native launcher for any owner-run comparison. Shader
+cache remains 26/9 and dependency pins remain fixed. Source migration is exact
+`pool_previous`, preserving prior captures/build cohorts. The planner/range/BDA
+CPU tests pass with ASan/UBSan. The ARM64 build, all 19 renderer CPU checks,
+25 builder tests and dependency-inventory check pass.
+Native residency accounting, alias synchronization, pixels, performance and OOM
+avoidance remain unverified. No game was launched for this preparation.
+
+### Owner-authorized follow-up: ordered CPU coroutine-frame retirement
+
+After pausing general development, the owner requested an attempt to apply the
+reference project's memory findings. The immediate nested-task leak correction
+was already installed locally. Its later lifetime warning requires a different
+consumer boundary, not another copy of the same immediate `destroy()` calls.
+
+The checked `sotc-task-retirement` overlay now retires all five completed nested
+tasks, the CE owner and top-level submissions through `Rasterizer::RunInOrder`.
+That existing API copies the frame address into its ordered packet; the recording
+thread destroys it after consuming all earlier packets. With pipelining disabled,
+the API drains preceding packets before the synchronous callback. With no
+renderer, completed tasks are destroyed immediately. Suspended tasks are never
+retired. This preserves frame parameters, including submitted-copy ownership,
+through queued CPU consumers; it does not extend locals already destroyed at
+coroutine return, preserve arbitrary guest storage, wait for actual GPU completion
+or change Metal resource retirement. Existing ring capacity provides backpressure;
+this adds no separate unbounded retirement queue.
+
+The independent CPU control exercises 300 delayed consumers borrowing storage
+owned by a completed coroutine parameter. Immediate reclamation invalidates all
+300; ordered reclamation preserves them and releases each frame exactly once.
+Additional controls cover disabled/null pipelines and repeated draining, under
+AddressSanitizer/UndefinedBehaviorSanitizer. The ARM64 library build and all normal
+renderer CPU regressions pass, alongside the preceding five-site suspended/
+completed regression and 25 builder tests. Exact prior sources migrate as
+`task_previous`; shader cache stays 26/9 and dependency pins stay fixed. Native
+memory savings, pixels, performance and OOM avoidance remain unverified. No game
+was launched. Overall playable/native validation remains paused.
 
 ### Development paused: memory remains the immediate blocker
 
@@ -20,22 +179,13 @@ remaining uncertainties and conditions for resuming. Do not automatically launch
 further game/device comparisons. Historical checkpoints below remain evidence,
 not a declaration that development is active or those failures are fixed.
 
-### Game Mode eligibility at graphical startup
+### Historical Game Mode experiment (removed)
 
-The graphical launcher now copies the freshly built ARM64 diagnostic into
-`work/SotC-Diagnostic.app` and supervises that bundle's actual executable directly.
-The maintained `packaging/SotC-Info.plist` identifies an adventure game and opts
-into Game Mode with `LSSupportsGameMode` (macOS 26+) and the older
-`GCSupportsGameMode` key. Fullscreen defaults to on, with SDL's native macOS
-fullscreen Spaces enabled. The dedicated native launcher forces fullscreen;
-`BB_FULLSCREEN=0 bash packaging/test-arm64.sh --graphics-game-test` retains a
-windowed comparison. Use the guarded launcher, not Finder on the generated app:
-the supervisor still supplies private paths, arguments, environment and controls.
-
-macOS decides whether Game Mode activates; verify its menu-bar indication during
-the next owner run. No game/device run validates activation yet. Fullscreen can
-change drawable/output dimensions; original guest scene resolution and dependency
-pins remain unchanged. This is not an OOM, SRT or PerVertex correction.
+The owner subsequently requested removal of the Game Mode integration. The
+launcher now runs the diagnostic directly, without the generated app bundle,
+Game Mode plist or forced native fullscreen. Its default is windowed; the native
+command explicitly uses BB_FULLSCREEN=0. Historical fullscreen captures retain
+their original settings and output sizes. No Game Mode benefit was established.
 
 ### Prepared finite-choice SRT data reads; real-module PerVertex experiment
 

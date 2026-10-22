@@ -1,7 +1,8 @@
 """Check actual built SRT/shader-info passes with synthetic IR and no renderer.
 
-The installed library resolves only branch-independent Phi offsets. This checks
-actual flattened values and keeps divergent/lane/cyclic/excessive offsets dynamic,
+The installed library resolves branch-independent Phi offsets and ReadFirstLane
+of proven uniform scalar expressions. This checks actual flattened values and
+keeps divergent/lane-dependent/cyclic/excessive offsets dynamic,
 selecting GPU page-table/fault-buffer resources only when direct access is enabled.
 It does not validate GPU execution or game pixels.
 """
@@ -47,12 +48,32 @@ def main():
         subprocess.run(['clang++', '-std=c++23', *flags,
                         '-I'+str(source/'gpu/shim'), '-I'+str(source/'gpu/shadps4'),
                         '-I'+str(prefix/'include'), '-I'+str(build/'include'),
+                        '-I'+str(ROOT/'runtime/src'),
                         str(ROOT/'tests/test_shader_memory.cpp'), str(obj), str(library),
                         '-L'+str(prefix/'lib'), '-lfmt', '-Wl,-rpath,'+str(build),
                         '-Wl,-export_dynamic', '-o', str(output)], check=True)
+        finite = ROOT/'work/test_srt_finite'
+        subprocess.run(['clang++', '-std=c++23', *flags,
+                        '-I'+str(source/'gpu/shim'), '-I'+str(source/'gpu/shadps4'),
+                        '-I'+str(prefix/'include'), '-I'+str(build/'include'),
+                        '-I'+str(ROOT/'runtime/src'), str(ROOT/'tests/test_srt_finite.cpp'),
+                        str(obj), str(library), '-L'+str(prefix/'lib'), '-lfmt',
+                        '-Wl,-rpath,'+str(build), '-Wl,-export_dynamic', '-o', str(finite)], check=True)
+        subprocess.run([str(finite)], check=True, timeout=20, env=dict(os.environ,
+                       BB_GPU_USER_DIR=str(state), BB_DIRECT_MEMORY_ACCESS='0', BB_SRT_INTERP='1'))
         for dma in ('0', '1'):
-            subprocess.run([str(output)], check=True, timeout=20, env=dict(os.environ,
-                           BB_GPU_USER_DIR=str(state), BB_DIRECT_MEMORY_ACCESS=dma, BB_SRT_INTERP='1'))
+            result = subprocess.run([str(output)], check=True, timeout=20, capture_output=True,
+                                    text=True, env=dict(os.environ, BB_GPU_USER_DIR=str(state),
+                                                       BB_DIRECT_MEMORY_ACCESS=dma, BB_SRT_INTERP='1'))
+            records = [line for line in result.stderr.splitlines() if line.startswith('GPU SRT diagnostic:')]
+            assert len(records) == 128, len(records)
+            assert all(len(line) < 1300 and 'values omitted' in line for line in records)
+            actual = [line for line in records if 'site=synthetic-budget' not in line]
+            assert actual and any('Phi(' in line for line in actual), actual
+            assert any('shader=0000000012340005' in line for line in actual), actual
+            assert not any('shader=0000000012340000' in line for line in actual), actual
+            print(result.stdout, end='')
+            print('PASS: SRT provenance bounded to 128 records; synthetic CPU-only inputs')
 
 
 if __name__ == '__main__':

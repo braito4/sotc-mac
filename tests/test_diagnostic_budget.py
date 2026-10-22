@@ -122,7 +122,7 @@ class LauncherBudgetTests(unittest.TestCase):
             shutil.copy2(ROOT/'packaging/test-arm64.sh', script)
             # Only orchestration runs: all compiler/loader/renderer commands are
             # synthetic, and the recording stub never executes a GPU command.
-            for name in ('runtime/upstream/recomp/out/libbbcpu.a',
+            for name in ('work/probe_entry_arm64', 'runtime/upstream/recomp/out/libbbcpu.a',
                          'work/deps-arm64/lib/libZydis.a', 'work/deps-arm64/lib/libZycore.a',
                          'work/gpu-source-22923f080229/deps/macos-arm64/lib/libvulkan.1.dylib',
                          'work/gpu-source-22923f080229/deps/macos-arm64/lib/libMoltenVK.dylib',
@@ -141,6 +141,7 @@ class LauncherBudgetTests(unittest.TestCase):
                            'with open(os.environ["SOTC_FIXTURE_CALLS"],"a") as out:\n'
                            '    out.write(json.dumps({"args":sys.argv[1:],'
                            '"budget":os.getenv("SOTC_DIAGNOSTIC_SECONDS"),'
+                           '"fullscreen":os.getenv("BB_FULLSCREEN"),'
                            '"visual":os.getenv("SOTC_VISUAL_TRACE"),'
                            '"audio":os.getenv("SOTC_AUDIO_TRACE"),'
                            '"capture":os.getenv("SOTC_VISUAL_CAPTURE")})+"\\n")\n'
@@ -161,6 +162,7 @@ class LauncherBudgetTests(unittest.TestCase):
                                SOTC_FIXTURE_CALLS=str(calls), BB_DIRECT_MEMORY_ACCESS='0')
                     env.pop('SOTC_DIAGNOSTIC_SECONDS', None)
                     env.pop('BB_DEPS', None)
+                    env.pop('BB_FULLSCREEN', None)
                     env.pop('SOTC_VISUAL_TRACE', None)
                     env.pop('SOTC_VISUAL_CAPTURE', None)
                     env.pop('SOTC_AUDIO_TRACE', None)
@@ -188,3 +190,6 @@ class LauncherBudgetTests(unittest.TestCase):
                     self.assertEqual(game['audio'], '0' if configured == '1800' else '1')
                     self.assertIn('analyze_visual_trace.py', calls.read_text())
                     self.assertIn('--cooperative-stop', game['args'])
+                    self.assertEqual(game['fullscreen'],'0')
+                    self.assertEqual(Path(game['args'][game['args'].index('--')+1]).resolve(),
+                                     (root/'work/probe_entry_arm64').resolve())

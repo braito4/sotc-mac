@@ -1,5 +1,15 @@
 # Private CPU fault diagnostics
 
+The latest owner boundary (21:54:46 UTC, October 22) is a host instruction
+SIGSEGV outside translated code after 82.902 s, exits 139/139. The old capture
+cannot supply its missing native register/return context. The new bounded
+host diagnostic records ARM64 x0..x28, FP/LR/SP/PC without following pointers.
+A startup image UUID/load/text-range inventory supports offline candidate
+matching with `tools/analyze_host_fault.py`; this is not stack unwinding or a
+corruption fix. All addresses and inventories stay in private logs/reports.
+See the first handoff checkpoint for current validation. Earlier boundaries below
+are historical.
+
 The newest captured CPU boundary (**19:53 UTC on 2026-10-22**) is a translated
 SIGSEGV after **118.281 seconds**, with confirmed exits 139/139. Private offline
 disassembly relates the invalid loaded pointer to an earlier field load outside

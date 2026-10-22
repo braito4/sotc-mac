@@ -105,6 +105,8 @@ def supervise(command, seconds, log_path, cooperative=False):
         settings = {key: os.getenv(key) for key in ('BB_DIRECT_MEMORY_ACCESS',
                     'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER', 'BB_FRAME_STATS',
                     'BB_FRAME_LOG', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES', 'BB_OUTPUT_RES',
+                    'BB_FULLSCREEN', 'SDL_VIDEO_MAC_FULLSCREEN_SPACES',
+                    'BB_POOL_LAYOUT', 'BB_POOL_SPLIT',
                     'SOTC_GPU_SUBMIT_TRACE', 'SOTC_VISUAL_TRACE', 'SOTC_VISUAL_CAPTURE', 'SOTC_AUDIO_TRACE',
                     'SOTC_MEMORY_TRACE', 'SOTC_METAL_INFLIGHT', 'SOTC_CPU_FAULT_FIELDS')}
         wall_budget = f'{seconds}s' if seconds else 'none'

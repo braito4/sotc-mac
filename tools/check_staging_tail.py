@@ -37,6 +37,9 @@ def main():
         for ext in ('.cpp','.h'):
             target=before/(BASE+ext);target.parent.mkdir(parents=True,exist_ok=True)
             target.write_bytes((source/(BASE+ext)).read_bytes())
+        target=before/(BASE+'.cpp')
+        observation='    // SotC reuse observations: bounded sampling does not change ownership/reuse.\n    if (!created && SotcMemory::Enabled()) {\n        static thread_local u64 diagnostic_reuses = 0;\n        if ((++diagnostic_reuses & 255u) == 0) PublishStats();\n    }\n'
+        target.write_text(target.read_text().replace(observation,''))
         patch='\n'.join(json.loads((PATCH_DIR/'sotc-staging-tail.patch.json').read_text())['lines'])+'\n'
         subprocess.run(['git','-C',str(before),'apply','-R'],input=patch,text=True,check=True,capture_output=True)
         old=(before/(BASE+'.cpp')).read_text()

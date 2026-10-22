@@ -1,5 +1,29 @@
 # Private visual diagnostics
 
+## Offline shader failure grouping
+
+Run `python3 tools/analyze_shader_failures.py logs/OWNER_CAPTURE.log --output
+work/analysis/shader-failures.json` with an existing capture. Output is restricted
+to private `work/` because shader identifiers belong to owner evidence. The JSON
+groups failed fragment/vertex pairs, driver results, immediately adjacent MSL
+conversion errors, SRT sites and any new bounded SRT provenance. It does not
+infer shader semantics or replay game input. Counts are events; pairs omit other
+pipeline state. Intervening unrelated lines break conversion association.
+Separate fragment-identifier evidence elsewhere in the log does not replace
+the strict adjacent-conversion classification or prove identical module variants.
+
+The checked SRT diagnostic reports shader/stage, pointer/copy site and bounded
+IR shapes on compilation failures. It omits immediate values, reads no guest
+memory and preserves rejection/offset behavior. Limits are eight records per
+pass and 128 per process, with at most 32 nodes, six levels, eight inputs per
+node and 1,024 shape characters. Shared/cyclic nodes use references and truncated
+traversal uses `limit`. A shape is not a complete or unique expression and cannot
+replace original synthetic reproductions. Cached shaders may bypass compilation;
+absence of records does not mean the shader is valid. No automatic cache purge
+or game run is needed to analyze existing logs. Native provenance remains pending.
+
+## Submission observations
+
 The submission journal's stall/failure dump now has separate `Metal native`
 property observations. A weak command-buffer observer samples status/error,
 retained-reference policy and device allocation only while reporting, without
@@ -13,8 +37,9 @@ validated this addition yet; source/journal/ARC fixtures use CPU objects only.
 
 The combined graphics launcher enables `SOTC_VISUAL_TRACE=1`. Set it to `0` to
 disable the recorder. This adds CPU metadata and native allocation polling, not a
-claim that any presentation contains correct pixels. Scene configuration stays
-**640x360**; existing UI and output sizes are unchanged.
+claim that any presentation contains correct pixels. The owner now selects
+**original scene resolution**, preset 0 with the upscaler disabled, through
+`prueba_grafica_nativa.command`. Earlier 640x360 captures remain historical.
 
 Each run has a fresh private `BB_GPU_USER_DIR`. Its `visual/` directory contains:
 

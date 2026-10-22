@@ -1,5 +1,52 @@
 # Reviewed renderer adaptations
 
+`sotc-pool-windows` shortens the first import to 2.5 GiB and positions the next
+3.5 GiB import at 2 GiB, then uses 3 GiB strides with 512 MiB overlap. Complete
+bindings and BDA table entries use explicit recorded window origins. The private
+recorded giant range becomes a direct binding instead of a 3 GiB snapshot;
+CPU/sanitizer tests cover boundaries, BDA, overflow, fallback and the prefix
+tradeoff. This pool imports 512 MiB more aliases, not extra guest storage.
+Native allocation savings and alias correctness remain unvalidated. The exact
+old policy is BB_POOL_LAYOUT=legacy; BB_POOL_SPLIT=0 is preserved. Cohort
+`pool_previous` migrates with pins/cache 26/9 unchanged. Replay only predicts
+retained observations and does not add repeated requests as allocations.
+
+`sotc-task-retirement` replaces immediate completed CPU coroutine-frame destruction
+at all seven sites with ordered recording-consumer retirement. The existing
+RunInOrder packet copies the frame address; disabled piping drains before the
+callback and null rendering reclaims directly. It adds no new retirement queue
+and does not change GPU resource lifetimes. Synthetic controls reproduce stale
+borrowed storage with immediate release and preserve it with ordered release,
+including exact-once and disabled/null cases under sanitizers. The exact previous
+cohort migrates as `task_previous`; cache 26/9 and dependency pins stay unchanged.
+This is a local adaptation of the ownership warning, not a claim that the Windows
+PR is merged, that GPU completion has occurred or that native OOM is fixed.
+
+`sotc-srt-finite` lowers exhaustive small scalar constant-table choices into
+constant reads plus GPU selection before SRT flattening. It protects descriptor,
+sampler post-op and pointer dependencies; unknown, cyclic, induction and excessive
+inputs remain excluded. Original CPU fixtures check both selections, arithmetic
+wrap, limits and exclusions against installed flattening. Cache 26/9 and exact
+`finite_previous` migration avoid reusing old outputs; dependency pins are fixed.
+
+`sotc-srt-uniform` resolves portable `ReadFirstLane` only through already accepted
+uniform scalar offset expressions. Twenty-four original installed-pass fixtures
+cover constant/user-data/arithmetic/nested reads and preserve rejection of
+lane-dependent/divergent/induction/cyclic/excessive inputs. Compiler cache 25/9
+invalidates prior output; dependency pins are unchanged. The same overlay adds
+observational statistics every 256 traced staging reuses, without allocation,
+ownership, completion or destruction changes. The exact preceding cohort migrates
+as `uniform_previous`. Native correctness and OOM relief are unverified.
+
+`sotc-srt-diagnostic` adds bounded failure-only IR shape provenance to the SRT
+walker generators: shader identity, stage and pointer/copy site, without reading
+guest memory or changing offset resolution. It emits at most eight records per
+compiler pass and 128 per process; shapes stop at 32 nodes/six levels/eight inputs
+per node/1,024 characters and omit immediate values. Shared/cyclic nodes use
+references. Exact prior sources migrate as `srt_previous`; pins/cache remain
+unchanged. `tools/check_shader_memory.py` exercises actual installed passes and
+bounded provenance on CPU-only synthetic IR, including divergent/cyclic Phi.
+
 The active manifest now targets **b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548** and
 uses the consolidated `sotc-current-runtime` overlay. Earlier individual patch
 files below document the previous 3170535f development history; the active builder
@@ -8,7 +55,7 @@ three original upstream backports. The consolidated set preserves local
 corrections/diagnostics, adds Ajnc's completed-task cleanup and uses current
 installed SPIRV-Headers. Dear ImGui 1.93.0 is separately revision checked.
 Unknown/partial source sets remain rejected; obsolete cross-base migrations are
-not accepted as if they were the new base. Cache is **24/9**. The upstream
+not accepted as if they were the new base. Cache is **26/9**. The upstream
 unresolved-image collector guard remains intact and receives its own observational
 retention counter. See [current versions](../../docs/DEPENDENCIES.md) and the
 [current review](../../docs/UPSTREAM_REVIEW.md#owner-requested-five-source-refresh-and-selected-adaptation).

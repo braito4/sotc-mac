@@ -9,6 +9,7 @@
 #include "bootstrap_contracts.h"
 #include "diagnostic_control.h"
 #include "cpu_fault_diagnostics.h"
+#include "host_fault_diagnostics.h"
 #include "platform.h"
 #include "runtime.h"
 #include <inttypes.h>
@@ -142,6 +143,9 @@ static void fault(int sig, siginfo_t *info, void *context) {
     used+=fault_hex(detail+used," gpu traps=0x",runtime_memory_trap_reasons(address));
     detail[used++]='\n';
     (void)write(STDERR_FILENO,detail,used);
+#if defined(__APPLE__) && defined(__aarch64__)
+    sotc_host_fault_ucontext(STDERR_FILENO,context);
+#endif
     const char mapping_label[]="  host mapping: ";
     (void)write(STDERR_FILENO,mapping_label,sizeof(mapping_label)-1);
     if (bb_describe_mapping(address,detail,sizeof(detail)))
@@ -332,6 +336,9 @@ int main(int argc, char **argv) {
         uint64_t sdk;
         memcpy(&sdk, image + procparam + 16, sizeof(sdk));
         if (bootstrap_gpu_start(gpu_library, (uint32_t)sdk)) fail("graphics provider initialization failed");
+#if defined(__APPLE__) && defined(__aarch64__)
+        sotc_host_image_inventory();
+#endif
     }
 
     for (uint64_t i = 0; i < import_count; ++i) {
@@ -397,6 +404,9 @@ int main(int argc, char **argv) {
     sigemptyset(&action.sa_mask);
     sigaction(SIGBUS, &action, NULL); sigaction(SIGSEGV, &action, NULL); sigaction(SIGILL, &action, NULL);
     signal(SIGALRM, timed_out);
+#if defined(__APPLE__) && defined(__aarch64__)
+    if (!gpu_library) sotc_host_image_inventory();
+#endif
     setenv("BB_JIT_FAULT_MAP", "1", 1);
     void *stack = runtime_low_map(STACK_SIZE, PROT_READ | PROT_WRITE);
     if (!stack) fail("stack mapping failed");

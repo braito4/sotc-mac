@@ -14,7 +14,7 @@ expected_modules = {
     'reference': '411fdd86dadce347dcc4443228b009ae9265a548',
 }
 allowed_root = {'.gitignore', '.gitmodules', 'README.md', 'LICENSE', 'AGENTS.md',
-                'CONTRIBUTING.md', 'prueba_cpu_arm64.command'}
+                'CONTRIBUTING.md', 'prueba_cpu_arm64.command', 'prueba_grafica_nativa.command'}
 allowed_directories = ('runtime/src/', 'tests/', 'tools/', 'packaging/', 'docs/', '.github/')
 errors, files, modules = [], [], {}
 for entry in filter(None, entries):

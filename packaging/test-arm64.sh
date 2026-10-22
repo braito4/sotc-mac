@@ -104,6 +104,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_submission_trace.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_budget.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_fault_diagnostics.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_host_fault_analysis.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_linked_modules.py
@@ -330,6 +331,11 @@ case "$trial_mode" in
         fi
         ;;
     --graphics-game-test)
+        # Native scene resolution by default. Explicit comparison overrides remain supported.
+        export BB_UPSCALE_PRESET="${BB_UPSCALE_PRESET-0}"
+        export BB_UPSCALER="${BB_UPSCALER-none}"
+        # Windowed by default; no Game Mode app bundle or forced fullscreen.
+        export BB_FULLSCREEN="${BB_FULLSCREEN-0}"
         need clang; need python3
         configure_gpu_driver
         bash "$trial_root/packaging/test-arm64.sh" --graphics-check

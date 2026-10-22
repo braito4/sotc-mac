@@ -1,5 +1,12 @@
 # Private resource allocation diagnostics
 
+The newest behavioral memory preparation is `sotc-pool-windows`: balanced import
+geometry avoids a recorded 3 GiB staging allocation in retained-range replay,
+at +512 MiB imported overlap for that pool. Native savings are unmeasured;
+`BB_POOL_LAYOUT=legacy` restores the original policy. Read the first handoff
+checkpoint for validation and the long-prefix fallback tradeoff. The observations
+below describe the separate recorder and historical experiments.
+
 The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these additional
 observations. This instruments the current renderer without changing shader code,
 cache versions, buffer sizes, imported windows, resource ownership, eviction

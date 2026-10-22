@@ -58,7 +58,7 @@ The handoff records the final ARM64/regression/contract results. No game ran.
   2026-10-22 05:53:49Z, disables its previously immediate child-frame destruction
   by default. The author reports corruption with immediate release and remaining
   defects even after deferring to recording-thread consumption. Our
-  `c9be8142` adaptation still destroys completed nested frames; the prior fixture
+  `c9be8142` adaptation initially destroyed completed nested frames; the prior fixture
   proves coroutine completion/reclamation only, not that every queued consumer
   has released borrowed data. Architectures differ: our draw pipe/preparation
   machinery is not that reference's back-thread ring. Do not copy its Windows
@@ -67,6 +67,10 @@ The handoff records the final ARM64/regression/contract results. No game ran.
   another native comparison; add a deferred-consumer synthetic regression.
   No new claim that the leak correction is safe for every asynchronous consumer
   follows from the earlier CPU count test.
+  The subsequent owner-authorized follow-up now uses ordered CPU recording
+  packets for all seven frame-release sites, with delayed borrowed-storage
+  controls. See the first handoff checkpoint. This addresses that CPU consumer
+  boundary only; it does not establish GPU completion or native safety/OOM relief.
 * **Critical-pressure image discard:** runtime commit
   [`ab31a4c`](https://github.com/bloodborne-native/bloodborne-runtime/commit/ab31a4c27ea5f267862f259732e8a7918833368f),
   2026-10-22 16:46:25Z, adds `!aggresive` to unresolved GPU-content retention.

@@ -14,19 +14,34 @@ The owner confirms this milestone on 2026-10-22. Rendering defects, memory failu
 and instability remain; correct graphics, sustained gameplay, audiovisual
 synchronization and save persistence are not validated.
 
-**Development is paused because native runs still exhaust the available Metal
-memory budget on Apple M1.** The latest owner run (October 22, 2026, 21:16 UTC)
-ends after **185.769 seconds** on Metal insufficient memory, with **12.170 GiB**
-native allocation against **11.840 GiB** recommended. The 3 GiB upload allocation
-remains retained; its lifetime must be understood before changing reclamation.
+**Development has resumed.** The October 22, 2026 owner run confirms that the
+balanced guest-memory import layout avoids the large staging snapshot: zero
+recorded large copies, with the last Metal allocation sample at **8.917 GiB**
+versus **11.697 GiB** at the preceding run's memory failure. Different workload
+and stopping boundaries prevent treating that difference as a controlled benchmark.
 
-The capture records 1,095 presentation results, 417 pipeline-creation failures
-and 805 SRT errors. Scene resolution remains 1920x1080; fullscreen output is
-mostly 2560x1440. Game Mode activation and any performance benefit are unverified.
-PerVertex compatibility, SRT handling and earlier corruption remain unresolved.
-See the [development pause report](docs/DEVELOPMENT_PAUSE.md) for what was learned,
-validation limits and conditions for resuming. The investigations below are
-historical and do not supersede the pause.
+The first balanced-layout run ends after **82.902 seconds** on an unmapped host
+instruction `SIGSEGV`, outside translated code (exit 139). It records 905
+presentations, 306 pipeline-creation failures and 271 SRT errors. The port is
+still experimental: the memory mechanism is exercised, but sustained stability,
+correct pixels and OOM avoidance remain unproven.
+
+The newest comparison (October 23, 2026, 00:02:30 Madrid) ends after **118.513
+seconds** on a shader control-flow block-linking assertion, with 1,119
+presentations and the last sampled Metal allocation at **10.379 GiB**. Large
+snapshots remain absent. No OOM or SIGSEGV is recorded in that capture; the shader
+failure's cause remains unknown. Game Mode integration has been removed at the
+owner's request, and future startup is windowed by default.
+
+A new bounded fatal diagnostic records ARM64 registers, including the link
+register, and a startup binary UUID/text-range inventory for offline analysis.
+It does not recover from invalid execution or claim to fix its cause. CPU-only
+controls pass; startup image inventory is exercised in the owner's latest run,
+while native fatal register context remains pending a matching failure. Raw
+captures, addresses, shaders and game assets remain private. See the
+[current status](docs/STATUS.md), [developer handoff](docs/DEVELOPMENT_HANDOFF.md)
+and [pause/resumption record](docs/DEVELOPMENT_PAUSE.md). Earlier investigations
+below are historical.
 
 An earlier native run stops on a translated CPU SIGSEGV after
 118.281 seconds, with confirmed exits 139 and 11.646 GiB sampled native peak.

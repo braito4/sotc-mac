@@ -41,6 +41,7 @@ struct BufferCache {
     BufferCache(){for(auto& p:pool_windows)p=std::make_unique<Buffer>(instance,0,3584*MB,MemoryType::DeviceLocal,"fake");}
     void UnifiedPageTable(u64,u64){++page_tables;}
     std::size_t PoolWindow(u64 physical){return physical/POOL_WINDOW_STEP;}
+    u64 PoolWindowStart(std::size_t window){return window*POOL_WINDOW_STEP;}
     std::optional<std::pair<const Buffer*,u64>> UnifiedRange(VAddr,u64);
     std::pair<const Buffer*,u64> UnifiedCopy(VAddr,u64,bool);
 };

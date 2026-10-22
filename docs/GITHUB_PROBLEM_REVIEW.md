@@ -153,3 +153,49 @@ Metal renderer's two batch-creation sites, inspired by #2860's lifetime principl
 It does not modify or upgrade MoltenVK. Production-method CPU doubles pass;
 see the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint) for build,
 contract and pending native validation. Other candidates above remain research.
+
+## SotC pipeline/SRT follow-up, October 22, evening
+
+The 431 pipeline failures and 805 SRT-offset errors are repeated events, not
+proven distinct defects. The same owner capture contains 376 PerVertexKHR messages;
+their exact correspondence with failed pipelines has not been established.
+The public open-PR listing was inspected, with focused conversations/diff excerpts
+for #69, #81, #173, #215, #232, #238, #243 and #258.
+
+| Candidate | Observed state/revision | Local applicability |
+|---|---|---|
+| [#173](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/173) | Open, non-draft, 11 commits; visible head `ced601b` | Author reports corrected interpolation on GTX 1080 Ti through a generated geometry shader. That stage is unavailable in our M1/MoltenVK route. Useful semantics for synthetic capture/replay review, not a drop-in fix. |
+| [#258](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/258/files) | Open, non-draft; visible head `44633f5`, October 22 | Inspected diff adds invariant positions for the barycentric GS route, empty-queue lock avoidance and nonexistent shader-file read avoidance. No general M1 PerVertex or SRT-offset fix established. |
+| [#215](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/215/files) | Open, non-draft; visible head `5f53a96`, October 21 | Parallel preload and refused/in-progress pipeline lifetime handling. Potential loading improvement, not rejected-shader translation support. |
+| [#81](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/81) | Open, non-draft, six commits | Intel background compilation requires dynamic vertex input and skips work until ready. Author's Windows fixes/subgroup controls do not establish M1 compatibility. |
+| [#232](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/232) | Open, non-draft, `ad3a123`; fork merge/main roadmap reference October 22 | Identical descriptor-bind caching with invalidation guards. Performance candidate, not offset reconstruction. Roadmap says integrated; actual default-branch code inclusion remains unverified. |
+
+Local source check: `RegisterShaderBinary` saves directly through
+`Storage::DataBase`, without the PR's per-new-shader `.spv` collision read.
+Do not transplant that optimization based on Windows timings. The local SRT
+adapter already handles branch-independent Phi values by comparing emitted offset
+programs, with cycle/depth/work bounds. The 805 errors do not identify their
+unsupported opcode or demonstrate that another Phi fix is needed.
+
+[Issue #41](https://github.com/AjncSystem/ShadowOfTheColossus-PC/issues/41) reports
+ComputeOffset/Phi errors on Windows/Vega. Later wave32 reports improve rendering
+but still describe device loss, not a proven SRT repair. No verified general
+ARM64 remedy for our remaining offsets was found. Direct guest-memory shader
+access stays disabled.
+
+[MoltenVK #2858](https://github.com/KhronosGroup/MoltenVK/pull/2858) was accessible
+on this follow-up: draft, 15 commits, explicitly test-entry-only portable
+capture/replay. Its body retains SPIRV-Cross pin
+`81739edf516c2bef043ac61f510b4bd78e126a22`. This is the relevant research direction
+for genuine per-vertex inputs, with additional scratch/retained-memory costs.
+Existing isolated CPU compiler fixtures do not validate GPU execution or SotC.
+
+Next: group failures by pipeline/module/conversion reason; obtain bounded private
+IR provenance for unresolved SRT expressions and reproduce each class with
+original synthetic inputs. Check distinct per-corner values and indexed draws
+before proposing capture/replay integration. Preserve explicit errors and guards.
+No runtime, dependency, configuration, game execution or GPU test changed here.
+
+Public commit pages failed and GitHub API requests timed out. Full SHA, merge
+ancestry and complete diff refresh remain unverified. Abbreviations above are
+observed page links, not qualified pins. This appended review is local only.

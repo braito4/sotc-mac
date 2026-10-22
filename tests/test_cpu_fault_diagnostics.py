@@ -15,6 +15,27 @@ PROBE = ROOT/'work/probe_entry_arm64'
 @unittest.skipUnless(platform.system() == 'Darwin' and platform.machine() == 'arm64'
                      and shutil.which('clang'), 'native ARM64 host required')
 class CpuFaultDiagnosticsTests(unittest.TestCase):
+    def test_host_snapshot_and_actual_native_instruction_fault(self):
+        with tempfile.TemporaryDirectory(prefix='host fault reader ') as directory:
+            binary=Path(directory)/'test'
+            subprocess.run(['clang','-arch','arm64','-O2','-std=gnu11','-Wall','-Wextra','-Werror',
+                            '-I'+str(ROOT/'runtime/src'),str(ROOT/'tests/test_host_fault_diagnostics.c'),
+                            '-o',str(binary)],check=True,capture_output=True,text=True)
+            snapshot=subprocess.run([str(binary)],check=True,capture_output=True,text=True,timeout=10)
+            self.assertIn('x0=0x100',snapshot.stdout)
+            self.assertIn('x28=0x11c',snapshot.stdout)
+            self.assertIn('pc=0xffffffffffffffff lr=0x123456',snapshot.stdout)
+            self.assertIn('no pointed-to memory read',snapshot.stdout)
+            self.assertLess(len(snapshot.stdout),4096)
+            fault=subprocess.run([str(binary),'--fault'],capture_output=True,text=True,timeout=10)
+            self.assertEqual(fault.returncode,139,fault.stdout+fault.stderr)
+            self.assertEqual(fault.stderr.count('Host ARM64 context: private'),1)
+            self.assertIn('host control: pc=0x1000 lr=0x',fault.stderr)
+            self.assertIn('x28=',fault.stderr)
+            self.assertIn('Host ARM64 context: end',fault.stderr)
+            self.assertRegex(fault.stdout,r'Host image: load=0x[0-9a-f]+ text=0x[0-9a-f]+ size=0x[0-9a-f]+ uuid=[0-9a-f]{32} name=test')
+            self.assertLessEqual(fault.stdout.count('Host image:'),512)
+
     def test_native_reader_guards_and_bounds(self):
         with tempfile.TemporaryDirectory(prefix='cpu fault reader ') as directory:
             binary = Path(directory)/'test'
@@ -52,6 +73,9 @@ class CpuFaultDiagnosticsTests(unittest.TestCase):
                                             SOTC_CPU_FAULT_FIELDS='12:305'))
                     self.assertEqual(result.returncode, 139, result.stdout+result.stderr)
                     self.assertEqual(result.stderr.count('STOP_EXECUTION_FAULT: SIGSEGV'), 1)
+                    self.assertEqual(result.stderr.count('Host ARM64 context: private'),1)
+                    self.assertIn('host control: pc=0x',result.stderr)
+                    self.assertIn(' lr=0x',result.stderr)
                     if mode == '1':
                         self.assertIn('CPU fault memory r12', result.stderr)
                         self.assertIn(hex(bad_size), result.stderr)

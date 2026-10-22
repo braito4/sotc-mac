@@ -2,8 +2,33 @@
 
 This repository develops a native ARM64 macOS diagnostic for Shadow of the Colossus PS4.
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
-Development is paused at the owner's request because of unresolved native memory
-exhaustion. Read docs/DEVELOPMENT_PAUSE.md first. Latest owner capture (21:16 UTC)
+Newest owner boundary (22:02:30 UTC / Oct 23 00:02:30 Madrid): shader CFG::LinkBlocks
+missing-target assertion after 118.513 s, exits 23/23; zero large copies, last
+native sample 10.379 GiB. No OOM/SIGSEGV recorded; shader cause unknown. The
+capture still has fullscreen=1. Read the first handoff for the active boundary.
+The owner removed Game Mode integration: use the direct executable, windowed
+default and BB_FULLSCREEN=0 in the native command. No app-bundle/plist startup.
+Development has resumed at the owner's explicit request. Balanced imports have
+native evidence of avoiding the large snapshot; the latest boundary is host
+SIGSEGV outside translated code. Bounded ARM64 register/LR diagnostics and startup
+image UUID/range inventory are prepared. Read the first handoff checkpoint.
+Game execution remains owner-supervised; no automatic game launch follows.
+The latest owner run (21:54:46 UTC) exercises balanced imports and zero large
+snapshots, last native sample 8.917 GiB, but stops on unmapped host instruction
+SIGSEGV outside translated code after 82.902 s, exits 139/139. No OOM is recorded
+and no corruption cause is established. Read the first handoff checkpoint.
+Newest targeted memory work uses balanced imported-pool windows to avoid a
+recorded 3 GiB fallback snapshot. Direct bindings and BDA use actual window
+origins; retained 219-observation replay avoids the giant copy with no new
+observed crossing, at +512 MiB imported overlap for this pool. Native savings
+are unmeasured. BB_POOL_LAYOUT=legacy restores old geometry; cache stays 26/9.
+Read the first handoff checkpoint; do not automatically launch a game.
+The owner authorized targeted memory work after the pause: completed CPU task
+frames now retire via ordered recording packets at all seven release sites.
+Read the first handoff checkpoint. Delayed-consumer CPU/sanitizer controls pass;
+native effects are unverified. This does not authorize automatic game execution.
+The earlier development pause is historical; the owner has now resumed work.
+Read the current handoff before the historical pause record. Latest owner capture (21:16 UTC)
 ends on Metal OOM 8 after 185.769 s, exits 23/23, 12.170 GiB; 417 pipeline failures
 and 805 SRT errors persist. Do not automatically resume game/device comparisons.
 The following checkpoints describe historical evidence and prepared local work.

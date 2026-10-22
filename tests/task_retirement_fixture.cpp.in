@@ -1,0 +1,100 @@
+// Original synthetic owner/consumer controls. No game, Metal device or GPU.
+#include <cassert>
+#include <coroutine>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <new>
+#include <vector>
+using u8 = unsigned char;
+#define ASSERT(x) assert(x)
+#define UNREACHABLE_MSG(...) std::abort()
+namespace BbToggle { constexpr unsigned PipelinedTasks = 1; }
+unsigned allocated = 0, freed = 0, consumed = 0, expired = 0;
+namespace Vulkan {
+struct Rasterizer {
+    bool pipelined = true;
+    unsigned packets = 0;
+    std::deque<std::function<void()>> jobs;
+    void Drain() {
+        while (!jobs.empty()) {
+            auto job = std::move(jobs.front());
+            jobs.pop_front();
+            job();
+        }
+    }
+    void RunInOrder(void (*callback)(Rasterizer&, const u8*), const void* data,
+                    unsigned size, unsigned toggle, bool reads_guest_memory) {
+        assert(toggle == BbToggle::PipelinedTasks && !reads_guest_memory);
+        // The production API copies payload bytes into its ordered ring.
+        std::vector<u8> payload(size);
+        std::memcpy(payload.data(), data, size);
+        auto run = [this, callback, payload = std::move(payload)] {
+            callback(*this, payload.data());
+        };
+        if (pipelined) { ++packets; jobs.push_back(std::move(run)); }
+        else { Drain(); run(); }
+    }
+};
+}
+@TASK@
+@RETIREMENT@
+Vulkan::Rasterizer recorder;
+
+__attribute__((noinline)) Task Child(std::shared_ptr<unsigned> owner) {
+    // Model a queued CPU consumer borrowing frame-owned command storage.
+    std::weak_ptr<unsigned> weak = owner;
+    recorder.jobs.push_back([weak] {
+        auto locked = weak.lock();
+        if (!locked) { ++expired; return; }
+        assert(*locked == 123);
+        ++consumed;
+    });
+    co_yield Task::promise_type::empty{};
+    co_return;
+}
+
+int main() {
+    constexpr bool adapted = @ADAPTED@;
+    // The coroutine's argument is the last owner, and persists until destroy().
+    // Deferred consumers must run before any frame-parameter destruction.
+    for (unsigned i = 0; i < 300; ++i) {
+        auto owner = std::make_shared<unsigned>(123);
+        std::weak_ptr<unsigned> weak = owner;
+        auto task = Child(std::move(owner));
+        task.handle.resume();
+        assert(!task.handle.done());
+        task.handle.resume();
+        assert(task.handle.done());
+        @RELEASE@
+        assert(weak.expired() == !adapted);
+    }
+    assert(freed == (adapted ? 0u : 300u));
+    recorder.Drain();
+    assert(allocated == 300 && freed == 300);
+    assert(expired == (adapted ? 0u : 300u));
+    assert(consumed == (adapted ? 300u : 0u));
+    recorder.Drain(); // no duplicate destruction after a second drain
+    if (!adapted) {
+        std::puts("CONTROL: immediate reclamation invalidates 300 deferred consumers");
+        return 2;
+    }
+    // A disabled pipe drains preceding work before the synchronous callback.
+    recorder.pipelined = false;
+    auto task = Child(std::make_shared<unsigned>(123));
+    task.handle.resume(); task.handle.resume();
+    RetireCompletedTask(&recorder, task.handle);
+    assert(consumed == 301 && expired == 0 && allocated == freed);
+    // No renderer/no queued work: reclaim immediately without a recording packet.
+    task = Child(std::make_shared<unsigned>(123));
+    task.handle.resume(); task.handle.resume(); recorder.Drain();
+    RetireCompletedTask(nullptr, task.handle);
+    assert(consumed == 302 && expired == 0 && allocated == freed);
+    assert(recorder.packets == 300);
+    std::puts("PASS: 300 delayed consumers, FIFO retirement, disabled/null pipe, exact-once release");
+}

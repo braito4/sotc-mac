@@ -82,13 +82,53 @@ Reproduce after preparing the exact clean PR checkout and its static build:
 python3 tools/check_pervertex_proposal.py
 ```
 
-This verifies synthetic SPIR-V-to-MSL conversion and API validation only. It does
-not compile MSL with Apple's compiler, reconstruct a failing SotC pipeline,
-validate topology/buffer contents, execute a GPU or measure memory/FPS. Production
+This verifies synthetic SPIR-V-to-MSL conversion and API validation. The extended
+check below attempts Apple compiler validation separately; a blocked compiler is
+not a successful syntax check. It does not reconstruct a failing SotC pipeline,
+execute a GPU or measure memory/FPS. Production
 still uses MoltenVK `v1.4.2` and SPIRV-Cross `vulkan-sdk-1.4.363.0`; runtime/recomp
-pins, shader cache version 23 and the exact-only vertex-zero policy are unchanged.
+pins and the exact-only vertex-zero policy are unchanged; the current renderer
+cache is now 26/9 after the separate finite-choice SRT correction, independently of
+this isolated experiment.
 
 Next integration work needs an isolated driver/backend experiment with actual
 producer/consumer bindings, bounded buffer accounting and native pixel checks.
 Preserve the current renderer and use the new [visual evidence](VISUAL_DIAGNOSTICS.md)
 to compare it. Do not enable native MSL 4.0 or advertise extension conformance on M1.
+
+## Extended local compiler and ABI checks
+
+The October 22 follow-up strengthens the original fixture rather than changing
+the installed renderer. The mixed consumer now sums values from vertices zero
+and one; it does not overwrite one store with another. The driver preserves six
+generated `.metal` sources (capture producer, raster replay and four consumers),
+the exported scalar layout and a validation report under private
+`work/pervertex-research/validation-*` output.
+
+The pinned compiler still converts all four portable consumers and rejects all
+four ordinary/default consumers. Twenty-four extra malformed layout/binding
+cases are rejected: zero stride, out-of-range or misaligned scalar offsets,
+duplicate fields, colliding buffer slots and slot 31. A separate CPU oracle uses
+the actual exported 32-byte record layout, two packed 12-byte primitive triplets
+and deliberately reordered/reused vertices: 24 scalar reads, a two-corner sum
+and four range controls pass. This is an independent ABI exercise, not execution
+of the generated shader. It does not implement topology expansion, barriers,
+runtime ownership or GPU bounds checking.
+
+The driver probes Apple's compiler and checks all six sources with MSL 2.4 syntax
+validation when it is available. It selects Xcode through a subprocess-local
+`DEVELOPER_DIR`; it does not change the system selection, accept licenses or
+install components. Reports and exit codes distinguish syntax success (0),
+compiler failure (1) and unavailable toolchain (2). Four orchestration controls
+verify unavailable tooling, actual compile failure, six-source success and empty
+output rejection using mocks; these are not Apple compiler results.
+
+**Latest local result:** CPU conversion/ABI controls and all six Apple MSL 2.4
+syntax checks pass. After the owner installed Metal Toolchain 27A266a, Xcode's
+`xcrun metal` wrapper still reported the component missing in this environment.
+The installed compiler's direct executable responds as Apple metal 32023.921
+and accepts all six generated sources with `-fsyntax-only -fno-modules`, with no
+diagnostics. The separate private `metal-direct-validation.json` preserves the
+exact compiler path and per-source results; the earlier wrapper-discovery report
+remains blocked. This is compiler validation only: no native pipeline creation,
+M1 pixel correctness or SotC compatibility is claimed.

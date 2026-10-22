@@ -2,6 +2,7 @@
 from pathlib import Path
 from build_gpu import source_path, build_path
 import re
+import os
 import subprocess
 from check_buffer_copy_chunks import function
 
@@ -47,10 +48,10 @@ struct StagingBufferRef {VideoCore::Buffer* buffer{};u64 offset{},size{};u8* map
 struct StagingBufferPool {
     struct LargeBuffer {std::unique_ptr<VideoCore::Buffer> buffer;u64 tick,last_used_frame;bool held;u64 used_bytes=0;bool tail_open=false;};
     std::array<std::vector<LargeBuffer>,3> large_caches;
-    Instance instance;Scheduler scheduler;u64 frame=0;
+    Instance instance;Scheduler scheduler;u64 frame=0;mutable unsigned published=0;
     @REQUEST_DECLARATION@
     void FreeDeferred(const StagingBufferRef&);
-    void PublishStats()const{}
+    void PublishStats()const{++published;}
     VideoCore::Buffer* Seed(u64 size,MemoryType type,bool held=false,u64 tick=0) {
         auto& entry=large_caches[u32(type)].emplace_back(LargeBuffer{
             std::make_unique<VideoCore::Buffer>(instance,0,size,type,"synthetic"),tick,0,held});
@@ -90,7 +91,13 @@ int main(){
     deferred.scheduler.completed=deferred.scheduler.current++;
     auto b=deferred.RequestLarge(64*MB,type,true);
     assert(a.buffer!=b.buffer); // Completed but still held is not reusable.
-    std::printf("sequential retained buffers=%zu bytes=%llu; held/pending/type/best-fit checks passed\n",
+    StagingBufferPool observations;observations.Seed(128*MB,type);
+    for(unsigned i=0;i<768;++i){
+        observations.RequestLarge(64*MB,type,false);
+        observations.scheduler.completed=observations.scheduler.current++;
+    }
+    assert(old ? observations.published==0 : observations.published>=3);
+    std::printf("sequential retained buffers=%zu bytes=%llu; held/pending/type/best-fit and repeated-reuse observation checks passed\n",
         sequence.large_caches[1].size(),(unsigned long long)total);
     return old?2:0;
 }
@@ -105,7 +112,9 @@ def main():
         subprocess.run(['clang++', '-std=c++20', '-O1', '-Wall', '-Wextra', '-Werror',
                         '-I'+str(ROOT/'runtime/src'),
                         str(cpp), '-o', str(binary)], check=True)
-        result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
+        result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10,
+                                env=dict(os.environ,SOTC_MEMORY_TRACE='1',
+                                         BB_GPU_USER_DIR=str(work/(name+'-state'))))
         print(name+': '+result.stdout.strip())
         if result.returncode != expected:
             raise RuntimeError(f'{name}: expected {expected}, got {result.returncode}: {result.stderr}')

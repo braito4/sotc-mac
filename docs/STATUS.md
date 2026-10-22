@@ -1,8 +1,54 @@
 # Development status
 
-Updated 2026-10-22. **Reaches the first gameplay image on Apple M1; not playable yet.**
+Updated 2026-10-23. **Reaches the first gameplay image on Apple M1; not playable yet.**
 
-**Development paused at the owner's request because of memory exhaustion.**
+**Latest owner result (October 23 00:02:30 Madrid):** shader CFG block-linking
+assertion after 118.513 s, exits 23/23. Balanced imports still avoid large
+snapshots; last sampled Metal allocation is 10.379 GiB. No OOM or SIGSEGV is
+recorded. There are 1,119 presentations, 467 pipeline failures and 805 SRT errors.
+The old fullscreen settings remain in this capture; it does not test the new
+windowed default. Startup binary inventory is exercised, while native fatal
+register output remains pending a matching failure. See the first handoff.
+
+**Development resumed at the owner's request.** Game Mode integration and forced
+fullscreen were removed at the owner's request; startup is windowed by default.
+ The large staging snapshot is
+absent in the latest native capture. The next blocker is an unmapped host
+instruction SIGSEGV with unknown provenance. A bounded ARM64 register/LR dump
+and startup image UUID/text-range inventory now cover the previous diagnostic
+blind spot; no pointed-to memory, unwinding, symbol lookup or recovery is added
+to the fatal path. Original native signal and offline-analysis CPU tests pass;
+new game validation is pending. The pause entries below are historical.
+
+**Latest native result (21:54:46 UTC):** balanced imports are active and the large
+staging snapshot is absent (zero recorded large copies). Last sampled allocation
+is 8.917 GiB versus 11.697 GiB at the previous run's OOM; workload boundaries
+differ. This run instead stops on an unmapped host instruction SIGSEGV outside
+translated code after 82.902 s, exits 139/139. No cause is established. There are
+905 presentations, 306 pipeline failures and 271 SRT errors. The targeted memory
+mechanism is exercised; sustained stability, pixels and OOM avoidance remain open.
+See the first [handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Prepared graphics-memory change:** balanced guest-pool import windows avoid
+the 21:42:49 UTC capture's giant staging snapshot in a replay of 219 retained
+large-range observations (no new observed crossing). The snapshot previously
+allocated 3 GiB; the new layout adds 512 MiB imported overlap for that pool.
+This is potential budget reduction, not measured native savings. Actual range/
+BDA geometry tests, ARM64 build, all 19 renderer CPU checks and 25 builder tests
+pass; `BB_POOL_LAYOUT=legacy` is the exact comparison control.
+Cache 26/9 and dependency pins stay unchanged. See the first
+[handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Targeted follow-up authorized by the owner:** CPU coroutine frames now retire
+after earlier recording packets have been consumed, rather than immediately on
+decode completion. All seven release sites use the ordered path. Synthetic
+borrowed-storage controls reproduce the immediate-release failure and pass with
+deferred release; ARM64 build, renderer CPU regressions and 25 builder tests pass.
+Cache 26/9 and pins stay fixed. This is
+not a measured native memory/OOM fix; no game was launched. See the first
+[handoff checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Historical pause due to memory exhaustion (superseded by resumption above).**
 The latest owner run (21:16 UTC) ends after 185.769 s on Metal error 8, exits
 23/23, with 12.170 GiB native allocation against 11.840 GiB recommended.
 There are 1,095 presentations, 417 pipeline failures and 805 SRT errors. Scene
