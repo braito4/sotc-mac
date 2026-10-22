@@ -24,6 +24,26 @@ cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 | [KhronosGroup/SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | Installed SPIR-V-to-MSL compiler; interface lowering and proposals #2699/#2697. |
 | [shadexternals/mesa-kosmickrisp](https://github.com/shadexternals/mesa-kosmickrisp) | Alternative driver used by bmy's port; ARM64, sparse buffers and geometry/interface support. Not installed here. |
 
+## Pre-comparison access-limited review: 2026-10-22 13:54 UTC
+
+Before supplying the consolidated-workspace launch command, public review began
+with the SotC reference. Its repository page shows `main` and its
+[latest release](https://github.com/AjncSystem/ShadowOfTheColossus-PC/releases/latest)
+resolves to v0.60.5. The preferred bloodborne-mac page shows `main`; bmy's page
+shows `macos-native-0.6`. Runtime, CPU, SPIRV-Cross and KosmicKrisp repository
+pages were also retrieved, but these rendered pages did not establish exact
+current heads. GitHub API access was unavailable, local network resolution
+failed, and requested commit histories, MoltenVK release and PerVertex PR pages
+could not be retrieved. Reference PR #219 was reachable, without a fresh
+exact-head/diff comparison in this check.
+
+This is a partial refresh, not confirmation that all heads or proposal states
+are unchanged. No new test-relevant candidate could be established. Retain the
+previously reviewed revisions below and all selected dependencies/cache 24/9;
+do not infer that an unavailable diff is empty. The owner comparison isolates
+the already-built busy-queue maintenance correction at 640x360, DMA/async off,
+metadata on and pixel capture off. No game/GPU test was started by this review.
+
 ## Observed default-branch heads
 
 These heads were resolved through GitHub on 2026-10-22. Observing a head does not

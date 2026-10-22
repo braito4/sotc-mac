@@ -8,6 +8,82 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Native busy-queue comparison: proxy destruction observed, CPU fault boundary
+
+The **2026-10-22 13:55 UTC** owner run uses the consolidated Documents checkout,
+640x360, DMA/async off, JIT/statistics on, metadata on and pixel capture off.
+The supervisor has no wall deadline. It ends after **182.664 seconds** on
+**SIGSEGV in translated guest code**, with confirmed child/supervisor exit
+**139**. No Metal command-error, GPU-watchdog or unresolved-import stop is
+recorded. A DualSense connects; the main loop begins at 1.5601 seconds. This
+supersedes the 78.963-second OOM boundary below, without establishing OOM
+avoidance in a longer run or proving that the maintenance change caused the
+different failure.
+
+Busy-queue maintenance now has native lifetime evidence. The last available
+resource summary records **1,263 proxy creations / 1,233 actual destructions /
+30 live proxies (27.32 MiB)**, versus 336 live / zero destroyed in the preceding
+run. The 1,009.31 MiB destroyed is cumulative allocation traffic, not concurrent
+memory savings. Sampled live proxies range from 17 to 35 after scene transition.
+No proxy deletion is pending in that last summary. Total image inventory is
+220 images / 704.28 MiB, with 7,669 allocations and 7,449 destructions; the
+ledger arithmetic matches. Twenty-seven resource snapshots show continued
+collection, with the final collector tick at 398. Unresolved-GPU retention
+records 53 cumulative decisions, separately from 154 tiled-download decisions.
+Neither count denotes distinct images or cumulative upstream kept/freed totals.
+
+The detailed image journal reaches its 8 MiB cap: 5,729 image events are dropped
+by the last summary, while tracker overflow, unmatched/untracked frees and
+observation-error counters remain zero. Its detailed history cannot reconstruct
+the final ledger. The bounded ledger summaries remain usable, but SIGSEGV does
+not force a final resource snapshot; these are last sampled values, not exact
+failure-time inventories.
+
+The visual journal samples native allocation up to **11.423 GiB**, last
+**11.405 GiB**, against an 11.840 GiB recommendation. Pressure remains high.
+One **3 GiB** upload buffer remains: one cross-window copy and two short-mapping
+fallback copies complete on the CPU, reusing that buffer. The last staging
+inventory is 59.667 seconds old; its reusable classification is not permission
+to release the resource at failure. There are 1,254 presentation API records,
+not validated pixels or gameplay FPS. PerVertexKHR pipeline failures, integer
+blit failures and buffer-size clamps remain.
+
+Offline decoding of the private prepared image identifies a load using a
+size/offset read from object metadata and masked for alignment. Its saved
+size/offset is implausibly large; the fault address matches the effective
+address computed from the recorded guest registers. The relevant original and
+linked instruction bytes match. This narrows the immediate failure, but does
+not distinguish earlier metadata corruption, an invalid object/lifetime, or a
+CPU translation error. The log contains no dynamic object-memory snapshot,
+writer provenance or call stack establishing the cause. Exact addresses and
+disassembly remain only in ignored private analysis output.
+
+Audio has 66 complete windows, 33 per port, delivering about **47,815 input
+frames/s per port**. Maximum submission gap is **182.876 ms**, with no recorded
+queue/output failure; the device stays at 1024 frames / 48 kHz. Audible output
+and audiovisual alignment still require owner observation.
+
+Next debugging priority is the invalid metadata/offset feeding the CPU load:
+inspect its allocation/lifetime and narrow the write or translation responsible
+using private evidence and original synthetic ABI/JIT comparisons. Do not skip
+the load, invent a valid size, or undo GPU-completion ownership guards. Keep
+the maintenance correction, pins/cache 24/9 and launch settings while gathering
+evidence; a causal regression is not ruled out. No runtime code, dependency or
+game input is changed for this analysis, and no additional game/GPU test is run.
+The preceding access-limited public review remains the review boundary.
+
+### Documents workspace launch preparation: 2026-10-22 13:54 UTC
+
+The selected checkout is now `~/Documents/sotc-mac`; its private relocation
+checkpoint reports `ready-in-documents`, renderer rebuilt and CPU contracts
+passed. The earlier pending-move wording below is historical. A fresh host-import
+audit finds 46 present and zero missing, without loading the GPU library.
+The [pre-comparison upstream review](DEPENDENCY_WATCH.md#pre-comparison-access-limited-review-2026-10-22-1354-utc)
+is access-limited: exact current public heads/PR diffs could not all be verified.
+Retain selected pins and run only the existing owner-supervised comparison.
+Process inspection is unavailable in this session, so the owner must ensure
+the preceding diagnostic window has closed. Native validation remains pending.
+
 ### Consolidated workspace
 
 The full project, original game input, selected source checkouts, installed

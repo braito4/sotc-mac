@@ -14,9 +14,10 @@
 >
 > Earlier runs showed logos/menu and defective 3D animation, with much improved
 > audio and measured input delivery close to 48 kHz. Visible output returned after
-> withdrawing a buffer-bound experiment. The latest instrumented run stops on
-> confirmed native Metal memory exhaustion after about 79 seconds. A retained
-> 3 GiB upload buffer and accumulating reduced-size images remain investigation priorities;
+> withdrawing a buffer-bound experiment. The latest instrumented run stops on a
+> CPU invalid-memory access after about 183 seconds. Busy-queue maintenance now
+> destroys stale reduced-size images; the last sample retains 30 proxies versus
+> 336 before. Native memory still reaches 11.42 GiB and a 3 GiB upload buffer remains;
 > correct rendering and memory stability remain unverified. The audio and
 > staging-reuse corrections remain. The error
 > handler exits with confirmed status. See the
@@ -36,8 +37,8 @@
 > **GPU testing is proceeding gradually after a reported macOS watchdog kernel panic.**
 > The owner authorized one brief supervised experiment at a time. Dynamic shader
 > reads remain disabled and enabling them is blocked before GPU loading. The latest
-> reviewed capture stops on a confirmed native memory error; earlier captures
-> stopped on the GPU watchdog, with both confirmed and unconfirmed cooperative exits.
+> reviewed capture stops on a CPU invalid-memory access with confirmed exit 139;
+> earlier captures stopped on Metal OOM or the GPU watchdog.
 > At the owner's request, game-duration limits now default to disabled; GPU-progress
 > supervision, manual cancellation and prerequisite budgets remain active.
 > Integer-format image-copy errors remain, and lower total memory pressure has
@@ -66,9 +67,9 @@
 
 The current [dependency inventory](docs/DEPENDENCIES.md) records updated runtime,
 CPU and SotC reference pins, stable library versions and exact source revisions.
-The ARM64 build and CPU/source checks pass. The latest owner comparison exercises this dependency cohort and still exhausts
-Metal memory. Ordered frame maintenance now addresses stale-proxy cleanup being
-starved by busy queues; its native OOM behavior remains unverified.
+The ARM64 build and CPU/source checks pass. Ordered frame maintenance now
+destroys stale proxies in the native owner comparison. That run ends on a CPU
+invalid-memory access; sustained memory stability remains unverified.
 
 - **Native Apple Silicon host:** the diagnostic and bbcpu are built as ARM64 binaries.
 - **JIT and interpreter checks:** both modes are compared at explicit initialization boundaries.
@@ -115,21 +116,18 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
-supersedes the historical run summaries below. The owner confirmed that visible
-output returned after rollback. The latest resource-instrumented run stops on
-native Metal memory exhaustion after **101.864 seconds**, with child/supervisor
-exit 23. The newest run has one large cross-window copy and 2.5 GiB staging.
-A complete image history now shows 981 unassociated reduced-size images
-retaining 806.35 MiB without destruction. Retained reduced-scene proxies are a
-candidate requiring isolated lifetime validation.
-The experimental shader-derived buffer bound stays withdrawn. The updated
-ARM64 renderer preserves the checked overlays, adds stale-proxy and completed-
-coroutine cleanup, and uses cache 24/9. Source regressions and full CPU contracts
-pass; this dependency cohort has not yet run the game. Correct rendering
-and memory stability remain unverified. The scene
-setting remains 640x360, DMA/async off. General PerVertexKHR, dynamic SRT and
-buffer-clamp failures persist. The resource exhausting memory, correct rendering
-and gameplay stability remain unverified.
+records the latest owner run: **182.664 seconds**, ending on CPU **SIGSEGV** with
+child/supervisor exit **139**. Busy-queue maintenance now releases stale scene
+proxies: the last sample records 1,233 actual destructions and 30 still live.
+No Metal OOM or GPU-watchdog stop is recorded in that run; native allocation
+still peaks at 11.423 GiB and the retained 3 GiB upload remains. The faulting
+load uses an invalid metadata-derived size/offset; its origin is unresolved.
+The image-event journal is capped, and the final resource inventory is sampled
+before the CPU fault. Correct rendering and sustained memory stability remain
+unverified. Keep cache 24/9, 640x360 and DMA/async off. The withdrawn shader-bound
+experiment stays inactive; shader/interface and integer-copy failures remain.
+
+The following audio and graphics observations are historical comparisons.
 The owner reports audio much improved: native delivery rises from about 23,912 to
 47,684 input frames/s per port after sizing the queue to the actual device quantum.
 A staging-cache correction now exercises four reuses previously rejected by size

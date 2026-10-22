@@ -2,7 +2,20 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Current maintenance correction:** the integrated-cohort owner run ends after
+**Current native boundary (13:55 UTC):** the consolidated-workspace owner run
+ends after **182.664 seconds on SIGSEGV**, child/supervisor exit **139**, in
+translated guest code. No Metal OOM or GPU-watchdog stop is recorded. Busy-queue
+maintenance now destroys stale proxies natively: the last resource sample has
+1,263 created / 1,233 destroyed / 30 live (27.32 MiB), versus 336 retained and
+zero destroyed before. Native allocation still peaks at 11.423 GiB. The 3 GiB
+upload remains; longer-term memory stability is unverified. Detailed image
+events hit their cap, while the bounded ledger has no tracking errors; no forced
+resource snapshot accompanies this CPU fault. Offline inspection finds an
+implausible metadata-derived size/offset feeding the faulting load, with matching
+effective-address arithmetic; the corruption/translation origin is unresolved.
+Correct pixels remain unverified. See the [current handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding maintenance correction:** the integrated-cohort owner run ends after
 78.963 seconds on Metal OOM 8, with confirmed child/supervisor exit 23 and
 11.664 GiB native allocation. It retains a 3 GiB upload buffer and 336 reduced
 proxies / 277.75 MiB; 317 corresponding source UIDs were destroyed, but no proxy
@@ -11,7 +24,8 @@ Ordered frame boundaries now run throttled cache maintenance even while queues
 stay busy, preserving guest-read guards and real past-next resource ownership.
 The actual-source serial/pipelined CPU fixture releases 200 stale proxies while
 retaining one live proxy and preserves frame completion before deferred release.
-Native rendering and OOM behavior after this change remain unverified. See the
+The newer run above exercises proxy destruction; correct rendering and sustained
+OOM avoidance remain unverified. See the
 [current handoff](DEVELOPMENT_HANDOFF.md#busy-queue-maintenance-correction).
 
 

@@ -4,10 +4,16 @@ The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these addition
 observations. This instruments the current renderer without changing shader code,
 cache versions, buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
-The latest native boundary is Metal out-of-memory code 8 after 78.963 seconds
-in the integrated-cohort owner run on 2026-10-22. Complete image history identifies
-336 reduced proxies without retirement, despite 317 source UIDs being destroyed.
-The final collection observation is 24.086 seconds old.
+The latest owner run (2026-10-22 13:55 UTC) ends after 182.664 seconds on a CPU
+SIGSEGV, child/supervisor exit 139, without a recorded Metal OOM. The last
+resource summary records 1,263 proxy creations / 1,233 actual destructions /
+30 live proxies (27.32 MiB). Native allocation still peaks at 11.423 GiB and the
+3 GiB upload remains. The detailed image journal reaches its cap, with 5,729
+dropped image events by the final summary; the bounded ledger reports no
+tracking errors. SIGSEGV does not force a resource snapshot, so these are last
+sampled values. Sustained memory stability remains unverified.
+The preceding integrated-cohort run ended on Metal OOM 8 after 78.963 seconds,
+retaining 336 proxies without retirement despite 317 source UIDs being destroyed.
 The owner previously recovered visible
 output after the earlier experiment was withdrawn. These traces are not a fix.
 
@@ -16,13 +22,15 @@ The current dependency cohort uses cache **24/9**; older native captures use
 contents when a neighboring page write makes download unsafe. The recorder now
 counts those decisions as `gc_kept_unresolved_gpu`, separately from tiled
 downloads and downloads kept without pressure. These are decision counts, not
-distinct-image counts. That correctness fix can increase retained memory and has
-not yet been validated in our native game workload.
+distinct-image counts. That correctness fix can increase retained memory and
+now records 53 retention decisions in the latest native summary; correctness of
+the retained contents remains unverified.
 
-The scene-proxy retirement overlay is exercised but retires no proxy in that run.
+The earlier scene-proxy retirement overlay retired no proxy in the OOM run.
 A new ordered-frame maintenance overlay prevents waiting for all queues to empty
 before running throttled cache maintenance. CPU serial/pipelined lifetime and
-progress fixtures pass; native memory improvement remains unverified. The
+progress fixtures pass; the latest run now observes actual proxy destruction.
+This does not establish exact concurrent memory savings or OOM avoidance. The
 recorder remains observational. [Current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 describes deferred image/view ownership and cached-view invalidation.
 

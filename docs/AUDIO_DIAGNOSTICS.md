@@ -1,5 +1,14 @@
 # Audio delivery diagnostics
 
+The **13:55 UTC comparison on 2026-10-22** records 66 complete native audio
+windows, 33 per port, delivering about **47,815 input frames/s per port**.
+Maximum submission gap is **182.876 ms**, maximum output-lock wait is 514
+microseconds, and no queue/output failure is recorded. The actual device remains
+1024 frames at 48 kHz. The run ends after 182.664 seconds on CPU SIGSEGV, exit
+139. These are input-delivery measurements; audible continuity and audiovisual
+alignment remain unverified. Longer run duration also prevents treating the raw
+maximum gap as a comparable jitter rate.
+
 The **09:41Z comparison on 2026-10-22** has 38 complete native audio windows,
 nineteen per active port, delivering about **47,733 input frames/s per port**.
 Maximum submission gap is **156.539 ms**, with no recorded queue/output failure.
