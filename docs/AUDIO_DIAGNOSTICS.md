@@ -1,6 +1,13 @@
 # Audio delivery diagnostics
 
-The **08:50Z comparison on 2026-10-22** after the renderer rollback has 36 native
+The **09:25Z comparison on 2026-10-22** has 68 complete native audio windows,
+34 per active port. Mean delivery is about **47,488 input frames/s per port**;
+submission gaps reach **120.404 ms** and output-lock waits 89 microseconds.
+No queue/output failure is recorded. The run ends after 175.402 seconds on Metal
+memory exhaustion. These are input-delivery observations, not evidence of
+uninterrupted speaker output or audiovisual alignment.
+
+The earlier **08:50Z comparison on 2026-10-22** after the renderer rollback has 36 native
 audio windows, eighteen per active port, spanning about 90 seconds per port.
 Mean delivery is about **46,200 input frames/s per port** and maximum submission
 gap is **186.015 ms**. No queue/output failure is recorded; output-lock waits peak

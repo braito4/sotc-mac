@@ -4,8 +4,9 @@ The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these addition
 observations. This instruments the current renderer without changing shader code,
 cache versions (23/9), buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
-The measured native boundary remains Metal out-of-memory code 8 after 94.305
-seconds in the 08:50Z owner run on 2026-10-22. The owner has recovered visible
+The measured native boundary remains Metal out-of-memory code 8 after 175.402
+seconds in the 09:25Z owner run on 2026-10-22, now with these resource records.
+The owner previously recovered visible
 output after the earlier experiment was withdrawn. These traces are not a fix.
 
 ## Recorded evidence
@@ -56,9 +57,15 @@ own C++ exceptions and preserve the workload.
 
 Collection snapshots record the observed usage, trigger/pressure/critical
 thresholds, whether the collector is enabled and whether its usage comes from
-the driver. They include existing kept/freed totals and separate counts for
+the driver. They include existing kept/freed window samples and separate counts for
 GPU-written tiled images and downloads retained without pressure. These values
 are sampled before a collection pass; the failure snapshot reports their age.
+The upstream kept/freed counters reset when frame statistics consume them.
+`gc_kept_window_sample` and `gc_freed_window_sample` are not cumulative totals;
+older logs called these same resettable observations `gc_kept_total` and
+`gc_freed_total`. The reader accepts both names with the corrected interpretation.
+The recorder's separate retention-reason counts are cumulative decisions, not
+distinct images.
 `gc_tick` and `scheduler_tick` are current collection/recording counters, **not
 confirmed GPU completion** and not permission to free anything. Native allocated
 bytes and the recommendation are supplied on the forced Metal failure snapshot;
@@ -103,5 +110,9 @@ dedicated staging allocation/rounding and both VMA destruction paths are compile
 against CPU resource doubles; an original synthetic request rounds to 3 GiB with
 matching metadata, without allocating that amount or initializing a GPU.
 The other renderer regressions and full JIT/interpreter contracts remain required.
-No native game run has yet exercised these new resource records. Metadata I/O and
-tracking add CPU overhead; a later single tracing-off comparison can measure it.
+The 09:25Z owner run on 2026-10-22 exercises the records and final forced failure
+summary. It confirms two cross-window copies sharing one retained 3 GiB buffer,
+and late growth in unassociated images. The detailed image journal hits its 8 MiB
+cap; the live tracker has no overflow, unmatched free or diagnostic exception.
+See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+Pixel correctness and a tracing-overhead comparison remain unverified.

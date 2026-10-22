@@ -20,7 +20,8 @@ combined launcher with `SOTC_AUDIO_TRACE=1`.
 It now includes [resource memory diagnostics](MEMORY_DIAGNOSTICS.md): large-buffer
 origins, image allocation/destruction and deferred deletion, bounded live-image
 summaries and collector thresholds. `SOTC_MEMORY_TRACE=1` defaults on independently
-of pixel capture. These resource records still need an owner-run native test.
+of pixel capture. The 09:25Z owner run on 2026-10-22 exercises these resource
+records and the final native-failure summary; pixel capture remains untested.
 
 Counters are cumulative **asynchronous process totals**, not per-frame GPU draw
 counts: requested draws, missing pipelines, empty draws, resource binding failures,

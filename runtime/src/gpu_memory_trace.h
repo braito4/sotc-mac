@@ -219,7 +219,7 @@ private:
             << ",\"gc_pressure_bytes\":" << gc.pressure << ",\"gc_critical_bytes\":" << gc.critical
             << ",\"gc_tick\":" << gc.tick << ",\"scheduler_tick\":" << gc.scheduler_tick
             << ",\"gc_enabled\":" << int(gc.enabled) << ",\"gc_uses_driver_usage\":" << int(gc.driver_usage)
-            << ",\"gc_kept_total\":" << gc.kept << ",\"gc_freed_total\":" << gc.freed
+            << ",\"gc_kept_window_sample\":" << gc.kept << ",\"gc_freed_window_sample\":" << gc.freed
             << ",\"gc_kept_tiled_download\":" << kept_tiled.load() << ",\"gc_kept_download_no_pressure\":" << kept_download.load();
         const auto array = [&](const char* name, const auto& values) {
             out << ',' << Quote(name) << ":[";

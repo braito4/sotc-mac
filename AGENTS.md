@@ -7,6 +7,12 @@ Use https://github.com/bloodborne-native/bloodborne-mac/ as the user's preferred
 Also review bmy/bbport-mac, MoltenVK, SPIRV-Cross and KosmicKrisp as requested by
 the owner. Read docs/DEPENDENCY_WATCH.md and record branch/SHA changes; the daily
 public-source watch notifies about relevant changes but does not update pins.
+Before each new native game/GPU comparison, refresh public upstream state,
+starting with AjncSystem/ShadowOfTheColossus-PC and the relevant tracked runtime,
+compiler and driver sources. Resolve current default branches and compare new
+commits/releases/PR diffs with the pins and prior reviews. Record the check and
+any test-relevant candidates before proposing or running the comparison. Do not
+silently update dependencies. This pre-test review is separate from the daily watch.
 
 - Maintain code in runtime/src, tests, tools and packaging. work, game and logs are private
   local output/input; never promote their generated content into Git.
@@ -31,10 +37,16 @@ public-source watch notifies about relevant changes but does not update pins.
   docs/MEMORY_DIAGNOSTICS.md: bounded private buffer origins, real image
   allocation/destruction, queued deletion and GC summaries now accompany the
   existing visual report. The ARM64 build, six renderer source regressions,
-  27 builder tests and full JIT/interpreter contracts pass. The new records
-  have not yet been exercised in a native game run. Keep cache 23/9 and all
-  resource/fence/import semantics. The 08:50Z owner run below remains the native
-  baseline. Reject untracked renderer source/header copies before compilation.
+  27 builder tests and full JIT/interpreter contracts pass. The 09:25Z owner run
+  now exercises the new records and stops after 175.402 seconds on Metal OOM 8,
+  confirmed child/supervisor exit 23. Two cross-window requests use one retained
+  3 GiB upload buffer. The final live-image ledger has 611 images/997.07 MiB,
+  including 387 unassociated images/317.20 MiB, with no queued deletion at failure.
+  SceneTargets' retained per-UID proxies are a source-backed candidate, not a
+  proven attribution. Keep cache 23/9 and all resource/fence/import semantics.
+  The event journal reached its 8 MiB cap; the live tracker did not overflow.
+  GC kept/freed upstream samples reset with frame statistics: never interpret
+  them as cumulative totals. Reject untracked renderer source/header copies.
 - The SotC reference is still pinned at 2250f328. On 2026-10-22 main is observed
   at 411fdd86, 72 commits ahead; v0.60.5 is not integrated as a whole. Its c9be8142
   nested-coroutine leak correction is absent here and is a candidate for a
@@ -48,7 +60,7 @@ public-source watch notifies about relevant changes but does not update pins.
   and confirms the actual 1024-frame/48 kHz device quantum. Gaps still reach
   121.85 ms; complete playback and audiovisual alignment remain unverified.
   Keep real PCM/error contracts.
-- The newest 08:50Z owner comparison after rollback restores visible output,
+- The earlier 08:50Z owner comparison after rollback restores visible output,
   according to the owner, but ends after 94.305 seconds on Metal OOM code 8,
   child/supervisor exit 23. Dedicated upload is one retained 3,072 MiB buffer,
   first observed by 7.784 seconds and unchanged through failure. From the first

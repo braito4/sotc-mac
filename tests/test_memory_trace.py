@@ -61,6 +61,8 @@ class MemoryTraceTests(unittest.TestCase):
         self.assertEqual(last['large_copy_requests'],1)
         self.assertEqual(last['large_copy_completed_bytes'],3<<30)
         self.assertEqual(last['gc_kept_tiled_download'],1)
+        self.assertEqual(last['gc_kept_window_sample'],23)
+        self.assertEqual(last['gc_freed_window_sample'],24)
         buffers = self.read(directory/'buffers.jsonl')
         self.assertEqual(buffers[0]['event'],'pool_window_cross')
         self.assertTrue(all(x['shader']==123 and x['slot']==4 for x in buffers))
@@ -72,6 +74,12 @@ class MemoryTraceTests(unittest.TestCase):
         self.assertIn('pool_window_cross',rendered)
         self.assertIn('Largest images still allocated',rendered)
         self.assertIn('8192',rendered)
+        legacy=dict(last)
+        for key in ('kept','freed'):
+            legacy['gc_'+key+'_total']=legacy.pop('gc_'+key+'_window_sample')
+        (directory/'summary.jsonl').write_text(json.dumps(legacy)+'\n')
+        self.assertIn('gc_kept_window_sample',report.render_memory(visual))
+        self.assertNotIn('<td>gc_kept_total</td>',report.render_memory(visual))
         with (directory/'buffers.jsonl').open('a') as out:
             out.write(json.dumps({'schema':1,'monotonic_ns':10,'event':'<script>alert(1)</script>'})+'\n{"partial":')
         rendered=report.render_memory(visual)

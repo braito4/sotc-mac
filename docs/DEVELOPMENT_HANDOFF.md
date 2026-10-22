@@ -8,6 +8,82 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Native resource evidence: large-copy origins and late auxiliary-image growth
+
+The newest owner run starts at **09:25Z on 2026-10-22**, using `d86465b` and
+`SOTC_MEMORY_TRACE=1`. The new metadata is exercised natively. The main loop starts
+in 1.573 seconds, a DualSense is detected, and the run ends after **175.402 seconds**
+on actual Metal command error 8 (`Insufficient Memory`), child/supervisor exit 23.
+Native allocation is 12,558,565,376 bytes (**11.70 GiB**) against a recommendation
+of 12,713,115,648 bytes, a 147.39 MiB margin. The recommendation is not a hard
+limit. Scene stays 640x360, DMA/async off and cache 23/9; pixel capture is off.
+The duration difference from 94.305 seconds is not a performance/stability result.
+
+The first raw, read-only, unformatted compute binding declares almost 4 GiB. Its
+mapping-clamped request is **3,047,712,528 bytes (2,906.53 MiB)**, while the selected
+3,584 MiB imported window has only **1,436.65 MiB** left at that physical offset.
+The observed cross-window fallback therefore allocates **3,072 MiB** staging.
+Allocation plus sparse CPU copy/flush takes **1.728 seconds**, including about
+1.232 seconds before the staging buffer is selected. A second shader requests
+2,639,096,320 bytes and crosses the same window end; it **reuses the same buffer**
+and completes its CPU copy in **133.28 ms**. There are exactly two large fallback
+requests/completions, 5,686,808,848 cumulative copied bytes, not two simultaneous
+multi-GiB allocations. The one 3 GiB upload buffer remains through failure.
+This proves the allocation path and originating bindings in private metadata,
+not the precise GPU allocation/instruction that fails much later.
+
+The failure-time `UniqueImage` ledger records **9,015 allocations, 8,404 actual
+VMA destructions and 611 live images**, totaling **1,045,502,720 bytes (997.07 MiB)**.
+Of these, 224 registered cache images account for **679.87 MiB**, while **387
+unassociated/constructed-state images account for 317.20 MiB**. Unregistered and
+queued-deletion bytes are zero at the final snapshot. A preceding sample contains
+four queued images/18.53 MiB, which have cleared by failure; this does not establish
+safe lifetime handling for every resource or physical-driver release.
+
+The cache-associated inventory is around 690 MiB through the 155.5-second visual
+time estimate. Most later growth is in unassociated images, which appear in the
+last roughly eighteen seconds. This is stronger localization than the earlier
+aggregate image-growth observation. As a **source-backed hypothesis**,
+`SceneTargets::Get` creates reduced images keyed by original image UID and mip;
+its map is cleared on resolution change (after `Finish`) or destruction, with no
+per-source retirement. Recreated source images can therefore leave old proxies
+retained. Other temporal/motion/upscale resources also use unassociated
+`UniqueImage`s; this run does not label their allocation role, so it does not prove
+that the 387 images are all scene proxies. Next isolate proxy counts/bytes and
+source UID retirement, then qualify any cleanup with actual-source CPU lifetime
+tests. Preserve deferred ownership and prepared draw/view references; do not erase
+live proxies, change the preset or force global finishes as an untested remedy.
+
+Tracker overflow, untracked/unmatched frees and diagnostic exceptions are zero.
+The detailed image journal reaches its **8 MiB cap**, dropping 13,922 later records;
+the fixed live ledger and final summary remain complete under their observations.
+Per-resource history after the cap is unavailable. Visual image/Vulkan counters
+are sampled at the last presentation, about 41 ms before failure; their values
+differ from the failure-time ledger and must not be treated as one atomic sample.
+The failed Metal batch retains its complete seven-note CPU tail, including one
+compute candidate; this is not the precise GPU instruction responsible.
+
+Collection is enabled and sees driver usage above its sampled critical threshold.
+There are 304 cumulative tiled/GPU-written retention decisions, not 304 distinct
+images. The existing upstream kept/freed counters reset when frame statistics
+read them. The first recorder misleadingly named their samples `*_total`; those
+fields must not be used as cumulative eviction totals. The recorder/report now
+label them `gc_kept_window_sample` / `gc_freed_window_sample`, retaining old-log
+reader compatibility. This corrects metadata labels only, not collection policy.
+The ARM64 rebuild, actual-source memory fixture and full JIT/interpreter CPU
+contracts pass after this correction; shader/cache/resource semantics are unchanged.
+
+There are 68 complete audio windows, 34 per active port, delivering about **47,488
+input frames/s per port**, maximum submission gap 120.404 ms and output-lock wait
+89 microseconds, with no queue/output failure. Input-queue zero is not a device
+underrun measurement. Visible scene correctness remains unverified in this run.
+
+At the owner's request, review fresh public reference and relevant upstream
+changes **before each new native game/GPU comparison**, independently of the
+daily watch. Compare actual diffs and prior integrations; keep pins and isolate
+behavioral backports. A repeat check on 2026-10-22 still resolves the SotC
+reference to `411fdd86` and release v0.60.5. No new GPU run accompanies this review.
+
 ### Resource diagnostics prepared for the next owner comparison
 
 [Memory diagnostics](MEMORY_DIAGNOSTICS.md) now add bounded private large-buffer
@@ -17,7 +93,8 @@ queued-deletion metadata and collector summaries to the offline visual report.
 changes no shader code, persistent metadata/cache version, requested buffer size,
 import window, eviction policy or fence/resource lifetime. Scene stays 640x360,
 DMA/async off, shader binary/meta versions 23/9. The withdrawn bounds experiment
-stays inactive. The 08:50Z run below is still the newest native evidence.
+stays inactive. At this checkpoint 08:50Z was the newest native evidence; the
+09:25Z resource comparison above supersedes that boundary.
 
 The immediate next comparison uses the same existing graphics-game command after
 the prior diagnostic closes. Inspect which shader/slot requests the initial
@@ -25,7 +102,8 @@ multi-GiB copy, its mapping/window boundaries and rounded allocation. Then inspe
 image allocation/destruction totals, largest live resources, queued-deletion
 bytes and collector thresholds as memory grows. Retained bytes and current
 recording ticks do not authorize freeing resources. These records have not yet
-been validated in a native game run; no tool-driven GPU run is launched.
+been validated at that checkpoint; the later owner run above exercises them.
+No tool-driven GPU run is launched.
 
 The ARM64 incremental library builds with existing generated shaders/dependencies;
 a fresh dependency build still needs external glslang. All six renderer source
@@ -47,7 +125,7 @@ it is not part of this diagnostic-only comparison. Keep reference/runtime pins.
 
 ### Visible output returns after rollback; memory exhaustion persists
 
-The newest owner comparison starts at **08:50Z on 2026-10-22**, after rollback
+The earlier owner comparison starts at **08:50Z on 2026-10-22**, after rollback
 `2dcaa37`. The owner confirms that the image has returned. This supports keeping
 the guarded-buffer-bound experiment withdrawn; it does not identify the exact
 cause of the preceding black output or establish correct scene rendering.

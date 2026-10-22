@@ -2,18 +2,28 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Prepared diagnostic change:** [bounded resource memory tracing](MEMORY_DIAGNOSTICS.md)
-now defaults on in the combined launcher. It connects large shader-buffer requests
-to imported-window fallback copies and staging capacity, and distinguishes image
-registration/deferred deletion from actual VMA destruction. The report includes
-live-image summaries and collector thresholds. The ARM64 build, six renderer
-source regressions, 27 builder tests and full JIT/interpreter contracts pass.
-Native resource-trace validation is pending; there is no new memory fix or game
-run. Shader/cache/resource ownership and the settings below remain unchanged.
-The reference project's v0.60.5 is not integrated as a whole; see the
+**Newest native boundary (09:25Z):** resource tracing is exercised. The owner run
+ends after **175.402 seconds** on Metal OOM code 8, child/supervisor exit 23,
+at 11.70 GiB native allocation. Two cross-window binding requests copy through
+one retained **3 GiB** upload buffer. The final live-image ledger has 611 images,
+**997.07 MiB**: 224 registered images/679.87 MiB and 387 unassociated images/
+317.20 MiB. No images remain queued for deletion at the final snapshot. Late
+growth is mainly unassociated; retained reduced-scene proxies are a code-backed
+candidate, still unproven without resource-role tagging. The detailed image
+journal is capped but the live tracker has no overflow or diagnostic error.
+The resource traces do not fix memory exhaustion or prove correct pixels.
+See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+[Memory diagnostics](MEMORY_DIAGNOSTICS.md) default on. Their GC sample labels
+are corrected because upstream kept/freed counters reset with frame statistics;
+they are not cumulative totals. The ARM64 rebuild, actual-source memory fixture,
+focused label/legacy-reader tests and full JIT/interpreter CPU contracts pass.
+Scene remains 640x360, DMA/async off, cache 23/9 and ownership guards unchanged.
+Fresh public reference/relevant upstream review is now required before each
+native game/GPU comparison. The reference v0.60.5 is not integrated wholesale; see the
 [current source review](UPSTREAM_REVIEW.md#sotc-reference-v0605-comparison).
 
-**Newest measured boundary (08:50Z):** the owner confirms that the image has
+**Earlier measured boundary (08:50Z):** the owner confirms that the image has
 returned after rollback. The game still ends after **94.305 seconds** on actual
 Metal out-of-memory code 8, child/supervisor exit 23, with **11.66 GiB** native
 allocation. One 3,072 MiB upload buffer is already retained by 7.784 seconds and

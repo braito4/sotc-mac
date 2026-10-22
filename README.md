@@ -13,17 +13,17 @@
 > **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
 > Earlier runs showed logos/menu and defective 3D animation, with much improved
-> audio and measured input delivery close to 48 kHz. The latest owner comparison
-> restores visible output after withdrawing a buffer-bound experiment, then stops
-> on confirmed native Metal memory exhaustion after about 94 seconds. A retained
+> audio and measured input delivery close to 48 kHz. Visible output returned after
+> withdrawing a buffer-bound experiment. The latest instrumented run stops on
+> confirmed native Metal memory exhaustion after about 175 seconds. A retained
 > 3 GiB upload buffer and later image growth remain investigation priorities;
 > correct rendering and memory stability remain unverified. The audio and
 > staging-reuse corrections remain. The error
 > handler exits with confirmed status. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
-> New [resource diagnostics](docs/MEMORY_DIAGNOSTICS.md) are built and CPU-tested
-> to identify the large copy and image lifetimes in the next owner comparison.
-> Their native validation is pending; they do not change the rendering or memory policy.
+> [Resource diagnostics](docs/MEMORY_DIAGNOSTICS.md) now identify the large-copy
+> path and late growth in auxiliary/unassociated images on the native device.
+> They do not change rendering or memory policy; the exact failing resource is unresolved.
 > The diagnostic reaches the main loop with game GPU commands and a physical controller.
 > Introduction video correctness, entering a playable scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.
@@ -108,10 +108,13 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
-supersedes the historical run summaries below. The latest owner comparison
-confirms that visible output returns after rollback, but still stops on native
-Metal memory exhaustion after **94.305 seconds**, with child/supervisor exit 23.
-A 3 GiB upload buffer is retained early; later tracked memory growth is in images.
+supersedes the historical run summaries below. The owner confirmed that visible
+output returned after rollback. The latest resource-instrumented run stops on
+native Metal memory exhaustion after **175.402
+seconds**, with child/supervisor exit 23. Two large cross-window copies share one
+retained 3 GiB upload buffer. Later image growth is mainly unassociated with the
+game texture cache; retained reduced-scene proxies are a candidate requiring
+isolated lifetime validation.
 The experimental shader-derived buffer bound stays withdrawn, including its
 metadata/cache changes. The prior renderer overlays and cache 23/9 are rebuilt
 for ARM64; source regressions and full CPU contracts pass. Correct rendering

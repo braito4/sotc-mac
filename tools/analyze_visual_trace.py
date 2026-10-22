@@ -121,7 +121,10 @@ def render_memory(directory):
         parts.append('<p>No resource summary recorded. This run may predate memory tracing, '
                      'have it disabled, or stop before a summary. Inventory is unknown.</p>')
     else:
-        last = summaries[-1]
+        last = dict(summaries[-1])
+        # The first recorder used "total" for upstream counters reset by frame stats.
+        for key in ('kept','freed'):
+            last.setdefault('gc_'+key+'_window_sample',last.get('gc_'+key+'_total','unknown'))
         parts.append('<p>CPU metadata, not proof of physical residency, a leak or safe eviction. '
                      'Only a returned VMA destruction counts as destroyed. Deletion queued means '
                      'the original deferred operation has not yet reported destruction. '
@@ -134,13 +137,15 @@ def render_memory(directory):
                       'large_copy_requests','large_copy_requested_bytes','large_copy_completions',
                       'large_copy_completed_bytes','gc_sample_known','gc_age_ns','gc_enabled',
                       'gc_uses_driver_usage','gc_used_bytes','gc_trigger_bytes','gc_pressure_bytes',
-                      'gc_critical_bytes','gc_tick','scheduler_tick','gc_kept_total','gc_freed_total',
+                      'gc_critical_bytes','gc_tick','scheduler_tick','gc_kept_window_sample','gc_freed_window_sample',
                       'gc_kept_tiled_download','gc_kept_download_no_pressure'):
             parts.append('<tr><td>'+esc(field)+'</td><td>'+esc(last.get(field,'unknown'))+'</td></tr>')
         parts.append('</table><p>State arrays: constructed/unknown, registered, unregistered, deletion queued. '
                      'Size bins: &lt;1, 1–4, 4–16, 16–64, ≥64 MiB. Tracked inventory is bounded to 8192 '
                      'images; overflow or dropped records make per-resource history incomplete. '
                      'Cumulative copied bytes measure traffic, not simultaneous allocation. '
+                     'GC kept/freed window samples can reset between observations when frame statistics read them; '
+                     'they are not cumulative eviction totals. '
                      'GC values are the last periodic observation, with its age; native values are '
                      'available on the failure snapshot and zero on ordinary snapshots.</p>')
         parts.append('<h3>Largest images still allocated at the last snapshot</h3><table><tr>'

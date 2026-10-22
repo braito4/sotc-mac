@@ -72,6 +72,17 @@ Metal out-of-memory error. Both can result in process exit 23 for different reas
 
 ## Review rules
 
+Before each new owner-supervised native game/GPU comparison, refresh the public
+reference repository and whichever tracked upstreams affect the proposed test.
+Start with [AjncSystem/ShadowOfTheColossus-PC](https://github.com/AjncSystem/ShadowOfTheColossus-PC),
+resolve the actual default branch and compare new commits/releases/updated PRs
+with the pins and recorded prior reviews. Inspect relevant diffs, draft/merge
+status and exact revisions before deciding whether a backport should precede the
+test. Record the observation and preserve an isolated comparison; observation is
+not automatic integration. This applies to native game trials, separately from
+ordinary offline CPU fixtures and the daily public-source watch. If a source is
+temporarily unavailable, retain the known revisions and state the check's limit.
+
 Compare against [current evidence](DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 and [PerVertexKHR research](PERVERTEX_REVIEW.md). Keep draft/merged status, compiler
 conversion, native driver acceptance, GPU execution and correct pixels distinct.
