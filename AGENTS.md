@@ -15,14 +15,6 @@ public-source watch notifies about relevant changes but does not update pins.
   allowed. The game input must remain unchanged.
 - Use the pinned upstream submodules. Read their instructions before editing them. Preserve
   credits to bloodborne-native, deadinside28/bbport, shadPS4 and the SotC reference project.
-- The current checked read-bound overlay uses shader binary/meta versions 24/10,
-  superseding the historical cache-23 instructions below. It shortens only large
-  raw read-only bindings when final structured IR proves every load is guarded
-  and bounded by the same per-draw flat uniform. Unknown/written/formatted and
-  overflowing cases retain the original path. Actual-IR/window CPU regressions,
-  the incremental ARM64 rebuild and full contracts pass; native reduction of the
-  giant copy remains unverified. The latest 07:57Z owner run still fails with
-  OOM after 73.859 seconds. Keep scene 640x360, DMA/async off and source pins.
 - Prefer real runtime contracts with explicit error behavior. Unknown imports stop; missing
   modules remain unavailable. Do not add blanket-success stubs to claim startup progress.
 - Keep JIT/interpreter comparisons and meaningful guest ABI tests. Run contracts-test after
@@ -42,7 +34,15 @@ public-source watch notifies about relevant changes but does not update pins.
   and confirms the actual 1024-frame/48 kHz device quantum. Gaps still reach
   121.85 ms; complete playback and audiovisual alignment remain unverified.
   Keep real PCM/error contracts.
-- The newest 07:23Z run confirms native OOM after 137.642 seconds, child/supervisor
+- The newest 08:36Z owner run ends after 160.610 seconds on Metal OOM code 8,
+  with confirmed child/supervisor exit 23. The owner reports no logos or visible
+  scene despite working input. The guarded-buffer-bound experiment records zero
+  applied reductions and is withdrawn, including its metadata/cache layout changes.
+  The ARM64 renderer is rebuilt from the prior checked overlays, binary/meta
+  versions 23/9; source regressions and full JIT/interpreter contracts pass.
+  Keep the audio and staging-reuse corrections. Restored visible
+  output is not yet verified. Read the current handoff before older checkpoints.
+- The earlier 07:23Z run confirms native OOM after 137.642 seconds, child/supervisor
   exit 23, at 11.70 GiB native allocation. It exercises four oversized staging
   reuses; dedicated upload inventory is 2,560 MiB versus 3,072 MiB previously.
   Total staging is 2,972 versus 3,500 MiB, but image allocations grow later and

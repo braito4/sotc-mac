@@ -8,55 +8,56 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
-### Huge cross-window copy: guarded read-bound correction
+### Black output, repeated OOM and withdrawn buffer-bound experiment
 
-The newest reviewed owner capture starts at **07:57Z on 2026-10-22** and stops
-after **73.859 seconds**, with actual Metal out-of-memory code 8 and confirmed
-child/supervisor exit 23. A preceding 07:37Z run lasts 68.613 seconds. Both use
-the same scene/DMA/async settings and no duration deadline. Native allocation
-at the newest failure is 11.70 GiB. Dedicated upload staging reaches 3,072 MiB
-within the first several seconds, then stays stable. Between the approximately
-ten-second sample and failure, tracked image memory rises from 490.65 to
-1,023.65 MiB; its 533 MiB increase equals the tracked Vulkan increase over that
-interval. This is not proof of an image leak. Newest audio delivery is about
-47,014 input frames/s per port, but both ports have a 263.66 ms maximum gap;
-zero queue failures and small lock waits do not establish hardware playback.
+The newest owner run starts at **08:36Z on 2026-10-22** and ends after
+**160.610 seconds** on `MTLCommandBufferErrorDomain` code 8, `Insufficient Memory`.
+Child and supervisor both exit 23. The owner reports no logos or visible scene,
+while input still works. Presentation API success does not prove visible pixels;
+pixel capture was off. Earlier visible logos/menu and defective 3D remain
+historical evidence, not the state of this run. Scene stays **640x360**, DMA and
+asynchronous submission off.
 
-Source/log review identifies the large staging request: a near-4-GiB descriptor
-is clamped to its mapped range, crosses an imported pool window, and takes
-`UnifiedCopy`. Rounding the roughly 3,022 MiB request yields exactly 3,072 MiB.
-The older approximately 2,519 MiB request similarly rounds to 2,560 MiB. The
-captured consumer has unsigned guarded, strided raw reads; this does not prove
-that every large descriptor can be shortened or identify the last failing GPU
-instruction.
+Native allocation at failure is **12,468,715,520 bytes** against the unchanged
+12,713,115,648-byte recommendation. The last journal tracks 5,002,137,756 bytes of
+Vulkan allocation, including 1,242,582,400 bytes of images. Dedicated upload
+inventory is 2,977,955,840 bytes across six buffers; its snapshot is 1.154 seconds
+old. These overlapping counters do not identify the resource that failed or
+justify releasing retained resources. Final asynchronous counters include
+185,119 missing-pipeline draws out of 470,597 requests and 194 failed pipeline
+creations. There are 40,867 reduced decisions out of 41,175 scene decisions.
 
-The new checked `sotc-buffer-read-bounds` overlay collects an optional proof
-from final structured IR. Every read of a resource must have a supported affine
-address under the same unsigned index-less-than-uniform guard. The host
-evaluates its exclusive byte bound using that draw's actual flat-UD snapshot.
-Unknown/unguarded accesses, mixed uniform limits, writes, formatted accesses,
-missing snapshot data and arithmetic overflow keep the original range. No
-descriptor receives an arbitrary cap; no extra import, DMA, shader replacement
-or premature resource destruction is introduced. Small bounded ranges may use
-the existing stream-copy path; larger ones can use an existing imported window.
-The first sixteen successful reductions print `SotC buffer read bound:` with
-declared/bounded byte sizes and the uniform value in the private log.
+The local guarded read-only buffer-bound experiment in `9eca092` was intended to
+avoid a multi-GiB fallback copy when a shader's proven access range is small.
+**No applied buffer reduction is logged in this native run.** Its synthetic CPU
+fixtures and build passed, but native matching and memory savings are unverified.
+The experiment is withdrawn from the active renderer, including its persistent
+metadata additions and cache-version changes. The private source matches the
+previous checked overlay manifest again, with shader binary/meta versions
+**23/9**. The working audio-quantum and staging best-fit corrections remain.
+The local historical commit preserves the experiment for isolated research.
 
-**The current shader binary/meta versions are now 24/10**, superseding historical
-cache-23 instructions below. Existing dependency pins, scene **640x360** and
-DMA/async off remain. The ARM64 library rebuild, actual-IR/pool-window regression,
-renderer regressions and full JIT/interpreter contracts pass. The synthetic
-range check reduces a GiB-sized request to 40,972 bytes without reading game
-input or executing GPU work. Missing glslang still blocks the separate fresh
-dependency-build prerequisite; this is an incremental native library rebuild.
-No native run yet establishes that the real giant request is narrowed, how much
-memory is saved, or correct pixels. The next owner-supervised comparison should
-check reduction records, dedicated upload inventory and the first remaining
-failure; later image growth remains a separate investigation.
+Zero reductions do not explain the black output or establish that the experiment
+caused it. The previous ARM64 renderer is rebuilt incrementally using the existing
+dependencies/generated shaders. The five actual-source renderer regression tools,
+25 builder tests and full JIT/interpreter CPU contracts pass. A completely fresh
+dependency build still needs the unavailable external glslang compiler. No
+tool-driven GPU run validates this rollback.
+Do not claim that the rollback restores the logos until the owner sees them.
+Keep the same launch settings and change only the renderer revision for that
+comparison. Do not start a game run automatically.
+
+The large-copy investigation remains open: a raw descriptor is clamped to the
+end of its guest mapping, and a request crossing the selected imported window
+falls back to a full staging copy. Allocation rounding can turn an approximately
+3 GiB request into a retained 3 GiB upload buffer. A synthetic guard-bound proof
+does not demonstrate matching against the native final IR. Do not substitute an
+arbitrary buffer cap, disable split imports, add overlapping aliases or weaken
+resource/tick ownership checks. Later image growth also remains to investigate.
 
 ### Native audio improvement and exercised staging reuse
 
-The newest owner run starts at **07:23Z on 2026-10-22**, using the corrections in
+The earlier owner run starts at **07:23Z on 2026-10-22**, using the corrections in
 `a49852f`. The owner reports that audio is much better. The native prerequisite
 draw/readback passes on Apple M1; the game starts its main loop in 1.49 seconds,
 detects a DualSense and runs for **137.642 seconds**, versus 59.026 seconds in the

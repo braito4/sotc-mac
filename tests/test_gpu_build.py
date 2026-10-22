@@ -18,19 +18,6 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
-    def test_staging_state_migrates_to_buffer_read_bounds(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary)
-            self.backport_fixture(source)
-            manifest = gpu.backport_manifest()
-            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
-                              for name in manifest['staging_patches'])
-            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
-                           capture_output=True, check=True)
-            self.assertEqual(gpu.backport_state(source), 'staging')
-            gpu.apply_backports(source)
-            self.assertEqual(gpu.backport_state(source), 'after')
-
     def test_visual_state_migrates_to_staging_reuse(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary)

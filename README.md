@@ -12,13 +12,13 @@
 > [!IMPORTANT]
 > **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
-> The owner has visually confirmed the logos/menu, opening introduction audio and
-> now the 3D animation with rendering defects. Audio is now reported much improved,
-> with measured input delivery close to 48 kHz. The latest preset-4 capture detects
-> a DualSense and runs without a duration deadline, then stops on confirmed native
-> Metal memory exhaustion after about 74 seconds. Staging reuse is exercised with
-> less retained upload memory, but correct rendering and memory stability remain
-> unresolved. The error handler exits with confirmed status. See the
+> Earlier runs showed logos/menu and defective 3D animation, with much improved
+> audio and measured input delivery close to 48 kHz. The latest owner run has black
+> output despite working input, then stops on confirmed native Metal memory
+> exhaustion after about 161 seconds. An unexercised buffer-bound experiment is
+> withdrawn for comparison with the previous renderer; restored visible output
+> remains unverified. The audio and staging-reuse corrections remain. The error
+> handler exits with confirmed status. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 > The diagnostic reaches the main loop with game GPU commands and a physical controller.
 > Introduction video correctness, entering a playable scene,
@@ -104,13 +104,16 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
-supersedes the historical run summaries below. The owner now sees defective 3D
-animation; the latest preset-4 run stops on a confirmed native Metal memory error
-after about 74 seconds. The updated completion handler records the failure and
-native memory details, with confirmed child exit. The scene setting remains
-640x360 and later statistics now contain reduced scene draws. General PerVertexKHR,
-dynamic SRT and buffer-clamp failures persist. The resource exhausting memory,
-correct rendering and gameplay stability remain unverified.
+supersedes the historical run summaries below. The latest owner run has black
+output despite working input and stops on confirmed native Metal memory exhaustion
+after 160.610 seconds, with confirmed child/supervisor exit 23. The experimental
+shader-derived buffer bound records no applied reductions and is withdrawn,
+including its metadata/cache changes. The prior renderer overlays and cache 23/9
+are rebuilt for ARM64; source regressions and full CPU contracts pass. Visible
+output still needs an owner comparison. The scene
+setting remains 640x360, DMA/async off. General PerVertexKHR, dynamic SRT and
+buffer-clamp failures persist. The resource exhausting memory, correct rendering
+and gameplay stability remain unverified.
 The owner reports audio much improved: native delivery rises from about 23,912 to
 47,684 input frames/s per port after sizing the queue to the actual device quantum.
 A staging-cache correction now exercises four reuses previously rejected by size
@@ -118,10 +121,6 @@ class, with 512 MiB less dedicated upload inventory. The run lasts 137.642 secon
 versus 59.026 previously, but image allocations grow and Metal still runs out of
 memory. Residual audio gaps, the large upload allocation and image lifetimes need
 further investigation; this is not a gameplay performance or stability result.
-The newest checked correction shortens a huge raw read-only binding only when
-final shader IR proves every read stays in a smaller range. Synthetic IR/window
-checks, the ARM64 library rebuild and contracts pass; its native memory benefit
-is unverified. Shader binary/meta cache versions are now 24/10.
 
 **Experimental: earlier runs reached the logos/menu on Apple M1; the last
 uninstrumented 30-second comparison showed only the first logo.**
