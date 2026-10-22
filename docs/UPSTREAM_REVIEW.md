@@ -1,5 +1,39 @@
 # Upstream review: 2026-10-22
 
+## SotC reference v0.60.5 comparison
+
+Checked public GitHub metadata and affected source on **2026-10-22**. The reference
+pin remains `2250f328feafab953aac85e758e7bddb2e80e891`. Its current default branch is
+`main`, observed at `411fdd86dadce347dcc4443228b009ae9265a548`, **72 commits ahead**.
+[Release v0.60.5](https://github.com/AjncSystem/ShadowOfTheColossus-PC/releases/tag/v0.60.5)
+was published at 01:09:58Z on 22 October, targeting
+`43a619f8251b68761c082f7df5ca5acf69877883`; one later documentation commit is on main.
+The complete update is **not integrated** into this port. Runtime and reference
+pins are unchanged; the Mac renderer is based on the pinned bloodborne runtime,
+not automatically replaced by the Windows reference renderer.
+
+The particularly relevant
+[c9be8142ac76](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/c9be8142ac7675ccc553a0445273202fc5a96981)
+adds `task.handle.destroy()` after each completed nested CE, graphics and compute
+command-buffer coroutine. The diff is present on main; the corresponding
+[PR #219](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/219) is still
+**open, non-draft and unmerged** in the public API, head
+`e391e03e956808abcb178a9e714df06ad871be78`. Do not confuse the incorporated commit
+with a GitHub merge of the PR. Our pinned/adapted renderer lacks those three
+destructions and its `Task` has no owning destructor. This is a concrete candidate
+for a separate checked adaptation and coroutine-lifetime regression; it is not
+included in the observational memory patch.
+
+The commit author's comparison reports process-heap growth of approximately
+756 to 1706 MiB over fifteen minutes, then approximately 820 MiB after the fix.
+Those are author measurements of CPU coroutine memory in the reference project,
+not this port's Apple M1 results. Such growth can affect system pressure but does
+not identify or remove our early 3 GiB GPU staging allocation, explain later
+tracked image growth, or demonstrate a fix for Metal command error 8. Keep the
+new resource diagnostics isolated from behavioral backports for the next native
+comparison. The release also advertises scheduling and texture-quality changes;
+those require individual source/ABI review before adoption, not a bulk pin bump.
+
 The new [PerVertexKHR investigation](PERVERTEX_REVIEW.md) records MoltenVK #2858,
 SPIRV-Cross #2699, relevant overhead commits and the isolated synthetic compiler
 experiment. [Dependency watch](DEPENDENCY_WATCH.md) records the requested

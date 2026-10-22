@@ -1,5 +1,14 @@
 # Reviewed renderer adaptations
 
+`sotc-memory-trace` is an original observational overlay for large buffer origins,
+staging selection, actual image allocation/destruction, cache/deferred lifetimes
+and collector thresholds. It changes no resource size, lifetime, shader or cache
+version. [Memory diagnostics](../../docs/MEMORY_DIAGNOSTICS.md) records bounds,
+evidence semantics and the pending native validation. `tools/check_memory_trace.py`
+compiles production range/copy/staging/destruction methods against CPU doubles.
+The builder also accepts the exact preceding staging state and rejects untracked
+renderer source/header copies that CMake globbing could otherwise include.
+
 `sotc-staging-reuse` removes the upper size-class exclusion from best-fit dedicated
 buffer reuse while preserving type, held ownership and actual GPU completion.
 It releases no retained allocation. Inventory is now published after prewarm/new

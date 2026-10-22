@@ -1,5 +1,6 @@
 """Native CPU fixtures for the GPU submission journal; no graphics libraries/devices."""
 from pathlib import Path
+import json
 import os
 import shutil
 import subprocess
@@ -20,11 +21,14 @@ class SubmissionTraceTests(unittest.TestCase):
             for trace in ('0','1'):
                 for case in ('success','error','unknown'):
                     with self.subTest(trace=trace,case=case):
+                        state=Path(temporary)/(trace+'-'+case);state.mkdir()
                         run=subprocess.run([str(binary),case],capture_output=True,text=True,timeout=5,
-                                           env=dict(os.environ,SOTC_GPU_SUBMIT_TRACE=trace))
+                                           env=dict(os.environ,SOTC_GPU_SUBMIT_TRACE=trace,
+                                                    BB_GPU_USER_DIR=str(state),SOTC_MEMORY_TRACE='1'))
                         self.assertEqual(run.returncode,0 if case=='success' else 23,run.stderr)
                         if case=='success':
                             self.assertNotIn('STOP_',run.stderr)
+                            self.assertFalse((state/'memory').exists())
                         else:
                             self.assertIn('STOP_GPU_METAL_COMMAND: status=5',run.stderr)
                             self.assertIn('allocated_bytes=123456 recommended_working_set_bytes=654321',run.stderr)
@@ -32,6 +36,10 @@ class SubmissionTraceTests(unittest.TestCase):
                             self.assertIn('domain=unavailable' if case=='unknown' else 'MTLCommandBufferErrorDomain',run.stderr)
                             self.assertEqual('FAILED_METAL' in run.stderr,trace=='1')
                             if trace=='1': self.assertIn('count=2,3,4',run.stderr)
+                            failure=json.loads((state/'memory/summary.jsonl').read_text().splitlines()[-1])
+                            self.assertEqual(failure['event'],'memory_failure')
+                            self.assertEqual(failure['code'],123 if case=='unknown' else 8)
+                            self.assertEqual(failure['native_allocated_bytes'],123456)
 
     @unittest.skipUnless(shutil.which('c++') and shutil.which('cc'), 'native C/C++ compilers required')
     def test_native_journal_and_strict_opt_in(self):

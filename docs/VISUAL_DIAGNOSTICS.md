@@ -17,6 +17,10 @@ Each run has a fresh private `BB_GPU_USER_DIR`. Its `visual/` directory contains
 The report also summarizes adjacent `audio.jsonl` metadata from
 [AudioOut delivery tracing](AUDIO_DIAGNOSTICS.md), enabled by default in the
 combined launcher with `SOTC_AUDIO_TRACE=1`.
+It now includes [resource memory diagnostics](MEMORY_DIAGNOSTICS.md): large-buffer
+origins, image allocation/destruction and deferred deletion, bounded live-image
+summaries and collector thresholds. `SOTC_MEMORY_TRACE=1` defaults on independently
+of pixel capture. These resource records still need an owner-run native test.
 
 Counters are cumulative **asynchronous process totals**, not per-frame GPU draw
 counts: requested draws, missing pipelines, empty draws, resource binding failures,

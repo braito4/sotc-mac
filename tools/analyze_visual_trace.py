@@ -62,7 +62,10 @@ def preview_png(directory, name):
 
 
 def number(value):
-    return isinstance(value, (int, float)) and math.isfinite(value)
+    try:
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def load_audio(directory):
@@ -78,6 +81,106 @@ def load_audio(directory):
         except (ValueError, RecursionError):
             pass
     return records
+
+
+def load_memory(directory):
+    root = directory.parent/'memory'
+    result = {'images': [], 'buffers': [], 'summary': [], 'warnings': []}
+    if not root.exists() or root.is_symlink():
+        return result
+    for name, key, cap in (('images.jsonl','images',8 << 20), ('buffers.jsonl','buffers',512 << 10),
+                           ('summary.previous.jsonl','summary',1 << 20), ('summary.jsonl','summary',1 << 20)):
+        path = root/name
+        if not path.exists():
+            continue
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > cap:
+            result['warnings'].append(name+': redirected or oversized input ignored')
+            continue
+        for line in path.read_bytes().splitlines():
+            try:
+                if len(line) > 16384:
+                    raise ValueError('oversized record')
+                event = json.loads(line)
+                if not isinstance(event,dict) or event.get('schema') != 1:
+                    raise ValueError('unknown schema')
+                if not number(event.get('monotonic_ns')) or event['monotonic_ns'] < 0:
+                    raise ValueError('invalid timestamp')
+                result[key].append(event)
+            except (ValueError,TypeError,RecursionError):
+                result['warnings'].append(name+': invalid/partial record ignored')
+    result['summary'].sort(key=lambda e:e['monotonic_ns'])
+    return result
+
+
+def render_memory(directory):
+    data = load_memory(directory)
+    esc = lambda value:html.escape(str(value),quote=True)
+    parts = ['<h2>Resource allocation and lifetime evidence</h2>']
+    summaries = data['summary']
+    if not summaries:
+        parts.append('<p>No resource summary recorded. This run may predate memory tracing, '
+                     'have it disabled, or stop before a summary. Inventory is unknown.</p>')
+    else:
+        last = summaries[-1]
+        parts.append('<p>CPU metadata, not proof of physical residency, a leak or safe eviction. '
+                     'Only a returned VMA destruction counts as destroyed. Deletion queued means '
+                     'the original deferred operation has not yet reported destruction. '
+                     'The memory journal uses host monotonic timestamps; its sequence is not a game frame.</p><table>')
+        for field in ('event','code','native_allocated_bytes','native_recommended_bytes',
+                      'live_count','live_bytes','allocated_count','allocated_bytes',
+                      'destroyed_count','destroyed_bytes','tracked_count','tracked_bytes',
+                      'tracking_overflow','untracked_frees','unmatched_frees','observation_errors','dropped_records',
+                      'state_count','state_bytes','size_count','size_bytes',
+                      'large_copy_requests','large_copy_requested_bytes','large_copy_completions',
+                      'large_copy_completed_bytes','gc_sample_known','gc_age_ns','gc_enabled',
+                      'gc_uses_driver_usage','gc_used_bytes','gc_trigger_bytes','gc_pressure_bytes',
+                      'gc_critical_bytes','gc_tick','scheduler_tick','gc_kept_total','gc_freed_total',
+                      'gc_kept_tiled_download','gc_kept_download_no_pressure'):
+            parts.append('<tr><td>'+esc(field)+'</td><td>'+esc(last.get(field,'unknown'))+'</td></tr>')
+        parts.append('</table><p>State arrays: constructed/unknown, registered, unregistered, deletion queued. '
+                     'Size bins: &lt;1, 1–4, 4–16, 16–64, ≥64 MiB. Tracked inventory is bounded to 8192 '
+                     'images; overflow or dropped records make per-resource history incomplete. '
+                     'Cumulative copied bytes measure traffic, not simultaneous allocation. '
+                     'GC values are the last periodic observation, with its age; native values are '
+                     'available on the failure snapshot and zero on ordinary snapshots.</p>')
+        parts.append('<h3>Largest images still allocated at the last snapshot</h3><table><tr>'
+                     '<th>Resource / owner</th><th>Bytes</th><th>Dimensions / levels / layers / samples</th>'
+                     '<th>Vulkan format / usage</th><th>State / flags</th><th>Age / pending deletion (s)</th></tr>')
+        largest = last.get('largest',[])
+        for e in (largest[:12] if isinstance(largest,list) else []):
+            if not isinstance(e,dict):
+                continue
+            def age(field):
+                value=e.get(field)
+                return f'{max(0,last["monotonic_ns"]-value)/1e9:.3f}' if number(value) and value else 'unknown'
+            row = [str(e.get('id'))+' / '+str(e.get('owner')),e.get('bytes'),
+                   ' × '.join(str(e.get(k)) for k in ('width','height','depth'))+' / '+
+                   ' / '.join(str(e.get(k)) for k in ('levels','layers','samples')),
+                   str(e.get('format'))+' / '+str(e.get('usage')),
+                   str(e.get('state'))+' / '+str(e.get('flags')),age('created_ns')+' / '+age('retired_ns')]
+            parts.append('<tr>'+''.join('<td>'+esc(x)+'</td>' for x in row)+'</tr>')
+        parts.append('</table>')
+    parts.append('<h3>Early large-buffer origins and copies (≥64 MiB)</h3><table><tr>'
+                 '<th>Event / sequence</th><th>Shader / slot</th><th>Declared → clamped bytes</th>'
+                 '<th>Request / allocation bytes</th><th>Physical / window start / window bytes</th>'
+                 '<th>Buffer / tick / new / copy time (ms)</th></tr>')
+    for e in data['buffers'][:100]:
+        ns=e.get('elapsed_ns')
+        row=[str(e.get('event'))+' / '+str(e.get('sequence')),
+             str(e.get('shader'))+' / '+str(e.get('slot')),
+             str(e.get('declared_bytes'))+' → '+str(e.get('clamped_bytes')),
+             str(e.get('size'))+' / '+str(e.get('allocation')),
+             ' / '.join(str(e.get(k)) for k in ('physical','window_start','window_size')),
+             ' / '.join(str(e.get(k)) for k in ('buffer','tick','created'))+' / '+
+             (f'{ns/1e6:.3f}' if number(ns) else 'unknown')]
+        parts.append('<tr>'+''.join('<td>'+esc(x)+'</td>' for x in row)+'</tr>')
+    parts.append('</table><p>The first bounded buffer journal is preserved instead of rotated. '
+                 'Full resource histories remain in private JSONL files; this view shows the first '
+                 '100 buffer events. A shader value of zero means no shader-binding context was '
+                 'available. Copy time is CPU staging time, not GPU execution time.</p>')
+    if data['warnings']:
+        parts.append('<p>Memory reader warnings: '+esc('; '.join(sorted(set(data['warnings']))))+'</p>')
+    return '\n'.join(parts)
 
 
 def render(directory):
@@ -134,6 +237,7 @@ def render(directory):
     parts.append('<p>Allocation counts use ring[3] then dedicated[3]; reusable bytes use device-local/upload/download '
                  'and require both released ownership and completed GPU ticks. These are asynchronous snapshots. '
                  'A negative or absent sample age means unknown; earlier zero-valued journals do not prove an empty pool.</p>')
+    parts.append(render_memory(directory))
     parts.append('<h2>Latest cumulative draw counters</h2><table>')
     counters = last.get('counters', {})
     for key, value in (counters.items() if isinstance(counters, dict) else []):

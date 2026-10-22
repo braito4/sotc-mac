@@ -55,7 +55,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'after'}
+    states = {'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -67,7 +67,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -77,7 +77,8 @@ def apply_backports(source):
     # JSON lines preserve significant unified-diff blank context without adding
     # trailing whitespace to the public source files.
     manifest = backport_manifest()
-    applied = {'visual': manifest['visual_patches'],
+    applied = {'staging': manifest['staging_patches'],
+               'visual': manifest['visual_patches'],
                'command_error': manifest['command_error_patches'],
                'lookup': manifest['lookup_patches'],
                'previous': manifest['previous_patches'],
@@ -263,7 +264,7 @@ def verify_source(source):
             state = backport_state(source)
             expected = {name for name, digests in backport_manifest()['files'].items()
                         if digests[state] != digests['before']}
-            if state not in ('backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'after') or changed != expected:
+            if state not in ('backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -274,6 +275,18 @@ def verify_source(source):
     absent = missing_files(source)
     if absent:
         raise BuildError('Incomplete GPU source: ' + ', '.join(absent))
+    reject_untracked_renderer_sources(source)
+
+
+def reject_untracked_renderer_sources(source):
+    # CMake globbing can otherwise compile sync/conflict copies alongside checked files.
+    # Include ignored files: ignoring a source does not keep it out of CMake's glob.
+    names = git_output(source, 'ls-files', '--others', '-z', '--',
+                       'gpu/shadps4', 'gpu/shim', 'gpu/layer', 'gpu/cp', 'gpu/games').split('\0')
+    unexpected = [name for name in names if Path(name).suffix.lower() in
+                  ('.c', '.cc', '.cpp', '.cxx', '.m', '.mm', '.h', '.hpp', '.inl')]
+    if unexpected:
+        raise BuildError('Untracked renderer source may enter the build; files preserved: ' + ', '.join(unexpected))
 
 
 def fetch_source(work, source, runner):
@@ -347,6 +360,7 @@ def build(root, runner, jobs, compiler):
     runner.run([sys.executable, root / 'tools/check_pipeline_validity.py'])
     runner.run([sys.executable, root / 'tools/check_buffer_copy_chunks.py'])
     runner.run([sys.executable, root / 'tools/check_staging_reuse.py'])
+    runner.run([sys.executable, root / 'tools/check_memory_trace.py'])
     runner.run([sys.executable, root / 'tools/check_shader_compat.py'])
     undefined = subprocess.check_output(['nm', '-u', library], text=True)
     runtime_symbols = sorted({line.split()[-1] for line in undefined.splitlines() if line.split()

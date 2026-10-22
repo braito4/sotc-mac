@@ -22,6 +22,7 @@ def fixture(tree):
 #include <cstdio>
 #include <memory>
 #include <vector>
+#include "gpu_memory_trace.h"
 using u64=std::uint64_t;using u32=std::uint32_t;using u8=std::uint8_t;
 constexpr u64 operator""_KB(unsigned long long n){return n*1024;}
 constexpr u64 MB=1024*1024,LARGE_MIN_GRANULARITY=64_KB;
@@ -99,6 +100,7 @@ def main():
         cpp, binary = work/(name+'.cpp'), work/name
         cpp.write_text(fixture(tree))
         subprocess.run(['clang++', '-std=c++20', '-O1', '-Wall', '-Wextra', '-Werror',
+                        '-I'+str(ROOT/'runtime/src'),
                         str(cpp), '-o', str(binary)], check=True)
         result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
         print(name+': '+result.stdout.strip())

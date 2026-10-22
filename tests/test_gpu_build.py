@@ -18,6 +18,34 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
+    def test_untracked_and_ignored_compile_sources_are_rejected_without_changes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            subprocess.run(['git','init','-q',str(source)],check=True)
+            directory=source/'gpu/shadps4';directory.mkdir(parents=True)
+            tracked=directory/'normal.cpp';tracked.write_text('// tracked\n')
+            subprocess.run(['git','-C',str(source),'add',str(tracked)],check=True)
+            (directory/'notes.txt').write_text('not a compile input\n')
+            gpu.reject_untracked_renderer_sources(source)
+            duplicate=directory/'normal 2.cpp';duplicate.write_text('// preserved\n')
+            (source/'.gitignore').write_text('* 2.cpp\n')
+            with self.assertRaisesRegex(gpu.BuildError,'Untracked renderer source'):
+                gpu.reject_untracked_renderer_sources(source)
+            self.assertEqual(duplicate.read_text(),'// preserved\n')
+
+    def test_staging_state_migrates_to_memory_observations(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            self.backport_fixture(source)
+            manifest = gpu.backport_manifest()
+            patches = ''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
+                              for name in manifest['staging_patches'])
+            subprocess.run(['git', '-C', str(source), 'apply'], input=patches, text=True,
+                           capture_output=True, check=True)
+            self.assertEqual(gpu.backport_state(source), 'staging')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source), 'after')
+
     def test_visual_state_migrates_to_staging_reuse(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary)

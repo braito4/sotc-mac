@@ -27,6 +27,20 @@ public-source watch notifies about relevant changes but does not update pins.
   with an original-vs-adapted CPU capacity regression. PerVertex proposals remain
   isolated: docs/PERVERTEX_REVIEW.md records draft status and synthetic conversion
   results, not runtime integration or correct M1 pixels.
+- The combined launcher also defaults SOTC_MEMORY_TRACE=1. Read
+  docs/MEMORY_DIAGNOSTICS.md: bounded private buffer origins, real image
+  allocation/destruction, queued deletion and GC summaries now accompany the
+  existing visual report. The ARM64 build, six renderer source regressions,
+  27 builder tests and full JIT/interpreter contracts pass. The new records
+  have not yet been exercised in a native game run. Keep cache 23/9 and all
+  resource/fence/import semantics. The 08:50Z owner run below remains the native
+  baseline. Reject untracked renderer source/header copies before compilation.
+- The SotC reference is still pinned at 2250f328. On 2026-10-22 main is observed
+  at 411fdd86, 72 commits ahead; v0.60.5 is not integrated as a whole. Its c9be8142
+  nested-coroutine leak correction is absent here and is a candidate for a
+  separate adaptation. The associated PR 219 remains open/non-draft/unmerged
+  despite incorporation into reference main. Read docs/UPSTREAM_REVIEW.md;
+  CPU heap measurements from the author are not Apple M1 or Metal OOM evidence.
 - The owner now reports audio much improved. Combined diagnostics enable SOTC_AUDIO_TRACE=1
   for bounded per-port timing/queue metadata and output errors. Read
   docs/AUDIO_DIAGNOSTICS.md; input-queue zero is not hardware-underrun evidence.

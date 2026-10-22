@@ -21,6 +21,9 @@
 > staging-reuse corrections remain. The error
 > handler exits with confirmed status. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+> New [resource diagnostics](docs/MEMORY_DIAGNOSTICS.md) are built and CPU-tested
+> to identify the large copy and image lifetimes in the next owner comparison.
+> Their native validation is pending; they do not change the rendering or memory policy.
 > The diagnostic reaches the main loop with game GPU commands and a physical controller.
 > Introduction video correctness, entering a playable scene,
 > save persistence and gameplay stability remain unverified. There is no downloadable game app or gameplay performance result.

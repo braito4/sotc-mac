@@ -2,6 +2,17 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
+**Prepared diagnostic change:** [bounded resource memory tracing](MEMORY_DIAGNOSTICS.md)
+now defaults on in the combined launcher. It connects large shader-buffer requests
+to imported-window fallback copies and staging capacity, and distinguishes image
+registration/deferred deletion from actual VMA destruction. The report includes
+live-image summaries and collector thresholds. The ARM64 build, six renderer
+source regressions, 27 builder tests and full JIT/interpreter contracts pass.
+Native resource-trace validation is pending; there is no new memory fix or game
+run. Shader/cache/resource ownership and the settings below remain unchanged.
+The reference project's v0.60.5 is not integrated as a whole; see the
+[current source review](UPSTREAM_REVIEW.md#sotc-reference-v0605-comparison).
+
 **Newest measured boundary (08:50Z):** the owner confirms that the image has
 returned after rollback. The game still ends after **94.305 seconds** on actual
 Metal out-of-memory code 8, child/supervisor exit 23, with **11.66 GiB** native

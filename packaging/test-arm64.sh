@@ -88,6 +88,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_visual_trace.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_memory_trace.py
     python3 "$trial_root/tools/check_audio_quantum.py"
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_metadata.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
@@ -347,6 +348,7 @@ case "$trial_mode" in
             SOTC_GPU_SUBMIT_TRACE="${SOTC_GPU_SUBMIT_TRACE:-1}" \
             SOTC_VISUAL_TRACE="${SOTC_VISUAL_TRACE:-1}" SOTC_VISUAL_CAPTURE="${SOTC_VISUAL_CAPTURE:-0}" \
             SOTC_AUDIO_TRACE="${SOTC_AUDIO_TRACE:-1}" \
+            SOTC_MEMORY_TRACE="${SOTC_MEMORY_TRACE:-1}" \
             SOTC_DIAGNOSTIC_SECONDS="${SOTC_DIAGNOSTIC_SECONDS-0}" \
             BB_JIT="${BB_JIT:-1}" BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB="${BB_DMEM_EXTRA_MB:-512}" \
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \

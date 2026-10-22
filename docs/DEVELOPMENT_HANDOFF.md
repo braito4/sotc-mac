@@ -8,6 +8,43 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Resource diagnostics prepared for the next owner comparison
+
+[Memory diagnostics](MEMORY_DIAGNOSTICS.md) now add bounded private large-buffer
+origins, staging allocation/reuse, image allocation/destruction, cache ownership,
+queued-deletion metadata and collector summaries to the offline visual report.
+`SOTC_MEMORY_TRACE=1` defaults on in the combined launcher. The checked overlay
+changes no shader code, persistent metadata/cache version, requested buffer size,
+import window, eviction policy or fence/resource lifetime. Scene stays 640x360,
+DMA/async off, shader binary/meta versions 23/9. The withdrawn bounds experiment
+stays inactive. The 08:50Z run below is still the newest native evidence.
+
+The immediate next comparison uses the same existing graphics-game command after
+the prior diagnostic closes. Inspect which shader/slot requests the initial
+multi-GiB copy, its mapping/window boundaries and rounded allocation. Then inspect
+image allocation/destruction totals, largest live resources, queued-deletion
+bytes and collector thresholds as memory grows. Retained bytes and current
+recording ticks do not authorize freeing resources. These records have not yet
+been validated in a native game run; no tool-driven GPU run is launched.
+
+The ARM64 incremental library builds with existing generated shaders/dependencies;
+a fresh dependency build still needs external glslang. All six renderer source
+regressions, 27 builder tests, recorder/report/failure-exit checks and full
+JIT/interpreter CPU contracts pass. The memory source fixture runs the real
+range/copy/staging methods and both actual VMA destruction paths with CPU resource
+doubles. It confirms 3 GiB allocation rounding and pending-vs-destroyed accounting
+without allocating that amount or accessing a GPU. Four untracked source/header
+copies discovered during compilation were preserved outside the build tree;
+source verification now rejects such inputs. Their discovery is not evidence
+for the cause of earlier native failures.
+
+The owner also asked about the current reference project.
+[The reviewed v0.60.5 comparison](UPSTREAM_REVIEW.md#sotc-reference-v0605-comparison)
+confirms that the reference pin is 72 commits behind the observed main head.
+The release is not integrated wholesale. In particular, its nested CPU coroutine
+frame leak fix is absent and remains a candidate for a separate checked backport;
+it is not part of this diagnostic-only comparison. Keep reference/runtime pins.
+
 ### Visible output returns after rollback; memory exhaustion persists
 
 The newest owner comparison starts at **08:50Z on 2026-10-22**, after rollback
