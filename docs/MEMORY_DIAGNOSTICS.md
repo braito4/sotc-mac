@@ -4,8 +4,10 @@ The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these addition
 observations. This instruments the current renderer without changing shader code,
 cache versions, buffer sizes, imported windows, resource ownership, eviction
 policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
-The measured native boundary remains Metal out-of-memory code 8 after 101.864
-seconds in the 09:41Z owner run on 2026-10-22, now with a complete image history.
+The latest native boundary is Metal out-of-memory code 8 after 78.963 seconds
+in the integrated-cohort owner run on 2026-10-22. Complete image history identifies
+336 reduced proxies without retirement, despite 317 source UIDs being destroyed.
+The final collection observation is 24.086 seconds old.
 The owner previously recovered visible
 output after the earlier experiment was withdrawn. These traces are not a fix.
 
@@ -17,9 +19,11 @@ downloads and downloads kept without pressure. These are decision counts, not
 distinct-image counts. That correctness fix can increase retained memory and has
 not yet been validated in our native game workload.
 
-The separate checked scene-proxy retirement overlay is now built, with native
-validation pending. It changes stale proxy lifetime only; the recorder remains
-observational. [Current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
+The scene-proxy retirement overlay is exercised but retires no proxy in that run.
+A new ordered-frame maintenance overlay prevents waiting for all queues to empty
+before running throttled cache maintenance. CPU serial/pipelined lifetime and
+progress fixtures pass; native memory improvement remains unverified. The
+recorder remains observational. [Current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
 describes deferred image/view ownership and cached-view invalidation.
 
 ## Recorded evidence

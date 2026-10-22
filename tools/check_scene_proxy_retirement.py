@@ -23,12 +23,17 @@ def fixture(tree):
     defer = function(scheduler, '    void DeferOperationPastNext(')
     destruction = function((source_path(ROOT)/'gpu/shadps4/video_core/texture_cache/image.cpp').read_text(),
                            'UniqueImage::~UniqueImage()')
-    on_submit = function((base/'vk_rasterizer.cpp').read_text(), 'void Rasterizer::OnSubmit()')
+    rasterizer = (base/'vk_rasterizer.cpp').read_text()
+    on_submit = function(rasterizer, 'void Rasterizer::OnSubmit()')
+    maintenance = function(rasterizer, 'void Rasterizer::MaintainCaches(') if 'void Rasterizer::MaintainCaches(' in rasterizer else 'void Rasterizer::MaintainCaches(bool) {}'
     return r'''
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <chrono>
+#include <cstring>
+#include <deque>
 #include <cstdint>
 #include <cstdio>
 #include <functional>
@@ -42,7 +47,7 @@ def fixture(tree):
 #include "common/unique_function.h"
 #include "video_core/renderer_vulkan/scene_resolution.h"
 #include "gpu_memory_trace.h"
-using u64=std::uint64_t;using u32=std::uint32_t;using VkImage=void*;
+using u64=std::uint64_t;using u32=std::uint32_t;using u8=std::uint8_t;using s64=std::int64_t;using VkImage=void*;
 u64 next_image=1;unsigned destroyed=0,finishes=0;
 std::unordered_map<u64,unsigned> views;
 namespace vk {
@@ -109,13 +114,29 @@ struct SceneTargets {
 };
 @GET@
 @CLEANUP@
+struct DrawPipe {static constexpr u32 ReasonSubmissionEnd=1;};
 struct Rasterizer {
     bool drained=false,fault_process_pending=false;SceneTargets* scene_targets;
-    struct Cache {void ProcessFaultBuffer(){}void ProcessDownloadImages(){}void RunGarbageCollector(){}};
-    struct Runtime {void TickFrame(){}} runtime;Cache buffer_cache,texture_cache;
-    void DrainDrawPipe(){drained=true;}void OnSubmit();
+    struct Cache {unsigned collections=0;void ProcessFaultBuffer(){}void ProcessDownloadImages(){}
+        void RunGarbageCollector(){++collections;}};
+    struct Runtime {unsigned frames=0;void TickFrame(){++frames;}} runtime;Cache buffer_cache,texture_cache;
+    s64 last_cache_maintenance_ns=0;bool pipe_signals=false;bool last_reads=false;
+    std::vector<std::function<void()>> ordered;
+    explicit Rasterizer(SceneTargets* target):scene_targets(target){}
+    void DrainDrawPipe(u32=0){drained=true;}void OnSubmit();void MaintainCaches(bool force=false);
+    bool PipeSignals()const{return pipe_signals;}u64 CurrentTick()const{return scene_targets->scheduler.current;}
+    using OrderedTask=void(*)(Rasterizer&,const u8*);
+    bool RunInOrder(OrderedTask task,const void* data,u32 size,u64,bool reads){
+        last_reads=reads;std::vector<u8> copy(static_cast<const u8*>(data),static_cast<const u8*>(data)+size);
+        ordered.push_back([this,task,copy=std::move(copy)]{task(*this,copy.data());});return true;
+    }
+    void RunQueued(){auto tasks=std::move(ordered);ordered.clear();for(auto& task:tasks)task();}
+    void SignalAfterGpu(std::function<void()> callback){auto& s=scene_targets->scheduler;
+        s.pending_ops.push({std::move(callback),s.current});++s.num_pending_ops;}
+    u64 Flush(){return scene_targets->scheduler.current++;}
 };
 @ON_SUBMIT@
+@MAINTENANCE@
 }
 int main(){
     constexpr bool adapted=@ADAPTED@;
@@ -135,7 +156,7 @@ int main(){
     assert(&targets.Get(1)==first); // Exercise recent-entry hit before retiring it.
     targets.CleanupStaleEntries();assert(targets.generation==0 && destroyed==0);
     native[1].image_uid=11; // ImageId reused; old UID's two levels must retire.
-    Vulkan::Rasterizer renderer{false,false,&targets,{},{},{}};
+    Vulkan::Rasterizer renderer{&targets};
     renderer.OnSubmit();assert(renderer.drained);
     assert(targets.entries.size()==(adapted?1:3));
     assert(targets.generation==(adapted?1:0));
@@ -165,7 +186,7 @@ int main(){
 }
 '''.replace('@GET@',get).replace('@CLEANUP@',cleanup).replace('@ENTRY@',entry) \
        .replace('@DEFER@',defer).replace('@DESTRUCTION@',destruction) \
-       .replace('@ON_SUBMIT@',on_submit).replace('@ADAPTED@','true' if adapted else 'false')
+       .replace('@ON_SUBMIT@',on_submit).replace('@MAINTENANCE@',maintenance).replace('@ADAPTED@','true' if adapted else 'false')
 
 
 def main():

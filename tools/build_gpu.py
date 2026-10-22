@@ -47,6 +47,17 @@ def build_path(root=ROOT):
     return private_path(root / 'work', 'gpu-build-' + dependency_lock()['workspace_key'])
 
 
+def moved_build_cache(output, source):
+    cache = output / 'CMakeCache.txt'
+    if not cache.is_file():
+        return False
+    entries = dict(re.findall(r'^(CMAKE_HOME_DIRECTORY|CMAKE_CACHEFILE_DIR):INTERNAL=(.*)$',
+                              cache.read_text(), re.MULTILINE))
+    expected = {'CMAKE_HOME_DIRECTORY': source / 'gpu', 'CMAKE_CACHEFILE_DIR': output}
+    return any(name in entries and Path(entries[name]).resolve() != path.resolve()
+               for name, path in expected.items())
+
+
 def dependency_lock():
     data = json.loads((Path(__file__).resolve().parent / 'dependencies.json').read_text())
     if data['runtime']['revision'] != REVISION:
@@ -73,7 +84,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -85,7 +96,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -439,7 +450,10 @@ def build(root, runner, jobs, compiler):
     env['PKG_CONFIG_PATH'] = ''
     env['PATH'] = str(prefix / 'bin') + os.pathsep + env['PATH']
     output = build_path(root)
-    runner.run(['cmake', *PKGCONFIG_CACHE_CLEAR, '-S', source / 'gpu', '-B', output, '-G', 'Ninja',
+    # Copied CMake caches retain both source and output locations. Reconfigure them
+    # explicitly here; never let an old generated build write into the former root.
+    fresh = ['--fresh'] if moved_build_cache(output, source) else []
+    runner.run(['cmake', *fresh, *PKGCONFIG_CACHE_CLEAR, '-S', source / 'gpu', '-B', output, '-G', 'Ninja',
                 '-DCMAKE_OSX_ARCHITECTURES=arm64', '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
                 '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBB_LTO=OFF', '-DBB_PGO=off',
                 '-DSOTC_DIAGNOSTIC_INCLUDE_DIR=' + str(root / 'runtime/src'),
@@ -460,6 +474,7 @@ def build(root, runner, jobs, compiler):
     runner.run([sys.executable, root / 'tools/check_staging_reuse.py'])
     runner.run([sys.executable, root / 'tools/check_memory_trace.py'])
     runner.run([sys.executable, root / 'tools/check_scene_proxy_retirement.py'])
+    runner.run([sys.executable, root / 'tools/check_busy_cache_maintenance.py'])
     runner.run([sys.executable, root / 'tools/check_nested_task_lifetime.py'])
     runner.run([sys.executable, root / 'tools/check_collection_safety.py'])
     runner.run([sys.executable, root / 'tools/check_shader_compat.py'])

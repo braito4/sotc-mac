@@ -2,6 +2,14 @@
 
 This repository develops a native ARM64 macOS diagnostic for Shadow of the Colossus PS4.
 Read README.md and docs/STATUS.md before changing the runtime. Public documentation is English.
+The consolidated checkout is the only active project. Read
+`docs/guide/workspace.md` and the continuation checkpoint before resuming.
+The busy-queue maintenance overlay is integrated, with dependencies/cache 24/9
+unchanged and native game validation pending. Keep input, selected sources,
+installed libraries and new diagnostics under this root. Previous build/source
+snapshots are historical; do not launch from an older folder or generated cache.
+If moving this checkout, run `tools/relocate_workspace.py` before rebuilding.
+The private `work/consolidation/state.json` records the actual root and validation.
 The current dependency integration supersedes older pin/cache instructions below:
 runtime b2ff9cd0, CPU b9652d75 and reference 411fdd86 are selected, with shader cache
 24/9. Read docs/DEPENDENCIES.md and tools/dependencies.json for every library,

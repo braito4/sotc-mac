@@ -15,8 +15,8 @@
 > Earlier runs showed logos/menu and defective 3D animation, with much improved
 > audio and measured input delivery close to 48 kHz. Visible output returned after
 > withdrawing a buffer-bound experiment. The latest instrumented run stops on
-> confirmed native Metal memory exhaustion after about 102 seconds. A retained
-> 2.5 GiB upload buffer and accumulating reduced-size images remain investigation priorities;
+> confirmed native Metal memory exhaustion after about 79 seconds. A retained
+> 3 GiB upload buffer and accumulating reduced-size images remain investigation priorities;
 > correct rendering and memory stability remain unverified. The audio and
 > staging-reuse corrections remain. The error
 > handler exits with confirmed status. See the
@@ -66,9 +66,9 @@
 
 The current [dependency inventory](docs/DEPENDENCIES.md) records updated runtime,
 CPU and SotC reference pins, stable library versions and exact source revisions.
-The ARM64 build and CPU/source checks pass. The latest native failure described
-above predates this dependency cohort; its game rendering and OOM behavior still
-need an owner-supervised comparison.
+The ARM64 build and CPU/source checks pass. The latest owner comparison exercises this dependency cohort and still exhausts
+Metal memory. Ordered frame maintenance now addresses stale-proxy cleanup being
+starved by busy queues; its native OOM behavior remains unverified.
 
 - **Native Apple Silicon host:** the diagnostic and bbcpu are built as ARM64 binaries.
 - **JIT and interpreter checks:** both modes are compared at explicit initialization boundaries.

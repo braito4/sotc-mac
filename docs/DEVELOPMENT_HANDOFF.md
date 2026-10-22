@@ -8,6 +8,77 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Consolidated workspace
+
+The full project, original game input, selected source checkouts, installed
+libraries, private diagnostic history and busy-queue maintenance overlay are now
+assembled in one checkout. Start here, rather than applying the earlier standalone
+patch to a different tree. The previous maintenance-only checkout is historical.
+[Workspace instructions](guide/workspace.md) describe relocation and continuation.
+All **1,678 game files / 15,535,038,891 bytes** match the source copy by SHA-256.
+The game was not launched or altered during consolidation. The full ARM64
+rebuild in the assembled checkout, ten renderer source regressions, 24 builder
+tests, two relocation tests, 46/46 host imports and JIT/interpreter contracts pass.
+Installed dynamic libraries and rebuilt renderer dependencies resolve inside the
+assembled checkout. The finalizer repeats relocation/build checks after the move.
+
+Installed Mach-O dependency paths, pkg-config metadata and internal tool links
+are repaired for the current root; system libraries remain external. A moved
+CMake cache receives fresh configuration before any build, preserving previous
+output and preventing generated commands from writing into the former folder.
+The private relocation checkpoint records the actual and requested destination.
+The Documents move still requires the owner's Terminal because this session's
+write scope is limited to the staging workspace. The supplied finalizer relocates
+paths and rebuilds/checks in the destination without launching the game.
+
+The native stopping boundary remains **78.963 seconds, Metal OOM 8, exit 23**.
+Busy-queue cleanup has CPU/build validation only. Resume by reviewing the latest
+public upstream state and then inspect one owner-supervised 640x360 comparison
+with DMA/async off, cache 24/9 and the existing GPU-progress stop preserved.
+
+
+### Busy-queue maintenance correction
+
+The newest owner comparison exercises the integrated dependency cohort at
+640x360 with DMA/async off and no duration limit. It ends after **78.963 seconds**
+on actual Metal out-of-memory code 8, child/supervisor exit 23. Native allocated
+memory is **11.664 GiB**. The complete image journal matches the final ledger:
+573 live images / 941.54 MiB, including **336 reduced-scene proxies / 277.75 MiB**.
+None of those proxies is retired or destroyed; 317 source UIDs have already been
+destroyed. A single **3 GiB** upload buffer is reused for eleven large cross-window
+copies. The last collection observation precedes failure by **24.086 seconds**;
+all proxies are created after that observation. Tracker and dropped-record error
+counters are zero. These are resource observations, not correct-pixel evidence.
+
+`Liverpool::SignalDecodedFrames` runs inside the busy decode loop, while the
+ordinary `OnSubmit` maintenance waits outside that loop for empty queues. The
+new checked overlay calls `Rasterizer::MaintainCaches` at ordered decoded-frame
+boundaries too. This shares the existing download/collector/proxy-retirement work,
+throttles the extra passes to 250 ms, drains prepared draws and marks the ordered
+task as reading guest memory. Ordinary idle maintenance remains unconditional;
+`runtime.TickFrame` remains exclusive to `OnSubmit`. No guest work is discarded,
+no GPU-wide wait or early eviction is added, and the large buffer is unchanged.
+
+The frame's GPU-completion signal is queued **before** maintenance's past-next
+deferred owners. This preserves progress in the scheduler's FIFO: a frame must
+not wait for the following tick merely to notify the guest that it finished.
+Proxy images and views still survive until real completion at current tick + 1.
+The incremental overlay has digest-checked migration from the previous complete
+cohort as well as a clean application from the runtime pin; partial/unknown
+sources remain rejected. Dependencies and shader cache stay **24/9**.
+
+`check_busy_cache_maintenance.py` compiles the production frame-retirement and
+maintenance methods with CPU resource doubles. In both serial and pipelined
+modes, 200 continuously busy frames retain 201 proxies before versus one active
+proxy / 200 actual destructions after correction. It checks the throttle,
+forced idle passes, pending guest-read protection, unchanged runtime frame ticks,
+frame-signal progress at the current tick, and image survival until the next tick.
+This is synthetic lifetime/progress evidence. The full ARM64 renderer build,
+all ten renderer source regressions, 23 builder tests, 46/46 host-import checks
+and complete JIT/interpreter contracts pass. Native OOM avoidance remains
+unverified; the owner must inspect one new comparison before another experiment.
+
+
 ### Current dependency integration and native comparison boundary
 
 The owner explicitly requested integrating all dependency updates and keeping

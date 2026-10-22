@@ -2,6 +2,19 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
+**Current maintenance correction:** the integrated-cohort owner run ends after
+78.963 seconds on Metal OOM 8, with confirmed child/supervisor exit 23 and
+11.664 GiB native allocation. It retains a 3 GiB upload buffer and 336 reduced
+proxies / 277.75 MiB; 317 corresponding source UIDs were destroyed, but no proxy
+retirement occurs. Collection's last observation is 24.086 seconds old.
+Ordered frame boundaries now run throttled cache maintenance even while queues
+stay busy, preserving guest-read guards and real past-next resource ownership.
+The actual-source serial/pipelined CPU fixture releases 200 stale proxies while
+retaining one live proxy and preserves frame completion before deferred release.
+Native rendering and OOM behavior after this change remain unverified. See the
+[current handoff](DEVELOPMENT_HANDOFF.md#busy-queue-maintenance-correction).
+
+
 **Current dependency integration:** runtime **b2ff9cd0** (20 commits beyond the
 previous pin), CPU **b9652d75** and SotC reference **411fdd86 / v0.60.5** are now
 selected. Stable library updates include fmt 12.2.0, Boost 1.92.0, VMA 3.4.0,
@@ -13,8 +26,8 @@ cleanup and includes upstream's newest unresolved-GPU-content collection guard.
 Cache is now **24/9**. A fresh renderer/dependency build and native CPU checks
 pass, along with nine renderer regressions, 22 builder tests and 46/46 host-import
 coverage. The current handoff records the source/test boundary.
-No game/GPU comparison has validated this dependency cohort. The confirmed
-09:41Z OOM below predates it. Keep 640x360 and DMA/async off.
+The owner has now exercised this dependency cohort; the OOM boundary and new
+maintenance correction are recorded above. Keep 640x360 and DMA/async off.
 
 **Previous scene-proxy checkpoint, before the dependency update:** stale reduced-scene
 proxies now leave the active cache at a drained submission boundary. Their views

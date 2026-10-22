@@ -17,11 +17,14 @@ jobs:
         run: |
           bash -n packaging/test-arm64.sh
           bash -n packaging/publish-github.sh
+          bash -n packaging/finalizar-en-documentos.command
           bash -n prueba_cpu_arm64.command
       - name: Check Python syntax
         run: python3 -m compileall -q tools
       - name: Check GPU host symbol inventory with native fixtures
         run: python3 -m unittest discover -s tests -p test_gpu_link.py
+      - name: Check workspace relocation metadata
+        run: python3 -m unittest discover -s tests -p test_workspace_relocation.py
       - name: Check Vulkan surface requirements
         run: python3 -m unittest discover -s tests -p test_vulkan.py
       - name: Check GPU supervisor without GPU execution

@@ -18,6 +18,22 @@ spec.loader.exec_module(gpu)
 
 
 class GpuBuildTests(unittest.TestCase):
+    def test_moved_cmake_cache_requests_fresh_configuration_without_deleting_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/'source';output=root/'build';output.mkdir()
+            cache=output/'CMakeCache.txt';sentinel=output/'keep-library';sentinel.write_text('preserved')
+            self.assertFalse(gpu.moved_build_cache(output,source))
+            cache.write_text('CMAKE_HOME_DIRECTORY:INTERNAL='+str(source/'gpu')+'\n'
+                             'CMAKE_CACHEFILE_DIR:INTERNAL='+str(output)+'\n')
+            self.assertFalse(gpu.moved_build_cache(output,source))
+            cache.write_text('CMAKE_HOME_DIRECTORY:INTERNAL='+str(root/'old-source/gpu')+'\n'
+                             'CMAKE_CACHEFILE_DIR:INTERNAL='+str(output)+'\n')
+            self.assertTrue(gpu.moved_build_cache(output,source))
+            cache.write_text('CMAKE_HOME_DIRECTORY:INTERNAL='+str(source/'gpu')+'\n'
+                             'CMAKE_CACHEFILE_DIR:INTERNAL='+str(root/'old-build')+'\n')
+            self.assertTrue(gpu.moved_build_cache(output,source))
+            self.assertEqual(sentinel.read_text(),'preserved')
+
     def test_spirv_header_metadata_without_prefix_is_normalized_exactly(self):
         with tempfile.TemporaryDirectory(prefix='SPIRV headers ') as directory:
             prefix = Path(directory)
@@ -90,6 +106,22 @@ needed fmt || exit 4
             once = {name: (source / name).read_bytes() for name in gpu.backport_manifest()['files']}
             gpu.apply_backports(source)
             self.assertEqual(once, {name: (source / name).read_bytes() for name in once})
+
+    def test_previous_cohort_migrates_without_reapplying_existing_overlays(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source=Path(temporary)
+            self.backport_fixture(source)
+            manifest=gpu.backport_manifest()
+            previous=''.join('\n'.join(json.loads((gpu.PATCH_DIR/name).read_text())['lines'])+'\n'
+                             for name in manifest['maintenance_previous_patches'])
+            subprocess.run(['git','-C',str(source),'apply'],input=previous,text=True,check=True,
+                           capture_output=True)
+            self.assertEqual(gpu.backport_state(source),'maintenance_previous')
+            gpu.apply_backports(source)
+            self.assertEqual(gpu.backport_state(source),'after')
+            once={name:(source/name).read_bytes() for name in manifest['files']}
+            gpu.apply_backports(source)
+            self.assertEqual(once,{name:(source/name).read_bytes() for name in once})
 
     def test_backports_reject_unknown_or_partial_sources_without_writing(self):
         with tempfile.TemporaryDirectory() as temporary:
