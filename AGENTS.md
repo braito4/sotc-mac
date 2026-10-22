@@ -34,14 +34,22 @@ public-source watch notifies about relevant changes but does not update pins.
   and confirms the actual 1024-frame/48 kHz device quantum. Gaps still reach
   121.85 ms; complete playback and audiovisual alignment remain unverified.
   Keep real PCM/error contracts.
-- The newest 08:36Z owner run ends after 160.610 seconds on Metal OOM code 8,
+- The newest 08:50Z owner comparison after rollback restores visible output,
+  according to the owner, but ends after 94.305 seconds on Metal OOM code 8,
+  child/supervisor exit 23. Dedicated upload is one retained 3,072 MiB buffer,
+  first observed by 7.784 seconds and unchanged through failure. From the first
+  sample after 10 seconds, all 483.55 MiB of tracked Vulkan growth is image
+  growth; this is not proof of a leak. Native allocation reaches 11.66 GiB.
+  Keep the withdrawn experiment inactive, cache 23/9, scene 640x360, DMA/async
+  off and the audio/staging corrections. Read the newest handoff checkpoint.
+- The preceding 08:36Z owner run ends after 160.610 seconds on Metal OOM code 8,
   with confirmed child/supervisor exit 23. The owner reports no logos or visible
   scene despite working input. The guarded-buffer-bound experiment records zero
   applied reductions and is withdrawn, including its metadata/cache layout changes.
   The ARM64 renderer is rebuilt from the prior checked overlays, binary/meta
   versions 23/9; source regressions and full JIT/interpreter contracts pass.
-  Keep the audio and staging-reuse corrections. Restored visible
-  output is not yet verified. Read the current handoff before older checkpoints.
+  Keep the audio and staging-reuse corrections. At that checkpoint restored
+  visible output was unverified; the 08:50Z owner comparison supersedes that limit.
 - The earlier 07:23Z run confirms native OOM after 137.642 seconds, child/supervisor
   exit 23, at 11.70 GiB native allocation. It exercises four oversized staging
   reuses; dedicated upload inventory is 2,560 MiB versus 3,072 MiB previously.

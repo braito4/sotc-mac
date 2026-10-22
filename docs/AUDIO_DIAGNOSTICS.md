@@ -1,6 +1,15 @@
 # Audio delivery diagnostics
 
-The owner now reports audio **much improved**. The newest 07:23Z comparison on
+The **08:50Z comparison on 2026-10-22** after the renderer rollback has 36 native
+audio windows, eighteen per active port, spanning about 90 seconds per port.
+Mean delivery is about **46,200 input frames/s per port** and maximum submission
+gap is **186.015 ms**. No queue/output failure is recorded; output-lock waits peak
+at 234 microseconds. The device remains 1024 frames at 48 kHz. These observations
+do not establish uninterrupted playback or a hardware underrun. The game ends
+on Metal memory exhaustion after 94.305 seconds; this checkpoint changes evidence
+only, retaining the quantum correction and existing audio contracts.
+
+The owner previously reported audio **much improved**. The earlier 07:23Z comparison on
 2026-10-22 includes **52 native audio windows**, 26 per active port, spanning about
 130 seconds per port. Mean delivery is **47,684 input frames/s of the requested
 48,000**, about 99.34%; median window rates are 47,988–47,995 frames/s. The native

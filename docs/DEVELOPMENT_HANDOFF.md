@@ -8,9 +8,60 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Visible output returns after rollback; memory exhaustion persists
+
+The newest owner comparison starts at **08:50Z on 2026-10-22**, after rollback
+`2dcaa37`. The owner confirms that the image has returned. This supports keeping
+the guarded-buffer-bound experiment withdrawn; it does not identify the exact
+cause of the preceding black output or establish correct scene rendering.
+The main loop starts in 1.712 seconds and a DualSense is detected. Scene remains
+**640x360**, DMA/asynchronous submission off, shader binary/meta versions 23/9.
+Pixel capture remains off; visible output is the owner's observation.
+
+The game still stops on actual `MTLCommandBufferErrorDomain` **code 8**, with
+`Insufficient Memory`, after **94.305 seconds**. Child/supervisor exits are both
+23. There is no duration deadline or GPU-watchdog stop. Native allocation is
+12,515,328,000 bytes (**11.66 GiB**), against a 12,713,115,648-byte recommendation,
+a 188.625 MiB margin. The recommendation is not a hard memory limit.
+
+One dedicated upload buffer retains **3,072 MiB**. It is first observed by the
+7.784-second journal sample and remains the same size/count through failure.
+The failure snapshot is 2.267 seconds old; its reusable-byte values do not
+authorize releasing retained resources. Dedicated device-local inventory is
+140 MiB, with 160/128 MiB device-local/upload rings, **3,500 MiB staging total**.
+There are four new dedicated buffers and seventeen reuses; no oversized reuse
+is recorded in this workload. These counters overlap native/tracked allocations.
+
+From the first sample after ten seconds to failure, tracked Vulkan allocation
+grows from 4,515,781,148 to 5,022,816,540 bytes. Image allocation grows from
+512,956,160 to 1,019,991,552 bytes by exactly the same **507,035,392 bytes
+(483.55 MiB)**. Staging inventory is stable during that interval. This localizes
+the later tracked growth to images, not the initial upload allocation, but does
+not distinguish legitimate scene loading/cache retention from a leak or identify
+the allocation that fails. The failed batch retains 96 of 324 CPU notes, not
+the precise failing GPU instruction.
+
+The journal has 906 presentation API successes and one native error. Final
+asynchronous counters include 280,249 missing-pipeline draws out of 674,440
+requests, 272 failed pipeline creations and 57,371 reduced decisions out of
+57,445 scene decisions. General shader support is still unresolved.
+There are 36 complete audio windows, eighteen per active port: about **46,200
+input frames/s per port**, with a maximum 186.015 ms submission gap, no recorded
+queue/output failure and output-lock waits up to 234 microseconds. Input-queue
+zero is not evidence of a device underrun; uninterrupted output is unverified.
+
+Keep the working renderer unchanged while isolating the initial cross-window
+full-buffer staging copy and later image lifetimes. A future correction needs
+CPU proof before another single owner-supervised GPU comparison. Do not revive
+the unvalidated shader-bound experiment, cap guest buffers arbitrarily, trim
+retained resources or weaken import/tick/fence guards. This checkpoint changes
+only recorded evidence; no runtime change or new tool-driven GPU run is made.
+The rollback ARM64 build, five renderer source regressions, 25 builder tests and
+full JIT/interpreter CPU contracts remain the validation baseline.
+
 ### Black output, repeated OOM and withdrawn buffer-bound experiment
 
-The newest owner run starts at **08:36Z on 2026-10-22** and ends after
+The preceding owner run starts at **08:36Z on 2026-10-22** and ends after
 **160.610 seconds** on `MTLCommandBufferErrorDomain` code 8, `Insufficient Memory`.
 Child and supervisor both exit 23. The owner reports no logos or visible scene,
 while input still works. Presentation API success does not prove visible pixels;
@@ -43,7 +94,8 @@ dependencies/generated shaders. The five actual-source renderer regression tools
 25 builder tests and full JIT/interpreter CPU contracts pass. A completely fresh
 dependency build still needs the unavailable external glslang compiler. No
 tool-driven GPU run validates this rollback.
-Do not claim that the rollback restores the logos until the owner sees them.
+At this checkpoint restored output was unverified; the later 08:50Z owner
+comparison above confirms its return without proving correct scene rendering.
 Keep the same launch settings and change only the renderer revision for that
 comparison. Do not start a game run automatically.
 

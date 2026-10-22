@@ -2,15 +2,29 @@
 
 Updated 2026-10-22. **CPU and graphics bring-up; not playable.**
 
-**Newest measured boundary (08:36Z):** the owner reports no visible logos or
+**Newest measured boundary (08:50Z):** the owner confirms that the image has
+returned after rollback. The game still ends after **94.305 seconds** on actual
+Metal out-of-memory code 8, child/supervisor exit 23, with **11.66 GiB** native
+allocation. One 3,072 MiB upload buffer is already retained by 7.784 seconds and
+remains through failure. From the first sample after ten seconds, all 483.55 MiB
+of later tracked Vulkan growth is image allocation growth; this does not prove
+a leak or identify the exact failed resource. Correct rendering and stability
+remain open. Audio delivery is about 46,200 input frames/s per port, with gaps up
+to 186.015 ms and no recorded queue/output failure. Keep cache 23/9, scene
+640x360, DMA/async off and the shader-bound experiment withdrawn. This is an
+evidence update; the rollback build/source regressions and full CPU contracts
+remain the validation baseline. See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+**Preceding boundary (08:36Z):** the owner reports no visible logos or
 scene despite working input. The run ends after **160.610 seconds** on confirmed
 Metal out-of-memory code 8, child/supervisor exit 23, with 12,468,715,520 native
 allocated bytes. The experimental shader-derived buffer-bound change records
 zero applied reductions and is withdrawn, including its metadata/cache changes.
 The ARM64 renderer is rebuilt from the previous checked overlays and binary/meta
 versions 23/9; source regressions, 25 builder tests and full JIT/interpreter CPU
-contracts pass. Audio and staging-reuse corrections remain. Restored visible output
-and a native reduction of the large copy remain unverified. Scene stays 640x360,
+contracts pass. Audio and staging-reuse corrections remain. At that checkpoint
+restored visible output was unverified; a native reduction of the large copy
+remains unverified. Scene stays 640x360,
 DMA/async off. See the [current checkpoint](DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 
 **Earlier measured audio/staging boundary (07:23Z):** the owner reports audio much improved.

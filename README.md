@@ -13,11 +13,12 @@
 > **Early development: game graphics on Apple M1; gameplay is unverified.**
 >
 > Earlier runs showed logos/menu and defective 3D animation, with much improved
-> audio and measured input delivery close to 48 kHz. The latest owner run has black
-> output despite working input, then stops on confirmed native Metal memory
-> exhaustion after about 161 seconds. An unexercised buffer-bound experiment is
-> withdrawn for comparison with the previous renderer; restored visible output
-> remains unverified. The audio and staging-reuse corrections remain. The error
+> audio and measured input delivery close to 48 kHz. The latest owner comparison
+> restores visible output after withdrawing a buffer-bound experiment, then stops
+> on confirmed native Metal memory exhaustion after about 94 seconds. A retained
+> 3 GiB upload buffer and later image growth remain investigation priorities;
+> correct rendering and memory stability remain unverified. The audio and
+> staging-reuse corrections remain. The error
 > handler exits with confirmed status. See the
 > [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
 > The diagnostic reaches the main loop with game GPU commands and a physical controller.
@@ -104,13 +105,14 @@ The [installation guide](docs/guide/installation.md) explains the current develo
 ## Status
 
 The [continuation checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
-supersedes the historical run summaries below. The latest owner run has black
-output despite working input and stops on confirmed native Metal memory exhaustion
-after 160.610 seconds, with confirmed child/supervisor exit 23. The experimental
-shader-derived buffer bound records no applied reductions and is withdrawn,
-including its metadata/cache changes. The prior renderer overlays and cache 23/9
-are rebuilt for ARM64; source regressions and full CPU contracts pass. Visible
-output still needs an owner comparison. The scene
+supersedes the historical run summaries below. The latest owner comparison
+confirms that visible output returns after rollback, but still stops on native
+Metal memory exhaustion after **94.305 seconds**, with child/supervisor exit 23.
+A 3 GiB upload buffer is retained early; later tracked memory growth is in images.
+The experimental shader-derived buffer bound stays withdrawn, including its
+metadata/cache changes. The prior renderer overlays and cache 23/9 are rebuilt
+for ARM64; source regressions and full CPU contracts pass. Correct rendering
+and memory stability remain unverified. The scene
 setting remains 640x360, DMA/async off. General PerVertexKHR, dynamic SRT and
 buffer-clamp failures persist. The resource exhausting memory, correct rendering
 and gameplay stability remain unverified.
