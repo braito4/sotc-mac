@@ -88,7 +88,7 @@ not a successful syntax check. It does not reconstruct a failing SotC pipeline,
 execute a GPU or measure memory/FPS. Production
 still uses MoltenVK `v1.4.2` and SPIRV-Cross `vulkan-sdk-1.4.363.0`; runtime/recomp
 pins and the exact-only vertex-zero policy are unchanged; the current renderer
-cache is now 27/9 after the separate SetPC/CFG correction, independently of
+cache is now 28/9 after the separate SRT/bitfield and SetPC/CFG corrections, independently of
 this isolated experiment.
 
 Next integration work needs an isolated driver/backend experiment with actual

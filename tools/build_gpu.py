@@ -71,6 +71,19 @@ class BuildError(RuntimeError):
     pass
 
 
+def renderer_cache_versions(source):
+    text = (source / 'gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp').read_text()
+    result = []
+    for name in ('ShaderBinaryVersion', 'ShaderMetaVersion'):
+        matches = re.findall(r'\b' + name + r'\s*=\s*(\d+)u\s*;', text)
+        if len(matches) != 1:
+            raise BuildError('Ambiguous or missing renderer cache version: ' + name)
+        result.append(int(matches[0]))
+    if '/'.join(map(str, result)) != dependency_lock()['validation']['renderer_cache']:
+        raise BuildError('Built renderer cache versions disagree with the dependency lock.')
+    return tuple(result)
+
+
 def backport_manifest():
     manifest = json.loads((PATCH_DIR / 'manifest.json').read_text())
     if manifest['base_revision'] != REVISION:
@@ -84,7 +97,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -96,7 +109,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -170,8 +183,8 @@ def prepare_recipe(data):
         version = package['version']
         if not re.fullmatch(r'[A-Za-z0-9_.+-]+', version):
             raise BuildError('Invalid dependency version in lock.')
-        if package['recipe_version'] is None:
-            if variable != 'SPIRV_HEADERS_VERSION':
+        if package['recipe_version'] is None or variable == 'VULKAN_LOADER_VERSION':
+            if variable not in ('SPIRV_HEADERS_VERSION', 'VULKAN_LOADER_VERSION'):
                 raise BuildError('Unreviewed additional dependency: ' + variable)
             body = body.replace('VULKAN_VERSION=', variable + '=' + version + '\nVULKAN_VERSION=', 1)
         else:
@@ -179,6 +192,11 @@ def prepare_recipe(data):
             if body.count(old) != 1:
                 raise BuildError('Dependency recipe version drift: ' + variable)
             body = body.replace(old, variable + '=' + version + '\n')
+    old_loader = 'cmake_package vulkan-loader "$(gh KhronosGroup/Vulkan-Loader $VULKAN_VERSION)"'
+    if body.count(old_loader) != 1:
+        raise BuildError('Unexpected Vulkan loader recipe structure.')
+    body = body.replace(old_loader,
+        'cmake_package vulkan-loader "$(gh KhronosGroup/Vulkan-Loader $VULKAN_LOADER_VERSION)"')
     body = body.replace('cmake_package vulkan-headers "$(gh KhronosGroup/Vulkan-Headers $VULKAN_VERSION)"',
                         'cmake_package vulkan-headers "$(gh KhronosGroup/Vulkan-Headers $VULKAN_VERSION)"\n'
                         'cmake_package spirv-headers "$(gh KhronosGroup/SPIRV-Headers $SPIRV_HEADERS_VERSION)" -DSPIRV_HEADERS_ENABLE_TESTS=OFF')
@@ -359,7 +377,7 @@ def verify_source(source):
             for name, override in backport_manifest().get('submodule_overrides', {}).items():
                 if git_output(source / name, 'rev-parse', 'HEAD') == override['after']:
                     expected.add(name)
-            if state not in ('cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
+            if state not in ('task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -468,6 +486,7 @@ def build(root, runner, jobs, compiler):
     if any('_' + name not in symbols for name in REQUIRED_EXPORTS):
         raise BuildError('Built GPU library does not export the required loader ABI.')
     verify_source(source)
+    cache_binary, cache_meta = renderer_cache_versions(source)
     runner.run([sys.executable, root / 'tools/check_tessellation.py'])
     runner.run([sys.executable, root / 'tools/check_pipeline_validity.py'])
     runner.run([sys.executable, root / 'tools/check_integer_blit.py'])
@@ -482,11 +501,16 @@ def build(root, runner, jobs, compiler):
     runner.run([sys.executable, root / 'tools/check_scene_proxy_retirement.py'])
     runner.run([sys.executable, root / 'tools/check_busy_cache_maintenance.py'])
     runner.run([sys.executable, root / 'tools/check_nested_task_lifetime.py'])
+    runner.run([sys.executable, root / 'tools/check_task_guard.py'])
     runner.run([sys.executable, root / 'tools/check_collection_safety.py'])
     runner.run([sys.executable, root / 'tools/check_shader_compat.py'])
     runner.run([sys.executable, root / 'tools/check_shader_decode.py'])
+    runner.run([sys.executable, root / 'tools/check_shader_formats.py'])
+    runner.run([sys.executable, root / 'tools/check_shader_provenance.py'])
     runner.run([sys.executable, root / 'tools/check_shader_cfg.py'])
+    runner.run([sys.executable, root / 'tools/check_sample_counts.py'])
     runner.run([sys.executable, root / 'tools/check_shader_memory.py'])
+    runner.run([sys.executable, root / 'tools/check_srt_program.py'])
     runner.run([sys.executable, root / 'tools/check_metal_inflight.py'])
     undefined = subprocess.check_output(['nm', '-u', library], text=True)
     runtime_symbols = sorted({line.split()[-1] for line in undefined.splitlines() if line.split()
@@ -499,7 +523,7 @@ def build(root, runner, jobs, compiler):
                   renderer_local_adaptations=backport_manifest().get('local_adaptations', []),
                   renderer_workspace_key=dependency_lock()['workspace_key'],
                   dependency_versions={item['id']:item['version'] for item in dependency_lock()['packages']},
-                  shader_binary_version=24, shader_meta_version=9,
+                  shader_binary_version=cache_binary, shader_meta_version=cache_meta,
                   renderer_launched=False, game_frame_verified=False)
     private_path(work, 'gpu-build.json').write_text(json.dumps(report, indent=2) + '\n')
     print(f'GPU library built: {library}\nNo renderer was launched; loader integration and game video are still pending.')

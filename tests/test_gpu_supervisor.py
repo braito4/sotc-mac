@@ -120,6 +120,7 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
                 "import os,pathlib; assert os.environ['BB_FRAME_STATS']=='1'; "
                 "assert os.environ['SOTC_GPU_SUBMIT_TRACE']=='1'; "
                 "assert os.environ['SOTC_CPU_FAULT_FIELDS']=='12:0x130:2'; "
+                "assert os.environ['SOTC_CPU_FIELD_TRACE']=='0x40:7:24'; "
                 "assert os.environ['SOTC_METAL_INFLIGHT']=='8'; "
                 "pathlib.Path(os.environ['BB_FRAME_LOG']).write_text('synthetic flip fixture\\n')",
                 environment={'BB_FRAME_STATS': '1', 'BB_FRAME_LOG': str(frames),
@@ -127,6 +128,7 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
                              'BB_OUTPUT_RES': '1920x1080',
                              'SOTC_GPU_SUBMIT_TRACE': '1',
                              'SOTC_CPU_FAULT_FIELDS': '12:0x130:2',
+                             'SOTC_CPU_FIELD_TRACE': '0x40:7:24',
                              'SOTC_METAL_INFLIGHT': '8',
                              'SYNTHETIC_PRIVATE_SECRET': 'must-not-be-in-the-log'})
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -139,6 +141,7 @@ raise SystemExit(runner.supervise([sys.executable,'-c','pass'],5,sys.argv[2]))
             self.assertEqual(settings['BB_OUTPUT_RES'], '1920x1080')
             self.assertEqual(settings['SOTC_GPU_SUBMIT_TRACE'], '1')
             self.assertEqual(settings['SOTC_CPU_FAULT_FIELDS'], '12:0x130:2')
+            self.assertEqual(settings['SOTC_CPU_FIELD_TRACE'], '0x40:7:24')
             self.assertEqual(settings['SOTC_METAL_INFLIGHT'], '8')
             self.assertNotIn(b'must-not-be-in-the-log', log)
 

@@ -139,14 +139,27 @@ int main(int argc, char** argv) {
     assert(all.find("first_guest_draw_candidate ordinal=2 recording=1 buffer=0x258 draw_indexed ") != std::string::npos);
     assert(all.find("last_guest_draw_candidate ordinal=1 recording=2 buffer=0x259 draw_indirect ") != std::string::npos);
     assert(all.find("cb_command=1 recording=1") == std::string::npos);
+    assert(all.find("guest_candidates retained=4 total=4 omitted=0 limit=128") != std::string::npos);
+    assert(all.find("retained_guest_candidate ordinal=1 recording=1 buffer=0x258 dispatch ") != std::string::npos);
+    assert(all.find("retained_guest_candidate ordinal=2 recording=2 buffer=0x259 dispatch_indirect ") != std::string::npos);
     // Summary storage is fixed, below 1 KiB per recording/submission, plus the
-    // original bounded 96-note tail. It cannot grow with batch length.
+    // bounded 96-note all-command and 128-note guest-candidate tails. It cannot
+    // grow with batch length; native state noise cannot evict guest candidates.
     static_assert(sizeof(Commands) <= 1024);
     summaries.Begin(600); summaries.Note(600, "vkCmdCopyImage");
     const Key recycled[] = {600}; summaries.Submit(Batch(20, 2), recycled);
     auto reset = Report(summaries, 20, 2);
     assert(reset.find("guest_draw=0 guest_dispatch=0") != std::string::npos);
     assert(reset.find("_candidate ordinal=") == std::string::npos);
+    summaries.Begin(610);const auto guest_generation=summaries.Begin(611);
+    for(unsigned i=0;i<150;++i) summaries.Note(610,"dispatch",i+1,0,i+1,1,1);
+    for(unsigned i=0;i<150;++i) summaries.Note(611,"draw",i+151,0,3,1,0);
+    for(unsigned i=0;i<2000;++i) summaries.Note(611,"vkCmdBindPipeline");
+    const Key guest_buffers[]={610,611};summaries.Submit(Batch(21,1),guest_buffers);
+    const auto guest_bounded=Report(summaries,21,1);
+    assert(guest_bounded.find("guest_candidates retained=128 total=300 omitted=172 limit=128")!=std::string::npos);
+    assert(guest_bounded.find("retained_guest_candidate ordinal=23 recording="+std::to_string(guest_generation)+" buffer=0x263 draw ")!=std::string::npos);
+    assert(guest_bounded.find("retained_guest_candidate ordinal=150 recording="+std::to_string(guest_generation)+" buffer=0x263 draw ")!=std::string::npos);
 
     // Host timestamps use one monotonic clock, with absent observations -1.
     // Metal callbacks can run before commit returns: do not infer GPU order

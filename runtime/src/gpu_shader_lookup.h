@@ -3,6 +3,8 @@
 // a substitute shader. A real missing program still stops with private evidence.
 #pragma once
 #include "gpu_shader_metadata.h"
+#include "gpu_failure_history.h"
+#include "gpu_shader_provenance.h"
 #include "video_core/amdgpu/regs_shader.h"
 #include <atomic>
 #include <cstdio>
@@ -30,9 +32,10 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
         runtime_memory_read_backing(address+offset,out,bytes);
         return true;
     });
+    SotcShaderProvenance::Lookup(program,result,required,address);
     if(result.found && runtime_memory_is_mapped(address,result.info.length)) {
         return Shader::ShaderParams{.user_data=program.user_data,
-            .code=std::span{program.template Address<const u32*>(),result.info.length/sizeof(u32)},
+            .code=std::span{reinterpret_cast<const u32*>(address),result.info.length/sizeof(u32)},
             .hash=result.info.shader_hash};
     }
     if(!required) {
@@ -43,9 +46,13 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
     }
     char thread[64]{};
     pthread_getname_np(pthread_self(),thread,sizeof(thread));
-    std::fprintf(stderr,"STOP_GPU_SHADER_METADATA: role=%.*s thread=%s address=%#llx mapped=%zu head=%08x,%08x hint=%llu scanned=%zu\n",
+    std::fprintf(stderr,"STOP_GPU_SHADER_METADATA: role=%.*s thread=%s address=%#llx mapped=%zu head=%08x,%08x hint=%llu scanned=%zu found=%d length=%u metadata_offset=%zu\n",
         int(role.size()),role.data(),thread,static_cast<unsigned long long>(address),mapped,
-        result.head[0],result.head[1],static_cast<unsigned long long>(result.hint),result.scanned);
+        result.head[0],result.head[1],static_cast<unsigned long long>(result.hint),result.scanned,
+        int(result.found),unsigned(result.info.length),result.offset);
+    PreserveCpuFailureHistory();
+    if(SotcShaderProvenance::Enabled())
+        SotcShaderProvenance::Get().Report(stderr,reinterpret_cast<std::uintptr_t>(&program));
     // Evidence is private, bounded, and created only for an actual failed bind.
     // Lookup failure is preserved; no fake hash, length or pipeline is returned.
     if(const char* directory=std::getenv("BB_GPU_USER_DIR")) {
@@ -53,14 +60,21 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
         const auto folder=std::filesystem::path(directory)/"shader-metadata-failure";
         const bool created=std::filesystem::create_directory(folder,error);
         if(created && !error) {
-            const auto bytes=std::min(mapped,ShaderMetadataScanBytes);
-            std::vector<char> snapshot(bytes);
-            if(bytes) runtime_memory_read_backing(address,snapshot.data(),bytes);
+            const auto& snapshot=result.scan_snapshot;
+            const auto bytes=snapshot.size();
             std::ofstream data(folder/"code.bin",std::ios::binary);
-            if(bytes) data.write(snapshot.data(),snapshot.size());
+            if(bytes) data.write(reinterpret_cast<const char*>(snapshot.data()),snapshot.size());
             std::ofstream meta(folder/"context.txt");
             meta<<"role="<<role<<"\nthread="<<thread<<"\naddress="<<address
-                <<"\nmapped="<<mapped<<"\nhint="<<result.hint<<"\nscanned="<<result.scanned<<'\n';
+                <<"\nmapped="<<mapped<<"\nhint="<<result.hint<<"\nscanned="<<result.scanned
+                <<"\nsnapshot_from_scan=1\nscan_head_matches_initial="
+                <<(bytes>=sizeof(result.head) ? int(!std::memcmp(snapshot.data(),result.head.data(),sizeof(result.head))) : -1)<<'\n';
+            if(SotcShaderProvenance::Enabled()) {
+                if(auto* report=std::fopen((folder/"provenance.txt").c_str(),"w")) {
+                    SotcShaderProvenance::Get().Report(report,reinterpret_cast<std::uintptr_t>(&program));
+                    std::fclose(report);
+                }
+            }
             if(data && meta) std::fprintf(stderr,"GPU shader lookup evidence: %s\n",folder.c_str());
             else std::fprintf(stderr,"GPU shader lookup evidence write failed\n");
         }

@@ -8,6 +8,2309 @@ older boundaries, not the present state.
 
 ## Continuation checkpoint
 
+### Allocator-link capture and recommended investigation workflow
+
+The October 23 13:39:40 UTC owner run stops after 126.462 seconds on an
+allocator traversal through an invalid link. The same numeric source word has
+retained earlier and later observations with different values, separated by
+404.567 ms. Two words match content observed in another failing object in the
+preceding capture. This is a shared-content clue, not a demonstrated writer,
+allocation identity, asset origin or shared cause. All terminal registers and
+the reconstructed report match the original evidence.
+
+The prepared profile now has twelve signature-checked pointer targets and eight
+scenarios. Two added persistent probes watch selected/following allocator links.
+The array-source probe temporarily observes only, preserving its source/referrer
+samples while giving admission priority to the allocator investigation. Helper
+probes remain observe-only. Existing header watches remain persistent. The 8192
+slots and bounded hash can still refuse admission; per-probe counters expose it.
+No guest data or permissions are repaired, no game is run automatically.
+
+Offline fault_field_transitions reports earlier different and later terminal-
+register-matching values for the same readable numeric field. It states the
+observation interval without treating the earlier value as validated or claiming
+continuous writer coverage. Pointer journal maximum grows from twelve to fourteen
+channels; the active twelve-probe profile adds 32 KiB, all four files total 880 KiB.
+Host watch/frame budgets and dependency pins stay unchanged.
+
+The [memory-error workflow](MEMORY_ERROR_WORKFLOW.md) is the preferred and most
+productive approach used so far in this project: retain evidence before failure,
+match the actual fault to its source, narrow a change interval, and validate
+instrumentation with original CPU controls. This is project experience, not a
+universal ranking or a claim that the native corruption is fixed.
+
+Validation: full native ARM64 JIT/interpreter CPU contracts pass. Twelve pointer
+tests cover twelve pointer plus 28 scalar channels and guarded invalid/valid
+returned pointers; sixteen report tests cover same-field transition extraction,
+refused admission, unrelated focus and foreign-PID negatives. All twelve private
+signatures match the prepared input. Reanalysis of the latest native evidence
+extracts the 404.567 ms interval automatically. These are diagnostic controls,
+not a demonstrated native correction. Public source/link audit passes.
+Public default heads refreshed 2026-10-23T13:47:43.033893+00:00: all five match the prior
+review; detailed PR/release limitations remain. No dependency update or native
+GPU/game run was performed.
+
+### Terminal source watch isolation and fault-specific review
+
+Latest owner capture, October 23 13:23:34 UTC: SIGSEGV after 221.978 seconds
+at the earlier array read. A retained referring-table entry points numerically to
+the fault object; its source field already contains the actual invalid read
+address before the first iteration. Related count and destination arithmetic
+agree with terminal registers. No writer, lifetime or common cause is established.
+The original combined report matches reconstruction and all 16 terminal registers.
+
+The persistent watch table filled all 8192 slots, refused 15,825,145 admission
+attempts, and did not admit the terminal source field. These are attempts, not
+unique rejected fields. The first suspicious copy is a different numeric object,
+87.020383 seconds earlier, not demonstrated to cause the fault.
+
+The prepared profile now makes the three additional helper/caller watch probes
+observe-only, as the fourth already was. All ten probes and seven scenarios
+remain; helper observations no longer compete for persistent source/header
+slots. This does not guarantee that the remaining original sources cannot fill
+the table. The allocation budget and journal sizes remain unchanged.
+New journals report persistent-admission refusals per probe in existing header
+space. Offline fault_pointer_review separates exact stored-value/fault-address
+matches, candidate referring entries and related scalar samples from the earlier
+heuristic focus, and explicitly flags refused terminal-source admission. Numeric
+matches are not allocation identity, validated ownership or exclusive writers.
+Legacy journals remain readable; missing counters are not interpreted as zero.
+This corrects capture competition/reporting, not the unresolved native corruption.
+
+CPU-only validation: twelve pointer tests pass in JIT and interpreter, including
+hot observe-only helpers preserving source admission and actual copy capture,
+exact-address faults versus offset faults, and ten pointer/28 scalar channels.
+Fifteen report tests include unrelated first-focus separation, per-probe refusal,
+and foreign-PID exclusion. All ten private signatures match the prepared input.
+No game/GPU test was launched, no pin or rendering setting changed.
+
+Full ARM64 CPU contracts pass in JIT and interpreter.
+Public default heads refreshed 2026-10-23T13:33:52.759844+00:00: all five match the preceding review; prior detailed PR/release limits retained.
+
+### Returned-pointer source capture prepared
+
+Prepared a returned-pointer investigation after the October 23 13:10:01 UTC
+owner capture: SIGSEGV after 97.831 seconds at a different consumer. The saved
+instruction reads a field through an invalid returned pointer; the preceding
+helper returns a stored member. This identifies a source path, not its writer
+or object lifetime. The complete diagnostic matches offline reconstruction.
+
+The private signature-checked profile now retains ten pointer targets: all six
+previous targets plus caller source, helper entry, stored-member return, and
+consumer observations. Independent channels preserve the earlier scenarios.
+Protected reads never chase an unreadable result or repair guest data. The
+consumer observation reads a bounded eight-byte word; it does not model the
+failing instruction's four-byte operand or provide an atomic snapshot.
+The pointer journal supports up to twelve channels (ten probes and two imported
+copy channels), adding 64 KiB over the earlier profile. All four journals total
+848 KiB with this profile; persistent watch and task mapping budgets are unchanged.
+
+A first suspicious imported-copy observation in this capture belongs to a
+different numeric field, about 57.57 seconds before the terminal fault. Offline
+reports now expose copy overlap, relative offset, candidate source field and
+previous-value change explicitly. A persistent watch can outlive its original
+allocation; legal initialization can replace a former pointer with non-pointer
+data. This evidence does not prove corruption, exclusive writer or a connection
+to the terminal fault. Guarded CPU-frame history has no retained matching range;
+that does not exclude other lifetime bugs. No native fix is claimed.
+
+Validation: full native ARM64 JIT/interpreter CPU contracts pass, including
+11 pointer tests (ten pointer plus 28 scalar channels together, valid/invalid
+returned-value controls), 14 report tests and six journal tests. All ten private
+probe signatures match the prepared input. Public source/link audit passes.
+No game/GPU test was launched and no dependency pin changed.
+
+Pre-test public default-head refresh at 2026-10-23T13:21:42.192827+00:00 finds one runtime commit:
+[dda931c5779b](https://github.com/bloodborne-native/bloodborne-runtime/commit/dda931c5779bdd6e437baa224d9de94911426aba),
+October 23 12:56:02 UTC, adapter A4 flat binding slots. Checked code converts
+bindings directly into deferred recording storage with Vulkan layout assertions.
+Author Metal timings/validation are not SotC ARM64/M1 validation; no object-lifetime
+repair is established or imported. Other four checked heads are unchanged;
+prior detailed PR/release review limits remain.
+
+### Native bounded CPU-frame guard and authoritative protected-reader checks
+
+Added an opt-in native CPU coroutine-frame guard, inspired by the reviewed
+SotC quarantine technique but implemented for macOS. The renderer's actual Task
+promise allocates independent mappings when SOTC_TASK_GUARD=1. Existing ordered
+recording-consumer retirement remains unchanged; deletion makes that frame's
+pages PROT_NONE and retains up to 64 frames within an 8 MiB total live/quarantine
+mapping budget. This does not retain or change guest objects/pages or GPU
+resource ownership. Budget/slot/allocation exhaustion uses normal new/delete,
+explicitly recorded as unguarded fallback. Protection/unmap failures preserve
+owned mapping accounting and report incomplete coverage; no false release.
+
+A separate task-events.bin retains 256 allocations/fallbacks and 256 retirement/
+unmap/failure events, with address, rounded/requested size, generation, thread,
+current budget and counters. Offline diagnostics match a fault address to the
+latest retained mapping event only as a candidate, excluding foreign producer
+PIDs. Reuse/finite retention, fallback and eviction can hide lifetime bugs.
+The journal adds 68 KiB (all files 784 KiB when enabled), plus bounded host
+metadata and at most 8 MiB of frame mappings; not a total process-memory limit.
+No native corruption correction or overhead measurement is established.
+
+Runtime default remains disabled; the owner diagnostic launcher defaults the
+guard on, with explicit SOTC_TASK_GUARD=0 opting out. All persistent source/header
+and indexed referring-object probes remain active; the guard tests CPU renderer
+frames, not whether the failing PS4 object is alive. The new command explicitly
+sets SOTC_TASK_GUARD=1. No game/GPU test was launched.
+
+Original CPU controls use the actual production Task/retirement helper: valid
+ordered consumers pass, premature and later stale reads trap on real protected
+pages. Budget fallback, quarantine rotation, concurrency, injected protection/
+unmap failures and stale-PID rejection are checked. Existing delayed-consumer
+ASan controls remain. Repeated native protected-reader tests confirm PROT_NONE
+reads fail without changing kernel permissions. The renderer builds ARM64 with
+all builder CPU regressions; cache remains 28/9.
+Full ARM64 JIT/interpreter contracts, nine production-guard cases, ten pointer
+tests, four protected-reader tests, fourteen report tests, twenty-six builder
+tests and 46/46 host-symbol checks pass. These are CPU-only validations.
+ Exact task_guard_previous cohort
+migration and idempotence checks pass. Dependencies stay pinned.
+
+Pre-test public refresh October 23 12:36:59 UTC finds one new runtime commit,
+e093d2151f216720be61eb7855dcfb52a1407e84 (12:20:19 UTC): access-declaration adapter
+refactoring. Its diff is reviewed and not adopted as a lifetime fix. Other checked
+default heads unchanged; previous PR/release and object-method limits retained.
+
+### Public diagnostic-method review while native comparison is pending
+
+Reviewed SotC issue #274: an older Linux report reaches the same array-read
+instruction with a null cursor/nonzero count; its newer-build failure is a
+separate teardown boundary. Open, no comments/fix or deterministic reproducer.
+Reviewed guarded coroutine-frame quarantine, stale speculative readback controls
+and the October 23 AnyPS5 kernel/logical-permission mismatch against actual code.
+Read [the detailed review](UPSTREAM_REVIEW.md#object-corruption-diagnosis-methods-public-review-2026-10-23)
+for exact SHAs, author/control distinctions and synthetic follow-ups. No native
+shared cause established. The persistent/reference profile and owner command
+below remain unchanged; no code/dependency changes or game launch.
+
+### Prepared persistent object-field evidence and indexed reference capture
+
+Prepared persistent numeric-field watches and a referring-table object probe.
+Private review of the last native capture finds two retained objects per old
+header channel, but 128 distinct objects per source/inner-loop channel. The
+failing object has one source observation and four related scalar samples, with
+no earlier valid state retained. Checked caller instructions obtain the child
+from an indexed table before passing it to the failing consumer. The previous
+capture does not contain that table slot/base, so ownership/lifetime is unproved.
+
+The four header probes and array-source field now request persistent admission.
+An independent fixed 8192-slot, bounded-hash table never evicts an admitted
+numeric field. Rotating watches stay separate. Capacity/hash conflicts and
+contention refuse admission explicitly; events distinguish requested policy from
+successful admission. Fields reused by later allocations remain the same numeric
+key, not a new allocation identity. No guest object is retained, freed, repaired
+or authorized for use by this diagnostic. Direct/GPU/alias/pre-admission writes
+remain outside the imported memcpy/memset observers.
+
+The first suspicious-pointer snapshot now retains the previous completed value/
+time for the same admitted numeric field when available, surviving event-tail
+wrap. An initially bad value has no invented earlier good state; concurrent or
+missing history is explicit. The sixth pointer probe now captures an indexed
+referring-table entry at a reviewed caller block boundary, with checked index
+multiply/add and saved index register/value/scale. It replaces hot per-entry
+inner-loop observations. Candidate reference reads may race the actual call;
+reports list numeric referrers and related scalar fields without claiming live
+ownership, object type, free/reuse or exclusive writer evidence.
+
+Small imported copies inspect bounded hash buckets; a conservative page filter
+can reject unrelated ranges, while large candidate copies scan the fixed table.
+Existing pre-write preparation, actual copy and post-write notification order
+is preserved. Fixed journal files remain 716 KiB; the persistent table/filter
+reserve an additional 642 KiB of host static storage. Native runtime overhead
+and corruption correction remain unvalidated. All six scenarios, 28 scalar and
+six pointer targets, 16 fatal fields and other failure-family capture remain.
+The updated private profile checks the new caller/source selections and code
+signatures against the actual prepared input; same owner command loads it.
+
+Original JIT/interpreter controls preserve the source watch after 64 unrelated
+fields evict the rotating control, then capture the actual memcpy transition
+and previous value. Partial/large copies, initially bad/direct-store negatives,
+indexed references, index overflow, observe-only mode and explicit admission
+status are tested. A bounded-hash collision refuses the seventeenth key without
+evicting sixteen admitted keys; concurrent lookups/history preserve unique keys.
+Ten pointer tests, full ARM64 JIT/interpreter contracts and 46/46 symbol checks
+pass. These test diagnostic behavior, not native object validity or deterministic
+recurrence. Public default heads checked October 23 12:12:56 UTC unchanged;
+prior PR/release review limits retained. No dependency/cache/render changes,
+automatic retries or game launch. Native writer and object lifetime unresolved.
+
+### Owner capture: bad array source observed before the failing read
+
+Latest owner capture (October 23 11:55:45 UTC / 13:55:45 Madrid) reproduces the
+same pointer-array read SIGSEGV after 163.541 s, exits 139/139. The first suspicious
+pointer-field snapshot now captures the actual source field before the cursor
+load. Its object matches the fault's object register and its stored value matches
+the invalid read address. Four separately sampled source/count/range fields for
+that same object survive: count agrees with the unchanged fault counter, and
+source-difference/destination-base arithmetic agrees with the destination register.
+This localizes bad metadata before the first array read in this invocation; the
+following vector copy is not reached. It does not identify a writer, exact object
+type, allocation identity, earlier valid state, free/reuse or a common cause with
+the other trees/shaders. Source values are individual observations, not atomic.
+
+All six scenarios and all 28 scalar/six pointer targets execute. Profile/input
+fingerprints and all 16 terminal registers match. The first suspicious pointer
+survives, along with four same-object scalar records; no earlier valid observation
+for this object survives. New scalar channels cover only 0.821 ms each. The watch
+table rotates 27,597,802 fields, with 482 watch contention drops; zero captured
+imported-copy overlaps cannot exclude an earlier overwrite. Pointer journal has
+155 busy/delayed drops; CPU has three. No incomplete/stale retained records.
+3584 CPU/1024 shader/516 pointer records survive; CPU/shader union spans 18.683 s/
+17.042 ms are not full-run coverage. Text CPU history is partial (423 events).
+1631 API presentations, 496 pipeline/805 SRT failures; 431 pipeline failures
+adjacent to PerVertexKHR, 65 unattributed. Last/peak native allocation samples
+10.880/10.882 GiB, no recorded OOM/large copies or memory observation errors;
+not controlled savings. Audio 62 windows/no queue-wait failures.
+
+The preceding 11:53:11 UTC capture stops after 129.202 s, exits 23/23, on compute
+shader unknown-instruction-format rejection inside an owned 1295-word input.
+The 5180-byte saved input contains the reported failing word at offset 886;
+invalid code/source lifetime versus unsupported format remains unresolved.
+All six scenarios also execute, with 21,985,562 watched-field replacements and
+zero copy overlaps; no first out-of-domain pointer captured. 1320 presentations,
+433 pipeline/805 SRT failures; last/peak samples 10.198/10.202 GiB. Audio 48 windows/
+no queue-wait failures. Both diagnostic reports exactly match reconstruction.
+Next: object creation/initialization/reuse and writes to its source/count/range
+fields, with persistent selected-object watches isolated from hot per-entry
+rotation; retain other failure-family evidence. Avoid claiming no writer from
+zero overlaps or replacing invalid metadata. Analysis only: no runtime/config/
+dependency changes, native game launch or additional GPU test.
+
+### Prepared simultaneous tree and pointer-array analysis
+
+Prepared six simultaneous private analysis scenarios for allocator insertion,
+ordered comparator traversal, allocator source links, allocator search children,
+container header lookup/insertion and the newly failing pointer-array traversal.
+The native bug remains unresolved: the last fault proves an invalid array read,
+not its writer, source iteration, ownership or a common cause with other trees.
+No replacement pointer, skipped instruction or fabricated success is introduced.
+
+The joint selection preserves all previous 24 CPU observations and four chain
+probes, adding four source/count/range field observations and two pointer-valued
+field probes at the new traversal's entry/loop boundary. Pointer-field mode
+reads one selected word without following its value, retaining already-invalid
+source pointers and watching readable source/current-entry fields for imported
+memcpy/memset overlap. It does not interpret vector payload as a pointer.
+Fatal fields expand from 13 to 16. Current fixed mappings total 716 KiB (452 CPU,
+132 shader, 132 pointer), up 96 KiB; native overhead remains unmeasured.
+
+The generic CPU limit is 28 channels; counters end before terminal context at
+header word 128, enforced at compile time. Pointer mode's optional fifth word
+is 1 with a zero inner offset; existing four-word chain selections remain valid.
+Reports distinguish pointer fields from header chains, and list per-scenario
+observed/unreached/unavailable targets. An absent/foreign journal or mismatched
+selection is not accepted as observed coverage. The private reviewed profile
+now verifies signatures and exact selections for both CPU and pointer targets
+before game execution; saved digests bind scenario indices to actual settings.
+Game offsets/signatures/configurations stay ignored and are not compiled in.
+
+Original guest controls in JIT/interpreter observe all 28 CPU and six pointer
+targets concurrently, distinguish imported-copy mutation from direct stores or
+an already-bad initial value, and preserve separate terminal space. Unreached
+scenario targets are explicit, and changed field selections/missing signatures
+are rejected. Interpreter host faults do not invent translated GPR evidence.
+Existing shader/fiber/stack-protector/watchdog capture remains enabled. Writers
+outside imported memcpy/memset, earlier writes, aliases, allocation reuse and
+GPU writes remain outside the scoped watch. No deterministic native recurrence
+is promised, no automatic game sequence is installed, and no game was launched.
+Full ARM64 JIT/interpreter contracts, six pointer tests and 46/46 symbol checks
+pass; public source/link audit passes. Public default heads checked October 23 11:50:11 UTC unchanged; prior PR/release
+review limitations retained. Dependencies, renderer/cache and game settings fixed.
+
+### Owner captures: new array-read fault and saved fragment metadata rejection
+
+Latest owner capture (October 23 11:36:25 UTC / 13:36:25 Madrid) ends in CPU
+SIGSEGV after 137.464 s, exits 139/139. Checked prepared-image bytes identify a
+pointer-array read through an invalid register, matching the fault address.
+The initial array pointer comes from an object field, then advances per loop;
+that source field/iteration was not captured. No writer or allocation lifetime
+is established. This is a different instruction from the previously traced tree.
+All 16 terminal registers match text and the prepared image fingerprint matches.
+
+New pointer capture works natively: all four targets hit (448/448/2/2), 260
+records retained, two fields armed, no watch replacements/contention, no imported
+copy overlaps and no first out-of-domain-link observation. All retained chain
+reads succeed. This does not exclude unobserved direct/GPU/earlier writes or
+corruption outside those two fields. CPU/shader files retain 3072/1024 records,
+zero busy/incomplete slots; their union spans are 28.558 s/0.865 ms, not whole-run
+coverage. CPU text is partial (702 events). 1297 API presentations, 606 pipeline/
+805 SRT failures; 525 pipeline failures adjacent to PerVertexKHR, 81 unattributed.
+Last/peak native allocation samples 10.301/10.314 GiB, not controlled savings or
+fault-time pressure. Audio 52 windows/no queue-wait failures. No OOM reported.
+
+The preceding 11:34:00 UTC capture stops after 126.254 s, exits 23/23, on required
+fragment shader metadata rejection. The exact 65564-byte scanner input is saved,
+its head matches the initial read, and no metadata signature is present. The
+retained descriptor history shows an address-register write followed by the
+failed lookup, with earlier different-address lookups successful; this does not
+prove a bad packet, overwrite, lifetime or visibility cause. Pointer targets hit
+456/456/2/2, likewise no overlap/out-of-domain evidence. 1253 API presentations,
+457 pipeline/805 SRT failures; native last/peak sample 10.807 GiB, audio 48 windows/
+no queue-wait failures. Both diagnostics exactly match offline reconstruction.
+Next: bounded provenance of the new array source/count/range and its writes,
+plus the failed shader's address packet and backing lifetime. Retain joint
+capture; no demonstrated shared cause. Analysis only: no runtime/config/pin
+changes or game launch. Earlier checkpoints below are historical.
+
+### Prepared header-chain, scoped imported-write and first-bad-link evidence
+
+Prepared targeted tree-header tracing, with deterministic original synthetic
+controls rather than a promise that the intermittent native crash will recur.
+Four private, signature-checked function/call-return entries observe container
+header and node-link values before the failing lookup and around insertion.
+They use an independent pointer-events.bin with six channels/128 records each,
+a first out-of-domain-link slot, and sixteen bounded watched link fields. Current
+combined mappings total 620 KiB. Existing 24 CPU observations, terminal registers,
+shader/fiber/stack-protector/watchdog coverage remain active.
+
+Optional imported memcpy/memset observers retain destination/source or fill byte,
+length, before/after field values, thread and a protected return-address candidate
+when available. They run after existing pre-write preparation and before existing
+post-write notification; guest copy bytes/returns/order are unchanged. Direct
+scalar/vector guest writes, GPU writes, other aliases, earlier writes and evicted
+watch fields are not intercepted. Registered container/header relations are not
+reread or validated as current ownership during a copy. There is no demonstrated
+native writer, allocation lifetime or corruption correction yet.
+
+The first readable link outside the 40-bit guest domain after ignoring an ARM64
+top-byte tag is a heuristic, not an actual access failure or object-type test.
+It is retained before termination and survives hot-tail wrap or later restoration.
+The original program is never stopped/repaired based on this heuristic. The
+report exposes per-target hit counts, absent/unreached coverage, watch replacement/
+contention and explicit writer limits. New owner command requires the private
+selection/profile; missing inputs stop before launch and code-signature mismatch
+rejects the prepared image before game execution. No automatic game retry.
+
+Actual original guest controls in JIT/interpreter capture the chain before a
+real invalid-link flag-read SIGSEGV, distinguish imported memcpy/memset writers
+from a direct-store negative control, capture one-byte overlap, preserve first
+bad evidence through 600 later valid copies, and survive discarded stderr.
+Valid/zero/nonoverlap/top-byte-tag controls do not invent a failing access;
+missing target hits and mutated signatures are reported/rejected. Full CPU
+contracts, diagnostics/report tests and symbol checks validate instrumentation,
+not native causality or tracing overhead. Public default heads checked October
+23 11:22:38 UTC unchanged; earlier PR/release limits retained. Pins/cache 28/9
+and rendering settings unchanged; no game launched. Read first handoff checkpoint.
+
+SOTC_CPU_POINTER_TRACE is a private, bounded list of up to six
+site:register:signed-offset:signed-inner-offset observations. The first protected
+read obtains a header from register+offset, the second a link from header+inner.
+All configured PCs must be executable; current signatures are also compared with
+the actual newly prepared linked payload using tools/check_pointer_profile.py.
+The chosen lookup return is a real basic-block entry before the faulting loads,
+not an arbitrary interior PC. Original guest/JIT/interpreter controls exercise
+the corresponding call-continuation probe and actual fault, not just a parser.
+
+SOTC_REQUIRE_POINTER_TRACE=1 rejects a missing private selection/profile in the
+owner launcher. Explicit empty pointer selection under this required mode fails;
+it is not an unnoticed opt-out. Default selections are read as data, never eval'd.
+The matched profile/selection and prepared-input fingerprints are saved privately
+in pointer-profile-check.json and included in the combined report.
+The exact native failure still cannot be forced or guaranteed without changing
+the workload or inventing a fault. Read target_probe_hits after the next run;
+configuration alone is not proof that a target was reached. Other stop categories
+retain their separate evidence if they occur first.
+
+The pointer journal has a first out-of-domain link slot at reserved header words
+160..172, independent of rotating probe/copy tails. Interrupted publication is
+explicitly incomplete; a producer-PID mismatch excludes the focus snapshot too.
+Pointer status bits 1/2 describe source-address/read evidence, 4/8 link-address/
+read evidence; bit 256 identifies a protected return-address candidate. Copy
+records set no source-read bit: their container/header relation comes from the
+watch registration, not a fresh ownership check. Actor/source/size/value/thread
+fields are numeric CPU observations. A copy overlap is not exclusive-writer proof;
+preexisting bad values are not attributed to a later copy. Low 56-bit domain
+selection preserves the original 64-bit value and never changes its execution.
+
+Watch arming begins at observed chain reads and is bounded to sixteen numeric
+fields. Replacement, contention, unobserved earlier initialization, address reuse,
+GPU guards and non-intercepted stores leave explicit limits. The tracker neither
+changes page protections nor replaces the renderer's own write-watch callback.
+The scoped copy hooks preserve existing pre/post CPU/GPU notification order.
+Private code/profiles, selections, snapshots and any native logs remain ignored.
+
+
+### Native terminal registers retained; another tree header has an invalid link
+
+Latest owner capture (October 23 11:03:52 UTC / 13:03:52 Madrid) ends in CPU
+SIGSEGV after 86.457 s, exits 139/139. It fails in a different tree lookup:
+checked linked instructions load a header from a container, load a node pointer
+from the header's second word, then read a byte at node plus 25. That stored
+word matches the invalid pointer in the fault registers; the computed byte
+address matches the fault. Header/container are readable in bounded fault reads,
+not validated objects/lifetimes. No writer, exact object type or common cause
+with allocator search, shaders or stack protection is established.
+
+The new terminal journal works natively: all 16 saved registers match text;
+kind 2 identifies translated-fault evidence. Prepared probe/renderer UUIDs match.
+All 24 CPU channels retain 128 records (3072 total), shader channels retain
+1024 records, with zero busy drops/incomplete slots and matching producer PID.
+CPU union span 24.168 s is not continuous coverage; no retained numeric match
+for this header/container/invalid pointer. Current probes target the preceding
+allocator/comparator boundaries, not this lookup. Shader tail only 4.018 ms;
+all 512 retained lookups find metadata, not validation of ownership/code or the
+whole run. Text CPU dump remains partial: 455 events/401.692 ms, no footer.
+27,271,510 CPU and 4,113,464 shader reservations show extensive finite-tail wraps.
+
+915 API presentations, 325 pipeline/271 SRT failures; 283 pipeline failures are
+adjacent to PerVertexKHR errors, 42 unattributed. Last/peak native samples
+9.263/9.264 GiB, no recorded OOM/large copies, memory drops/errors zero; not a
+controlled memory reduction. Audio 32 windows/no queue-wait failures. No shader,
+fiber, stack-protector or GPU-watchdog stop recorded; prior causes remain open.
+Diagnostic matches reconstruction. Next: header initialization/reuse/lifetime
+and writes to its node-link field through the newly localized access, retaining
+joint failure capture. Do not reset links or skip validation. No runtime/config/
+dependency changes or game launch during analysis. Read first handoff checkpoint.
+
+The stored link is observed both in a protected header read and in the captured
+source register. Current linked bytes and the fault-address arithmetic are
+checked privately. This is evidence of an invalid link at consumption, not the
+write that introduced it. Invalid object origin, lifetime/reuse, wrong layout,
+bounds/overwrite and synchronization remain alternatives. Different fault sites
+and similar-looking packed words do not demonstrate a shared writer or data type.
+The current finite per-site tails contain none of the relevant addresses/values;
+no-match does not establish an earlier valid state. The next review should target
+header provenance and writers, with branch-entry/read context if needed, rather
+than treating the preceding allocator probe profile as exhaustive coverage.
+No diagnostic/code/selection changes were made during this analysis.
+
+
+### Prepared search-link evidence and loss-resistant terminal registers
+
+Prepared allocator-search follow-up and corrected terminating-context loss.
+Six new private observations cover the actual search root, next-node header/
+children and left/right-load sources, at current linked branch entries. The
+joint profile now uses 24 observations; earlier insertion/comparator/source
+coverage and 13 fatal fields remain. CPU channels retain 128 records each,
+shader channels 512 writes/512 changed lookups; combined fixed files are 520 KiB.
+No invalid pointer, opcode or failure is skipped; the native writer/cause remains
+unknown, so this is not a demonstrated correction of allocator corruption.
+
+A concrete diagnostic defect is corrected: the guest stack-protector handler
+previously printed one line then exited 22 without caller/register evidence.
+It now snapshots only an existing active TLS CPU, publishes bounded raw import
+registers to reserved CPU-journal header space before stderr, and invokes an
+optional host context/history reporter. Standalone binaries retain a weak
+fallback and exit 22. No CPU creation, decoder access, return-slot edit or assumed
+canary layout is used. Translated fatal faults also publish their available
+registers before rich mapping/provider diagnostics. The first committed terminal
+snapshot is retained; interrupted publication is rejected. Interpreter faults
+outside translated code are not promoted to exact fault-register snapshots.
+
+Actual synthetic guest import controls preserve exit 22 and raw context in JIT/
+interpreter with drained, discarded, full and closed stderr. Actual translated
+fault controls preserve exit 139 and terminal registers with discarded stderr;
+CPU per-site evidence remains available in both modes. Full ARM64 CPU contracts,
+renderer CPU regressions and symbol checks validate diagnostics, not native
+corruption, memory savings or tracing overhead. Public default heads checked
+October 23 10:59:12 UTC unchanged; earlier PR/release limits retained. Pins/cache
+28/9 and render settings unchanged; no game launched. Same combined owner command
+next, with private selections unset in the inherited environment so the updated
+profile loads. Read first handoff checkpoint.
+
+The new search observations are generic configured fields, not compiled game
+addresses or guest instruction patches. The six additional selected entries
+were checked against current linked bytes and their conditional branch targets/
+fallthroughs. They observe the initial root, a candidate before its header read,
+and parent link fields before left/right descent; they do not identify all writes
+or allocation identity. All guest selections/disassembly remain private.
+
+The CPU journal reserves header words 128..150 for a first terminal snapshot:
+kind 1 is a raw stack-protector import, kind 2 a translated fault with available
+registers. A bounded lock-free publication precedes stderr/context/history work;
+no final flush, file open, recorder mutex or pointer dereference is needed to
+publish it. Numeric RIP/RSP/RBP, thread, FS base and stack top are observations,
+not validated callers/canaries or a fiber identity. Register text and protected
+frame candidates are separate best-effort evidence. An interrupted first
+publication remains explicitly incomplete rather than being replaced by another
+reporter. A PID mismatch excludes terminal context along with journal events.
+
+The diagnostic reporting repair does not repair the observed guest corruption.
+Do not infer a cause from a valid root plus an invalid child candidate or from
+unchanged dependencies. Existing shader, fiber and GPU-watchdog evidence stays
+active if one of those stops occurs before the requested CPU failure.
+
+
+### Joint journals survive native SIGSEGV and a distinct guest stack-protector stop
+
+Latest owner captures October 23: the 10:48:33 UTC / 12:48:33 Madrid run
+ends in CPU SIGSEGV after 118.584 s, exits 139/139, in allocator search traversal.
+Current linked bytes confirm a read eight bytes before an invalid node. The
+captured root is readable; the same invalid pointer is the first word of another
+readable node. Search instructions support an invalid child-link hypothesis,
+not a proven writer or atomic memory snapshot. No matching invalid-node/parent
+observation survives in the current insertion/comparator/source selection; the
+search boundary itself is not instrumented. Next: search root/left/right-load
+provenance, initialization/reuse and synchronization, retaining joint coverage.
+
+Both pre-failure journals work natively, with matching producer PID and prepared
+binary UUIDs: 2304 CPU events (128/site) and 1024 shader events (512/type), no
+busy drops/incomplete slots. CPU per-site spans vary from milliseconds to 18.733
+seconds; the total span is not continuous coverage. Shader tail spans 34.120 ms;
+all 512 retained lookups find metadata, not proof of valid ownership/code. The
+text CPU dump is partial (552 events/3.980 ms, no footer); committed files survive.
+26,428,220 CPU reservations and 7,064,195 shader reservations emphasize finite
+retention. 1279 API presentations, 402 pipeline/271 SRT failures; 340 pipelines
+adjacent to PerVertexKHR errors. Last/peak native samples 8.843/8.848 GiB, no
+recorded OOM/large copies, memory drops/errors zero; no controlled saving claim.
+Audio 46 windows/no queue-wait failures.
+
+The immediately preceding 10:45:28 UTC capture stops after 126.140 s, exits 22/22,
+on guest stack-protector failure. This is the stack-failure import handler, not
+the fiber guard mismatch. Its direct _Exit bypasses rich caller/canary context,
+but both journals survive (2304 CPU/1024 shader events, no drops/incomplete slots).
+1325 presentations, 460 pipeline/805 SRT failures; last/peak native samples
+10.603/10.623 GiB, no recorded OOM, audio 48 windows/no queue-wait failures.
+Specific stack/caller/writer and shared cause remain unknown. Next also preserve
+bounded caller evidence on this existing exit-22 path. Both diagnostic reports
+match reconstruction. No runtime/config/dependency changes or game launch during
+analysis. Read first handoff checkpoint.
+
+The search-path register snapshot distinguishes a readable initial root, the
+sentinel, a readable parent candidate and an invalid current node. Checked
+instructions assign the parent when loading a left link; its first word matches
+the invalid current node in bounded fault reads. This narrows the source
+hypothesis to traversal links but does not identify a writer, object incarnation,
+true memory type, CPU/GPU ordering or synchronization error. No matching pointer
+in retained per-site history is not proof that earlier observations were valid.
+The latest failure differs from the previously traced insertion traversal, so
+the current selection must not be described as an exhaustive allocator trace.
+
+The earlier exit-22 handler currently emits only the stack-protector STOP and
+exits directly. No guest fault register snapshot, canary values, caller or fiber
+identity is available there. Its CPU journal has 14.285 s of union span across
+sites and shader journal 26.759 ms, with large prior-history wraps. Do not merge
+it with the previous fiber guard STOP or infer actual stack exhaustion. Rich
+failure context remains a follow-up; no code change was made in this analysis.
+Native joint-file retention is now validated on both paths, but native overhead,
+full lifecycle coverage and corruption correction remain unvalidated.
+
+
+### Prepared joint capture; owner prioritizes reproducing SIGSEGV
+
+Prepared combined pre-failure capture, prioritizing the owner-requested CPU
+SIGSEGV investigation: 18 private observations at nine reviewed entries cover
+allocator root/traversal links and earlier comparator/source-pointer boundaries;
+13 bounded fatal fields retained. Exact current linked bytes checked offline.
+Independent MAP_SHARED tails retain 128 observations per configured CPU site and
+512 shader writes plus 512 changed lookups, without requiring a final dump.
+A hot site/lookup cannot evict another site's/write channel. Interrupted/stale
+slots and logged producer-PID mismatches are excluded; wrap, contention and
+suppression are explicit. No signal handler queries the shader mutex/loader or
+reads this file. Existing fiber guard context, metadata/decode snapshots and GPU
+watchdog submission evidence remain enabled; none of those causes is proved
+fixed. The owner launcher enables both journals and shader provenance and loads
+the private combined selection as data, unless explicitly overridden. Current
+journal files total 424 KiB; native tracing overhead is unmeasured. Abrupt signal,
+shader/fiber/watchdog exit controls, actual JIT/interpreter CPU fault capture
+with discarded stderr, disabled/refused output, per-channel isolation and
+incomplete/concurrent publication controls pass. ARM64 renderer/all builder CPU
+regressions, full JIT/interpreter contracts and 46/46 imports pass. Public heads
+checked October 23 10:39:03 UTC unchanged; earlier PR/release review limits apply.
+Pins/cache 28/9 and render settings unchanged; no game launched. Next owner
+runs target SIGSEGV using the same combined command, with previous window closed.
+Read first handoff checkpoint; this improves evidence, not native correctness.
+
+The current command can be repeated manually until the CPU failure recurs;
+other failures still retain their available evidence. Do not use the preceding
+command's empty CPU selection. The owner launcher reads the private combined
+selection when SOTC_CPU_FIELD_TRACE is unset and the private fatal fields when
+SOTC_CPU_FAULT_FIELDS is unset. Explicit empty/zero overrides remain intentional
+opt-outs. No automatic game retries or launches are added. Existing CPU and shader
+stop reasons and exit codes remain unchanged; no invalid node or instruction is
+skipped and the fiber stack is not enlarged.
+
+SOTC_DIAGNOSTIC_JOURNAL=1 creates exclusive mode-0600 cpu-events.bin and
+shader-events.bin in the fresh BB_GPU_USER_DIR. Initialization occurs in ordinary
+startup/renderer work; files are never overwritten. Observations publish numeric
+fields to fixed shared mappings with lock-free 64-bit commit markers. The hot
+path performs no new guest reads, file writes, allocations or driver calls.
+CPU sites have separate channels so unrelated hot paths cannot erase an entire
+class. The original stderr ring remains a separate newest-first terminating
+report; its incomplete footer does not erase committed file evidence.
+
+The shader recorder keeps its existing per-descriptor mutex and eight-event
+tail; the file is an independent pre-failure write/lookup tail, not a query from
+signals or fibers. Shared monotonic timestamps and opaque thread identities are
+CPU observations, not a total order of guest writes, allocation lifetime, shader
+ownership or GPU execution. The current mapping budget is 424 KiB across both
+files; each tail is finite and can omit initial state. MAP_SHARED supports offline
+recovery after process termination without stdio/destructors/msync; power loss or
+kernel-failure durability is not promised. Use a fresh state directory, as the
+launcher does. A PID check excludes another logged child, not all PID-reuse cases.
+
+The combined report adds pre_failure_journals, per-channel retained/wrapped/
+incomplete/drop counts, numeric CPU fault-register matches and capture_readiness.
+It never replaces missing stderr history with a claim of a complete lifecycle.
+Absent requested journals and creation/reachability limitations remain explicit.
+Existing metadata exact-scan and owned decoder snapshots remain separate from
+the pre-failure journal; no extra copying of guest code into the journal occurs.
+
+Original synthetic controls preserve an infrequent CPU site and a shader write
+while hot channels wrap, reject interrupted/older-lap publications, preserve
+existing files/symlink targets, and survive signal or immediate exit without final
+hooks. The actual diagnostic captures both selected fields in JIT/interpreter
+after a real synthetic guest SIGSEGV, even with stderr discarded. The actual
+metadata wrapper retains its captured address on required failure. No native
+writer, common cause, memory saving or game stability improvement is established.
+
+
+### Owner capture: allocator tree invalid pointer; new shader evidence not emitted
+
+Latest owner capture (October 23 10:24:27 UTC / 12:24:27 Madrid): CPU SIGSEGV
+in allocator tree traversal after 65.553 s, exits 139/139. Current linked bytes
+confirm a read at invalid node minus eight; root versus traversed child source,
+writer, lifetime and synchronization remain unknown. Full guest/host fault
+context and one minimal reporter survive. CPU field selection is explicitly
+empty: no history is expected (zero configured sites), not evidence of a lost
+dump. Shader provenance is enabled but not emitted from CPU signals; no shader
+metadata/decode, register-range, fiber or GPU-watchdog stop is recorded. Matching
+prepared renderer/probe UUIDs confirm new build loaded, not correction of native
+corruption. 911 API presentations, 344 pipeline/271 SRT errors; 292 pipeline
+failures adjacent to PerVertexKHR conversion errors, 52 unattributed. Last/peak
+native samples 8.838/8.848 GiB, no recorded OOM/large copies, memory drops/errors
+zero; shorter run prevents improvement claims. Audio 24 windows/no queue-wait
+failures. Diagnostic matches reconstruction. Next: focused allocator tree
+root/child initialization, reuse and synchronization evidence. No runtime/config/
+dependency changes or game launch during analysis. Read first handoff checkpoint.
+
+The new code-span/address coherence and SH destination guards are loaded but no
+register-range rejection or required metadata/decode failure precedes this CPU
+stop. Their synthetic validation remains separate from this native outcome. The
+CPU history dumper returns immediately with zero configured sites; the combined
+report labels history absent, but the launcher selection and early minimum
+explain why. Do not re-enable unrelated tree or shader probes unchanged. Focus
+the next diagnostic preparation on the allocator root and selected child reads.
+The bounded mutex-based shader journal cannot safely be queried by this signal
+handler; its absence says nothing about prior descriptor events. No new shader
+scan snapshot/provenance sidecar is available from this run. Prior shader, fiber
+and watchdog failures remain unresolved. Private offline review retains the
+exact linked-byte comparison and pointer arithmetic; no game addresses or bytes
+are copied into public documentation.
+
+### Prepared checked SH copies, bounded program provenance and exact scan evidence
+
+Three legacy SetShReg paths now validate the full destination before memcpy:
+shared graphics replay (also used by preparation workers), GPU-owner compute
+state and asynchronous compute/graphics writes. The old compute checks only
+bounded byte count, accepting a nonempty write at the one-past endpoint or a
+partial overrun. Actual preceding source cases overwrite adjacent synthetic owner
+canaries for those cases and an end-of-register-bank graphics write. The adapted
+cases stop explicitly with exit 23 before copy. Valid bytes/canaries remain intact;
+empty writes avoid forming destination references. These are concrete host-write
+corrections, not proof that an owner capture triggered them. Invalid SH ranges
+now fail fast, including shared replay, rather than silently altering adjacent
+state. Other PM4 packet types are outside this range correction.
+
+Opt-in SOTC_SHADER_PROVENANCE=1 adds bounded CPU observations of address-register
+writes and metadata lookups. It uses 64 fixed descriptor slots and eight recent
+events per slot, with total/omitted/suppressed/slot-eviction counts. Identical
+adjacent lookups are suppressed. Observations include numeric descriptor/bank/
+packet addresses, SH span, applied program address, actor category and lookup
+head/hash/length/result. Shared replay, asynchronous writes and the alternative
+CP decoder's observer are instrumented; actor categories do not identify a host
+thread. The packet pointer can refer to an owned CPU copy, not the original guest
+buffer. Slots and pointer values can be reused; no allocation identity, exhaustive
+writer coverage, visibility guarantee or GPU execution is inferred. Other state
+initialization/delta copies may have no matching address-write event.
+
+Required metadata failure emits the matching descriptor history and saves it as
+private shader-metadata-failure/provenance.txt. No history from a different
+numeric descriptor is borrowed. The report retains events/omissions and flags
+missing address-write coverage or interleaved program records. Other failure
+paths, especially signals, do not query this mutex-based recorder. The next
+private command clears SOTC_CPU_FIELD_TRACE and enables shader provenance,
+retaining bounded fatal-field context. It no longer repeats the unrelated tree
+selection. Relative runtime overhead and native coverage are unmeasured.
+
+A further checked correction binds the returned code span to the same captured
+address used for metadata lookup and mapping validation. Previously the wrapper
+reread the descriptor when returning, so a descriptor change during a backing
+read could combine old metadata with a new code address. An actual-wrapper control
+restores that preceding return expression and reproduces the mismatch; the adapted
+wrapper keeps the validated address. Lookup observations likewise use the captured
+address, not a later descriptor read. This is not an atomic descriptor/user-data/
+code snapshot or a lifetime guarantee, and the native owner's cause is unproved.
+
+The metadata finder now retains the bounded bytes it actually scanned. Required
+failure writes those bytes instead of rereading backing after CPU history;
+context marks snapshot_from_scan and whether initial head matches the scan.
+A synthetic history hook mutates backing after the failed scan: saved evidence
+still contains exactly the examined bytes. Initial head/fast-hint reads and the
+backing copy are not atomic guest observations; this repairs evidence fidelity
+and removes the second failure-path backing read, not source lifetime semantics.
+
+Actual production SH cases pass original canary controls, valid writes, no-op
+endpoints, explicit adapted rejections, disabled tracing, duplicate suppression
+and fixed-ring/slot eviction. Two metadata and fourteen combined-report tests
+pass, along with 26 builder tests including exact provenance_previous migration.
+The ARM64 renderer and all builder CPU regressions pass; full JIT/interpreter
+contracts and 46/46 host-symbol coverage pass. Exact generated source digests are
+reviewed, base pins/cache 28/9 and rendering settings remain fixed. No game is
+launched. Prior shader/node/fiber/GPU causes remain unresolved.
+
+Public Git HTTPS default heads checked October 23 10:09:50 UTC retain reviewed
+SotC/runtime/CPU/MoltenVK/SPIRV-Cross SHAs. This retains earlier PR/release review
+limits. The next owner comparison is a targeted diagnostic, not an asserted fix
+for the last missing vertex metadata or a controlled memory benchmark.
+
+
+### Required vertex metadata fails before the guarded decoder
+
+The October 23 09:56:27 UTC owner capture (11:56:27 Madrid) stops after 82.589 s
+on required graphics:vs metadata lookup from the GPU command owner thread,
+exits 23/23. The new probe and bounds-corrected renderer UUIDs match prepared
+binaries. The failure path goes through graphics stage/key refresh, pipeline
+selection and an indirect draw. It does not reach opcode format lookup; this
+boundary cannot validate or refute the format-bounds correction. It differs
+from the preceding fragment first-word rejection and earlier fiber/CPU/watchdog
+stops. Their lack of recurrence is not a fix or shared-cause proof.
+
+The program address has 10,159,872 mapped backing bytes; a bounded 65,564-byte
+scan reports found zero, hint zero, length zero and metadata offset zero. The
+saved 65,564-byte backing slice has matching logged first words and checked hash,
+with no OrbShdr signature. Unlike the earlier owned decoder snapshot, this is a
+separate backing read after history capture, not an atomic scanner snapshot.
+Mapping does not validate program type/content. Bad/stale program register or
+descriptor, lifetime/reuse, CPU/GPU write visibility and lookup bounds remain
+open. No fabricated length/hash, retry-as-success or skipped work is justified.
+Exact address, words, stack symbols and snapshot remain private.
+
+CPU history is complete within its frozen newest-first ring: 2,048 valid events,
+zero skips/drops/unavailable samples, but just 131.696 ms across 878 observed
+objects and two threads. All four tree-entry sites are exercised. There are
+24,546,076 reservations and 9,421,950 suppressed identical consumer samples;
+24,544,028 reservations are older than the ring. No exact shader-origin match
+appears, and tree probes do not identify shader register/descriptor provenance.
+Next capture program register/address changes and PM4 submission source/lifetime
+through the first required bind. Do not repeat the same unrelated tracing or
+increase scan limits blindly.
+
+Automatic diagnostic.json exactly matches reconstruction. There are 893 API
+presentations, last t=81.6594 s, and 256 pipeline failures across 239 pairs
+(228 adjacent PerVertexKHR, 28 unattributed), plus 271 SRT errors. Last/peak
+retained native presentation samples are 8.827/8.859 GiB, with last sample age
+502.999 ms at presentation, not failure-time. Earlier stop/workload prevents
+controlled pressure reduction or lower error-count claims. No OOM/large host
+copies are recorded; last periodic memory drops/observation-error counters are
+zero. Audio has 30 windows, zero queue-wait failures, maximum submit gap 36.485 ms,
+without proving continuous playback. Tolerant field CLI succeeds, with zero text
+replacement characters. No code/configuration/dependency changes or game launch
+follow this analysis; private review remains under work/analysis.
+
+
+### Prepared instruction-format bounds correction and tolerant field CLI
+
+Inspection of the saved first-word failure maps its encoding-specific opcode to
+an in-range undefined format slot in the current table. It is not an outside-array
+index, and no operand types or successful instruction semantics are invented for
+that slot. Incorrect program origin/content versus unsupported format remains
+open. Exact words/opcodes and private review stay under work/analysis.
+
+A separate concrete decoder defect is corrected: all seventeen production
+instruction-format lookups previously indexed their arrays without bounds checks.
+The adapted lookups return the existing undefined-format value for an outside
+index, letting the real decoder produce its scoped error/exit 23 before an
+out-of-bounds table read. Checked libc++ array hardening traps on the original
+first-outside-index control. All 2,002 existing entries, including undefined holes,
+retain all six metadata fields; 34 first-outside/maximum-index controls reject.
+Actual installed decoder tests also reject original synthetic outside and in-table
+hole instructions explicitly. No GPU or game-derived instruction fixture is used.
+This corrects unsafe indexing; the owner's captured in-range rejection still
+needs source/format review and is not claimed fixed.
+
+A new digest-checked local overlay and exact format_previous cohort migrate the
+preceding source without reapplying its other overlays. ARM64 renderer build and
+all builder CPU regressions pass, including the new format control; host import
+coverage remains 46/46. Valid shader metadata is unchanged, so existing cache
+28/9 is retained. No base pin, dependency, game data or renderer setting changes.
+Full CPU contracts pass in JIT/interpreter. The same private seven-field tree selection
+and fatal fields are retained for the next owner capture, with prior fiber/fault
+reporting intact. No game is launched here.
+
+The standalone field CLI now decodes logs tolerantly and records replacement
+character count. An original invalid-UTF8 text control preserves its valid field
+record, and reprocessing the latest owner log returns all 2,048 events instead
+of failing UnicodeDecodeError. Six field-analysis tests pass; byte replacements
+do not identify guest corruption. Original log/diagnostic remain unchanged.
+
+Public Git HTTPS default heads checked October 23 09:52:37 UTC retain reviewed
+SotC/runtime/CPU/MoltenVK/SPIRV-Cross SHAs; earlier PR/release review limits remain.
+Prior invalid pointers, fiber marker damage, pipeline/SRT errors and GPU stalls
+are unresolved. Native benefit and the next failure boundary remain unvalidated.
+
+
+### Fragment first-word decode rejection; owned snapshot and full bounded history
+
+The October 23 09:43:06 UTC owner capture (11:43:06 Madrid) stops after 115.810 s
+on main-program unknown_instruction_format, exits 23/23. Checked enum value zero
+is HwStage::Fragment. The first-prologue warning precedes a rejection at word
+zero in an owned 282-word supplied program. The decoder finds undefined operand
+format metadata. Unsupported decode-table/instruction versus invalid program
+origin/content/type/lifetime remain open; a mapped and owned source is not a
+validated shader. No relation to earlier node/pointer/fiber corruption is proved.
+Exact shader identity, origin, opcode, raw words and evidence stay private.
+
+The saved owned shader snapshot now exists: all 282 words / 1,128 bytes, with
+saved-start zero and complete range metadata. Its SHA-256 and first word match
+the combined report and rejection. This preserves decoder input without rereading
+the guest origin; it cannot validate the initial source or changes during capture.
+Next review the saved encoding/opcode against the actual format table and trace
+program descriptor/address/length and write/lifetime provenance. Do not synthesize
+a successful opcode or skip rejected instructions. No GPU command execution is
+established by this CPU-side compilation failure.
+
+The frozen newest-first CPU dump is complete within its ring budget: 2,048 valid
+records, zero skips/busy drops/unavailable samples, 4.171667 s across 658 observed
+objects and five threads. All four selected tree entries are exercised. There
+are 35,675,310 reservations and 12,355,930 suppressed identical consumer samples;
+35,673,262 records are older than the ring. Complete output is not complete object
+history or a controlled tracing-overhead measurement. The tree selection does not
+target shader provenance; no exact shader-origin address match appears. No fatal
+register snapshot exists, as this is not a signal stop. Fiber-specific reporting
+is unexercised and its underlying failure remains unresolved.
+
+Automatic diagnostic.json exactly matches reconstruction, including the saved
+shader context. There are 1,296 API presentations, last t=114.5629 s, and 413
+pipeline failures across 378 pairs (368 adjacent PerVertexKHR, 45 unattributed),
+plus 805 SRT errors. Last/peak retained native presentation samples are
+10.469/10.480 GiB, with last sample age 895.318 ms at presentation, not fault-time.
+No OOM or large copies are recorded; last periodic drops/observation-error counts
+are zero. Audio has 44 windows, no queue-wait failures and maximum submit gap
+54.853 ms, without proving continuous playback. No GPU watchdog/CPU SIGSEGV/fiber
+stop appears; lack of recurrence does not establish a fix.
+
+The raw log contains non-UTF8 bytes (three replacement characters on tolerant
+read). Combined reporting handles them, while the standalone field CLI's strict
+read fails. Direct analysis with replacement decoding succeeds; invalid text bytes
+alone do not prove guest corruption. Retain this small CLI issue for follow-up.
+No runtime/configuration/dependency changes or game launch follow this analysis.
+
+
+### Prepared fiber marker evidence and history before terminating
+
+A stack-marker mismatch in save_running now captures bounded current fiber/
+stack metadata, stack size, numeric end/range validity, current guest RSP,
+expected/observed marker, state/flags, entry/current CPU RIP, encoded bounded
+name, and the sixteen architectural registers. The same real check still exits
+23: no marker removal, fiber skip, fake success or stack enlargement. A marker
+mismatch while RSP is within numeric bounds is possible and must not be called
+proof of stack exhaustion. Metadata itself and host-call RIP are observations,
+not validated allocation identity or exact guest instruction attribution.
+
+The diagnostic entry's exported strong callback freezes new observations, attempts
+small context writes first, then existing newest-first CPU history. Standalone
+contract binaries have a weak metadata-only fallback rather than a new mandatory
+unresolved import. Each write is at most PIPE_BUF, pipe/socket output becomes
+nonblocking, descriptor-scoped Darwin SIGPIPE suppression is applied, and failed/
+short writes are not retried. Unsupported output/full/closed pipes can still lose
+context or history; frozen history does not suspend in-flight guest threads.
+
+The report recognizes all STOP categories, including the prior unrecognized
+fiber stop, and retains numeric fiber/stack evidence plus encoded identity.
+Reprocessing the last owner capture recovers its reason while explicitly retaining
+its missing stack/RSP/marker evidence; the original diagnostic is preserved.
+Numeric register/history matches remain bounded and do not infer causality.
+
+Seven native history tests pass, including actual shared context/history output,
+frozen newest-first records, inside/outside RSP, invalid-bound arithmetic, and
+full/closed output with real exit 23. A deliberate one-bit guard overwrite in the
+actual original synthetic guest fiber fixture exits 23 in JIT/interpreter, with
+RSP still inside bounds, matching encoded identity and parseable metadata. Existing
+normal switching/migration tests remain required. Twelve report/five field-analysis
+tests pass; full contracts pass in JIT/interpreter. The rebuilt probe exports both hooks
+and passes 46/46 renderer host-symbol coverage. GPU code is unchanged.
+
+The next owner command retains the seven tree-origin fields and matching fatal
+windows, now with fiber failure reporting active. Actual native corruption/fiber
+cause remains unresolved; these changes repair evidence loss, not the source of
+the overwrite. No game is launched. Pins/cache/settings are unchanged. Public
+Git HTTPS default heads checked October 23 09:38:41 UTC retain reviewed SotC/
+runtime/CPU/MoltenVK/SPIRV-Cross SHAs; earlier PR/release limits remain.
+
+
+### Fiber stack-marker rejection; direct exit bypasses source capture
+
+The October 23 09:30:39 UTC owner capture (11:30:39 Madrid) stops after 109.422 s
+with `STOP: fiber guest stack overflow`, child/supervisor exits 23/23. Checked
+local `save_running` code in bootstrap_fibers.c emits this when the current fiber
+has a stack whose first word differs from its marker, then directly exits. The
+check does not test guest RSP against bounds. Thus marker mismatch is established,
+while actual stack exhaustion, unrelated overwrite, reused backing, bad metadata
+or lifetime remain unresolved. Fiber name, stack bounds, guest RSP and observed
+marker value are not logged. This is a distinct boundary from previous translated
+CPU faults, shader rejection and GPU watchdog; no common cause is demonstrated.
+
+The seven tree-origin probes are configured and prepared probe/renderer UUIDs
+match. No history, fatal minimum or guest register context is emitted: this direct
+fiber exit bypasses the signal/assertion history hooks. Actual probe activity and
+tree-root provenance remain unvalidated; absent output is not an empty ring.
+Automatic diagnostic.json exactly matches reconstruction but its stops array is
+empty because the matcher omits this fiber STOP category. The raw log supplies
+the real reason; absence from the structured report must not imply normal exit.
+No parser/runtime correction is applied during this analysis.
+
+There are 1,181 API presentations, last t=108.3639 s, and 416 pipeline failures
+across 379 pairs (364 adjacent PerVertexKHR, 52 unattributed), plus 805 SRT errors.
+Last/peak retained native presentation allocation is 10.190 GiB, with last sample
+359.054 ms old at presentation, not failure-time. No OOM or large host copies are
+recorded; last periodic drops/observation-error counters are zero. Audio has 42
+windows, no queue-wait failures, maximum submit gap 51.102 ms, without establishing
+continuous playback. No GPU watchdog or shader rejection occurs; earlier failures
+are not thereby fixed. Counts/memory at different stop boundaries are not a
+controlled improvement comparison.
+
+Next preserve bounded current-fiber identity/stack bounds/current guest RSP and
+expected/observed guard evidence, then freeze/dump CPU history before the real
+exit 23. Include this STOP category in the combined report. Synthetic guard
+corruption versus out-of-bounds RSP controls and valid switching should precede
+another owner capture. Do not remove the guard, skip a fiber or enlarge all stacks
+without evidence. No code/configuration/dependency change or game launch follows
+this analysis. Private capture review remains under work/analysis.
+
+
+### Prepared tree-origin selection and failed-read register correlations
+
+The next ignored private command replaces allocator-source probes with seven
+field observations at four reviewed function/call-return boundaries. It records
+the container root on entry and after the helper, boundary links after the helper,
+both current-node child fields on return from the comparator (before the branch),
+and a node-source candidate at comparator entry. Entry/call-return probes avoid
+relying on arbitrary interior fallthrough sites that the pinned JIT might omit.
+Actual linked instruction bytes and executable segment bounds match reviewed
+code. The actual prepared binary accepts trace/fatal-field configuration before
+a deliberately missing-input exit, without loading a game or GPU. Fatal fields
+are retargeted to container/root/node candidates rather than allocator headers.
+Exact sites, register IDs, field offsets and metadata remain private under work/.
+
+Root observations are unconditional, preserving repeated helper/lifecycle visits
+within the finite ring. Repeated identical consumer samples may be suppressed;
+callbacks and protected reads still execute, and source changes between probes,
+address reuse and ownership remain unproved. No game memory is changed, pointers
+are not followed recursively, and no invalid node is skipped. Native capture and
+traffic/retention behavior of this selection remain unvalidated.
+
+Offline CPU analysis now preserves individual protected-read failures and rejected
+address-arithmetic samples, which previously survived only as counts. Combined
+reports expose a bounded recent unavailable tail and numeric matches between the
+single guest register snapshot and retained source values/object/field addresses.
+Unavailable values never become fabricated zero-valued reads. Multiple snapshots
+remain ambiguous rather than being combined. Per-register matches are limited to
+eight latest records with explicit total/omitted counts. These are numerical
+associations, not validated objects, actual writes, lifetime or causal ordering.
+Timestamp span now includes timed failed reads as well as readable observations.
+
+Eleven combined-report, five field-analysis and six native probe tests pass,
+including unreadable/overflow samples, bounded matches, ambiguous snapshots and
+JIT/interpreter protected-read/backpressure controls. Reprocessing the last owner
+capture preserves its original stop and partial history; no connection between
+that bad node and the old allocator selection appears. The original diagnostic
+is preserved. No runtime rebuild or renderer/settings change is needed for these
+offline improvements and private selection. No game is launched here.
+
+Public Git HTTPS default-head refs checked October 23 09:28:46 UTC retain reviewed
+SotC/runtime/CPU/MoltenVK/SPIRV-Cross SHAs. Earlier PR/release review limits remain;
+pins/cache are unchanged. The current node corruption and prior GPU/shader/pointer
+failures remain unresolved; this preparation improves localization, not gameplay.
+
+
+### Earlier CPU node comparator failure recurs; source selection misses it
+
+The October 23 09:22:03 UTC owner capture (11:22:03 Madrid) stops after 67.702 s
+on translated CPU SIGSEGV, exits 139/139. This repeats the exact comparator and
+caller boundary of the October 23 07:57 capture, rather than the later NaN-pattern
+allocator pointer read or the preceding GPU watchdog. Current linked instruction
+bytes match the reviewed static disassembly: the caller forms a key address from
+node plus 32, then the comparator reads it. Captured node/key arithmetic agrees;
+the node pointer is already invalid. Root versus left/right link, writer, reuse,
+object type and CPU/GPU/translator cause remain unproved. Private offsets, raw
+addresses and verified bytes stay under work/.
+
+The early fatal minimum, native registers, exact guest instruction and bounded
+guest memory/frame context are present, with one reporter and no nested notice.
+The frozen newest-first dump retains 532 valid events across 3.030205 s, 33 objects
+and six observed threads, starting with the minimum's latest sequence. It has no
+footer and is partial; the requested 2,048-record budget does not mean all were
+written. Nonblocking best-effort output can terminate early; its precise failure
+reason is absent. The seven active probes cover the prior allocator-source path,
+not this tree root/link traversal, and overlap no selected fault fields. Retained
+values do not show the prior repeated NaN pointer; that does not establish a fix.
+Retarget root/link initialization and reuse before another owner comparison;
+do not repeat this source selection unchanged or skip invalid nodes.
+
+Automatic diagnostic.json exists and exactly matches reconstruction, correctly
+marking partial CPU history. No GPU watchdog, shader metadata/decode rejection or
+OOM is recorded, so those paths and the new GPU report section are unexercised.
+There are 908 API presentations, last t=66.7991 s, and 326 pipeline failures across
+294 pairs (277 adjacent PerVertexKHR, 49 unattributed), plus 271 SRT errors.
+The earlier stop/workload prevents interpreting lower counts as improvement.
+Last/peak retained native presentation samples are 9.050/9.065 GiB, not fault-time;
+last native sample age at presentation is 367.827 ms. Three 187.012 MiB host copies
+complete, reusing the same 192 MiB staging buffer; no multi-GiB staging copy is
+observed. Last periodic counters have zero dropped records/observation errors.
+Audio has 24 windows, zero queue-wait failures, maximum submit gap 32.973 ms,
+without proving continuous playback. No runtime/settings/dependency changes or
+game launch follow this analysis.
+
+
+### Prepared GPU-stall report with explicit evidence omissions
+
+The combined private report now keeps each submission report separate, with
+LAST_COMPLETED versus AWAITED batches, recorded wait/signal dependencies, buffer
+recording generations, native chunks, commit/scheduling/completion callbacks and
+fresh native status/memory observations. Callback status zero before completion
+is not interpreted as native command status zero. Unavailable memory probes are
+unknown rather than zero allocation. CPU note counts and retained/omitted guest
+candidate counts remain separate from GPU progress; no exact shader or deadlock
+is inferred. Missing native callbacks/buffers and candidate omissions are gaps.
+The explicit STOP_GPU_STALL marker is now retained, including a gap if its
+submission trace is absent. Multiple report contexts never borrow prior chunks.
+
+A complete CPU output footer now still raises an evidence gap when its output
+budget omits other ring records. Reprocessing the latest capture preserves its
+three scheduled/uncompleted chunks and reports the 1,920 omitted CPU records plus
+one omitted guest work candidate. The owner's original diagnostic is preserved;
+the reviewed reconstruction remains private under the capture state directory.
+
+Nine combined-report and five CPU field-analysis tests pass, with additional
+native producer-format coverage in the submission suite. Existing production
+CPU controls also pass ordered task-frame retirement, staging held/pending/tick/
+type reuse and native admission callback lifetime/cancellation. These validate
+those contracts, not all barriers, resource lifetimes, game pixels or M1 GPU
+behavior. No synchronization change is justified by these controls alone.
+
+The next owner command retains the same source selection and fatal windows to
+capture a potential recurrence without adding GPU tracing work or changing
+runtime/settings. The updated offline report will run automatically afterward;
+no renderer rebuild is required for this report-only change. Never run a second
+instance while the previous window remains open. The original CPU pointer and
+GPU-stall causes remain unresolved; no game is launched here.
+
+Public Git HTTPS default branches rechecked October 23 09:18:09 UTC retain the
+reviewed SotC/runtime/CPU/MoltenVK/SPIRV-Cross heads. This is a ref comparison,
+not a new PR-state/release audit; earlier review limits remain. Pins/cache stay
+unchanged. Exact capture evidence and identifiers remain private.
+
+
+### Source probes exercised; GPU watchdog with three scheduled buffers
+
+The October 23 09:11:07 UTC owner capture (11:11:07 Madrid) stops after
+132.309 s on the renderer's ten-second GPU watchdog, not the preceding CPU
+pointer fault or shader rejection. Awaited batch 101847 follows completed batch
+101846; recording has reached 101853. Three awaited native buffers have returned
+from commit, received scheduling callbacks and report native status 3/error 0,
+but no completion callback. The previous batch completed. This brackets the
+unfinished submission without identifying an executing draw/dispatch, a driver
+bug or a CPU/GPU dependency cycle.
+
+The awaited journal contains 710 CPU notes, including 19 guest draw and 110 guest
+dispatch candidates. The separate candidate tail retains 128 of 129, alongside
+the original 96-note tail and first/last descriptions. These are CPU recording
+candidates, not per-command GPU progress; neither first nor last identifies the
+culprit. Fresh native probes report 11.067 GiB allocated during the stall, against
+11.841 GiB recommended. No OOM is recorded and memory remains high; this is not
+evidence of a pressure reduction or an allocation-caused hang.
+
+The new seven-observation source selection is active. Its frozen newest-first
+cancellation dump contains 128 valid records, complete footer and no in-window
+skips, spanning 1.613296 s across four observed objects/four threads. It attempts
+260,084 records; 258,036 are older than the ring and another 1,920 still-in-ring
+records are omitted by the cancellation output budget. Complete budgeted output
+is not complete object history. The preceding repeated NaN pointer does not occur
+in retained values; neither that absence nor the lack of CPU SIGSEGV proves the
+source corruption fixed. Writer, type, lifetime and CPU/GPU relation remain open.
+
+Cooperative cancellation is observed 2.384 ms after the request, child exit 21 /
+supervisor 31. Automatic diagnostic.json matches reconstruction. There are 1,214
+API presentations, last t=121.5886 s, 474 pipeline failures across 432 pairs
+(417 adjacent PerVertexKHR, 57 unattributed) and 805 SRT errors. Last/peak native
+presentation sample is 11.069 GiB; the fresh stall sample above is separate.
+Last periodic memory summary has zero dropped records, observation errors and
+large host copies. Audio has 50 windows, no queue-wait failure and maximum submit
+gap 35.633 ms, without proving continuous playback. No shader rejection occurs.
+
+Next prioritize dependency/barrier/resource-retirement review of the unfinished
+submission and synthetic reproductions, while preserving source observations for
+a future CPU failure. Do not skip work, fake completion or extend the watchdog as
+a remedy. This analysis changes no runtime, settings, dependencies or private
+probe configuration and starts no game.
+
+
+
+### Prepared source-boundary capture, newest-first output and Darwin SIGPIPE repair
+
+CPU ring output now emits newest reservations first and declares `newest_first`.
+If nonblocking output fills, its surviving prefix retains recent observations
+instead of the oldest part of the selected window. Offline analysis still sorts
+reservation IDs for comparisons; this is not a guest write-order guarantee. Tests
+exercise a changing 300-value source, require the latest 128 values/sequences first,
+and verify correctly ordered transitions from a partial reverse-order dump.
+
+Closed-output synthetic stress exposed a separate diagnostic bug: 6/100 cooperative
+stops died by SIGPIPE despite worker-local masking. Darwin F_SETNOSIGPIPE is now
+set on diagnostic stderr before cancellation startup/ready output, and on early
+fatal output. Descriptor-scoped suppression covers other writers without changing
+the process-wide signal disposition; worker masking remains. The same 100-run
+control passes 100/100 after the fix. Native tests assert the descriptor setting,
+full/closed output behavior and real exits. This repairs diagnostic termination,
+not the game's SIGSEGV or its NaN-pattern pointer source.
+
+The next ignored private command replaces tree probes with seven unconditional
+source/header observations at three reviewed entries: caller before flag update,
+helper entry and the captured block before loading the failing pointer. It reads
+only configured source fields, not the values as pointers, and can distinguish
+observed bad-on-entry from a later observed state. It does not establish object
+identity, ownership, an exhaustive writer trace or intended memory type. Exact
+entry bytes/executable bounds match the actual private linked input. Fatal windows
+now cover the relevant source/owner candidates instead of the old tree selection.
+Actual rebuilt parser acceptance and ignore checks pass; native exercise is pending.
+
+Six CPU tests, five field-analysis tests, full JIT/interpreter contracts and 46/46
+host imports pass. Previous 22 renderer CPU checks remain applicable with GPU
+code unchanged. Existing early minima, rich failure handling and real exits remain.
+Public HTTPS refs checked October 23 09:06:26 UTC retain reviewed SotC/runtime/CPU/
+MoltenVK/SPIRV-Cross heads; earlier PR-state limits, pins and cache 28/9 stay fixed.
+No game is launched and the original invalid pointer's writer/cause remains open.
+
+
+### Early fatal minimum succeeds; source pointer contains repeated NaN bits
+
+The October 23 08:59:55 UTC owner capture (10:59:55 Madrid) exercises the focused
+five-probe selection and matching prepared binaries. It stops after 91.851 s on
+translated CPU SIGSEGV, exits 139/139. The early minimum is present with a recent
+atomic record and one reporter identity. No concurrent/nested notice occurs;
+this does not prove the prior multi-reporter cause fixed. Full native registers,
+exact guest instruction and bounded guest memory/frame context are now available.
+
+Private static inspection matches the actual linked input: a preceding load
+reads a pointer from a source object, then the faulting instruction reads pointer
+plus eight. The source word and loaded register agree on two repeated binary32
+quiet-NaN patterns. This is evidence that code uses that value as a pointer, not
+that a particular component wrote NaNs, that an expected allocator/object type
+is validated, or that GPU/CPU translation caused corruption. Wrong object/type,
+stale/reused storage or a writer remain open. Exact offsets/addresses/raw bytes
+and checked disassembly stay private.
+
+The full CPU ring begins frozen but emits only 596 events, no footer, hence
+partial rather than complete/empty. It spans 26.904 ms, ending 1.089446 s before
+the minimum's most recent observation. The retained first part of a ring dump
+must not be described as its newest tail. Nonblocking reporting stops at its
+first failed/short write; the exact failure reason is not logged. The minimum
+still preserves the latest sampled record, but it belongs to the old tree
+selection and is not this source field. Narrower tracing attempts 10,642,207
+records; different timing/boundaries prevent an overhead benchmark. New source
+initialization/reuse probes are needed before repeating that selection unchanged.
+
+Automatic diagnostic.json exists and matches reconstruction, correctly flagging
+partial history. There are 1,109 API presentations, last t=90.9091 s, 418 pipeline
+failures across 381 pairs (369 adjacent PerVertex, 49 unattributed), and 805 SRT
+errors. Last/peak native presentation sample is 10.370 GiB, 535.054 ms old at
+presentation, not fault-time. No OOM is recorded; last periodic memory counters
+have zero large copies, drops or observation errors. Audio has 34 windows, no
+queue-wait failures and maximum submit gap 32.609 ms; continuous playback remains
+unverified. No shader rejection occurs; owned shader evidence is unexercised in
+this run. No executable/config/dependency change or game launch follows analysis.
+
+
+### Prepared early fatal minimum and explicit report truncation
+
+Every unrecovered fatal entry now freezes new observations and attempts one
+compact minimum before claiming the detailed reporter or querying provider/CPU
+mapping metadata. This includes a second/nested entry before its real immediate
+exit. The minimum contains signal/address, native PC/LR, a POSIX-thread identity,
+ring end and at most one committed recent observation from an eight-slot search.
+That observation may belong to another thread; neither it nor PC/LR identifies
+a writer or a validated guest fault instruction. Distinct reporter identities
+can distinguish participating threads; an absent minimum cannot supply identity.
+
+The fixed buffer fits PIPE_BUF, is emitted with one best-effort nonblocking pipe
+write, and never allocates, locks, reads guest bytes, waits for a damaged reporter
+or retries output. Closed-reader SIGPIPE is blocked in the terminating thread;
+full/closed/unsupported outputs can omit evidence. The minimum supports pipes
+and sockets; regular files/terminals skip it rather than promise bounded I/O.
+Existing rich context/full history follows for the first reporter only; real
+exits 128+signal and recovered GPU/speculative/alignment faults are preserved.
+Stderr becomes nonblocking only during fatal termination on supported outputs,
+so later rich output may also be incomplete. This is evidence retention, not a
+repair of the original invalid pointer or a guaranteed full crash report.
+
+Combined diagnostic.json now retains minimal snapshots and reporter identities,
+counts concurrent/nested truncation notices and independently states whether
+guest context finished. A complete native register block cannot conceal a
+truncated guest report. Reanalysis of the prior owner log exposes its two notices
+but cannot reconstruct missing minima/history. Existing decode-specific and
+post-run progress evidence remains separate.
+
+Six native CPU suites include deterministic nested host-signal controls with
+available/full/closed output, matching reentered-thread identities, unchanged
+protected-reader counts and preserved exit 139, plus actual JIT/interpreter fatal
+entry ordering and observed synthetic field values. Six combined-report tests,
+full JIT/interpreter contracts and 46/46 host imports pass. The prior 22 renderer
+CPU checks remain applicable with GPU code unchanged. Native minimum capture
+and the actual SIGSEGV cause remain pending. The same focused five-observation
+private owner command is next; no game is launched. Public HTTPS refs checked
+October 23 08:57:14 UTC retain the reviewed SotC/runtime/CPU/MoltenVK/SPIRV-Cross
+heads; PR-state limits, dependency pins and cache 28/9 remain unchanged.
+
+
+### Focused capture returns to CPU SIGSEGV with truncated fatal reporting
+
+The October 23 08:49:05 UTC owner capture (10:49:05 Madrid) enables the exact
+five-observation focused tree selection and matching prepared binaries. It stops
+after 95.328 s with confirmed exits 139/139 on CPU SIGSEGV through an invalid
+address. Two concurrent-or-nested fatal notices occur before the first report
+finishes. The native ARM64 register block is complete, but exact translated guest
+instruction, guest register/memory context and CPU ring dump never appear. The
+fail-fast second-reporter path can terminate before the main reporter reaches
+them. Multiple failing threads versus recursion inside reporting remains unknown;
+no precise guest instruction, pointer origin, writer or CPU/GPU cause is proved.
+Do not use an unvalidated saved register/LR as that missing instruction/call stack.
+
+Automatic diagnostic.json is present and matches reconstruction. Its complete
+host-register block does not imply a complete guest fatal report; history is
+explicitly absent. The narrower selection's native retention/overhead cannot be
+measured from this missing dump. No shader decode/metadata rejection occurs, so
+missing shader bytes do not show a snapshot regression. Neither prior shader
+failures nor the silent freeze is proven fixed.
+
+There are 1,149 API presentations, last at journal t=94.3423 s, 451 pipeline
+failures across 409 pairs (394 adjacent PerVertex, 57 unattributed), and 805 SRT
+failures. Last/peak presentation-sampled native allocation is 9.580/9.602 GiB,
+not fault-time memory. No OOM is recorded. The last periodic summary counts zero
+large copies and observer errors, but drops 4,908 buffer-journal records (zero
+image/summary drops): complete buffer-lifetime absence claims are unavailable.
+Audio has 36 windows, zero queue-wait failures and maximum submit gap 56.715 ms;
+continuous playback remains unvalidated.
+
+Next prioritize minimal bounded history/register evidence before richer fatal
+reporting and expose concurrent/nested truncation in the combined report. Preserve
+real exit behavior and never wait for a damaged reporter. Distinguish recursion
+from another failing thread using original synthetic controls before attributing
+a cause. Raw registers/addresses and reviews remain private. No executable,
+configuration or dependency changes or automatic game launch follow this analysis.
+
+
+### Prepared owned decode evidence, explicit stop reasons and narrower CPU selection
+
+Shader-decode failure now preserves the active owned main-program bytes before
+its existing assertion/exit 23. The host history hook runs first. The capture
+uses only a scope-owned immutable vector, never the original guest pointer or
+adjacent storage, and is bounded to 16,384 words around the failed offset/end.
+Context identifies total/supplied/saved words and the saved start. Borrowed
+fetch/copy paths have no invented snapshot. Empty input is explicit; first
+failure evidence is preserved. I/O exceptions report unavailable evidence and
+leave the original rejection intact. This is not an opcode/metadata repair or
+proof that the initial capture was atomic or valid.
+
+The combined report now retains decode-specific reasons/provenance even when
+the terminal marker is a generic renderer assertion. Saved owned bytes have a
+fingerprint and range context; older missing captures remain explicit gaps.
+Post-run progress review flags long no-presentation intervals before exit and
+owner-requested window closure, even with exit zero. It is not a live watchdog,
+a driver-hang diagnosis or proof against legitimate pauses/minimization; clock
+origins may differ. Offline checks recover the earlier apparent-freeze clue
+and the latest compute-decoder reason without new game execution.
+
+A separate ignored focused tree selection retains five reviewed observations
+at three existing entries: container root/header links and the two source child
+links. It removes redundant entry/key/per-node observations from the 21-field
+selection. Actual parser acceptance and the previously verified executable-site
+subset are checked. It retains less detail and cannot prove writer/lifetime;
+actual traffic/retention improvements require the owner's comparison. Fatal
+container/node windows stay selected. Previous config files remain available.
+
+ARM64/all 22 renderer CPU checks and 46/46 host imports pass. Installed-decoder
+controls additionally verify exact owned bytes, a bounded offset window after
+source mutation, no borrowed/oversize capture, preserved first evidence and real
+exit 23. Five combined-report tests and full JIT/interpreter contracts pass.
+The original unknown-format cause and prior silent freeze remain unresolved.
+No dependency/cache changes or game launch. Public HTTPS refs at October 23
+08:47:22 UTC retain the reviewed SotC/runtime/CPU/MoltenVK/SPIRV-Cross heads;
+this does not revalidate PR states. Next owner command uses the focused private
+selection with the existing fatal windows.
+
+
+### Owned compute-shader decode rejection with a frozen complete CPU tail
+
+The October 23 08:39:07 UTC owner capture (10:39:07 Madrid) stops after 151.065 s
+with confirmed exits 23/23. The matching renderer records unknown instruction
+format in the main shader decoder, then asserts. The logged stage is verified
+against the selected HwStage enum as Compute. Rejection is at word offset 2 in
+an owned 523-word supplied program, with 520 remaining: not a recorded out-of-
+slice read. The first-instruction prologue warning precedes it. Unsupported
+instruction-table coverage, a wrong/stale program source and invalid initial
+capture remain unresolved; owning bytes prevents later reuse from changing that
+copy, not a non-atomic/incorrect initial capture. Exact words/IDs/addresses stay
+private. This is not the previous fragment metadata stop, CPU SIGSEGV or silent
+freeze, and does not prove those resolved or causally related.
+
+The host assertion history bridge/freeze is now exercised natively: 2,048 valid
+records, frozen flag set, matching footer, no busy drops, skipped-in-window,
+malformed or duplicate records. However 95,116,576 attempted records and
+10,166,583 suppressed observations leave just 12.879 ms across three threads and
+201 readable object addresses. The tree probes are exercised, but no writer or
+connection to the failed compute program is demonstrated. No sampled nonzero-
+to-zero transition is observed; absence in this short tail is not lifetime proof.
+
+Automatic diagnostic.json exists and exactly matches offline reconstruction.
+It labels the renderer assertion but currently omits the specific decode reason
+from structured stop fields; that reason remains explicit in the raw log. There
+are 1,473 API presentations, last t=150.1557 s, 422 pipeline failures across 386
+pairs (374 adjacent PerVertex errors, 48 unattributed), and 805 SRT failures.
+Last/peak presentation-sampled native allocation is 10.195 GiB, with last poll
+830.774 ms old at that presentation, not failure-time. No OOM or large copies are
+recorded; the last periodic memory summary has zero drops/errors. Audio has 58
+windows, no queue-wait failures and maximum submit gap 90.130 ms; continuous
+playback remains unverified.
+
+Next preserve decode-specific provenance in the combined report, distinguish
+invalid source from unsupported decoding using bounded original controls, and
+reduce/filter CPU trace traffic. Do not invent an opcode, skip the shader or
+claim PerVertex/SRT caused this assertion. No executable/config/dependency change
+or automatic game launch follows this analysis.
+
+
+### Owner-observed freeze with live audio, then window-close exit zero
+
+The October 23 08:25:33 UTC owner capture (10:25:33 Madrid) loads the matching
+prepared renderer/host and tree selection. The owner reports a frozen application
+and closes it. The log ends at 547.666 s with `Window: closed (quit requested)`
+and child/supervisor exits 0/0. This is a window-close result, not validated gameplay
+or a recorded fatal crash. There is no CPU fault, shader-metadata rejection, native
+command failure or GPU-watchdog marker. The automatic private `diagnostic.json`
+is present and exactly matches an offline reconstruction from the saved evidence.
+
+There are 1,525 retained API presentations, last at journal t=156.8915 s: about
+6.5 minutes without new presentations before closing. Audio continues for more
+than six minutes after the last resource-journal event, so at least those workers
+remain active; this does not disprove the owner's apparent UI/system freeze or
+identify the blocked thread. Both presentation rotations are included. The final
+pipeline count is 414 across 378 pairs (366 immediately adjacent PerVertex errors,
+48 unattributed) and SRT remains 805. Correct pixels or a shader fix is unproved.
+
+Last/peak presentation-sampled native allocation is 9.114/9.145 GiB, not at close
+or freeze detection. No OOM is recorded, but there are 38 completed bounded copies
+of approximately 78 MiB each. The last periodic summary's 2/2 copies precedes
+36 later buffer-journal copies and must not be called the final total. Its dropped
+record and observation-error counters are zero. Audio has 216 windows and zero
+queue-wait failures, but a maximum submit gap of 2.154 s occurs earlier; continuous
+playback remains unvalidated.
+
+No history is dumped because no fatal/cooperative stop path runs on normal window
+closure. Thus the new shader/Metal history bridge and tree observations are still
+unvalidated natively, not shown empty. The supervisor listens for the renderer's
+watchdog message; it is not an independent monitor of missing presentations with
+live audio. Existing fence-wait/committed-work watchdogs do not cover every CPU/
+queue/UI deadlock. Capture thread stacks and independent CPU/render/submission
+progress during the freeze, and preserve history on an owner-requested close,
+before another identical comparison. The final unimplemented LOD-stats warning
+also appears in progressing earlier runs and is not a demonstrated cause. Raw
+addresses/journals/review remain private. No executable/config/dependency changes
+or game launch follow this analysis.
+
+
+### Prepared combined stop evidence and metadata-history correction
+
+Required shader-metadata rejection and native Metal-command failure now invoke
+the host's existing once-only CPU history hook before further file/report work.
+On macOS the ordinary renderer error path resolves that optional host symbol
+through the loader; standalone hosts can omit it. Signal handlers still use the
+local lock-free snapshot directly. The hook freezes newly entering observations
+and retains the bounded ring; it does not reread guest fields, change the real
+exit 23, fabricate metadata or make a failed command successful. Valid and
+speculative shader paths never invoke it. The existing assertion hook remains.
+
+Metadata evidence now retains the full bounded scanner slice, including the
+previously omitted trailing 28 bytes for the current BinaryInfo layout. Stop
+records distinguish found metadata, declared length and metadata offset. The
+saved slice remains a separate best-effort backing read, not an atomic snapshot
+or proof that mapping implies shader validity. The actual invalid program's
+origin/lifetime/write visibility remains unresolved; no semantic shader fix is
+claimed and no search bound is relaxed.
+
+The graphics entry now writes private `diagnostic.json` in each fresh run's state
+directory after the child stops. It combines stop markers and real exits, CPU
+history completeness/time span, startup host candidates, pipeline/SRT counts,
+both rotating presentation journals, last periodic memory evidence, audio metadata
+and a bounded shader snapshot fingerprint. Up to eight preceding graphics logs
+are listed separately, retaining distinct guest fault sites and missing evidence.
+Counts/co-occurrence do not establish a common cause. Missing memory/audio/history
+stays unavailable, not zero; report failure preserves the original diagnostic
+exit. This offline report uses no driver, game execution or network access.
+
+Two metadata tests exercise the real wrapper with the host hook present/absent,
+valid/speculative controls, unchanged exit 23, first-evidence preservation and the
+scanner-sized snapshot. Three submission-journal tests include Metal hook/no-hook
+controls; three combined-report tests cover distinct stops, rotated journals,
+malformed tails and absent-versus-empty history. Full JIT/interpreter contracts,
+ARM64/all 22 renderer CPU checks and 46/46 imports pass. Owner-run evidence is
+still required for this new renderer; the private tree command stays selected
+so a shader stop can now retain its currently missing CPU context.
+
+Public HTTPS refs checked October 23 08:21:07 UTC retain the reviewed SotC,
+runtime, CPU, MoltenVK and SPIRV-Cross default heads. This does not refresh PR
+states. Pins and shader cache 28/9 remain unchanged. No game is launched.
+
+
+### Required fragment-shader metadata stop bypasses CPU history
+
+The October 23 08:11:06 UTC owner capture (10:11:06 Madrid) enables the exact
+21-observation tree selection and matching prepared binaries. It stops after
+165.141 s with confirmed child/supervisor exits 23/23: required fragment-shader
+metadata lookup fails on the owning GPU command thread during indirect drawing.
+There is no repeated translated CPU SIGSEGV or GPU watchdog stop; neither is a
+proven fix. The reported stage role determines classification, not a templated
+cold-symbol name in the native backtrace.
+
+The lookup reports mapped backing, no recognized offset hint and a bounded
+65,564-byte scan without accepted metadata. Private evidence saves a 65,536-byte
+snapshot and context. No expected metadata signature occurs in that saved slice;
+the slice is shorter than the scan and is not an atomic memory snapshot. Mapping
+does not prove shader validity. A stale/wrong program address, overwritten/reused
+backing, CPU/GPU visibility or lookup limitation remain candidates, not findings.
+Do not fabricate a shader hash/length, skip required rejection or expand scanning
+without a validated bound. Raw bytes, addresses and reports remain private.
+
+No CPU history is dumped. Source inspection of the matching renderer confirms
+that required metadata failure writes its evidence/backtrace and calls `_Exit(23)`
+directly, bypassing the optional assertion hook. The tree probes are configured,
+but this stop cannot validate their observations or the new freeze behavior;
+zero parsed events does not establish an empty ring. Before another comparison,
+preserve history on this stop and review program-register/command provenance,
+backing lifetime and write visibility. No common cause with earlier CPU faults
+or the previous watchdog is established.
+
+Both rotating visual files together contain 1,588 API presentations, with last
+journal t=164.3542 s. There are 462 pipeline failures across 419 pairs: 403
+immediately adjacent PerVertex conversion errors and 59 unattributed, plus 805
+SRT failures. Last native presentation sample is 10.507 GiB and sampled peak
+10.522 GiB, not failure-time memory. No OOM or large copy is recorded. The last
+periodic memory summary has zero image/buffer/summary drops and observation
+errors. Audio has 64 windows, zero queue-wait failures and maximum submit gap
+36.319 ms; uninterrupted audio and correct pixels remain unvalidated. This
+analysis changes no executable, configuration or dependencies and launches no game.
+
+
+### Prepared linked-node capture and termination freeze
+
+The follow-up freezes new CPU observations as soon as an unrecovered fatal
+signal is selected, before printing register/memory context. Renderer assertions
+and cooperative history dumping also freeze first. The atomic flag prevents new
+callbacks from reading guest fields or reserving slots; already-entered callbacks
+may finish, with no wait or thread suspension. Recovered faults return before the
+freeze. Metadata reports the flag explicitly. This addresses avoidable diagnostic
+overwrite during reporting, not the invalid guest node or its writer/lifetime.
+
+A separate ignored private selection replaces the previous broad array command:
+21 observations at six reviewed function/call-continuation/branch entries follow
+container/header/root candidates, lookup-key fields and both node-link branches.
+Identical values are suppressed at these read sites. It follows no field as a
+pointer and retains no game-specific addresses in public source. Adjacent block
+fallthrough and finite history still limit coverage; reduced traffic and longer
+native retention must be measured, not assumed. Custom fatal windows cover the
+container/root/sentinel and node candidates instead of the old array offsets.
+
+Instruction starts and executable bounds match the actual private linked input.
+The actual rebuilt ARM64 diagnostic accepts both configs and deliberately stops
+on missing input before CPU/GPU initialization. The five native CPU tests include
+eight-producer freeze controls, unchanged errno/registers, no newly entering
+post-freeze field reads/reservations, actual fatal exit 139 and cooperative exit
+21 in both modes. Full synthetic contracts and 46/46 host imports pass; the prior
+22 renderer CPU checks remain applicable because no GPU code changes. Native
+node capture and actual crash correction remain pending the owner's execution.
+
+Public HTTPS default-branch refs checked October 23 08:05:04 UTC retain the
+previously reviewed SotC/runtime/CPU/MoltenVK/SPIRV-Cross heads. Earlier PR-state
+verification limits remain separate. No dependency/cache update or game launch.
+
+
+### New owner fault in linked-node key comparison
+
+The October 23 07:57:24 UTC owner capture (09:57:24 Madrid) loads the matching
+prepared binaries and array selection, then stops after 160.533 s on translated
+CPU SIGSEGV, confirmed child/supervisor exits 139/139. It does not reach a GPU
+watchdog stop. Static instruction/caller bytes match the private linked input:
+a key comparator reads through an invalid pointer supplied by a linked-node
+traversal. The candidate node is already invalid before that read. Root versus
+left/right-link origin, writer, lifetime, concurrency and CPU translation remain
+unproved. This differs from the earlier array read and original-libc string fault.
+Exact offsets, disassembly, addresses and reports remain private.
+
+Fatal history now emits 1,441 valid records and a matching footer. A complete
+dump does not imply complete execution history: 61,086,239 attempted records,
+147,448,114 identical observations suppressed, and 607 unavailable/replaced slots
+in the selected 2,048-slot window leave only 4.366 ms of readable history across
+three threads. These probes still target the previous array, not the current
+container root/node links. Custom fatal windows based on the invalid argument
+are unreadable. Do not repeat this broad selection unchanged or infer a writer
+from unrelated retained objects. Retarget to reviewed traversal entry and link
+sources with bounded/filterable traffic before another origin comparison.
+
+There are 1,470 API presentations; the last is at journal t=159.8288 s. Recorded
+pipeline failures are 444 across 401 pairs: 385 immediately adjacent PerVertex
+conversion errors and 59 unattributed, with 805 SRT failures. Different workload
+and failure boundaries prevent treating lower pipeline counts as a correction.
+The last/peak presentation-sampled native allocation is 9.905 GiB, sampled about
+810 ms before that presentation, not at fault time. No Metal OOM or large copy is
+recorded. There are 26,893 binding-size clamp messages and eight unsupported image
+format/type/usage combinations; neither establishes the CPU fault's cause.
+
+The image journal reaches 10,851,461 bytes, exceeding the old 8 MiB cap, and the
+last periodic summary reports zero image/buffer/summary drops and zero observation
+errors. The larger evidence cap is exercised; it is not a GPU memory saving.
+Audio has 62 windows, no queue-wait failures and a 39.550 ms maximum submit gap;
+continuous audio is unverified. Cooperative 128-record stopping and the separate
+GPU candidate tail are not exercised by this CPU failure, nor is the previous
+GPU stall resolved. No runtime/config/dependency change or game launch follows
+this read-only analysis.
+
+### Prepared cooperative history and awaited-batch evidence
+
+The latest watchdog exposed a diagnostic defect: cooperative cancellation bypassed
+the CPU ring dumper. Its terminating worker now attempts the latest 128 atomic
+observations after a successful nonblocking stop notice. It never reads guest
+memory, allocates, acquires a lock, retries writes or waits for output. Unsupported
+outputs and the first failed/short write skip the remainder. SIGPIPE is blocked
+only in this worker so a closed reader preserves the intended exit 21. Full
+signal/assertion snapshots retain their 2048-record budget. Snapshot metadata and
+the analyzer distinguish missing, partial and complete dumps; truncation does not
+establish an empty ring. Startup publication of the image base is atomic.
+
+The GPU journal now keeps a separate bounded tail of 128 guest draw/dispatch
+candidates, independent of the 96-note state/native tail. This can retain all
+118 candidates from a batch shaped like the last capture, but these remain CPU
+recording notes, not GPU progress or proof of the stalled shader. The image event
+file cap increases from 8 to 32 MiB to delay observed evidence loss; it remains
+finite, cannot restore old drops and does not reduce guest/Metal allocation.
+
+Five native CPU tests cover both execution modes, 300-observation/128-record
+budget controls and drained/full/closed output. Real cooperative exits remain 21
+without an external signal; full output does not delay termination. Four offline
+analysis tests, two GPU-journal tests (state-note saturation, candidate overflow,
+merging/recycled buffers), 22 supervisor tests and full JIT/interpreter contracts
+pass. The ARM64 GPU build and all 22 renderer CPU checks pass; all 46 host imports
+are present. No native game is launched and no hang/corruption/shader correction
+is established. The existing ignored array-state command is the next owner run.
+
+Public Git HTTPS refs checked October 23 07:50:10 UTC retain the previously
+reviewed SotC, runtime, CPU, MoltenVK and SPIRV-Cross heads. This ref check does
+not revalidate PR state. Dependency pins and cache 28/9 remain unchanged.
+
+
+### Array-targeted owner run stops on scheduled GPU work
+
+The October 23 07:39:10 UTC owner capture (09:39:10 Madrid) enables the exact
+private array-state selection and matching binaries. It stops after 159.147 s
+on GPU progress: awaited submission 103707 does not finish within 10 s, while
+103706 is complete and recording reaches 103713. The supervisor requests
+cooperative termination; the child notice appears 0.909 ms after that request,
+and child/supervisor exits 21/31 are confirmed. This is an exercised stop, not
+an unknown child exit or the prior translated CPU SIGSEGV. No unknown-format,
+sample-count or Metal OOM stop is recorded; their nonrecurrence is not a fix.
+
+The awaited batch contains two command buffers. Both Metal commit calls return
+and both scheduled callbacks occur; completed callbacks remain absent. The
+report-time weak probes are available, status 3/error 0, with retained references,
+and observe native allocation 10.023 GiB at the stall report. Status/commit/
+scheduling is not evidence that any particular kernel made progress. The preceding
+batch has a completed callback and native status 4; its released weak probe is
+unavailable, not a zero-memory observation.
+
+The full awaited CPU note summary contains 653 notes: 17 guest draw and 101 guest
+dispatch candidates (plus overlapping native/state/barrier/copy descriptions).
+Only 96 individual notes are retained. There are no missing batch notes or Metal
+events reported, but the journal's bounded old-batch eviction is explicit.
+These are CPU candidates, not a GPU trace; do not blame the final dispatch or a
+PerVertex pipeline just because its hash occurs nearby.
+
+There are 1,336 API presentations, the last at journal t=148.3402 s; 477 pipeline
+failures across 426 pairs (407 immediately adjacent PerVertex errors, 70
+unattributed) and 805 SRT errors. Last native presentation sample is 10.003 GiB
+and its presentation-sampled peak 10.003 GiB; the separate stall-time native
+probe above is newer. No large copies are counted. The final periodic memory
+summary reports 7,229 dropped image records, zero buffer/summary drops and zero
+observation errors: full image-lifetime absence claims are unavailable. Audio has
+62 windows, zero queue-wait failures and maximum delivery gap 30.796 ms; this
+does not establish uninterrupted playback. Pixel capture remains off.
+
+No CPU field-history events or summary are dumped. Read-only source inspection
+confirms the cooperative cancellation worker writes a best-effort nonblocking
+notice then `_Exit(21)`, bypassing the current signal/assertion history paths.
+Thus this log cannot show the array's pre-read values or whether observations
+existed in memory. Do not interpret the offline analyzer's zero events as an
+empty/unexercised ring. Native array-state capture remains unresolved.
+
+The next diagnostic gap is retaining bounded CPU history on cooperative stop
+without blocking cancellation, together with isolating the awaited batch's
+shader/resource/synchronization candidates. Preserve watchdog timing, real
+completion, memory guards and real exit behavior; do not extend the timeout or
+skip dispatches. This analysis makes no code/config/dependency changes or game
+launch. Exact shader IDs, native addresses and reports remain private.
+
+
+
+### Prepared owner array-state command
+
+After the 09:33:36 Madrid capture returned to the earlier array-pointer fault,
+the owner requested a targeted command. Separate ignored private files select
+18 observations at three reviewed executable entries: consumer function entry,
+the block after count checks, and the array-read loop. Each observes the apparent
+object header, range begin/end, array pointer, destination base and packed count.
+Loop observations use identical-value suppression; source observations remain
+unconditional. Custom fatal fields now cover the relevant array source windows,
+replacing the formatting windows for this command only. Exact offsets remain
+private; no pointed-to array/string is followed, guest fields changed or read
+skipped. Bounded site history does not identify a writer/allocation/lifetime or
+make the fields an atomic snapshot.
+
+The actual rebuilt diagnostic accepts both configs and intentionally stops on a
+missing input before CPU/GPU initialization. Read-only executable-range checks
+and ignore checks pass. No new runtime code, dependency, cache or game launch
+is involved. Public Git HTTPS refs at October 23 07:38:25 UTC reconfirm unchanged
+SotC/runtime/CPU/MoltenVK/SPIRV-Cross heads; earlier PR-state verification limits
+remain separate. Native array history is pending the owner's execution.
+
+
+
+### Filtered capture returns to the earlier array-pointer CPU fault
+
+The October 23 07:33:36 UTC owner capture (09:33:36 Madrid) enables the exact
+filtered 18-observation selection and loads matching prepared probe/renderer
+UUIDs. It ends after 96.320 seconds on translated CPU SIGSEGV, confirmed exits
+139/139. Private static inspection and the register snapshot identify the same
+array-pointer read instruction as the October 23 06:24:04 UTC capture (08:24:04
+Madrid), through a different invalid address. Before the loop, the pointer is
+loaded from an object-relative source field; it and neighboring count/destination
+fields lie outside the current default snapshot. The apparent object's first
+words also look unlike the expected object header, but this does not prove a
+freed allocation, writer, GPU corruption or translator defect. Current custom
+fatal fields target formatting and do not cover this array state.
+
+The filter explicitly rejects 1,581,784 unrelated observations. Ring attempted,
+retained, overwritten, busy drops, skipped slots and identical suppression are
+all zero; no malformed/duplicate records appear. No unconditional original-warning
+source-block record is observed, and no formatter matches are retained. Thus
+there is no current string-argument chain to compare, not evidence that the
+invalid string was repaired or that the warning could never execute. Native
+negative filtering is exercised; native positive matching for that target is
+still absent. The earlier 3.3-million-record overwrite problem does not recur.
+Callback overhead remains, and run lengths are not a benchmark.
+
+There are 1,145 API presentations, 439 pipeline-failure events across 402 shader
+pairs (388 immediately adjacent PerVertex errors, 51 unattributed) and 805 SRT
+errors. Last and maximum presentation-sampled native allocation is 9.557 GiB,
+194.251 ms old at the last presentation, not measured at failure. No Metal OOM
+or large copies are recorded; memory-journal drops/errors are zero. Audio has
+36 windows, zero queue-wait failures and maximum delivery gap 54.052 ms. Scene
+requests remain 1920x1080, output 1280x720 and visual capture off; pixels and
+synchronization remain unverified. Shader-format and sample-count failures do
+not recur in this capture, without establishing their resolution.
+
+The next source question is this array object's pointer/count state before its
+consumer and its ownership/writes, rather than broader formatting traffic. Do
+not skip the read or substitute a fabricated pointer. This analysis changes no
+code, private selection, dependency or cache and launches no game. Exact fields,
+addresses, disassembly and the comparison report remain private.
+
+
+
+### Prepared selective format tracing and reaffirmed runtime review
+
+The owner requested correcting the saturated trace and a new command, then
+reviewing bloodborne-runtime as a permanent direct source. The generic optional
+trace syntax now accepts `:on-change:match-register:match-image-offset` after
+its first three fields. It compares a saved register to image-base plus the
+configured offset, validates bounds/overflow at startup, and rejects unrelated
+calls before protected guest reads, timestamps, cache updates or ring reservation.
+A separate `filtered` counter distinguishes selection from overwritten/dropped
+records. Existing three/four-field syntax, real fatal exits and the 2048-record
+ring remain unchanged. No hardcoded game filter enters public source.
+
+The new private command selection has 18 observations at five reviewed entries:
+source fields remain unconditional; logger/game formatter/length wrapper/guest
+vsnprintf entries match only the original warning's format address. The broad
+parser entry is removed. Exact executable sites and match bounds were checked
+against the actual prepared image; the rebuilt diagnostic accepts the private
+config then stops on a deliberately missing input before CPU/GPU initialization.
+No game is launched. This repairs diagnostic selection, not the source pointer,
+variadic ABI or unknown shader instruction. Probe callback overhead remains.
+
+Four native CPU tests pass in JIT and interpreter, including actual loader
+matching/rejection histories and fatal exit 139. Original fixtures check vector,
+byte/errno preservation in both matching and filtered real probe callbacks,
+100,000 unrelated observations that perform no guest-field read or ring/cache
+mutation, changed selected values, overflow and malformed/out-of-image matches.
+Two offline analysis tests preserve the filtered counter; full synthetic
+JIT/interpreter contracts and 46/46 host-symbol audit pass. No renderer or
+shader semantic change is made; cache 28/9 and dependencies stay fixed. Native
+validation of the narrowed history and the shader/string failure remain pending.
+
+[The direct-runtime review](UPSTREAM_REVIEW.md#direct-runtime-review-2026-10-23)
+inspects the public 30-commit / 149-path compare against the selected base.
+Instanced tessellation is already adapted; FSR queue/shared-event ordering and
+adapter changes are future separate integration candidates. Critical-pressure
+content-losing eviction is not adopted. No direct decoder/CPU implementation
+repair is found. The source remains explicit in the permanent watch list; no
+duplicate or reactivated scheduled task is created by this review.
+
+Before proposing the command, the public API was rate limited. Public Git HTTPS
+refs reconfirmed the same SotC/runtime/CPU/MoltenVK/SPIRV-Cross heads as the
+preceding review; new commits/diffs against last-reviewed heads are absent.
+PR states retain the earlier noted verification limits. This does not silently
+advance a pin or claim new native stability.
+
+
+
+### Format follow-up stops on owned shader decoding, not strlen
+
+The October 23 07:19:39 UTC owner capture (09:19:39 Madrid) exercises the exact
+23-observation format selection and matching current binaries. It stops after
+94.992 seconds, confirmed exits 23/23, on `unknown_instruction_format` in the
+main shader decoder. The supplied owned input contains 101 words; rejection is
+at word offset 26 with 74 words remaining. This is not a recorded supplied-slice
+bounds failure. The rejected SMRD slot has no recognized format in the installed
+tables. Unsupported code, stale/wrong shader source or already-invalid capture
+are not distinguished. Owned input protects subsequent source reuse, not atomic
+initial capture or correctness of supplied bytes. No shader is repaired/skipped.
+Neither the preceding strlen SIGSEGV nor sample-count failure recurs; this does
+not validate their resolution or establish a common corruption cause.
+
+There are 1,150 API presentations, 453 pipeline failures across 414 shader pairs
+(399 immediately adjacent PerVertex errors, 54 unattributed), and 805 SRT errors.
+No Metal OOM or large copy occurs in the recorded evidence; memory journal
+errors/drops remain zero. Last native presentation sample is 9.991 GiB and the
+sampled maximum 10.025 GiB; the last poll is 489.347 ms old at presentation, not
+at assertion time. Audio has 36 windows, zero queue-wait failures and maximum
+delivery gap 37.108 ms. Visual capture remains off; neither correct pixels nor
+smooth/synchronized audio is established.
+
+The renderer assertion now successfully dumps CPU history before exit 23,
+validating the optional assertion hook on the native owner path. However the
+broad formatting selection attempts 3,318,674 observations, overwrites 3,316,626
+and retains only 2,048 observations spanning 0.332 seconds. No busy drops,
+skipped slots, unreadable fields or malformed/duplicate records are observed.
+All retained samples are general length/vsnprintf/parser sites; none is the
+original source-field block. Thus this capture cannot compare the original
+warning's fields with the failing string arguments. Do not interpret absence
+of an observed clear as evidence against invalidation. This high-frequency
+configuration can change timing; the longer run is not a performance result.
+Do not recommend repeating it unchanged: narrow source-specific coverage or add
+qualified filtering before another origin-focused comparison.
+
+The next review priorities are preserving the exact original warning's source
+arguments and distinguishing invalid/unstable shader input from a genuinely
+missing decoder format. No safe semantic correction is established by this log.
+This analysis changes no executable, dependency, cache or runtime selection and
+launches no game. Exact shader identifiers, bytes and addresses stay private.
+
+
+
+### Latest owner CPU fault: invalid string during formatting
+
+The October 23 07:12:03 UTC owner capture (09:12:03 Madrid) loads matching newly
+prepared probe/renderer UUIDs and ends after 83.739 seconds on translated CPU
+SIGSEGV, confirmed exits 139/139. Read-only module metadata, export identity and
+private disassembly identify the first word read in the supplied guest libc's
+`strlen`; its incoming string pointer is invalid before the read. Candidate
+stack returns and their static call sites match a `vsnprintf` string-formatting
+path from a game warning. This does not prove who supplied/corrupted that pointer,
+its lifetime, a variadic ABI defect or CPU mistranslation. It is another stopping
+boundary, distinct from the earlier null object and sample-count assertion.
+No sample-count rejection or renderer assertion occurs in this run; their absence
+does not validate a fix for the preceding native assertion.
+
+There are 1,075 API presentations, 473 pipeline failures across 421 shader pairs
+(402 immediately adjacent PerVertex errors, 71 unattributed), and 805 SRT errors.
+No OOM/large copy is recorded; memory journal drops/errors remain zero. Last and
+maximum presentation-sampled native allocation is 9.678 GiB, 524.259 ms old at
+the last presentation, not a failure-time measurement. Audio has 32 windows,
+zero queue-wait failures and maximum delivery gap 45.471 ms. Visual capture is
+off; no pixel, smooth-audio or controlled performance claim follows.
+
+CPU history parses without malformed/duplicate events: 83,510 attempted,
+2,048 retained, 81,462 outside the ring, 117,376 identical hot observations
+suppressed; no busy drops/skipped slots. It spans 6.423 seconds and observes no
+nonzero-to-zero transition in that retained window. The prior private object
+selection does not cover this string's source; missing history cannot establish
+that it was never initialized or cleared.
+
+For the owner's requested next command, a separate ignored format-only selection
+captures 23 fields at six reviewed function/conditional-block entries: original
+source pointer fields before the warning, the two actual stack string arguments,
+and format/va_list metadata before the nested formatting calls. Repeated general
+object consumers are excluded from this run's selection so they cannot overwrite
+this evidence. No pointer chasing, guest bytes or fields are changed. Exact game
+offsets, strings and selection files remain private. Read-only validation against
+the actual prepared executable segments, the real diagnostic's config parser
+(stopped on a missing input before CPU/GPU initialization), and all three native
+CPU trace tests pass. The command uses explicit private config overrides; no
+new code/dependency/cache change or game run is performed here.
+
+The pre-test public-source check at October 23 07:16:35 UTC resolves the same
+reviewed SotC/runtime/CPU/MoltenVK/SPIRV-Cross heads; no new commit diff is present
+against the preceding review. SPIRV-Cross proposals 2699 (draft) and 2697 remain open/unmerged at their
+reviewed heads. GitHub rate limiting prevented fresh MoltenVK 2858 and SotC 219
+PR-state checks; their last reviewed state is retained, not reconfirmed.
+No dependency is updated. The next question is whether the invalid string is
+already present in the original field/stack argument or appears later while
+formatting; a later changed failure may still leave that question open.
+
+
+
+### Owner assertion boundary and checked sample-count rejection
+
+The latest October 23 06:59:22 UTC owner capture (08:59:22 Madrid) stops after
+84.545 seconds with the renderer's `RawNumSamples` assertion, confirmed
+child/supervisor exits 23/23. The old converter accepts only guest counts
+1/2/4/8/16; its log omits the rejected value and caller. This is a different
+boundary from the preceding CPU faults. It does not prove an invalid descriptor,
+use-after-free, device limitation or shared corruption cause.
+
+There are 1,063 API presentations, 422 pipeline-failure events across 386 shader
+pairs (373 immediately adjacent PerVertex errors, 49 unattributed), and 805 SRT
+errors. No Metal OOM or large copy is recorded; memory summary drops/errors are
+zero. Last and maximum presentation-sampled native allocation is 9.837 GiB,
+288.180 ms old at the last presentation, not measured at assertion time. Audio
+has 32 windows, zero queue-wait failures and maximum delivery gap 98.639 ms.
+Scene requests remain 1920x1080, output window 1280x720, visual capture off;
+API counts do not establish pixels. No controlled shader/memory improvement is
+inferred from differing run lengths or counts.
+
+The preceding 06:57:48 UTC capture (08:57:48 Madrid) ends after 69.558 seconds
+on another translated invalid-object-pointer SIGSEGV, exits 139/139. Private
+static inspection confirms the argument comes from a previously loaded field;
+no writer/lifetime cause is proven. There are 974 presentations, 285 pipeline
+failures (253 adjacent PerVertex), 271 SRT errors, zero large copies/OOM,
+8.859 GiB last native sample / 8.868 GiB sampled maximum, and zero audio queue
+failures with maximum gap 50.982 ms. Its field trace works: 32,715 attempted,
+2,048 retained, 30,667 older-than-ring and 54,864 suppressed identical hot-site
+samples; no busy drops, skipped slots or malformed/duplicate events. The retained
+window spans 21.835 seconds. Its sampled nonzero-to-zero transitions end at an
+initialization observation and can include reused addresses; they do not prove
+a corrupting clear. Fatal selections have no matching retained history for this
+different boundary. Exact offsets, fields and offline reports remain private.
+Both captures load the expected prepared probe/renderer UUIDs.
+
+Owner-authorized follow-up adds a checked `sotc-sample-count-validation-v1`
+overlay. Actual pinned-method controls reproduce returning e1 even when absent
+from the supported mask. Selection now rejects an empty/no-matching downward
+fallback instead of inventing an unsupported device state. The accepted guest
+count domain and every valid downward conversion remain unchanged. Failure
+provenance records requested count, supported mask and all five caller roles:
+image creation, backing swap, pipeline raster/color/depth. Invalid requests still
+stop with real exit 23; no unsupported sample, fence, pipeline or object is
+manufactured. The latest native failure's raw count remains unknown until this
+new provenance is exercised.
+
+The assertion shim calls an optional weak host hook before `_Exit(23)` so the
+existing bounded atomic CPU history is retained on renderer assertions too.
+Absent-hook standalone hosts preserve exit behavior; no guest reads, registers,
+write attribution or CPU/GPU completion proof are invented. Actual installed
+CPU controls reproduce the pinned defect, compare 1,032 valid conversions,
+reject 248 unsupported masks and exercise invalid-count/fatal-origin controls
+with the hook present and absent. ARM64/all 22 renderer CPU checks and 26 builder
+tests, full JIT/interpreter contracts and 46/46 host-symbol audit pass. The optional
+hook is exported by the prepared host and weak-imported by the renderer.
+Cache remains 28/9 and all dependency/base pins and prior overlays
+remain fixed. Native crash resolution is unverified; no game/GPU is launched.
+
+
+### Prepared field history and Vulkan-Headers 1.4.366 integration
+
+The owner requested tracing the repeated null field and reviewing/updating
+dependencies. Static private inspection found creation/loading/destruction/use
+paths, including an initialization that writes zero legitimately. This does not
+show which path the failing native object took. The new generic opt-in
+`SOTC_CPU_FIELD_TRACE` uses the selected CPU's existing probes at reviewed function
+and call-continuation block entries. A private ignored selection installs 17
+site/field observations; no game offsets or instructions enter public source.
+The shared graphics entry loads the private selection and the supervisor records
+it. Both command files/direct packaging routes honor explicit overrides/empty
+disable. Nine real-entry stub controls stop before any driver/GPU action.
+
+One protected 64-bit field is observed at each configured site, without pointer
+chasing, guest writes, return-slot edits or resource changes. A fixed atomic
+2048-record ring preserves bounded history for fatal dumps in JIT and interpreter.
+Hot consumer sites suppress identical samples in a bounded per-thread cache;
+lifecycle sites retain all observations. Drops/overwrites/readability/suppression
+are explicit. These are sampled site observations, not exhaustive writes,
+allocation identities, writer attribution or CPU/GPU ordering proof. See
+[CPU diagnostics](CPU_DIAGNOSTICS.md) for syntax, status bits and offline analysis.
+
+Three original native CPU tests pass, including actual loader fatal histories
+and rejection controls; direct probe/ring fixtures run with UBSan/bounds in both
+modes and preserve vector state, bytes and errno. Two offline-parser tests and
+22 supervisor tests pass. Full synthetic JIT/interpreter contracts pass; no game
+is launched. Native history and a corruption correction remain unverified.
+
+The dependency review found Vulkan-Headers **1.4.366**, commit
+`73814d006638aa00bd553215b054f0f02e457e22`, published as a source update October 23
+01:14:01 UTC. Its registry/generated C/C++ diff was inspected and integrated.
+The recipe now selects loader **1.4.365** independently, avoiding an unsupported
+assumption that each header tag has a matching loader release. ARM64 library,
+all 21 renderer CPU checks, 26 builder tests and 46/46 host-symbol audit pass.
+Installed version markers and the build report identify headers 366/loader 365.
+Cache remains 28/9, with all existing memory/shader/audio overlays retained.
+The runtime/CPU/reference base pins do not change.
+
+Other selected stable library/tool channels were refreshed: MoltenVK 1.4.2,
+SPIRV-Cross SDK 1.4.363.0, SDL 3.4.18, glslang 16.6.0, Dear ImGui 1.93.0 and
+Zycore 1.5.2 remain current in their reviewed channels. GitHub's release endpoint
+is not a valid latest-tag oracle for every repository; loader/headers tags and
+Zycore tags were checked separately. Runtime head `0d2ffb3470da7e56dd82cc8ef08f58b5e777abbd`
+and app head `f761502eb4d34e92a5446751f3d8f1d2140339ad` add Metal FSR 4.1.1/adapter
+and launcher work; this is a separate unqualified architecture migration, not a
+source-field fix. CPU head `ef153b8d35768aff86fa1643c12e7d0340b16501` still adds
+CI/link changes rather than a newer CPU implementation. No unmerged PerVertex
+proposal, alternative driver, system software or game module is installed.
+
+### Targeted capture exercised: source field is zero
+
+The October 23 06:29:14 UTC owner capture (08:29:14 Madrid) explicitly enables
+the prepared field selection and emits the configured-field records. It ends
+after 69.639 s on translated CPU SIGSEGV, confirmed exits 139/139, at the same
+null-object field-read instruction as the 06:09:33 capture. The earlier caller's
+source field and the neighboring word are both zero in the protected snapshot,
+consistent with the null argument. This closes the missing-field evidence gap;
+it is not an atomic execution history and does not identify who initialized,
+cleared, freed or otherwise invalidated the object. Other fields selected for
+the intervening array-pointer fault stop safely because their base is null in
+this different boundary. They do not demonstrate a reader failure.
+
+Balanced-v2 and the expected probe/renderer UUIDs are loaded. There are 984 API
+presentation results, 327 pipeline failures across 302 shader pairs (289 with
+adjacent PerVertex conversion errors, 38 unattributed), and 271 SRT errors.
+Fewer events before an earlier stop do not establish shader improvement. Visual
+capture remains off. No Metal OOM or large copy is recorded, with no memory
+journal drops/errors. The last and largest presentation sample is 8.937 GiB,
+633.819 ms old at that presentation; it does not measure failure-time pressure.
+Audio records 26 windows, zero queue-wait failures and a 94.839 ms maximum
+delivery gap; absence of queue errors does not establish smooth playback.
+
+The next causal question is the source field's initialization/clearing and object
+ownership history. Do not skip the read, manufacture an object, attribute this
+to PerVertex/SRT, or declare CPU/GPU corruption proven from the zero alone.
+Exact field selection, addresses and reports remain private. No code, runtime
+setting, dependency or cache changes accompany this analysis; no game is launched.
+
+### Latest capture and corrected diagnostic activation path
+
+The October 23 06:24:04 UTC owner capture (08:24:04 Madrid) ends after 86.294 s
+on a different translated CPU SIGSEGV, exits 139/139. Private disassembly shows
+an invalid array-pointer read; preceding source fields are outside the default
+register snapshot. The writer, lifetime and shared cause with prior faults are
+unknown. It records 1050 API presentations, 432 pipeline failures across 396
+shader pairs (386 adjacent PerVertex, 46 unattributed), and 805 SRT errors.
+There are zero recorded large copies, no Metal OOM, and no journal drops/errors.
+Last native allocation is 9.777 GiB, with a 777.057 ms-old sample at the last
+presentation, not at failure. Observed presentation-sample peak is 9.810 GiB.
+Audio has zero queue-wait failures and a maximum delivery gap of 32.439 ms.
+Neither pixels nor synchronization is established by these API/timing records.
+
+The settings header explicitly records `SOTC_CPU_FAULT_FIELDS=null`, so this
+capture did not exercise the selected source fields. Earlier activation only
+covered the dedicated native command. The private-file reader now lives at the
+common `packaging/test-arm64.sh --graphics-game-test` entry: both command files
+and direct packaging invocation share it. Explicit environment values still
+override the private file, including empty to disable. Nine real-entry synthetic
+controls cover all three routes and override/disable; a Python stub stops before
+any Vulkan/driver/GPU action. The private selection retains the earlier null
+source and adds bounded fields for this newer array-pointer boundary. No game
+was launched and no semantic crash correction is claimed. Exact fields, raw
+disassembly and reports remain private. Earlier activation scope below is history.
+
+### Owner-activated source-field capture
+
+The owner explicitly requested activating the prepared diagnostic. The native
+command now reads optional private `work/cpu-fault-fields.txt` into
+`SOTC_CPU_FAULT_FIELDS`. It reads data, not shell code; an explicitly supplied
+environment value takes precedence, including empty to disable the selection.
+The exact source-field selection is installed privately and ignored by Git.
+The existing bounded fatal reader and supervisor settings record remain unchanged.
+Actual-launcher stub controls verify absent/private files, newline handling,
+override and empty disable without starting a game/GPU. This activates additional
+evidence only when the owner next launches the native command and a terminating
+translated fault occurs. It does not trace earlier writers or establish a crash
+fix. No new native comparison accompanied activation. Older inactive wording
+below records the preceding preparation state.
+
+### Latest owner result: null object in translated CPU code
+
+The October 23 06:09:33 UTC capture (08:09:33 Madrid) loads balanced-v2 and
+matching probe/renderer UUIDs, then ends after 80.855 s on translated CPU SIGSEGV,
+confirmed child/supervisor exits 139/139. Private offline disassembly and register
+context identify a field read through a null object argument. A preceding caller
+loads that argument from a different object's field. Its source lies beyond the
+default four-word register snapshot: the actual source-field value, writer,
+initialization and lifetime are not captured. Earlier invalid-pointer faults
+must not be treated as the identical instruction or an established common cause.
+
+There are 1136 API presentation results, 377 pipeline-creation failures across
+337 shader pairs and 271 SRT offset errors. Exactly 318 pipeline failures have
+adjacent PerVertexKHR conversion messages; 59 remain unattributed (57 share a
+fragment hash with conversion evidence elsewhere, not exact attribution).
+General PerVertex and dynamic SRT remain unresolved. Visual capture is off:
+presentations alone cannot establish visible logos or correct pixels. The last
+four frame-stat intervals range from 9.6 to 14.7 FPS, not a controlled benchmark.
+
+No Metal OOM or 3/3.5 GiB staging allocation is recorded. Last presented native
+allocation is 9.557 GiB, with a 684.802 ms-old sample at that presentation; this
+is not a failure-time pressure sample. Two completed requests of about 566 and
+564 MiB miss a complete runtime mapping, not an import-window boundary, and use
+one 640 MiB upload allocation. That staging inventory is 38.760 s old at the last
+presentation; completed requests are not independent concurrent allocations.
+All 246 recorded pool-window hits also fit balanced-v1 in actual-planner replay.
+The run exercises v2 without isolating its extra coverage or proving a causal
+memory/stability improvement over v1. Audio has no queue-wait failures across
+30 windows, but a maximum delivery gap of 34.274 ms; synchronization is unproven.
+
+An original private synthetic control exercises 1920 object-field/nested-call
+cases: all non-stack base registers, unaligned/high-offset fields, a native call
+boundary and deliberate null propagation. It passes in JIT and interpreter,
+both with the pinned archive and with the current local CPU context/vector bridge.
+This does not exclude other CPU defects, but gives no reproduced scalar-load or
+call-preservation defect to repair. The known public texture-pool exhaustion
+report concerns a different fault mechanism and does not identify this writer.
+
+The owner's request to try correcting the crash does not justify skipping a
+load, manufacturing an object or claiming success from unrelated tests. No
+semantic runtime correction is established in this follow-up. A private inactive
+`SOTC_CPU_FAULT_FIELDS` template targets the missing source field through the
+existing bounded protected reader; exact offsets/disassembly stay under `work/`.
+It changes no public game-specific code, active setting, dependency or cache.
+Refresh the tracked public sources before proposing any native comparison.
+No game or GPU was launched during this investigation.
+
+### Prepared early-OOM correction: balanced-v2 import placement
+
+The owner reports that the latest run did not show logos. The failure reviewed
+below is Metal OOM, not a recorded CPU signal: the slightly-over-3-GiB binding
+starts below the previous middle-window origin and allocates 3.5 GiB staging.
+Twenty API presentation results cannot establish visible logos or valid pixels.
+
+The checked `sotc-pool-window-placement` overlay now selects balanced-v2. It moves
+the middle origin from 2 GiB to 1.75 GiB, shortens the prefix from 2.5 to 2.25 GiB,
+and preserves the 3.5 GiB individual limit, 3 GiB stride and 512 MiB overlaps.
+For the selected 6592 MiB pool the windows are [0, 2.25), [1.75, 5.25) and
+[4.75, 6.4375) GiB: three imports, 7616 MiB imported aliases, exactly the previous
+total. Aliases are not additional guest storage. Complete binding and BDA
+selection still use each window's actual recorded origin; no partial binding,
+early resource release, fake completion or shader approximation is introduced.
+
+Replay compiles the maintained C++ planner and compares the actual recorded
+policy rather than assuming every journal used legacy geometry. Across 44 private
+retained journals and 10,390 observations, v1 predicts 28 crossing ranges and v2
+predicts none, with zero observed direct-hit regressions. All three morning
+failure ranges become direct bindings. Recorded events contain 73 crossings;
+45 were already addressed by v1, so 73 is not the new improvement count. There
+are no observed-policy mismatches or ranges outside the supplied 6592 MiB pool.
+Repeated events are observations, not independent allocation savings; replay
+cannot establish GPU alias correctness, residency, timing or native pressure.
+
+Synthetic ASan/UBSan checks exercise 15 movable long ranges and every BDA table
+entry, exact boundaries, overflow, missing/short mappings, full fallback and
+legacy/v1/single controls. Crucially, the earlier 3 GiB range starting just above
+2 GiB remains direct; the rejected 1.5 GiB proposal stays withdrawn. V2 is not
+universally superior: a 3 GiB range starting at 2.5 GiB fits v1 but crosses v2.
+The fixture requires its complete fallback, and no retained observation shows
+this regression. A pool-size sweep checks coverage, individual limits and overlap;
+equal import totals are asserted only for the selected pool, not all pool sizes.
+
+Validation passes: ARM64 library, all 21 renderer CPU checks, 26 builder tests,
+three replay tests and full JIT/interpreter contracts. Exact predecessor sources
+migrate as `pool_v2_previous`; cache remains 28/9 and dependency pins unchanged.
+`BB_POOL_LAYOUT=balanced-v1` restores the exact previous policy,
+`BB_POOL_LAYOUT=legacy` restores the original policy, and `BB_POOL_SPLIT=0`
+retains single-import behavior. No game or GPU was launched. Logos, lower native
+pressure, sustained stability, general PerVertex and dynamic SRT remain unproven.
+
+Private replay commands (outputs must stay under `work/`):
+
+```sh
+python3 tools/replay_pool_windows.py --all-retained --pool-mib 6592 \
+  --output work/analysis/pool-v2-all-retained.json
+python3 tools/check_pool_windows.py
+python3 -m unittest discover -s tests -p test_pool_replay.py
+```
+
+
+### Latest owner result: early Metal OOM with a 3.5 GiB allocation
+
+The October 23 05:46:41 UTC capture (07:46:41 Madrid) ends after 4.033 s,
+confirmed child/supervisor exits 23/23, on Metal command-buffer error 8:
+Insufficient Memory. The failure-time native property sample is 11.905 GiB,
+0.008 ms old. The earlier presentation sample is only 7.900 GiB but 744 ms old;
+these are different observation times, not contradictory failure-time pressures.
+
+A contiguous read-only binding requests slightly more than 3 GiB and begins
+below the 2 GiB middle-window origin. It misses complete import coverage and
+reserves a 3.5 GiB dedicated upload. The forced memory journal records one
+large-copy request and zero completions, without dropped records or observation
+errors. Therefore allocation is observed, but completed copying is not. The
+last dedicated-upload snapshot is 1.878 ms old at the native error. The recorded
+92 live images occupy 353.38 MiB; that inventory alone cannot explain all Metal
+allocation. There is one reserved/inflight native command at failure, limit and
+peak eight; simply attributing OOM to a deep unfinished queue is unsupported.
+The failed CPU-recording tail contains clear/blit/barrier candidates, not evidence
+that an identified shader instruction caused the memory failure.
+
+There are 20 presentation results, zero logged pipeline failures and 50 SRT
+offset errors. No audio timing window is available in this short capture. No
+SIGSEGV, CFG or newly added SRT-validation rejection is recorded. The early stop
+does not validate resolution of those older boundaries or general PerVertex
+support. Requested scene/output remain 1920x1080 / 1280x720, with zero scene-
+reduction decisions; that request alone does not establish actual scene coverage.
+Startup UUIDs match the current probe and cache-28/9 renderer, so current binaries
+are loaded; individual correction paths are not thereby proven exercised.
+
+The preceding 05:42:06 and 05:42:24 UTC captures also stop on Metal OOM 8, after
+5.729 and 21.430 s, exits 23/23, at 11.907 and 11.704 GiB respectively. They
+record completed large snapshots allocated at 3.5 and 3 GiB. Pipeline/SRT counts
+are 0/50 and 27/228; all 27 adjacent conversion failures are PerVertex rejections.
+These shorter captures must not be reported as reduced error rates versus the
+80.900-second 423/805 capture. Their shared import-coverage failure remains the
+next memory review priority. The prior failed 1.5 GiB-origin experiment stays
+withdrawn. This review changes no runtime, dependency or settings and launches
+no game; preserve the raw private logs and existing lifetime/failure contracts.
+
+
+### Applied follow-up: libc write coherence and portable SRT safety
+
+The owner requested investigating SIGSEGV, pipelines and SRT, including public
+GitHub sources. The requested 306/271 counts describe an older capture; the latest
+completed capture still has 423 pipeline failures and 805 SRT offset errors.
+The source-field diagnosis above remains unresolved. No new game run was made.
+
+Two guest libc imports previously resolved directly to host memcpy/memset. They
+now follow the selected runtime's existing write contract: notify the GPU memory
+tracker before writing protected pages, perform the exact libc operation, record
+an opt-in existing CPU watch, then announce the completed CPU write. Return values,
+fill-byte truncation, copy extent and ABI are unchanged. This closes a demonstrated
+notification omission, not a demonstrated cause of the game's corrupted field.
+Original CPU controls exercise the actual memory backend and imported wrappers:
+a raw host-alias control produces no watch event; adapted operations notify before
+clearing real read-only traps and after watched writes, with original/new data,
+unaligned destinations, canaries, zero-sized and unobserved-range controls. Full
+synthetic JIT/interpreter contracts pass. No GPU or game is initialized by them.
+
+The portable SRT bytecode VM has fixed 32-value and 64-pointer stacks, but installed
+programs previously had only size/alignment checks. An original-source ASan/UBSan
+control reproduces a 33-value stack overflow. The checked `sotc-srt-program-safety`
+overlay validates the owned program before installation/execution: payload extent,
+opcode/zeroed-load flags, stack effects and balanced termination. Invalid programs
+stop explicitly with shader provenance and exit 23; no opcode, table value or
+branch is fabricated. It is structural validation, not a guest-pointer/flat-buffer
+bounds proof. Existing read-fault behavior and resource lifetimes are unchanged.
+
+Full-width unsigned bitfield extraction was independently incorrect: the SRT VM
+masked width 32 to zero, while constant folding shifted a 32-bit one by 32 (UB).
+Zero-width extraction at offset 32 also needed to avoid a shift by 32. Both paths
+now preserve the defined valid range. Original controls reproduce the wrong SRT
+read and constant-fold UBSan failure. 2,244 valid base/offset/width cases compare
+actual installed SRT reads and constant propagation with a 64-bit arithmetic
+oracle. Twelve malformed/invalid controls stop explicitly, and exact stack limits
+remain accepted. These defects are not established triggers of the 805 native
+errors, whose sampled shapes contain dynamic/Phi dependencies. DMA stays off;
+unknown/cyclic/divergent dependencies are not resolved by choosing an edge.
+
+ARM64 build, all 21 renderer CPU checks, 26 builder tests and full JIT/interpreter
+contracts pass. Cache is **28/9**, fixed dependency pins unchanged. The exact
+previous cohort migrates as `srt_program_previous`. The builder now derives its
+reported cache version from checked serialization source and rejects a lock
+mismatch, replacing an obsolete hardcoded report value. No cache/capture is purged.
+Native visual, corruption, synchronization and memory-pressure effects remain
+unverified. Read the new [public-source review](GITHUB_PROBLEM_REVIEW.md) for
+PerVertex proposals and why unrelated upstream changes were not copied wholesale.
+
+
+### Latest owner result: translated CPU fault with a visible source field
+
+The October 22 22:26:02 UTC capture (October 23 00:26:02 Madrid) stops after
+80.900 s, confirmed exits 139/139, on SIGSEGV in translated guest code. Offline
+inspection of the private executable identifies a byte comparison through an
+invalid pointer. The preceding instruction loads that pointer from a structure
+field, and the bounded fault snapshot records the same invalid value in that
+field. This narrows the source-field investigation; it does not identify the
+writer, prove object lifetime/type, or distinguish guest corruption from an
+incorrect earlier CPU/runtime operation. Do not skip the access or replace it
+with a fabricated value. Unlike the earlier unmapped host-instruction failure,
+this report supplies a translated guest instruction and source-field evidence.
+
+The new native ARM64 register context is exercised and complete. The native PC
+is in generated translated code; lack of a startup Mach-O range match is expected
+for that code and is not evidence of a new invalid host branch. The recorded LR
+matches the diagnostic executable's startup text interval, but remains an
+unvalidated candidate rather than a reconstructed call stack.
+
+There are 881 presentations, 423 pipeline failures / 388 shader pairs (376
+adjacent PerVertex rejections, 47 unattributed), 805 SRT errors and no finite-SRT
+expansion messages. Last presentation-observed Metal allocation is 9.497 GiB,
+523 ms old; it is also the sampled peak, not exact fault-time pressure. Cumulative
+large-copy requests/completions remain zero with no journal drops/tracker errors.
+Last dedicated upload is 600 MiB, 353 ms old. Audio's maximum submit gap is
+102.701 ms with zero queue-wait failures. Scene/output stay 1920x1080 / 1280x720,
+windowed, with no reduced decisions. No Metal OOM, CFG or shader-decode stop is
+recorded; their absence does not establish a fix or sustained stability.
+
+The intervening 22:23:46 UTC capture instead stops on Metal OOM 8 after 19.143 s,
+exits 23/23, at 11.665 GiB actual failure-time allocation, with a 3 GiB staging
+snapshot for a contiguous binding beginning below the 2 GiB middle-window origin.
+These outcomes demonstrate allocation-placement sensitivity of the current
+geometry. The uncompiled 1.5 GiB-origin proposal left by the disconnected session
+failed the existing 3 GiB-range regression and has been withdrawn; the source is
+restored to the compiled 2 GiB-origin geometry. A new synthetic band control
+preserves both successful coverage and the known full-copy fallback below that
+origin. Original UnifiedRange/BDA ASan/UBSan checks pass after restoration. No
+native benefit is claimed for the withdrawn proposal; no game was launched here.
+The main-shader owned-input change remains built and CPU-tested, cache 27/9;
+this capture does not by itself validate its effect on the previous decode stop.
+
+
+### Latest owner result and owned main-shader input
+
+The October 22 22:16:18 UTC capture (October 23 00:16:18 Madrid) ends after
+116.574 s, exits 23/23, on `unknown_instruction_format` in main shader decoding.
+An earlier unhandled DPP message does not establish that implementing DPP would
+resolve the later failure. Unsupported input, incorrect shader extent and
+corrupted/reused bytes remain alternatives. No CFG rejection, Metal OOM or native
+fatal signal is recorded; absence in this run does not resolve previous faults.
+
+The windowed startup is exercised: BB_FULLSCREEN=0, 1280x720 output, original
+1920x1080 scene, upscaler none and zero reduced decisions despite inherited
+preset 4. There are 943 presentation results, 423 pipeline failures / 388 pairs
+(377 adjacent PerVertex rejections; 46 unattributed), 805 SRT errors and no
+finite-choice expansion messages. Last native sample is 9.596 GiB, 337 ms old;
+presentation-sampled peak is 9.601 GiB. Cumulative large-copy requests/completions
+remain zero with no journal drops/tracker errors. Last dedicated upload sample
+is 140 MiB, 13.917 s old, so it is not failure-time pressure. Maximum audio submit
+gap is 30.340 ms, with zero queue-wait failures; this does not prove synchronization.
+
+Review found that main-program translation borrowed caller storage for every
+instruction read. The checked `sotc-shader-snapshot` overlay now copies exactly
+the supplied dwords into compilation-local owned storage before decoding. It
+keeps that storage through translation, then releases it; there is no global
+snapshot cache or extra per-draw copy on cached-module hits. The original guest
+base remains in Info and failure provenance. A 24-bit metadata byte-length cap
+rejects oversized supplied programs before reading/copying them. Cache stays
+27/9 because output semantics and serialization are unchanged; pins are fixed.
+
+This protects against source reuse after capture. It does not make the initial
+copy atomic, validate metadata/hash freshness, restore already-corrupt input,
+protect separately parsed fetch code, or prove the latest failure's cause. No
+unknown instruction is skipped or synthesized. Failure provenance now reports
+supplied word count and owned-input status; unknown-format failures report the
+actual remaining supplied words instead of an unavailable sentinel. No extra
+raw-code dump or guest reread is added to the failure path.
+
+Synthetic installed-decoder controls compare the same source overwrite: the
+borrowed path fails, while owned input continues decoding its original end
+instruction. Owned decoding also survives unmapping the original guarded source.
+Actual TranslateProgram rejection controls verify owned input/provenance and
+oversize rejection before capture. Native effect awaits an owner-run comparison;
+no game was launched during this work.
+
 ### Shader CFG follow-up: defined SetPC arithmetic and explicit target validation
 
 The `sotc-shader-cfg` overlay corrects signed C++ overflow in the local static

@@ -1,5 +1,64 @@
 # Reviewed renderer adaptations
 
+The current cache is 28/9; older cohort/cache entries below are historical.
+
+`sotc-task-guard` adds production Task promise allocation/deletion hooks to a
+bounded opt-in macOS CPU-frame quarantine. It preserves the seven ordered frame
+release sites; independent mappings become inaccessible after deletion. The
+host diagnostic implementation and limits are documented in CPU_DIAGNOSTICS.
+Exact `task_guard_previous` source migration is supported. Shader cache/layout
+and dependency pins stay fixed; CPU-only stale/ordered-consumer controls do not
+prove native guest lifetime correctness. Run `python3 tools/check_task_guard.py`.
+
+`sotc-shader-provenance` checks full SH copy destinations in shared graphics,
+graphics compute and asynchronous compute paths, preserving valid/empty writes.
+Previous actual cases reproduce adjacent-owner overwrites at compute end/crossing
+and graphics bank end. Adapted copies stop before mutation. Opt-in bounded program
+write/lookup observations cover shared graphics replay, both compute owners and
+CP observer writes, emitting on required metadata failure. Metadata evidence uses
+the actual scanned bytes, with no later backing reread. Returned code and lookup
+observations retain the captured validated address, closing a reproduced second-
+descriptor-read mismatch without promising atomic code/user-data lifetime. Exact predecessor
+`provenance_previous` migrates without reapplying old overlays. Pins/cache 28/9
+remain fixed; native corruption causality is unproved. Run the CPU-only production
+case/canary controls with `python3 tools/check_shader_provenance.py`.
+
+
+`sotc-shader-format-bounds` checks indices on all seventeen instruction-format
+tables. The original first-outside-index control traps with checked std::array;
+2,002 existing entries retain all metadata and 34 outside-index cases return
+undefined formats for the decoder's existing explicit failure. Installed synthetic
+outside and in-table-hole instructions reject with exit 23. The owner's captured
+in-range undefined format is unresolved. Exact `format_previous` migration is
+checked; pins/cache 28/9 stay fixed because valid metadata is unchanged. No GPU
+or game-derived fixture is used by `tools/check_shader_formats.py`.
+
+`sotc-sample-count-validation` preserves the existing 1/2/4/8/16 guest domain
+and downward selection, rejecting empty/nonmatching device masks instead of
+returning unsupported e1. Failure-only count/mask/caller-role evidence preserves
+real exit 23. The assertion shim optionally asks the host to dump its already
+retained atomic CPU history, with no guest reads or fabricated register context.
+Pinned methods reproduce the invalid fallback; 1,032 actual installed valid
+selections, 248 mask rejections and optional-hook present/absent controls pass.
+Exact cohort `sample_previous` migrates without reapplying prior overlays.
+This does not establish the latest native assertion's count or corruption cause.
+
+`sotc-srt-program-safety` checks owned portable bytecode before registration:
+opcode payloads, patched-load flags, stack bounds and balanced termination.
+Original-source VM stack overflow, wrong full-width read and constant-fold UB
+controls reproduce. Actual installed SRT/constant propagation passes 2,244 valid
+extractions and twelve explicit negative controls. Full/zero-width cases avoid
+undefined shifts, and invalid bitfield ranges stop. Guest pointer validity and
+native corruption/dynamic-Phi failures remain unresolved. Pins stay fixed; the
+exact preceding cohort migrates as `srt_program_previous` without a cache purge.
+
+`sotc-shader-snapshot` copies the supplied bounded main-program dwords into local
+owned storage through translation, retaining original source provenance. It does
+not make initial capture atomic or protect separately parsed fetch code. Original
+reuse/unmapping and actual installed rejection controls pass. This input-lifetime
+change alone does not alter serialized shader semantics.
+
+
 `sotc-shader-cfg` uses defined modulo-32-bit SetPC target arithmetic and checks
 resolver index/PC-map bounds. CFG labels must match decoded instruction boundaries;
 empty graphs, malformed sizes and missing destinations stop with scoped shader
@@ -8,16 +67,21 @@ reproduces signed overflow; 60 targets/eight valid graphs/nine negative cases
 exercise actual installed methods. Cache 27/9 prevents old shader reuse; exact
 cohort `cfg_previous` migrates with pins fixed. Native effects remain unverified.
 
-`sotc-pool-windows` shortens the first import to 2.5 GiB and positions the next
-3.5 GiB import at 2 GiB, then uses 3 GiB strides with 512 MiB overlap. Complete
+`sotc-pool-windows` introduces balanced imports; `sotc-pool-window-placement`
+selects balanced-v2, shortening the first import to 2.25 GiB and positioning the
+next 3.5 GiB import at 1.75 GiB, with 3 GiB strides and 512 MiB overlap. Complete
 bindings and BDA table entries use explicit recorded window origins. The private
-recorded giant range becomes a direct binding instead of a 3 GiB snapshot;
-CPU/sanitizer tests cover boundaries, BDA, overflow, fallback and the prefix
-tradeoff. This pool imports 512 MiB more aliases, not extra guest storage.
-Native allocation savings and alias correctness remain unvalidated. The exact
-old policy is BB_POOL_LAYOUT=legacy; BB_POOL_SPLIT=0 is preserved. Cohort
-`pool_previous` migrates with pins/cache 26/9 unchanged. Replay only predicts
-retained observations and does not add repeated requests as allocations.
+10,390-observation replay covers all 28 v1 misses with no observed direct-hit
+regression, including the latest morning OOM ranges. CPU/sanitizer tests cover
+15 movable ranges/all BDA entries, boundaries, overflow and full fallback. A
+synthetic long-tail range fits v1 but crosses v2; this tradeoff remains explicit.
+The selected pool retains three imports/7616 MiB aliases, unchanged from v1
+(512 MiB more than legacy), not extra guest storage. Native allocation savings
+and alias correctness remain unvalidated. Exact previous policy:
+`BB_POOL_LAYOUT=balanced-v1`; original: `BB_POOL_LAYOUT=legacy`;
+`BB_POOL_SPLIT=0` is preserved. Exact cohort `pool_v2_previous` migrates with
+pins/cache 28/9 unchanged. Replay only predicts retained observations and does
+not add repeated requests as allocations.
 
 `sotc-task-retirement` replaces immediate completed CPU coroutine-frame destruction
 at all seven sites with ordered recording-consumer retirement. The existing

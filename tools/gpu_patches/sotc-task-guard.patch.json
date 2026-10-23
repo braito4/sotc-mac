@@ -1,0 +1,23 @@
+{
+  "lines": [
+    "--- a/gpu/shadps4/video_core/amdgpu/liverpool.h",
+    "+++ b/gpu/shadps4/video_core/amdgpu/liverpool.h",
+    "@@ -4,6 +4,7 @@",
+    " #pragma once",
+    " ",
+    " #include <cstdlib>",
+    "+#include \"gpu_task_guard.h\"",
+    " ",
+    " #include <chrono>",
+    " #include <condition_variable>",
+    "@@ -215,6 +216,8 @@",
+    " private:",
+    "     struct Task {",
+    "         struct promise_type {",
+    "+            static void* operator new(std::size_t bytes) { return SotcTaskGuard::Allocate(bytes); }",
+    "+            static void operator delete(void* frame, std::size_t) { SotcTaskGuard::Release(frame); }",
+    "             auto get_return_object() {",
+    "                 Task task{};",
+    "                 task.handle = std::coroutine_handle<promise_type>::from_promise(*this);"
+  ]
+}

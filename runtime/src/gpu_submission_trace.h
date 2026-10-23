@@ -58,8 +58,10 @@ inline NoteKind ClassifyNote(const char* name) {
 }
 struct Commands {
     static constexpr std::size_t Limit = 96;
+    static constexpr std::size_t GuestLimit = 128;
     U64 recording{}, total{};
     std::deque<Command> tail;
+    std::deque<Command> guest_tail;
     // Counts cover all observed notes, including those evicted from the tail.
     // Guest and native notes can describe the same work; never sum them as draws.
     std::array<U64, static_cast<std::size_t>(NoteKind::Count)> counts{};
@@ -70,6 +72,7 @@ struct Commands {
         ++counts[static_cast<std::size_t>(kind)];
         if (kind == NoteKind::GuestDraw) Remember(first_draw, last_draw, command);
         if (kind == NoteKind::GuestDispatch) Remember(first_dispatch, last_dispatch, command);
+        if (kind == NoteKind::GuestDraw || kind == NoteKind::GuestDispatch) AppendGuest(command);
         AppendTail(command);
     }
     void Merge(const Commands& other) {
@@ -78,6 +81,7 @@ struct Commands {
         MergeCandidates(first_draw, last_draw, other.first_draw, other.last_draw);
         MergeCandidates(first_dispatch, last_dispatch, other.first_dispatch, other.last_dispatch);
         for (const auto& command : other.tail) AppendTail(command);
+        for (const auto& command : other.guest_tail) AppendGuest(command);
     }
 private:
     static void Remember(Command& first, Command& last, const Command& command) {
@@ -92,6 +96,10 @@ private:
     void AppendTail(const Command& command) {
         if (tail.size() == Limit) tail.pop_front();
         tail.push_back(command);
+    }
+    void AppendGuest(const Command& command) {
+        if (guest_tail.size()==GuestLimit) guest_tail.pop_front();
+        guest_tail.push_back(command);
     }
 };
 struct Dependency { Key semaphore{}; U64 value{}; };
@@ -365,6 +373,13 @@ private:
         PrintCandidate(output, "last_guest_draw", commands.last_draw);
         PrintCandidate(output, "first_guest_dispatch", commands.first_dispatch);
         PrintCandidate(output, "last_guest_dispatch", commands.last_dispatch);
+        const auto guest_total=commands.counts[static_cast<std::size_t>(NoteKind::GuestDraw)]+
+                               commands.counts[static_cast<std::size_t>(NoteKind::GuestDispatch)];
+        std::fprintf(output,"GPU submission trace: guest_candidates retained=%zu total=%llu omitted=%llu limit=%zu; CPU recording candidates, not GPU progress\n",
+                     commands.guest_tail.size(),(unsigned long long)guest_total,
+                     (unsigned long long)(guest_total-commands.guest_tail.size()),Commands::GuestLimit);
+        for (const auto& command : commands.guest_tail)
+            PrintCandidate(output,"retained_guest",command);
         for (const auto& command : commands.tail)
             std::fprintf(output, "GPU submission trace: cb_command=%llu recording=%llu buffer=%#llx %s "
                          "shader=%016llx,%016llx count=%llu,%llu,%llu\n",

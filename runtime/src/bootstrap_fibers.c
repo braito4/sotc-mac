@@ -9,11 +9,19 @@
 #include "bootstrap_contracts.h"
 #include "bootstrap_cpu_context.h"
 #include "runtime.h"
+#include "fiber_failure_diagnostics.h"
 #include <setjmp.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Standalone contract binaries have no history owner. The diagnostic entry
+ * supplies a strong override which freezes/reports its existing atomic ring. */
+__attribute__((weak)) void sotc_cpu_field_trace_on_fiber_failure(const SotcFiberFailure *evidence) {
+    if (sotc_fiber_failure_prepare(STDERR_FILENO))
+        sotc_fiber_failure_write(STDERR_FILENO,evidence);
+}
 
 #define E_NULL ((int32_t)UINT32_C(0x80590001))
 #define E_ALIGN ((int32_t)UINT32_C(0x80590002))
@@ -128,8 +136,17 @@ static int32_t save_running(uint64_t *resume_arg) {
      * dispatcher cannot suspend. Refuse it instead of dropping those frames. */
     if (current.depth != active->caller.depth + 1) return E_PERMISSION;
     if (f->stack) {
-        if (*(uint64_t *)f->stack != STACK_MAGIC) {
-            fputs("STOP: fiber guest stack overflow\n", stderr); _Exit(23);
+        const uint64_t observed=*(uint64_t *)f->stack;
+        if (observed != STACK_MAGIC) {
+            SotcFiberFailure evidence={.fiber=(uintptr_t)f,.stack=(uintptr_t)f->stack,
+                .size=f->stack_size,.context=(uintptr_t)f->context,
+                .context_start=(uintptr_t)f->context_start,.context_end=(uintptr_t)f->context_end,
+                .entry=f->entry,.rip=current.rip,.expected=STACK_MAGIC,.observed=observed,
+                .state=atomic_load(&f->state),.flags=f->flags};
+            memcpy(evidence.regs,current.r,sizeof(evidence.regs));
+            memcpy(evidence.name,f->name,sizeof(evidence.name));
+            sotc_cpu_field_trace_on_fiber_failure(&evidence);
+            _Exit(23);
         }
         if (!bootstrap_cpu_suspend(&f->context->cpu)) return E_PERMISSION;
         f->context->resume_arg = resume_arg;

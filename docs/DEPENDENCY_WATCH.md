@@ -1,9 +1,9 @@
 # Dependency and reference watch
 
-The owner requested continuing review of upstream changes. The broader daily
-public-source watch exists but is paused as checked on 2026-10-22. A separate
-hourly watch of the owner-requested AnyPS5 macOS thread is now enabled, notifying
-only about relevant new findings. Neither task automatically updates dependencies.
+The owner requested continuing review of upstream changes. This document keeps
+the permanent source list for development-session reviews. Scheduled public
+checks are separate; this review does not create or reactivate them. Source
+reviews do not automatically install dependencies or publish changes.
 Development sessions should also check these sources before treating an old
 limitation as current. Resolve each repository's actual default branch, record
 the reviewed SHA and inspect the diff and tests.
@@ -20,13 +20,75 @@ cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 | [AjncSystem/ShadowOfTheColossus-PC](https://github.com/AjncSystem/ShadowOfTheColossus-PC) | Permanent SotC reference; guest memory writeback, nested task ownership, shaders and loader contracts. Windows results require separate native ARM64 validation. |
 | [luizgustavs/Pink-shadPS4](https://github.com/luizgustavs/Pink-shadPS4) | Permanent owner-requested SotC/shadPS4 reference; memory reuse, pending CPU/GPU writes, command recording and GCN floating-point semantics. Do not copy hardcoded heap/stack workarounds or NVIDIA-specific assumptions. |
 | [bloodborne-native/bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac) | Preferred app/reference upstream; follow its runtime links rather than copying app-specific assumptions. |
-| [bloodborne-native/bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime) | Our pinned renderer/runtime base; shader, memory, synchronization and lifetime changes. |
+| [bloodborne-native/bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime) | Permanent direct upstream, explicitly reaffirmed October 23; our pinned renderer/runtime base. Compare selected and last-reviewed SHAs, shader input ownership/decoding, GPU/CPU memory ordering, command reuse, resource lifetime, Metal and host contracts. |
 | [bloodborne-native/bloodborne-recomp](https://github.com/bloodborne-native/bloodborne-recomp) | Our pinned native CPU translator; instruction/ABI fixes and interpreter/JIT parity. |
 | [bmy/bbport-mac](https://github.com/bmy/bbport-mac) | Additional Mac reference requested by the owner; native renderer, memory, driver and recording fixes. Not a direct submodule. |
 | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | Installed Vulkan-on-Metal driver; native memory, resource lifetime and experimental PerVertexKHR #2858. |
 | [KhronosGroup/SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | Installed SPIR-V-to-MSL compiler; interface lowering and proposals #2699/#2697. |
 | [shadexternals/mesa-kosmickrisp](https://github.com/shadexternals/mesa-kosmickrisp) | Alternative driver used by bmy's port; ARM64, sparse buffers and geometry/interface support. Not installed here. |
 | [AnyPS5 macOS issue #1](https://github.com/boykopovar/AnyPS5/issues/1) | Owner-requested discussion watch; follow linked memory-ordering, shader, Metal and host-contract fixes. Different PS5/Rosetta implementation; not a dependency. |
+
+## Object lifetime follow-up: 2026-10-23
+
+Track [SotC issue #274](https://github.com/AjncSystem/ShadowOfTheColossus-PC/issues/274):
+its older Linux capture reaches the same array-read boundary; no fix, comments
+or deterministic reproducer yet. The new AnyPS5 permission-intersection report
+and existing guarded-quarantine/readback experiments are contrasted with local
+code in [the upstream review](UPSTREAM_REVIEW.md#object-corruption-diagnosis-methods-public-review-2026-10-23).
+No runtime/profile change follows from these reports; the pending owner command
+is unchanged. A matching instruction alone does not establish matching lifetime.
+
+## Direct runtime review reaffirmed: 2026-10-23
+
+The owner explicitly requested [bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime)
+as a permanent direct change source. It was already listed above and in the
+lock; no duplicate source or watch is created. Public Git HTTPS refs reconfirm
+main at `0d2ffb3470da7e56dd82cc8ef08f58b5e777abbd`, unchanged from the preceding
+review, while the selected runtime stays `b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548`.
+The public compare patch contains 30 commits / 149 distinct paths. Reviewed
+candidate decisions and synthetic follow-ups are in
+[the upstream review](UPSTREAM_REVIEW.md#direct-runtime-review-2026-10-23).
+
+Already adapted: `dcaf500` instanced Metal tessellation. Future feature candidate:
+`1baeb98` FSR Metal shared-event ordering and reacquiring command buffers after
+submission, relevant if that backend is integrated. Not adopted: `ab31a4c`
+content-losing critical-pressure eviction. Adapter A0-A3 is a separate broad
+migration. This diff supplies no decoder/CPU implementation correction for the
+latest unknown-format or invalid-string boundary. Author Bloodborne/M3 results
+remain distinct from our M1 CPU controls and pending native game validation.
+
+## SIGSEGV/pipeline/SRT review: 2026-10-23
+
+The later owner-authorized dependency update integrates
+[Vulkan-Headers 1.4.366](https://github.com/KhronosGroup/Vulkan-Headers/commit/73814d006638aa00bd553215b054f0f02e457e22),
+October 23 01:14:01 UTC. Registry/generated C/C++ changes were reviewed; installed
+headers/build markers and ARM64/all 21 renderer CPU checks agree. Vulkan-Loader
+stays 1.4.365 under its own recipe variable: header/loader release tags need not
+advance together. The [inventory](DEPENDENCIES.md) is refreshed with exact SHAs.
+Other reviewed stable library/tool channels remain at the selected versions.
+Runtime/app FSR 4.1.1 and adapter changes remain separately reviewed references;
+the qualified base and local overlays are retained. No native rendering or
+source-field corruption benefit is established by a header-only update.
+
+Before the owner-requested targeted-field comparison, public API checks again
+resolve SotC main `40ec52a5a246bbaf20402520fe8fc9682f0a30c0` (October 22
+16:40:58 UTC) and CPU main `ef153b8d35768aff86fa1643c12e7d0340b16501`
+(October 22 16:51:55 UTC). Runtime main is now observed at
+[`0d2ffb3470da7e56dd82cc8ef08f58b5e777abbd`](https://github.com/bloodborne-native/bloodborne-runtime/commit/0d2ffb3470da7e56dd82cc8ef08f58b5e777abbd),
+October 23 00:22:19 UTC. The newer diff adds Metal FSR 4.1.1 integration and moves
+adapter image-barrier state; this is not a qualified migration or an identified
+repair for the null/invalid CPU-object writer. The proposed comparison keeps
+upscaling off and selected pins/cache unchanged. MoltenVK latest release remains
+1.4.2; PerVertex proposals #2858/#2699 remain open drafts at the reviewed heads,
+and SotC #219/#173 remain open/non-draft/unmerged at the reviewed heads. Private
+API responses and diffs are retained under `work/`; no dependencies are updated.
+
+The owner-requested [follow-up](GITHUB_PROBLEM_REVIEW.md) refreshes reference/CPU
+heads, observes the newer runtime adapter series, verifies PerVertex PR heads
+and states, and inspects the stale-readback/nested-release/geometry-emulation
+changes against our local contracts. Observed heads are separate from qualified
+pins. No dependency, driver or automation is changed. A separate checked local
+SRT/bitfield safety adaptation now uses cache 28/9; native effects remain pending.
 
 ## Owner-requested five-source refresh: 2026-10-22
 

@@ -2,6 +2,11 @@
 #include "gpu_command_failure.h"
 #include <cassert>
 #include <string>
+#ifdef SOTC_TEST_HISTORY_HOOK
+extern "C" void sotc_cpu_field_trace_on_gpu_assert() {
+    std::fputs("SYNTHETIC_CPU_HISTORY\n",stderr);
+}
+#endif
 
 int main(int argc, char** argv) {
     assert(argc == 2);

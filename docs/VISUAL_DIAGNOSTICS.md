@@ -1,5 +1,50 @@
 # Private visual diagnostics
 
+## Combined private run report
+
+The owner launcher now also enables bounded pre-failure CPU/shader journals.
+The report includes pre_failure_journals and capture_readiness even when a CPU
+signal, shader _Exit, fiber guard failure or cooperative stop bypasses another
+subsystem's final dump. CPU observations remain per-site and shader writes/
+lookups have independent channels. Interrupted/stale slots and foreign producer
+PIDs are excluded; finite retention and absent requested files are explicit.
+See [CPU diagnostics](CPU_DIAGNOSTICS.md#combined-pre-failure-capture).
+
+
+After each supervised graphics run, the launcher writes `diagnostic.json` in its
+fresh private state directory. The offline collector combines CPU history state
+and retained time span, host register-image candidates, actual stop/exit markers,
+pipeline/SRT failures, both presentation journal rotations, last periodic memory
+summary, audio windows and a saved metadata-slice fingerprint. It also summarizes
+up to eight preceding graphics logs separately, keeping different CPU fault sites
+and missing/partial histories explicit. Co-occurrence or lower error counts is
+not a common-cause finding or a fix. Rotation may omit older presentations, native
+samples are not fault-time memory, and no missing sample is replaced with zero.
+Malformed journal tails are reported as gaps; report failure never changes the
+original diagnostic status. No device access or external publication is involved.
+
+For an existing private run use `python3 tools/analyze_diagnostic_run.py --log
+logs/OWNER_CAPTURE.log --state work/OWNER_STATE --output work/OWNER_STATE/diagnostic.json`.
+This can reconstruct only evidence already retained on disk. In particular it
+cannot recover CPU history skipped by an older direct-exit path. Required shader
+metadata stops now retain that history and save the entire bounded scan-sized
+slice; separate snapshot reads can still observe changed backing.
+
+The combined report also retains `shader_decode_failures` separately from a
+generic assertion, plus owned decode snapshot fingerprints/range context when
+available. Missing older/borrowed captures are reported explicitly. `progress_review`
+flags a long presentation gap before exit even when window closure returns zero.
+It is a post-run clue, not a live timeout or GPU-hang proof: legitimate pauses,
+minimization, startup/clock offsets and incomplete journals limit interpretation.
+
+Main-shader decode failure saves at most 64 KiB from the already owned active
+program, centred on the failed offset/end. Context identifies the saved word
+range. It never rereads the guest pointer or follows adjacent metadata. Borrowed
+fetch/copy failures do not produce an owned snapshot. First evidence is retained;
+I/O failure preserves the original assertion/exit 23. Initial copying can still
+race or start from invalid data, so saved bytes do not identify their writer or
+prove correct shader provenance.
+
 ## Offline shader failure grouping
 
 Run `python3 tools/analyze_shader_failures.py logs/OWNER_CAPTURE.log --output
@@ -24,6 +69,16 @@ or game run is needed to analyze existing logs. Native provenance remains pendin
 
 ## Submission observations
 
+The stall/failure journal retains a separate tail of **128 guest draw/dispatch
+candidates**, in addition to the original 96-note all-command tail. Native
+bind/state traffic cannot evict that separate guest tail. Candidate reports keep
+command-buffer generation, local ordinal, shader IDs and draw/dispatch counts,
+with total/retained/omitted values. The latest 118-candidate awaited batch would
+fit this bound, but other batches can exceed it. These remain CPU recording
+candidates, not per-command GPU progress or proof of the stalled shader.
+Original CPU fixtures cover native-state noise, multi-buffer merge, truncation,
+recycled handles and concurrent snapshots. Native validation is pending.
+
 The submission journal's stall/failure dump now has separate `Metal native`
 property observations. A weak command-buffer observer samples status/error,
 retained-reference policy and device allocation only while reporting, without
@@ -32,8 +87,11 @@ GPU waits. `probe_registered=0`, `available=0`, `probe_error=1` and
 not supply a missing memory measurement. Callback `status=0` without a completion
 callback is still unobserved, not native NotEnqueued. Read the separate property
 line and its availability flags. These sequential CPU properties are not an
-atomic GPU-state capture or a shader progress marker. No native comparison has
-validated this addition yet; source/journal/ARC fixtures use CPU objects only.
+atomic GPU-state capture or a shader progress marker. The October 23 09:39 Madrid
+owner capture exercises these probes: both awaited chunks are available with
+status 3/error 0, while the completed preceding batch has an unavailable released
+probe. This validates observation availability, not correct completion or a hang
+fix; the new separate candidate tail above still needs native validation.
 
 The combined graphics launcher enables `SOTC_VISUAL_TRACE=1`. Set it to `0` to
 disable the recorder. This adds CPU metadata and native allocation polling, not a

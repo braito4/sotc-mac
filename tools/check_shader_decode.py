@@ -8,6 +8,7 @@ from build_gpu import source_path, build_path
 import os
 import subprocess
 import tempfile
+import struct
 
 from check_gpu_link import host_symbol, inspect, parse_symbols
 
@@ -50,6 +51,16 @@ def main():
                         '-Wl,-export_dynamic', '-o', str(output)], check=True)
         cases = {
             'valid': None,
+            'sopk-outside': ('unknown_instruction_format','word_offset=0','phase=fixture'),
+            'sopk-hole': ('unknown_instruction_format','word_offset=0','phase=fixture'),
+            'owned-mutated': None,
+            'owned-unmapped': None,
+            'owned-evidence-window': ('synthetic_window','input_owned=1'),
+            'borrowed-mutated': ('illegal_encoding', 'word_offset=1'),
+            'main-reserved': ('unknown_instruction_format', 'input_owned=1',
+                              'supplied_words=2', 'remaining_words=0', 'phase=main'),
+            'main-oversize': ('invalid_program_size', 'input_owned=0',
+                              'supplied_words=4194304', 'phase=main'),
             'read32': ('truncated_instruction', 'word_offset=1', 'required_words=1'),
             'read64': ('truncated_instruction', 'word_offset=0', 'required_words=2'),
             'peek': ('truncated_instruction', 'remaining_words=1', 'required_words=2'),
@@ -61,18 +72,34 @@ def main():
             'reserved': ('unknown_instruction_format', 'word_offset=1', 'opcode=1601',
                          'raw_word=c3c00000', 'phase=fixture'),
             'fetch': ('unknown_instruction_format', 'phase=fetch', 'shader=0000000000005678'),
-            'main-empty': ('truncated_instruction', 'phase=main', 'shader=0000000000005678'),
+            'main-empty': ('truncated_instruction', 'phase=main', 'shader=0000000000005678',
+                           'supplied_words=0', 'input_owned=1'),
             'copy-empty': ('truncated_instruction', 'phase=copy', 'shader=0000000000001234'),
         }
         for mode, fragments in cases.items():
+            case_state=state/mode;case_state.mkdir()
             result = subprocess.run([str(output), mode], capture_output=True, text=True,
-                                    timeout=15, env=dict(os.environ, BB_GPU_USER_DIR=str(state)))
+                                    timeout=15, env=dict(os.environ, BB_GPU_USER_DIR=str(case_state)))
             expected = 0 if fragments is None else 23
             if result.returncode != expected:
                 raise RuntimeError(f'{mode}: expected {expected}, got {result.returncode}: {result.stderr}')
             for fragment in fragments or ():
                 if fragment not in result.stderr:
                     raise RuntimeError(f'{mode}: missing {fragment}: {result.stderr}')
+        captured=state/'main-reserved/shader-decode-failure'
+        assert (captured/'code.bin').read_bytes()==struct.pack('<II',0xbf800000,0xc3c00000)
+        assert 'saved_start_word=0\nsaved_words=2' in (captured/'context.txt').read_text()
+        window=state/'owned-evidence-window/shader-decode-failure'
+        data=(window/'code.bin').read_bytes()
+        assert 0<len(data)<=65536 and data==struct.pack('<I',0xbf800000)*(len(data)//4)
+        meta=dict(line.split('=',1) for line in (window/'context.txt').read_text().splitlines())
+        assert int(meta['saved_start_word'])<=19000<int(meta['saved_start_word'])+int(meta['saved_words'])
+        for mode in ('borrowed-mutated','fetch','main-oversize','valid'):
+            assert not (state/mode/'shader-decode-failure').exists(),mode
+        (captured/'context.txt').write_text('preserve first owned capture')
+        repeat=subprocess.run([str(output),'main-reserved'],capture_output=True,text=True,timeout=15,
+            env=dict(os.environ,BB_GPU_USER_DIR=str(state/'main-reserved')))
+        assert repeat.returncode==23 and (captured/'context.txt').read_text()=='preserve first owned capture'
         # Original direct slice read crosses the same guard page. This tiny control
         # uses the pinned header and never calls the new decoder with an old layout.
         pinned = state/'pinned.cpp'
@@ -98,7 +125,9 @@ int main() {
         result = subprocess.run([str(original)], capture_output=True, text=True, timeout=10)
         if result.returncode not in (-10, -11):
             raise RuntimeError(f'pinned guard control did not fault: {result.returncode}')
-        print('PASS: thirteen installed-decoder cases; explicit exit 23 before guarded reads, '
+        print('PASS: eighteen installed-decoder cases; owned main-program capture, '
+              'borrowed-reuse negative control, source unmapping, bounded size rejection, '
+              'explicit exit 23 before guarded reads, '
               'SMRD opcode 15 provenance, empty main/copy, fetch, valid literals, '
               'unaligned 64-bit reads and nested/thread-local context; pinned read faults; no GPU.')
 

@@ -14,6 +14,7 @@ def fixture(tree):
     source=(base/'liverpool.cpp').read_text()
     header=(base/'liverpool.h').read_text()
     task=function(header,'    struct Task {')+';'
+    task=task.replace('            static void* operator new(std::size_t bytes) { return SotcTaskGuard::Allocate(bytes); }\n', '').replace('            static void operator delete(void* frame, std::size_t) { SotcTaskGuard::Release(frame); }\n', '')
     task=task.replace('struct promise_type {',r'''struct promise_type {
             static void* operator new(std::size_t size) {++allocated;return ::operator new(size);}
             static void operator delete(void* pointer,std::size_t) {++freed;::operator delete(pointer);}
@@ -94,6 +95,7 @@ def main():
         header=(base/'liverpool.h').read_text()
         retirement=function(source,'static void RetireCompletedTask(')
         task=function(header,'    struct Task {')+';'
+        task=task.replace('            static void* operator new(std::size_t bytes) { return SotcTaskGuard::Allocate(bytes); }\n', '').replace('            static void operator delete(void* frame, std::size_t) { SotcTaskGuard::Release(frame); }\n', '')
         task=task.replace('struct promise_type {',r'''struct promise_type {
             static void* operator new(std::size_t size) {++allocated;return ::operator new(size);}
             static void operator delete(void* pointer,std::size_t) {++freed;::operator delete(pointer);}

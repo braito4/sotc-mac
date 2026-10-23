@@ -3,6 +3,7 @@
 #include "gpu_submission_trace.h"
 #include "gpu_visual_trace.h"
 #include "gpu_memory_trace.h"
+#include "gpu_failure_history.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -30,6 +31,7 @@ inline void CheckMetalCommandFailure(const MetalCommandFailure& failure) {
                  (unsigned long long)failure.allocated, (unsigned long long)failure.recommended,
                  (unsigned long long)failure.chunk, (unsigned long long)failure.buffer,
                  (unsigned long long)failure.recording);
+    PreserveCpuFailureHistory();
     if (failure.chunk && SotcGpuTrace::Enabled())
         SotcGpuTrace::Get().ReportMetalFailure(stderr, failure.chunk);
     SotcMemory::Failure(failure.code, failure.allocated, failure.recommended);

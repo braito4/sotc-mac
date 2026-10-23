@@ -101,7 +101,7 @@ struct GC {
     U64 used{}, trigger{}, pressure{}, critical{}, tick{}, scheduler_tick{}, kept{}, freed{};
     bool enabled{}, driver_usage{};
 };
-struct Limits { std::size_t images{8 << 20}, buffers{512 << 10}, summaries{1 << 20}; };
+struct Limits { std::size_t images{32 << 20}, buffers{512 << 10}, summaries{1 << 20}; };
 
 class Recorder {
 public:

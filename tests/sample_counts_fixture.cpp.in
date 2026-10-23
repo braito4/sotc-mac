@@ -1,0 +1,56 @@
+/* Original CPU-only controls for the installed renderer conversion. */
+#include "video_core/renderer_vulkan/liverpool_to_vk.h"
+#include "gpu_sample_counts.h"
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+namespace Original {
+@RAW@
+@SELECT@
+}
+
+#ifdef TEST_ASSERT_HOOK
+extern "C" __attribute__((visibility("default"))) void sotc_cpu_field_trace_on_gpu_assert() {
+    std::fputs("TEST: optional assertion history hook called\n", stderr);
+}
+#endif
+
+int main(int argc, char** argv) {
+    using vk::SampleCountFlagBits;
+    if (argc == 2 && !std::strcmp(argv[1], "pinned-empty")) {
+        // Reproduce the old acceptance of a count absent from the device mask.
+        assert(Original::NumSamples(8, {}) == SampleCountFlagBits::e1);
+        std::puts("PASS: pinned returns unsupported e1 for an empty mask");
+        return 0;
+    }
+    if (argc == 4) {
+        const auto requested = static_cast<u32>(std::strtoul(argv[1], nullptr, 0));
+        const auto mask = static_cast<u32>(std::strtoul(argv[2], nullptr, 0));
+        (void)Vulkan::LiverpoolToVK::NumSamples(requested, vk::SampleCountFlags(mask), argv[3]);
+        return 97; // Failure controls must terminate through the real handler.
+    }
+    unsigned valid = 0, rejected = 0;
+    for (u32 requested : {1u, 2u, 4u, 8u, 16u}) {
+        for (u32 mask = 0; mask < 256; ++mask) {
+            const auto result = SotcSampleCounts::Select(requested, mask);
+            const auto old = Original::NumSamples(requested, vk::SampleCountFlags(mask));
+            if (!(mask & static_cast<u32>(old))) {
+                assert(result.error == SotcSampleCounts::Error::NoFallback);
+                ++rejected;
+                continue;
+            }
+            assert(result.error == SotcSampleCounts::Error::None);
+            assert(result.count == static_cast<u32>(old));
+            assert(Vulkan::LiverpoolToVK::NumSamples(requested, vk::SampleCountFlags(mask),
+                                                    "matrix-control") == old);
+            ++valid;
+        }
+    }
+    for (u32 requested : {0u, 3u, 17u, 32u, 64u, 255u, 256u, 0xffffffffu})
+        assert(SotcSampleCounts::Select(requested, 0xffffffffu).error ==
+               SotcSampleCounts::Error::GuestCount);
+    std::printf("PASS: %u identical valid installed sample selections, %u unsupported-mask rejections, invalid guest domain controls; no GPU\n",
+                valid, rejected);
+}

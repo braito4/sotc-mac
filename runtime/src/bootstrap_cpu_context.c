@@ -7,6 +7,18 @@
  */
 #include "../upstream/recomp/src/cpu/cpu.c"
 #include "bootstrap_cpu_context.h"
+#include "guest_failure_state.h"
+#include <pthread.h>
+
+int bootstrap_cpu_failure_state(SotcGuestFailureState *out) {
+    memset(out,0,sizeof(*out));
+    if (!tls_cpu || tls_cpu->depth<=0) return 0;
+    /* current_cpu() may allocate. Read only the already existing TLS state. */
+    out->available=1;out->rip=tls_cpu->rip;out->fs_base=tls_cpu->fs_base;
+    out->stack_top=tls_cpu->stack_top;out->thread=(uintptr_t)pthread_self();
+    memcpy(out->regs,tls_cpu->r,sizeof(out->regs));
+    return 1;
+}
 
 void bootstrap_cpu_save(BbCpu *out) { *out = *current_cpu(); }
 void bootstrap_cpu_restore(const BbCpu *saved) {

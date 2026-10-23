@@ -1,16 +1,24 @@
 # Private resource allocation diagnostics
 
-The newest behavioral memory preparation is `sotc-pool-windows`: balanced import
-geometry avoids a recorded 3 GiB staging allocation in retained-range replay,
-at +512 MiB imported overlap for that pool. Native savings are unmeasured;
-`BB_POOL_LAYOUT=legacy` restores the original policy. Read the first handoff
-checkpoint for validation and the long-prefix fallback tradeoff. The observations
-below describe the separate recorder and historical experiments.
+The newest behavioral memory preparation is `sotc-pool-window-placement`:
+balanced-v2 starts its middle import at 1.75 GiB, avoiding all 28 v1 crossing
+ranges among 10,390 retained observations, including the last three early OOM
+captures. No observed direct hit is lost. The selected 6592 MiB pool retains
+three imports/7616 MiB aliases, unchanged from v1; other pool sizes may differ.
+Native savings are unmeasured. `BB_POOL_LAYOUT=balanced-v1` restores the exact
+previous policy and `BB_POOL_LAYOUT=legacy` the original. Read the first handoff
+for sanitizer/BDA validation and the explicit long-tail fallback tradeoff.
+`tools/replay_pool_windows.py` uses the actual C++ planner and distinguishes
+recorded policies; `--all-retained --pool-mib 6592` uses the supplied pool size,
+and private outputs must remain under `work/`. The observations below describe
+the separate recorder and historical experiments.
 
 The combined launcher enables `SOTC_MEMORY_TRACE=1`; `0` disables these additional
 observations. This instruments the current renderer without changing shader code,
 cache versions, buffer sizes, imported windows, resource ownership, eviction
-policy, fences or completion. Keep scene **640x360**, DMA/async submission off.
+policy, fences or completion. Current scene work uses native resolution;
+the historical 640x360 comparisons below do not describe the current setting.
+Keep DMA/async submission off.
 
 The separate `sotc-staging-tail-v1` overlay permits aligned non-deferred CPU
 uploads to use unused tails within the same tick when no completed buffer fits.
@@ -133,7 +141,7 @@ Each fresh private `BB_GPU_USER_DIR/memory/` contains:
 | File | Content and bound |
 |---|---|
 | `buffers.jsonl` | First 512 KiB of observations for requests at least 64 MiB. Preserves early origins rather than rotating them away. |
-| `images.jsonl` | First 8 MiB of successful image allocations, ownership/state changes and actual VMA destruction events. |
+| `images.jsonl` | First 32 MiB of successful image allocations, ownership/state changes and actual VMA destruction events (previously 8 MiB). |
 | `summary.jsonl`, `summary.previous.jsonl` | Two rotating files, at most 1 MiB each. A snapshot at most every five seconds during collection, plus a forced snapshot before native error exit 23. |
 
 Each complete record is flushed. Metadata uses host monotonic nanoseconds,
@@ -142,6 +150,12 @@ identifiers and guest range metadata. No guest content or image pixels are read
 by this recorder. These files contain private addresses and must remain outside
 Git and public reports. The existing offline `visual/report.html` includes them
 after the child stops; it also reads old runs that lack memory traces.
+
+The image-file cap was raised after the October 23 09:39 Madrid owner run
+reported 7,229 dropped image records at its former 8 MiB limit. This expands
+bounded on-disk evidence only; it does not reserve or free guest/Metal memory,
+reconstruct missing past records or guarantee that a longer run stays below
+the new cap. Existing dropped-record and fixed-inventory checks remain active.
 
 Large buffer events connect a shader binding's declared and mapping-clamped size
 with its pool physical offset, selected window, available window size and the

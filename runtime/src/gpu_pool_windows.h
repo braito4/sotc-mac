@@ -13,20 +13,23 @@ inline constexpr Size Step = 3 * GiB;
 inline constexpr Size Maximum = Step + Overlap;
 struct Window { Size start, size; };
 
-inline std::vector<Window> Plan(Size bytes, bool split, bool legacy) {
+inline std::vector<Window> Plan(Size bytes, bool split, bool legacy,
+                                bool previous_balanced = false) {
     if (!bytes) return {};
     if (!split || bytes <= Maximum) return {{0, bytes}};
     std::vector<Window> result;
     Size start = 0;
     for (;;) {
-        // A shorter prefix leaves a full 3.5 GiB window starting at 2 GiB.
-        // This covers long contiguous bindings in the middle of the pool.
-        const Size length = !legacy && start == 0 ? 2 * GiB + Overlap : Maximum;
+        // Keep a 512 MiB overlap and make room for middle-pool allocations
+        // starting below 2 GiB. The 1.75 GiB origin also keeps the prior
+        // 3 GiB range above 2 GiB, which the rejected 1.5 GiB origin lost.
+        const Size middle_start = previous_balanced ? 2 * GiB : 7 * GiB / 4;
+        const Size length = !legacy && start == 0 ? middle_start + Overlap : Maximum;
         const Size size = std::min(length, bytes - start);
         result.push_back({start, size});
         if (size == bytes - start) break;
         // The loop continues only when bytes-start exceeds this increment.
-        start += !legacy && start == 0 ? 2 * GiB : Step;
+        start += !legacy && start == 0 ? middle_start : Step;
     }
     return result;
 }

@@ -14,6 +14,108 @@ The owner confirms this milestone on 2026-10-22. Rendering defects, memory failu
 and instability remain; correct graphics, sustained gameplay, audiovisual
 synchronization and save persistence are not validated.
 
+Latest owner capture (2026-10-23, 13:39:40 UTC) stops after 126.462 seconds
+on an invalid allocator link. Retained observations narrow the same-field value
+change to 404.567 ms; the writer and allocation lifetime remain unresolved.
+The follow-up prioritizes two allocator-link watches while retaining the earlier
+failure-family observations. See the first [handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md).
+
+Our most productive approach so far is the
+[bounded evidence and synthetic-control workflow](docs/MEMORY_ERROR_WORKFLOW.md).
+It is the recommended method for this project's intermittent memory failures;
+it does not guarantee that a specific run captures every writer or fixes corruption.
+
+The owner diagnostic also enables a bounded CPU coroutine-frame quarantine:
+freed frames become inaccessible temporarily, with a separate lifecycle journal.
+Persistent object-field and referring-table capture remains active. Synthetic
+controls catch stale reads and preserve ordered consumers; the native corruption
+cause and correct guest object lifetime remain unresolved.
+
+The latest owner capture (October 23, 2026, 13:03:52 Madrid) stops after
+86.457 seconds on an invalid link read in another tree lookup. The saved terminal
+registers match the fault text; 3072 CPU and 1024 shader observations survive.
+The offending link is visible in a readable header, but its writer/lifetime
+remains unknown and the current probe tails contain no matching source event.
+See the first [handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+Native corruption remains unresolved.
+
+The next prepared capture targets the newly localized pointer source. History
+now emits recent records first when output fills. A separate reproduced SIGPIPE
+bug in diagnostic shutdown is fixed and passes 100 closed-output controls; the
+game's invalid pointer still has no proven writer or correction.
+
+Fatal CPU reporting now attempts a compact register/thread/history minimum before
+rich diagnostics, including nested faults, so a second reporter has a chance to
+retain evidence before exiting. The combined report explicitly flags truncation.
+Synthetic checks pass; actual pointer/shader/freeze causes remain unresolved.
+
+The prepared follow-up retains a bounded snapshot of the already owned shader
+bytes when decoding fails, records the specific rejection in the combined report,
+and flags long presentation gaps even if window closure returns zero. The next
+capture uses a smaller private CPU selection. ARM64 and synthetic checks pass;
+the actual unknown-format and freeze causes remain unresolved. See the first
+[handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+Earlier owner captures follow; their dates identify historical boundaries.
+
+The latest owner run (October 23, 2026, 10:11:06 Madrid) stops after **165.141
+seconds** on required fragment-shader metadata lookup, exits 23/23. It records
+1,588 API presentations, 462 pipeline failures and 805 SRT errors, with no
+recorded OOM/large copies. The direct stop bypasses CPU history, so the active
+tree selection has no emitted evidence; missing history is not an empty ring.
+The last native presentation sample is 10.507 GiB, not failure-time. Invalid
+program origin/lifetime/visibility versus lookup limits remain unresolved;
+prior CPU faults and GPU stall are not proven fixed. See the first
+[handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The prepared follow-up retains CPU history on required shader-metadata and
+Metal-command stops, preserves the real failure status, and saves the complete
+bounded metadata scan slice. Each run now produces a private combined diagnostic
+report with separate recent failures and explicit missing evidence. ARM64 and
+synthetic checks pass; the actual shader/pointer causes remain unresolved.
+
+The preceding owner run (October 23, 2026, 09:57:24 Madrid) stops after **160.533
+seconds** on a translated CPU `SIGSEGV` in linked-node key comparison, through
+an already invalid argument. It differs from the earlier array fault. Fatal
+history is now exercised, but the array-focused selection covers only 4.366 ms
+and omits the new root/link source. There are 1,470 API presentations, 444 pipeline
+failures and 805 SRT errors, with no recorded OOM/large copies. The last native
+presentation sample is 9.905 GiB, not a fault-time measurement. The larger image
+journal has zero drops in its last periodic summary; this improves evidence,
+not game memory use. Writer/lifetime/CPU and previous GPU-stall causes remain
+open. See the first [handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The next prepared capture freezes newly entering history observations before
+fatal reporting and targets the container root/node links instead of the broad
+array consumer. ARM64 and synthetic contracts pass; the invalid pointer's origin
+and correction still require native evidence. See the first handoff checkpoint.
+
+The preceding owner run (October 23, 2026, 09:39:10 Madrid) stops after **159.147
+seconds** on GPU progress: two awaited Metal command chunks are scheduled but
+not completed. Cooperative child/supervisor exits 21/31 are confirmed. There
+are 1,336 API presentations, 477 pipeline failures and 805 SRT errors; no Metal
+OOM or large copies. A stall-time native probe samples **10.023 GiB**. CPU note
+candidates do not identify the precise stalled shader. The array trace is active,
+but cooperative stopping bypasses its fatal history dump, so pointer-origin
+evidence remains missing. Prior CPU/shader failures remain unresolved.
+See the first [handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+The prepared diagnostic now attempts 128 CPU history records during cooperative
+stopping and retains 128 guest GPU draw/dispatch candidates separately from state
+notes. It distinguishes missing/partial dumps and preserves exit status with a
+closed output reader. The image-event file cap is 32 MiB; this improves evidence,
+not game memory use. ARM64, full synthetic contracts and all 22 renderer CPU
+checks pass. The actual hang and pointer/shader causes remain unresolved; native
+validation is pending the next owner run.
+
+The checked follow-up rejects a sample count absent from the supported device
+mask and records count/mask/caller role on failure. Renderer assertions also
+retain the existing bounded CPU history. Original defect controls, 1,032 valid
+conversions, 248 mask rejections, ARM64/all 22 renderer CPU checks and full
+JIT/interpreter contracts pass. Native crash resolution remains unverified.
+Vulkan-Headers **1.4.366**, loader 1.4.365, base pins and cache 28/9 stay fixed.
+Earlier captures and preparation milestones follow.
+
 **Development has resumed.** The October 22, 2026 owner run confirms that the
 balanced guest-memory import layout avoids the large staging snapshot: zero
 recorded large copies, with the last Metal allocation sample at **8.917 GiB**
@@ -26,18 +128,35 @@ presentations, 306 pipeline-creation failures and 271 SRT errors. The port is
 still experimental: the memory mechanism is exercised, but sustained stability,
 correct pixels and OOM avoidance remain unproven.
 
-The newest comparison (October 23, 2026, 00:02:30 Madrid) ends after **118.513
-seconds** on a shader control-flow block-linking assertion, with 1,119
-presentations and the last sampled Metal allocation at **10.379 GiB**. Large
-snapshots remain absent. No OOM or SIGSEGV is recorded in that capture; the shader
-failure's cause remains unknown. Game Mode integration has been removed at the
-owner's request, and future startup is windowed by default.
+The newest comparison (October 23, 2026, 07:46:41 Madrid) ends after **4.033
+seconds** on Metal insufficient memory, at **11.905 GiB** actual failure-time
+allocation. A binding slightly larger than 3 GiB misses complete import-window
+coverage and reserves **3.5 GiB** staging; its copy completion is not recorded.
+There are 20 presentations, zero logged pipeline failures and 50 SRT errors.
+The early stop does not establish a shader fix. The two preceding morning runs
+also hit OOM with large snapshots; the earlier translated CPU SIGSEGV remains
+unresolved. Current executable/renderer UUIDs match the prepared binaries. Game
+Mode integration is removed and startup remains windowed. See the first handoff.
+
+The prepared **balanced-v2** layout moves the middle import origin to 1.75 GiB.
+It avoids the three morning captures' large fallback requests in CPU replay,
+without adding imports or imported bytes for this pool. Across 10,390 retained
+observations it covers 28 ranges missed by v1, with no observed direct-hit loss.
+ARM64, sanitizer and synthetic contracts pass; restoring logos and reducing native
+memory pressure still require an owner-run comparison. The exact previous layout
+remains available as `BB_POOL_LAYOUT=balanced-v1`; see the handoff for tradeoffs.
+
+Prepared follow-up repairs guest libc write notifications, validates portable
+SRT bytecode against its fixed stacks, and fixes full-width bitfield extraction.
+Original defect controls and ARM64/synthetic tests pass; cache is now **28/9**.
+These changes do not establish the cause of the native SIGSEGV or resolve the
+remaining dynamic SRT/PerVertex failures. No game run validates them yet.
 
 A new bounded fatal diagnostic records ARM64 registers, including the link
 register, and a startup binary UUID/text-range inventory for offline analysis.
 It does not recover from invalid execution or claim to fix its cause. CPU-only
 controls pass; startup image inventory is exercised in the owner's latest run,
-while native fatal register context remains pending a matching failure. Raw
+and native fatal register context is exercised by the latest fault. Raw
 captures, addresses, shaders and game assets remain private. See the
 [current status](docs/STATUS.md), [developer handoff](docs/DEVELOPMENT_HANDOFF.md)
 and [pause/resumption record](docs/DEVELOPMENT_PAUSE.md). Earlier investigations
@@ -170,7 +289,7 @@ regressions and JIT/interpreter contracts pass. Those two errors do not recur in
 the native comparison, but exact GPU copy pixels and all supported cases still
 need validation. PerVertexKHR failures persist. This is not an OOM or corruption fix.
 
-Dependencies remain unchanged; shader cache is now 27/9 after the defined SetPC
+Dependencies remain unchanged; shader cache is now 28/9 after the SRT/bitfield and defined SetPC
 arithmetic and CFG target-validation correction described in the handoff.
 The current launcher uses original scene resolution, a windowed default,
 DMA/async off and metadata diagnostics on. Native comparisons remain

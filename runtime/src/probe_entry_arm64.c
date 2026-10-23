@@ -7,8 +7,12 @@
  */
 #include "bbcpu.h"
 #include "bootstrap_contracts.h"
-#include "diagnostic_control.h"
 #include "cpu_fault_diagnostics.h"
+#include "cpu_field_trace.h"
+#include "cpu_pointer_trace.h"
+#define SOTC_DIAGNOSTIC_CONTROL_DUMP(fd) do { sotc_cpu_field_trace_freeze(); sotc_cpu_field_trace_dump_limited((fd),128); } while (0)
+#include "diagnostic_control.h"
+#undef SOTC_DIAGNOSTIC_CONTROL_DUMP
 #include "host_fault_diagnostics.h"
 #include "platform.h"
 #include "runtime.h"
@@ -44,6 +48,42 @@ static _Atomic int entered_game;
 static atomic_flag stopping = ATOMIC_FLAG_INIT;
 static atomic_flag fault_reporting = ATOMIC_FLAG_INIT;
 static uint64_t fault_image_size;
+void sotc_cpu_pointer_copy_write(uintptr_t address,size_t size,unsigned actor,uintptr_t input) {
+    sotc_pointer_copy(address,size,actor,input);
+}
+void sotc_cpu_field_trace_on_stack_failure(const SotcGuestFailureState *state) {
+    sotc_cpu_field_trace_freeze();
+    sotc_event_journal_failure(&sotc_trace_journal,1,state);
+    const int ready=sotc_fiber_failure_prepare(STDERR_FILENO);
+    static const char reason[]="STOP: guest stack protector detected corruption\n";
+    (void)write(STDERR_FILENO,reason,sizeof(reason)-1);
+    if (!ready) return;
+    char line[512];
+    const int n=snprintf(line,sizeof(line),
+        "Guest stack protector failure: available=0x%llx guest_rip=0x%llx rsp=0x%llx rbp=0x%llx fs_base=0x%llx stack_top=0x%llx thread=0x%llx; raw import state, not validated caller or canary\n",
+        (unsigned long long)state->available,(unsigned long long)state->rip,
+        (unsigned long long)state->regs[4],(unsigned long long)state->regs[5],
+        (unsigned long long)state->fs_base,(unsigned long long)state->stack_top,
+        (unsigned long long)state->thread);
+    if (n>0 && (size_t)n<sizeof(line)) (void)write(STDERR_FILENO,line,(size_t)n);
+    if (state->available) {
+        BbGuestRegs regs;memcpy(&regs,state->regs,sizeof(state->regs));regs.rip=state->rip;
+        sotc_cpu_fault_context(STDERR_FILENO,&regs,bb_image_base,fault_image_size);
+    }
+    sotc_cpu_field_trace_dump(STDERR_FILENO);
+}
+void sotc_cpu_field_trace_on_fiber_failure(const SotcFiberFailure *evidence) {
+    sotc_cpu_field_trace_fiber_failure(STDERR_FILENO,evidence);
+}
+/* The renderer uses _Exit for assertions, so atexit cannot retain this history.
+ * This optional exported hook only snapshots existing atomic records. */
+void sotc_cpu_field_trace_on_gpu_assert(void) {
+    static atomic_flag reporting = ATOMIC_FLAG_INIT;
+    if (!atomic_flag_test_and_set_explicit(&reporting, memory_order_relaxed)) {
+        sotc_cpu_field_trace_freeze();
+        sotc_cpu_field_trace_dump(STDERR_FILENO);
+    }
+}
 typedef struct { uint64_t at, size, flags; } Segment;
 typedef struct { uint64_t at, kind, value, addend; } Reloc;
 typedef struct {
@@ -104,12 +144,30 @@ static void fault(int sig, siginfo_t *info, void *context) {
         pthread_sigmask(SIG_UNBLOCK, &unblock, NULL);
         siglongjmp(*recover, 1);
     }
+    uint64_t minimum_pc=0,minimum_lr=0;
+#if defined(__APPLE__) && defined(__aarch64__)
+    const ucontext_t *minimum_context=context;
+    minimum_pc=minimum_context->uc_mcontext->__ss.__pc;
+    minimum_lr=minimum_context->uc_mcontext->__ss.__lr;
+#endif
+    sotc_cpu_field_trace_fatal_minimum(STDERR_FILENO,(unsigned)sig,
+        (uintptr_t)info->si_addr,minimum_pc,minimum_lr);
     /* A second fatal fault must not recurse into diagnostics or wait for a
      * damaged reporter. Preserve termination and explicitly mark truncation. */
     if (atomic_flag_test_and_set_explicit(&fault_reporting,memory_order_relaxed)) {
         const char repeated[]="CPU fault context: concurrent or nested fatal fault; report truncated\n";
         (void)write(STDERR_FILENO,repeated,sizeof(repeated)-1);
         _Exit(128+sig);
+    }
+    sotc_cpu_field_trace_freeze();
+    /* Publish registers before rich mapping/provider diagnostics or guest reads.
+     * No recorder mutex/loader/file initialization is entered from this signal. */
+    BbGuestRegs regs;
+    const int have_guest_regs=bbcpu_fault_guest_regs(context,&regs);
+    if (have_guest_regs) {
+        SotcGuestFailureState state={.available=1,.rip=regs.rip,.thread=(uintptr_t)pthread_self()};
+        memcpy(state.regs,&regs,sizeof(state.regs));
+        sotc_event_journal_failure(&sotc_trace_journal,2,&state);
     }
     /* Signal-safe header: report the failure type/address even when it is
      * outside registered guest code. Recovered GPU/speculative faults return
@@ -157,13 +215,13 @@ static void fault(int sig, siginfo_t *info, void *context) {
     char description[2048];
     if (bbcpu_describe_fault(context, description, sizeof(description)))
         (void)write(STDERR_FILENO, description, strnlen(description, sizeof(description)));
-    BbGuestRegs regs;
-    if (bbcpu_fault_guest_regs(context,&regs))
+    if (have_guest_regs) {
         sotc_cpu_fault_context(STDERR_FILENO,&regs,bb_image_base,fault_image_size);
-    else {
+    } else {
         const char unavailable[]="CPU fault context: unavailable outside translated code\n";
         (void)write(STDERR_FILENO,unavailable,sizeof(unavailable)-1);
     }
+    sotc_cpu_field_trace_dump(STDERR_FILENO);
     _Exit(128 + sig);
 }
 
@@ -201,7 +259,25 @@ int main(int argc, char **argv) {
         fputs("Invalid SOTC_CPU_FAULT_FIELDS: expected reg:offset[:words], up to 16 fields and 1..8 words each\n",stderr);
         return 24;
     }
+    if (sotc_cpu_field_trace_init(getenv("SOTC_CPU_FIELD_TRACE"))) {
+        fputs("Invalid SOTC_CPU_FIELD_TRACE: expected site:reg:offset[:on-change[:match-reg:match-image-offset]], up to 24 reviewed block-entry sites\n",stderr);
+        return 24;
+    }
+    if (sotc_pointer_init(getenv("SOTC_CPU_POINTER_TRACE"))) {
+        fputs("Invalid SOTC_CPU_POINTER_TRACE: expected site:reg:offset:inner, up to twelve reviewed entries\n",stderr);
+        return 24;
+    }
     if (sotc_diagnostic_control_start()) return 28;
+    if (sotc_trace_site_count)
+        sotc_event_journal_init(&sotc_trace_journal,"cpu-events.bin",sotc_trace_site_count,128);
+    if (sotc_pointer_count)
+        sotc_event_journal_init(&sotc_pointer_journal,"pointer-events.bin",sotc_pointer_count+2,128);
+    if(sotc_pointer_journal.map) {
+        sotc_pointer_journal.map[179]=1;
+        sotc_pointer_journal.map[180]=SOTC_POINTER_PERSISTENT;
+        sotc_pointer_journal.map[181]=sizeof(sotc_pointer_persistent)+sizeof(sotc_pointer_pages);
+        sotc_pointer_journal.map[183]=1; /* Per-probe persistent admission refusals at 192+. */
+    }
     /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
     if (argc == 3 && !strcmp(argv[1], "--gpu-load-check"))
         return bootstrap_gpu_load_check(argv[2]);
@@ -319,6 +395,33 @@ int main(int argc, char **argv) {
     }
     bb_image_base = (uintptr_t)image;
     fault_image_size = size;
+    for (unsigned i=0;i<sotc_trace_site_count;++i) {
+        const uint64_t at=sotc_trace_sites[i].site;
+        int executable=0;
+        if (at>=size || at>UINT64_MAX-bb_image_base) fail("CPU field trace site outside image");
+        if (sotc_trace_sites[i].has_match &&
+            (sotc_trace_sites[i].match_offset>=size ||
+             sotc_trace_sites[i].match_offset>UINT64_MAX-bb_image_base))
+            fail("CPU field trace match outside image");
+        for (uint64_t j=0;j<ns;++j)
+            if ((segments[j].flags&1) && at>=segments[j].at &&
+                at-segments[j].at<segments[j].size) executable=1;
+        if (!executable) fail("CPU field trace site is not executable");
+    }
+    sotc_cpu_field_trace_install(bb_image_base);
+    sotc_pointer_image=bb_image_base;sotc_pointer_size=size;
+    for(unsigned i=0;i<sotc_pointer_count;++i) {
+        const uint64_t at=sotc_pointer_sites[i].site;int executable=0;
+        if(at>=size || at>UINT64_MAX-bb_image_base)fail("CPU pointer trace site outside image");
+        for(uint64_t j=0;j<ns;++j)if((segments[j].flags&1) && at>=segments[j].at &&
+            at-segments[j].at<segments[j].size)executable=1;
+        if(!executable)fail("CPU pointer trace site is not executable");
+        bbcpu_set_probe(bb_image_base+at,sotc_pointer_probe,i);
+    }
+    if(sotc_pointer_count)printf("CPU pointer trace: %u configured pointer probes; imported memcpy/memset overlap observers; not exhaustive writers\n",sotc_pointer_count);
+    if (sotc_trace_site_count)
+        printf("CPU field trace: %u configured block-entry probes, %u retained observations; private diagnostic only\n",
+               sotc_trace_site_count,SOTC_TRACE_RECORDS);
     /* Publish all guest TLS templates before the GPU can create host workers. */
     if (linked && bootstrap) {
         bootstrap_set_procparam(image + procparam);

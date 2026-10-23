@@ -9,8 +9,24 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT/'tools'))
+from analyze_gpu_submission import analyze as analyze_submissions
 
 class SubmissionTraceTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('c++'), 'native C++ compiler required')
+    def test_failed_command_preserves_optional_cpu_history(self):
+        with tempfile.TemporaryDirectory(prefix='command history ') as temporary:
+            binary=Path(temporary)/'fixture'
+            subprocess.run(['c++','-std=c++20','-O1','-Wall','-Wextra','-Werror','-pthread',
+                '-DSOTC_TEST_HISTORY_HOOK','-I'+str(ROOT/'runtime/src'),
+                str(ROOT/'tests/gpu_command_failure.cpp'),'-o',str(binary)]+
+                (['-Wl,-export_dynamic'] if sys.platform=='darwin' else []),check=True)
+            for case in ('success','error'):
+                run=subprocess.run([str(binary),case],capture_output=True,text=True,timeout=5,
+                    env=dict(os.environ,SOTC_GPU_SUBMIT_TRACE='0',SOTC_MEMORY_TRACE='0',SOTC_VISUAL_TRACE='0'))
+                self.assertEqual(run.returncode,0 if case=='success' else 23,run.stderr)
+                self.assertEqual(run.stderr.count('SYNTHETIC_CPU_HISTORY'),0 if case=='success' else 1)
+
     @unittest.skipUnless(shutil.which('c++'), 'native C++ compiler required')
     def test_failed_command_stops_with_or_without_journal(self):
         with tempfile.TemporaryDirectory(prefix='command failure ') as temporary:
@@ -76,3 +92,12 @@ class SubmissionTraceTests(unittest.TestCase):
             self.assertLess(text.index('AWAITED tick=1'), text.index('GPU watchdog:'))
             self.assertIn('count=2,3,4', text)
             self.assertIn('child_returncode=21 exit=31', text)
+            # Consume actual production-formatted output, never a game capture.
+            report = analyze_submissions(text)['reports'][0]
+            batch = report['submissions'][0]
+            self.assertEqual(batch['tick'], 1)
+            self.assertEqual(batch['waits'], [dict(semaphore=66, value=7)])
+            self.assertEqual(batch['signals'], [dict(semaphore=55, value=1)])
+            self.assertEqual(batch['observed_chunks'], 0)
+            self.assertIsNone(batch['native_allocated_bytes_range'])
+            self.assertTrue(any('callbacks absent' in gap for gap in report['evidence_gaps']))

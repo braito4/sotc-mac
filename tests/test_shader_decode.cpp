@@ -25,7 +25,43 @@ int main(int argc, char** argv) {
     *last = 0xbf810000u; // synthetic s_endpgm
     SotcShaderDecode::Scope outer("fixture", 0x1234, 2, last);
     GcnDecodeContext decoder;
-    if (mode == "read64") {
+    if (mode == "owned-evidence-window") {
+        std::vector<u32> source(20000,0xbf800000u);
+        SotcShaderDecode::Scope evidence("main",0x5678,6,source.data(),source.size());
+        SotcShaderDecode::OwnedCode snapshot(source);
+        SotcShaderDecode::current.input_owned=true;
+        std::fill(source.begin(),source.end(),0xffffffffu);
+        SotcShaderDecode::Fail("synthetic_window",19000,1000,0);
+    } else if (mode == "owned-mutated" || mode == "borrowed-mutated" || mode == "owned-unmapped") {
+        auto* start = last - 1;
+        start[0] = 0xbf800000u;
+        start[1] = 0xbf810000u;
+        SotcShaderDecode::OwnedCode snapshot(std::span<const u32>(start, 2));
+        const auto owned = snapshot.Words();
+        assert(owned.size() == 2 && owned.data() != start);
+        const auto input = mode == "borrowed-mutated" ? std::span<const u32>(start, 2) : owned;
+        GcnCodeSlice slice(input.data(), input.data() + input.size());
+        assert(decoder.decodeInstruction(slice).opcode == Opcode::S_NOP);
+        if (mode == "owned-unmapped") {
+            assert(munmap(pages, page * 2) == 0);
+        } else {
+            start[1] = 0xffffffffu; // Original storage reused after capture/first decode.
+        }
+        assert(decoder.decodeInstruction(slice).opcode == Opcode::S_ENDPGM);
+        assert(slice.atEnd());
+        if (mode != "owned-unmapped") munmap(pages, page * 2);
+        return 0;
+    } else if (mode == "main-reserved" || mode == "main-oversize") {
+        std::vector<u32> words(mode == "main-oversize" ? (1u << 22) : 2, 0xbf800000u);
+        if (mode == "main-reserved") words[1] = u32(InstEncoding::SMRD) | (15u << 22u);
+        Info info{};
+        info.pgm_hash = 0x5678;
+        info.hw_stage = HwStage::Compute;
+        RuntimeInfo runtime{};
+        Profile profile{};
+        Pools pools;
+        (void)TranslateProgram(words, pools, info, runtime, profile);
+    } else if (mode == "read64") {
         GcnCodeSlice slice(last, last + 1);
         (void)slice.readu64();
     } else if (mode == "read32") {
@@ -39,6 +75,12 @@ int main(int argc, char** argv) {
         *last = mode == "literal" ? 0xbeeb03ffu : mode == "wide" ? 0xd0000000u :
                 mode == "sdwa" ? 0x7e0002f9u : mode == "dpp" ? 0x7e0002fau : 0xffffffffu;
         GcnCodeSlice slice(last, last + 1);
+        (void)decoder.decodeInstruction(slice);
+    } else if (mode == "sopk-outside" || mode == "sopk-hole") {
+        // Synthetic indices: first beyond the table, and an in-table hole.
+        const u32 op=mode=="sopk-outside" ? 22u : 1u;
+        u32 words[]={u32(InstEncoding::SOPK) | (op<<23u)};
+        GcnCodeSlice slice(words,words+1);
         (void)decoder.decodeInstruction(slice);
     } else if (mode == "reserved") {
         // Build a reserved SMRD opcode from fields, independent of any game.

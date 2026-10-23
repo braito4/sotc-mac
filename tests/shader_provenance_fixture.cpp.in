@@ -1,0 +1,71 @@
+// Original synthetic PM4 register/canary controls using actual production cases.
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include "video_core/amdgpu/regs.h"
+#include "video_core/amdgpu/pm4_cmds.h"
+#include "gpu_shader_provenance.h"
+#undef ASSERT
+#define ASSERT(x) assert(x)
+using namespace AmdGpu;
+struct Queue {ComputeProgram cs_state{};u32 canary=0x12345678;};
+static_assert(offsetof(Queue,canary)==sizeof(ComputeProgram));
+static Queue mapped_queues[1];
+static constexpr unsigned GfxQueueId=0;
+static void Graphics(Regs& regs,const PM4Header* header) {
+    const u32 count=header->type3.NumWords();
+    const auto* payload=reinterpret_cast<const u32*>(header+2);
+    const auto mark=[](u32,u32){};
+    switch(header->type3.opcode) {@GRAPHICS@ default:std::abort();}
+}
+static void Compute(const PM4Header* header) {
+    const u32 count=header->type3.NumWords();
+    switch(header->type3.opcode) {@COMPUTE@ default:std::abort();}
+}
+int main(int argc,char** argv) {
+    assert(argc==2);const std::string mode=argv[1];
+    if(mode=="ring") {
+        SotcShaderProvenance::Recorder recorder;
+        for(unsigned i=0;i<20;++i)recorder.Record({.program=99,.address=i,.kind=1});
+        recorder.Report(stdout,99);
+        for(unsigned i=1;i<=65;++i)recorder.Record({.program=i,.address=42,.kind=1});
+        recorder.Report(stdout,99); // Slot eviction must not borrow another program's history.
+        return 0;
+    }
+    constexpr unsigned cs_words=sizeof(ComputeProgram)/4;
+    struct Bank {Regs regs{};u32 canary=0x12345678;};
+    static_assert(offsetof(Bank,canary)==sizeof(Regs));
+    Bank bank;
+    unsigned offset{},words=1;
+    if(mode=="compute-end")offset=0x200+cs_words;
+    else if(mode=="compute-zero") {offset=0x200+cs_words;words=0;}
+    else if(mode=="graphics-zero") {offset=Regs::NumRegs-Regs::ShRegWordOffset;words=0;}
+    else if(mode=="compute-cross") {offset=0x200+cs_words-1;words=2;}
+    else if(mode=="compute-valid")offset=0x200+cs_words-1;
+    else if(mode=="graphics-over") {offset=Regs::NumRegs-Regs::ShRegWordOffset-1;words=2;}
+    else {assert(mode=="graphics-valid");offset=offsetof(Regs,vs_program)/4-Regs::ShRegWordOffset;words=2;}
+    std::array<u32,4> packet{};WriteHeader<PM4ItOpcode::SetShReg>(packet.data(),words+1);
+    packet[1]=offset;packet[2]=0x11223344;packet[3]=0;
+    const auto* header=reinterpret_cast<const PM4Header*>(packet.data());
+    if(mode.starts_with("compute"))Compute(header);else Graphics(bank.regs,header);
+    const bool bad=mode=="compute-end" || mode=="compute-cross" || mode=="graphics-over";
+    if(bad) {
+        // The old production cases overwrite the adjacent owned canary.
+        assert(mapped_queues[0].canary!=0x12345678 || bank.canary!=0x12345678);
+        puts("CONTROL: original SH write overwrote its adjacent owner canary");return 0;
+    }
+    assert(mapped_queues[0].canary==0x12345678 && bank.canary==0x12345678);
+    if(mode=="graphics-valid") {
+        assert(bank.regs.reg_array[Regs::ShRegWordOffset+offset]==0x11223344);
+        if(SotcShaderProvenance::Enabled()) {
+            struct Result {struct {u64 shader_hash=99;u32 length=32;} info;
+                bool found=true;std::array<u32,2> head{1,2};} result;
+            const auto address=reinterpret_cast<std::uintptr_t>(bank.regs.vs_program.Address<const u32*>());
+            for(unsigned i=0;i<100;++i)SotcShaderProvenance::Lookup(bank.regs.vs_program,result,true,address);
+            result.head[0]=3;result.found=false;SotcShaderProvenance::Lookup(bank.regs.vs_program,result,true,address);
+            SotcShaderProvenance::Get().Report(stdout,reinterpret_cast<std::uintptr_t>(&bank.regs.vs_program));
+        }
+    }
+    puts("PASS: valid production SH write bytes and adjacent canaries preserved");
+}

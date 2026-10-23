@@ -46,8 +46,8 @@ struct BufferCache {
     std::unique_ptr<Buffer> bda_pagetable_buffer;
     Coverage unified_table_blocks;
     struct { u64 CurrentTick() const { return 1; } } scheduler;
-    BufferCache(u64 bytes, bool split, bool legacy) {
-        for (auto window : SotcPoolWindows::Plan(bytes, split, legacy)) {
+    BufferCache(u64 bytes, bool split, bool legacy, bool previous_balanced=false) {
+        for (auto window : SotcPoolWindows::Plan(bytes, split, legacy, previous_balanced)) {
             pool_window_starts.push_back(window.start);
             pool_windows.push_back(std::make_unique<Buffer>(Buffer{window.size, 0x1000000000ull+pool_windows.size()*8*G, {}}));
         }
@@ -68,13 +68,15 @@ int main() {
     // Boundary coverage, bounded imports and at most one extra 512 MiB overlap.
     for (u64 bytes=1; bytes<16*G; bytes+=13*M+4096) {
         auto legacy=SotcPoolWindows::Plan(bytes,true,true);
+        auto previous=SotcPoolWindows::Plan(bytes,true,false,true);
         auto balanced=SotcPoolWindows::Plan(bytes,true,false);
         assert(Total(balanced)<=Total(legacy)+512*M);
-        for (auto windows:{legacy,balanced}) {
+        for (auto windows:{legacy,previous,balanced}) {
             assert(windows.front().start==0 && windows.back().start+windows.back().size==bytes);
             for (std::size_t i=0;i<windows.size();++i) {
                 assert(windows[i].size<=SotcPoolWindows::Maximum);
                 if(i) assert(windows[i].start<=windows[i-1].start+windows[i-1].size);
+                if(i) assert(windows[i-1].start+windows[i-1].size-windows[i].start==512*M);
             }
         }
     }
@@ -84,7 +86,7 @@ int main() {
         auto range=c.UnifiedRange(map_base,map_bytes);
         assert(bool(range)==!legacy);
         if(range) {
-            assert(range->second==64*M);
+            assert(range->second==map_physical-c.PoolWindowStart(c.PoolWindow(map_physical)));
             assert(range->first->SizeBytes()>=range->second+map_bytes);
         }
         // Every populated BDA entry resolves to the same physical source byte,
@@ -102,7 +104,36 @@ int main() {
     }
     // Earlier windows remain usable, and unknown/noncontiguous ranges retain fallback.
     BufferCache c(6592*M,true,false);
-    for (u64 physical:{0ull,2*G-65536,2*G,5*G-65536,5*G}) {
+    BufferCache previous(6592*M,true,false,true);
+    assert((c.pool_window_starts==std::vector<u64>{0,7*G/4,19*G/4}));
+    assert((previous.pool_window_starts==std::vector<u64>{0,2*G,5*G}));
+    assert(Total(SotcPoolWindows::Plan(6592*M,true,false))==
+           Total(SotcPoolWindows::Plan(6592*M,true,false,true)));
+    // Movable, slightly-over-3-GiB ranges: actual direct bindings and every BDA
+    // entry agree, including sub-page binding starts. No recorded game address.
+    for (u64 physical:{7*G/4,2*G-128*M,2*G-4096,2*G,2*G+64*M}) {
+        for (u64 length:{3*G-64*M,3*G,3*G+32*M}) {
+            map_physical=physical; map_bytes=length;
+            // Model the mapping invalidation before reusing this synthetic VA.
+            c.unified_table_blocks.seen.clear();
+            auto range=c.UnifiedRange(map_base,map_bytes);
+            assert(range && range->second==physical-c.PoolWindowStart(c.PoolWindow(physical)));
+            assert(bool(previous.UnifiedRange(map_base,map_bytes))==(physical>=2*G));
+            const auto* table=reinterpret_cast<const u64*>(c.bda_pagetable_buffer->mapped_data.data());
+            for(u64 block=map_base>>block_shift;block<(map_base+map_bytes)>>block_shift;++block) {
+                const u64 phys=map_physical+(block<<block_shift)-map_base;
+                auto i=c.PoolWindow(phys);
+                assert(table[block]==c.pool_windows[i]->base+phys-c.PoolWindowStart(i));
+            }
+        }
+    }
+    // Unknown extents retain the complete fallback. This is not universal range
+    // coverage: shortening the middle window can newly miss a longer tail range.
+    map_physical=7*G/4-4096; map_bytes=3*G; assert(!c.UnifiedRange(map_base,map_bytes));
+    map_physical=5*G/2; map_bytes=3*G;
+    assert(previous.UnifiedRange(map_base,map_bytes));
+    assert(!c.UnifiedRange(map_base,map_bytes));
+    for (u64 physical:{0ull,7*G/4-65536,7*G/4,19*G/4-65536,19*G/4}) {
         map_physical=physical; map_bytes=65536;
         auto range=c.UnifiedRange(map_base,map_bytes);
         assert(range && range->second==physical-c.PoolWindowStart(c.PoolWindow(physical)));
@@ -120,5 +151,5 @@ int main() {
     assert(!c.UnifiedRange(map_base,map_bytes));
     map_base=~u64{0}-31; map_physical=0; map_bytes=64;
     assert(!c.UnifiedRange(map_base,64)); // wrapped mapping end rejected before page lookup
-    std::puts("PASS: bounded overlapping imports, actual UnifiedRange and BDA origins, mapping/size rejection, legacy/single controls; no GPU");
+    std::puts("PASS: v1 miss/v2 direct controls, all BDA entries for 15 movable ranges, unchanged selected-pool import bytes, geometry boundaries, full fallback and legacy/v1/single controls; no GPU");
 }

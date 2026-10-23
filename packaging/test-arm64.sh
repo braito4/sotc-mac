@@ -95,6 +95,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_visual_trace.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_memory_trace.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_pool_replay.py
     python3 "$trial_root/tools/check_audio_quantum.py"
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_metadata.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_memory.py
@@ -104,7 +105,14 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_submission_trace.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_budget.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_fault_diagnostics.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_field_trace.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_field_analysis.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_host_fault_analysis.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_run.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_journal.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_stack_failure.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_pointer_trace.py
+    python3 "$trial_root/tools/check_task_guard.py"
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_linked_modules.py
@@ -116,6 +124,7 @@ contracts() {
         -c "$trial_root/tests/fiber_guest.c" -o "$trial_root/work/fiber_guest.o"
     python3 "$trial_root/tools/prepare_fiber_fixture.py" "$trial_root/work/fiber_guest.o" "$trial_root/work/fiber_fixture_code.h"
     clang "${trial_flags[@]}" "$trial_root/tests/test_fibers.c" "${trial_sources[@]}" -o "$trial_root/work/test_fibers"
+    python3 -m unittest discover -s "$trial_root/tests" -p test_fiber_failures.py
     clang -target x86_64-linux-gnu -O1 -mno-sse -mno-sse2 -fno-stack-protector -fno-asynchronous-unwind-tables -fno-pic \
         -c "$trial_root/tests/thread_guest.c" -o "$trial_root/work/thread_guest.o"
     python3 "$trial_root/tools/prepare_fiber_fixture.py" "$trial_root/work/thread_guest.o" \
@@ -331,6 +340,16 @@ case "$trial_mode" in
         fi
         ;;
     --graphics-game-test)
+        # Both .command entry points and direct invocations share this path.
+        # Private field selections are data, never sourced code. Explicit empty disables.
+        if [[ -z ${SOTC_CPU_FAULT_FIELDS+x} && -f "$trial_root/work/cpu-fault-fields.txt" ]]; then
+            SOTC_CPU_FAULT_FIELDS="$(< "$trial_root/work/cpu-fault-fields.txt")"
+            export SOTC_CPU_FAULT_FIELDS
+        fi
+        if [[ -z ${SOTC_CPU_FIELD_TRACE+x} && -f "$trial_root/work/cpu-field-trace.txt" ]]; then
+            SOTC_CPU_FIELD_TRACE="$(< "$trial_root/work/cpu-field-trace.txt")"
+            export SOTC_CPU_FIELD_TRACE
+        fi
         # Native scene resolution by default. Explicit comparison overrides remain supported.
         export BB_UPSCALE_PRESET="${BB_UPSCALE_PRESET-0}"
         export BB_UPSCALER="${BB_UPSCALER-none}"
@@ -347,6 +366,13 @@ case "$trial_mode" in
             --ngs2-module "$trial_system_modules/libSceNgs2.sprx" \
             --out "$trial_root/work/sotc-graphics-arm64"
         trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-game-state-XXXXXX")
+        if [[ -n ${SOTC_CPU_POINTER_PROFILE:-} ]]; then
+            python3 "$trial_root/tools/check_pointer_profile.py" \
+                --image "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
+                --profile "$SOTC_CPU_POINTER_PROFILE" --selection "${SOTC_CPU_POINTER_TRACE:-}" \
+                --field-selection "${SOTC_CPU_FIELD_TRACE:-}" \
+                --output "$trial_gpu_state/pointer-profile-check.json"
+        fi
         trial_log="$trial_root/logs/graphics-game-$(date -u +%Y%m%dT%H%M%SZ).log"
         # Reuse the pinned renderer's host-side flip statistics, only on request.
         # Keep each default CSV private and separate from previous comparisons.
@@ -370,6 +396,9 @@ case "$trial_mode" in
             -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
             --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
         then trial_status=0; else trial_status=$?; fi
+        python3 "$trial_root/tools/analyze_diagnostic_run.py" --log "$trial_log" \
+            --state "$trial_gpu_state" --output "$trial_gpu_state/diagnostic.json" || \
+            printf 'Combined diagnostic report unavailable; original status is %s.\n' "$trial_status" >&2
         if [[ -d "$trial_gpu_state/visual" ]]; then
             python3 "$trial_root/tools/analyze_visual_trace.py" "$trial_gpu_state/visual" || \
                 printf 'Visual report unavailable; original diagnostic status is %s.\n' "$trial_status" >&2

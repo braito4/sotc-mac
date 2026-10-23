@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -21,6 +22,73 @@ static int sequence[8], count;
 static void note(void *arg) { sequence[count++] = *(int *)arg; }
 static void plain(void) { sequence[count++] = 9; }
 static void recursive(void *arg) { note(arg); bootstrap_finalize(NULL); }
+extern void runtime_memory_set_cpu_write_hook(void (*hook)(uintptr_t, uint64_t));
+extern void runtime_memory_set_write_watch(uintptr_t, uint64_t, int);
+extern void runtime_memory_trap(uintptr_t, uint64_t, unsigned, int);
+extern unsigned runtime_memory_trap_reasons(uintptr_t);
+static unsigned char *write_destination;
+static unsigned write_events, write_expected_events;
+static unsigned char write_before, write_after;
+static void observe_libc_write(uintptr_t address, uint64_t size) {
+    assert(address == (uintptr_t)write_destination && size == 13);
+    if (runtime_memory_trap_reasons(address)) {
+        assert(!write_events && write_expected_events == 2);
+        assert(write_destination[0] == write_before);
+        runtime_memory_trap(address, size, 1, 0);
+    } else {
+        assert(write_destination[0] == write_after);
+    }
+    ++write_events;
+}
+static void test_libc_write_order(void) {
+    void *(*copy)(void *, const void *, size_t) =
+        (void *)bootstrap_resolve("Q3VBxCXhUHs#1#u", 0);
+    void *(*fill)(void *, int, size_t) =
+        (void *)bootstrap_resolve("8zTFvBIAIN8#1#u", 0);
+    int32_t (*map)(void **, uint64_t, int, int) =
+        (void *)bootstrap_resolve("IWIBBdTHit4#0#F", 0);
+    int32_t (*unmap)(void *, uint64_t) =
+        (void *)bootstrap_resolve("cQke9UuBQOk#0#F", 0);
+    assert(copy && fill && map && unmap);
+    const char *backing = getenv("SOTC_MEMORY_BACKING");
+    char *saved_backing = backing ? strdup(backing) : NULL;
+    assert(!backing || saved_backing);
+    // Real shared aliases through the existing file backend; no named-shm entitlement.
+    assert(setenv("SOTC_MEMORY_BACKING", "file", 1) == 0);
+    void *memory = NULL;
+    assert(map(&memory, 16384, 3, 0) == 0);
+    assert((saved_backing ? setenv("SOTC_MEMORY_BACKING", saved_backing, 1) :
+                            unsetenv("SOTC_MEMORY_BACKING")) == 0);
+    free(saved_backing);
+    unsigned char source[13]; memset(source, 0x42, sizeof(source));
+    write_destination = (unsigned char *)memory + 1; // Unaligned, with byte canaries.
+    runtime_memory_set_cpu_write_hook(observe_libc_write);
+    runtime_memory_set_write_watch((uintptr_t)write_destination, 13, 1);
+    // Original raw host alias: real writes do not notify the watched range.
+    write_events = 0; memcpy(write_destination, source, 13); assert(!write_events);
+    for (unsigned trapped = 0; trapped != 2; ++trapped) {
+        for (unsigned is_fill = 0; is_fill != 2; ++is_fill) {
+            memset(memory, 0xa5, 16384);
+            write_before = 0xa5; write_after = is_fill ? 0x7c : 0x42;
+            write_events = 0; write_expected_events = trapped ? 2 : 1;
+            if (trapped) runtime_memory_trap((uintptr_t)write_destination, 13, 1, 1);
+            assert((is_fill ? fill(write_destination, 0x17c, 13) :
+                             copy(write_destination, source, 13)) == write_destination);
+            assert(write_events == write_expected_events);
+            for (unsigned i = 0; i < 13; ++i) assert(write_destination[i] == write_after);
+            assert(((unsigned char *)memory)[0] == 0xa5 && write_destination[13] == 0xa5);
+            assert(!runtime_memory_trap_reasons((uintptr_t)write_destination));
+        }
+    }
+    write_events = 0;
+    assert(copy(write_destination, source, 0) == write_destination);
+    assert(fill(write_destination, 0, 0) == write_destination && !write_events);
+    runtime_memory_set_write_watch((uintptr_t)write_destination, 13, 0);
+    assert(copy(write_destination, source, 13) == write_destination && !write_events);
+    runtime_memory_set_cpu_write_hook(NULL);
+    assert(unmap(memory, 16384) == 0);
+    puts("PASS: guest memcpy/memset notify before protected writes and after watched writes; raw-alias negative control, exact bytes/returns, zero/disjoint controls; no GPU");
+}
 static void test_compiled_sdk(void) {
     const char *name = "WB66evu8bsU#0#F";
     uintptr_t target = bootstrap_resolve(name, 0);
@@ -318,5 +386,6 @@ int main(int argc, char **argv) {
     bootstrap_test_equeues();
     bootstrap_test_clocks();
     bootstrap_test_files();
+    test_libc_write_order();
     test_memory(argc == 2);
 }

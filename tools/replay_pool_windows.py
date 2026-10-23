@@ -1,7 +1,7 @@
-"""Replay retained private range observations through the actual import planner.
+"""Replay private recorded ranges through the actual C++ import planner, CPU only.
 
-This measures geometry only, not Metal allocation/residency or complete lifetimes.
-No guest memory is read, modified or executed.
+Recorded window origins/lengths provide the observation control. A journal from
+balanced-v1 must not silently be treated as an original-legacy-layout capture.
 """
 import argparse
 import json
@@ -12,32 +12,51 @@ import tempfile
 from build_gpu import ROOT
 
 
-def main():
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('log',type=Path)
-    parser.add_argument('--output',type=Path)
-    args=parser.parse_args()
-    log=args.log.read_text()
-    pool=re.search(r'\((\d+) MiB imported\)',log)
-    settings=json.loads(log.splitlines()[0].split('settings=',1)[1])
-    if not pool or not settings.get('BB_FRAME_LOG'):
-        raise SystemExit('Need a recorded pool size and private state path; refusing to guess.')
-    state=Path(settings['BB_FRAME_LOG']).parent
-    pool_bytes=int(pool[1])*(1<<20)
-    # Use the maintained C++ planner itself rather than a duplicated Python policy.
-    with tempfile.TemporaryDirectory(prefix='pool-replay-',dir=ROOT/'work') as temp:
-        source=Path(temp)/'plan.cpp';binary=Path(temp)/'plan'
+def fits(windows, physical, size):
+    if physical < 0 or size <= 0:
+        return False
+    candidates = [(start, length) for start, length in windows if start <= physical]
+    if not candidates:
+        return False
+    start, length = candidates[-1]
+    return physical - start <= length and size <= length - (physical - start)
+
+
+def summarize(rows, plans, pool_bytes):
+    stats = {name: dict(direct=0, copies=0, newly_direct=0, newly_crossing=0)
+             for name in ('recorded', 'legacy', 'balanced-v1', 'balanced-v2')}
+    mismatches = out_of_pool = 0
+    for row in rows:
+        physical, size = row['physical'], row['size']
+        before = row['event'] == 'pool_window_hit'
+        observed = fits([(row['window_start'], row['window_size'])], physical, size)
+        mismatches += observed != before
+        out_of_pool += physical < 0 or size <= 0 or physical > pool_bytes or size > pool_bytes - physical
+        decisions = {'recorded': before}
+        decisions.update((name, fits(windows, physical, size)) for name, windows in plans.items())
+        after = decisions['balanced-v2']
+        for name, direct in decisions.items():
+            stats[name]['direct' if direct else 'copies'] += 1
+            stats[name]['newly_direct'] += not direct and after
+            stats[name]['newly_crossing'] += direct and not after
+    return dict(observations=len(rows), recorded_observation_mismatches=mismatches,
+                observations_outside_supplied_pool=out_of_pool, comparisons=stats)
+
+
+def plans(pool_bytes):
+    # Compile the maintained planner rather than duplicate candidate policy in Python.
+    with tempfile.TemporaryDirectory(prefix='pool-replay-', dir=ROOT/'work') as temp:
+        source = Path(temp)/'plan.cpp'; binary = Path(temp)/'plan'
         source.write_text(r'''
 #include "gpu_pool_windows.h"
 #include <cstdio>
 #include <cstdlib>
 int main(int argc,char** argv) {
  if(argc!=2)return 1;
- auto bytes=std::strtoull(argv[1],nullptr,10);
- std::printf("[");
- for(bool legacy:{true,false}) {
-  if(!legacy)std::printf(","); std::printf("["); bool first=true;
-  for(auto w:SotcPoolWindows::Plan(bytes,true,legacy)) {
+ auto bytes=std::strtoull(argv[1],nullptr,10);std::printf("[");
+ for(unsigned mode=0;mode<3;++mode) {
+  std::printf("%s[",mode?",":"");bool first=true;
+  for(auto w:SotcPoolWindows::Plan(bytes,true,mode==0,mode==1)) {
    std::printf("%s[%llu,%llu]",first?"":",",(unsigned long long)w.start,(unsigned long long)w.size);first=false;
   }
   std::printf("]");
@@ -45,35 +64,59 @@ int main(int argc,char** argv) {
  std::printf("]");
 }
 ''')
-        subprocess.run(['clang++','-std=c++20','-O1','-I'+str(ROOT/'runtime/src'),str(source),'-o',str(binary)],check=True)
-        legacy,balanced=json.loads(subprocess.check_output([str(binary),str(pool_bytes)]))
-    def fits(windows,physical,size):
-        candidates=[(start,length) for start,length in windows if start<=physical]
-        if not candidates:return False
-        start,length=candidates[-1]
-        return physical-start<=length and size<=length-(physical-start)
-    rows=[]
-    for line in (state/'memory/buffers.jsonl').read_text().splitlines():
-        row=json.loads(line)
-        if row.get('event') in ('pool_window_hit','pool_window_cross'):rows.append(row)
-    avoided=[];introduced=[];matched=0;disagreed=0
-    for row in rows:
-        physical,size=row['physical'],row['size']
-        before=fits(legacy,physical,size);after=fits(balanced,physical,size)
-        if before!=(row['event']=='pool_window_hit'):disagreed+=1
-        else:matched+=1
-        if not before and after:avoided.append(size)
-        if before and not after:introduced.append(size)
-    report=dict(pool_bytes=pool_bytes,observations=len(rows),legacy_observation_matches=matched,
-                legacy_observation_mismatches=disagreed,
-                avoided_copy_events=len(avoided),maximum_avoided_request_bytes=max(avoided,default=0),
-                introduced_copy_events=len(introduced),maximum_introduced_request_bytes=max(introduced,default=0),
-                legacy_import_bytes=sum(w[1] for w in legacy),balanced_import_bytes=sum(w[1] for w in balanced),
-                limitation='Retained large-range CPU observations only; repeated events are not independent allocations. No native memory-savings or complete-lifetime claim.')
+        subprocess.run(['clang++', '-std=c++20', '-O1', '-I'+str(ROOT/'runtime/src'),
+                        str(source), '-o', str(binary)], check=True)
+        result = json.loads(subprocess.check_output([str(binary), str(pool_bytes)]))
+    return dict(zip(('legacy', 'balanced-v1', 'balanced-v2'), result))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('log', type=Path, nargs='?')
+    parser.add_argument('--all-retained', action='store_true')
+    parser.add_argument('--pool-mib', type=int)
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    if bool(args.log) == args.all_retained:
+        parser.error('Choose one log or --all-retained.')
+    if args.all_retained:
+        if args.pool_mib is None or not 0 < args.pool_mib <= 65536:
+            parser.error('--all-retained requires an explicit pool size in 1..65536 MiB.')
+        pool_bytes = args.pool_mib << 20
+        journals = sorted((ROOT/'work').glob('gpu-game-state-*/memory/buffers.jsonl'))
+    else:
+        log = args.log.read_text()
+        pool = re.search(r'\((\d+) MiB imported\)', log)
+        settings = json.loads(log.splitlines()[0].split('settings=', 1)[1])
+        if not pool or not settings.get('BB_FRAME_LOG'):
+            parser.error('Missing recorded pool size/state path; refusing to guess.')
+        if args.pool_mib is not None:
+            parser.error('Single-log mode uses its recorded pool size.')
+        pool_bytes = int(pool[1]) << 20
+        journals = [Path(settings['BB_FRAME_LOG']).parent/'memory/buffers.jsonl']
+    geometry = plans(pool_bytes)
+    all_rows = []; captures = []
+    for path in journals:
+        if path.is_symlink() or path.stat().st_size > 128 << 20:
+            parser.error('Redirected or oversized private journal.')
+        rows = [row for line in path.read_text().splitlines()
+                if (row := json.loads(line)).get('event') in ('pool_window_hit', 'pool_window_cross')]
+        all_rows.extend(rows)
+        captures.append(dict(state=path.parent.parent.name, **summarize(rows, geometry, pool_bytes)))
+    report = dict(schema=2, pool_bytes=pool_bytes, journals=len(journals),
+                  windows=geometry, imported_bytes={n: sum(w[1] for w in ws) for n, ws in geometry.items()},
+                  **summarize(all_rows, geometry, pool_bytes), captures=captures,
+                  limitation='Explicit supplied pool size; retained partial CPU observations only. '
+                  'Repeated events are not independent allocations. No native memory-savings, '
+                  'lifetime, universal-range or pixel-correctness claim.')
     if args.output:
-        args.output.parent.mkdir(parents=True,exist_ok=True)
-        args.output.write_text(json.dumps(report,indent=2)+'\n')
-    print(json.dumps(report))
+        target = args.output.resolve()
+        if not target.is_relative_to((ROOT/'work').resolve()):
+            parser.error('Private replay results must stay inside work/.')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(report, indent=2)+'\n')
+    print(json.dumps({k: v for k, v in report.items() if k != 'captures'}))
 
 
-if __name__=='__main__':main()
+if __name__ == '__main__':
+    main()

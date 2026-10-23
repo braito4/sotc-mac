@@ -7,6 +7,7 @@
 #include <cstring>
 #include <limits>
 #include <vector>
+#include <utility>
 
 namespace Sotc {
 inline constexpr std::size_t ShaderMetadataScanBytes = 0x4000 * sizeof(std::uint32_t);
@@ -19,6 +20,7 @@ template<class Info> struct ShaderMetadataResult {
     std::uint64_t hint{};
     std::array<std::uint32_t, 2> head{};
     std::size_t scanned{};
+    std::vector<std::byte> scan_snapshot;
 };
 
 // read(offset, destination, bytes) must copy only the supplied mapped range.
@@ -44,10 +46,11 @@ ShaderMetadataResult<Info> FindShaderMetadata(std::size_t mapped, Reader&& read)
     const auto bytes=std::min(mapped, ShaderMetadataScanBytes+sizeof(Info)-sizeof(std::uint32_t));
     std::vector<std::byte> snapshot(bytes);
     if(!read(0, snapshot.data(), bytes)) return result;
+    result.scan_snapshot=std::move(snapshot);
     result.scanned=bytes;
     for(std::size_t offset=0;offset<ShaderMetadataScanBytes && offset+sizeof(Info)<=bytes;offset+=sizeof(std::uint32_t)) {
         Info info{};
-        std::memcpy(&info,snapshot.data()+offset,sizeof(info));
+        std::memcpy(&info,result.scan_snapshot.data()+offset,sizeof(info));
         if(candidate(offset,info)) return result;
     }
     return result;

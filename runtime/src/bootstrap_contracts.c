@@ -10,6 +10,8 @@
 #include "bbcpu.h"
 #include "platform.h"
 #include "runtime.h"
+#include "guest_failure_state.h"
+#include "fiber_failure_diagnostics.h"
 #include <inttypes.h>
 #include <math.h>
 #include <errno.h>
@@ -25,10 +27,16 @@ typedef struct { uintptr_t callback; void *argument, *dso; int with_argument, ac
 static Handler *handlers;
 static size_t handler_count, handler_capacity;
 static _Atomic size_t init_calls, plain_calls, cxa_calls;
+static int pointer_copy_trace;
+/* Standalone contracts do not own the optional pointer-chain observer. */
+__attribute__((weak)) void sotc_cpu_pointer_copy_write(uintptr_t address,size_t size,unsigned actor,uintptr_t input) {
+    (void)address;(void)size;(void)actor;(void)input;
+}
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t flags, stack_canary;
 static _Atomic size_t allocation_calls;
 static int linked_libc;
+static int memory_watch;
 static void *process_param;
 static void **heap_api;
 /* Layout/contract from SotC's runtime_sotc.c: the linked libc owns and updates
@@ -208,8 +216,34 @@ static void set_heap_api(void **api) { heap_api = api; }
 
 void bootstrap_initialize(uint64_t capabilities) {
     flags = capabilities;
+    const char *watch = getenv("BB_JIT_WATCH");
+    memory_watch = watch && *watch;
+    const char *pointers=getenv("SOTC_CPU_POINTER_TRACE");
+    pointer_copy_trace=pointers && *pointers;
     arc4random_buf(&stack_canary, sizeof(stack_canary));
     stack_canary &= ~UINT64_C(255);
+}
+
+/* Match the selected runtime's guest libc write ordering. Direct host libc
+ * aliases bypass both the pre-write trap notification and the post-write watch.
+ * These remain exact libc operations; no copy size, memory value or ABI changes. */
+static void *guest_memcpy(void *dst, const void *src, size_t size) {
+    runtime_memory_prepare_cpu_write((uintptr_t)dst, size);
+    if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,2,(uintptr_t)src);
+    void *result = memcpy(dst, src, size);
+    if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,3,(uintptr_t)src);
+    if (memory_watch) bbcpu_watch_write((uintptr_t)dst, size);
+    runtime_memory_note_cpu_write((uintptr_t)dst, size);
+    return result;
+}
+static void *guest_memset(void *dst, int value, size_t size) {
+    runtime_memory_prepare_cpu_write((uintptr_t)dst, size);
+    if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,4,(unsigned char)value);
+    void *result = memset(dst, value, size);
+    if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,5,(unsigned char)value);
+    if (memory_watch) bbcpu_watch_write((uintptr_t)dst, size);
+    runtime_memory_note_cpu_write((uintptr_t)dst, size);
+    return result;
 }
 static void init_env(void) {
     /* The prepare.py capability proves that the supplied libc export is one RET. */
@@ -259,8 +293,18 @@ void bootstrap_finalize(void *dso) {
         }
     }
 }
+/* Standalone CPU fixtures have no history owner; the diagnostic supplies a
+ * strong override. A definition also avoids unresolved Mach-O weak imports. */
+__attribute__((weak)) void sotc_cpu_field_trace_on_stack_failure(const SotcGuestFailureState *state) {
+    (void)state;
+    (void)sotc_fiber_failure_prepare(STDERR_FILENO);
+    fputs("STOP: guest stack protector detected corruption\n",stderr);
+}
 static _Noreturn void stack_fail(void) {
-    fputs("STOP: guest stack protector detected corruption\n", stderr);
+    SotcGuestFailureState state;
+    bootstrap_cpu_failure_state(&state);
+    /* The owner hook preserves numeric context before any stderr write. */
+    sotc_cpu_field_trace_on_stack_failure(&state);
     _Exit(22);
 }
 static void *guest_malloc(size_t size) { ++allocation_calls; return bb_low_malloc(size); }
@@ -350,8 +394,8 @@ uintptr_t bootstrap_resolve(const char *name, int is_data) {
         if (!strcmp(name, "Y7aJ1uydPMo#1#u")) return (uintptr_t)guest_realloc;
         if (!strcmp(name, "Ujf3KzMvRmI#1#u")) return (uintptr_t)guest_memalign;
     }
-    if (!strcmp(name, "Q3VBxCXhUHs#1#u")) return (uintptr_t)memcpy;
-    if (!strcmp(name, "8zTFvBIAIN8#1#u")) return (uintptr_t)memset;
+    if (!strcmp(name, "Q3VBxCXhUHs#1#u")) return (uintptr_t)guest_memcpy;
+    if (!strcmp(name, "8zTFvBIAIN8#1#u")) return (uintptr_t)guest_memset;
     if (!strcmp(name, "j4ViWNHEgww#1#u")) return (uintptr_t)strlen;
     if (!strcmp(name, "5txKfcMUAok#p#F")) return (uintptr_t)posix_attr_protocol;
     /* Verified executable namespaces: SotC libScePosix#libkernel is #p#F;

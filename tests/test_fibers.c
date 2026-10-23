@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 
@@ -77,6 +78,11 @@ static void schedule(int plt, int migration) {
     int32_t (*get_info)(void *, Info *) = (void *)host("uq2Y5BFz0PE#s#C");
     assert(get_info(&a, &info) == 0 && info.margin == 65528 && info.initialize_arg == (uintptr_t)&x);
     assert(info.entry == code + fixture_a_offset && info.stack == (uintptr_t)sa && !strcmp(info.name, "worker A"));
+    if (getenv("SOTC_TEST_CORRUPT_FIBER_GUARD")) {
+        *(uint64_t *)sa^=1; /* Synthetic overwrite with an otherwise valid guest stack. */
+        run(&a,101,NULL);
+        _Exit(99); /* A corrupted guard must retain real fatal exit 23. */
+    }
     uint64_t returned = 0;
     BbCpu before, after;
     bootstrap_cpu_save(&before);

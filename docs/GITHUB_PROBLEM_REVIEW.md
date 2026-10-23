@@ -1,3 +1,94 @@
+# SIGSEGV, pipelines and SRT follow-up: 2026-10-23
+
+The owner requested investigation and selective improvements, including GitHub.
+Public API responses, relevant commit patches, PR files and local contracts were
+reviewed. Private logs, source fields, addresses and generated shader data remain
+under private work output. No game/GPU run, dependency change or publication was
+performed. The selected implementation is still runtime b2ff9cd0, CPU b9652d75,
+reference 411fdd86, MoltenVK 1.4.2 and SPIRV-Cross SDK 1.4.363.0; prepared cache
+is now 28/9 for separate locally demonstrated SRT/bitfield corrections.
+
+## SIGSEGV and memory ownership
+
+[Reference main](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commits/main)
+remains observed at `40ec52a5a246bbaf20402520fe8fc9682f0a30c0`, dated October 22
+16:40:58 UTC. [54f6545](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/54f6545a43a12408ad8bed28698a1bde69913595)
+turns speculative hot readbacks off and excludes CPU-modified pages from optional
+extra regions. Its patch was inspected. The author's corruption/reload reports
+motivate checking stale write-back, but the local selected buffer cache has no
+matching hot-readback route; disabling that nonexistent route is not a correction
+here. These Windows findings do not identify our invalid pointer's writer.
+
+[0127e36](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/0127e36a00b12783b0723d448ac968863802947a)
+also records corruption after both immediate and draw-tail-delayed nested task
+release, and disables that reference release by default. Its changed ownership
+code and warnings were inspected. [PR 219](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/219)
+remains open/non-draft/unmerged at `e391e03e956808abcb178a9e714df06ad871be78`.
+The original RTX heap measurements establish neither safe M1 lifetimes nor a
+local crash remedy. Our ordered recording-consumer retirement has synthetic
+borrowed-storage controls; those do not settle all references after retirement.
+Do not replace it with immediate destruction, or claim the ownership issue closed.
+A bounded guarded-allocation diagnostic is a possible next isolated review, not
+an enabled setting or a proven fix.
+
+The [CPU repository](https://github.com/bloodborne-native/bloodborne-recomp) is
+still observed at `ef153b8d35768aff86fa1643c12e7d0340b16501`, October 22
+16:51:55 UTC. The three commits after the selected pin concern CI/test linking,
+not a new CPU execution repair. The selected source already has optional per-thread
+field-access rings and a host-write notification API. Local inspection instead
+found that guest memcpy/memset imports bypassed the selected runtime's pre/post
+write notifications. They now follow that contract and its opt-in watch. Actual
+memory-backend synthetic controls and full JIT/interpreter contracts pass. This
+repairs an omission; neither these tests nor the public reports establish that
+it produced the native source-field corruption.
+
+## Pipeline failures: current counts and candidates
+
+The requested 306/271 counts describe an earlier owner run. The latest capture
+has 423 pipeline failures across 388 shader pairs: 376 have adjacent PerVertex
+conversion errors. Of the other 47, 45 use fragment hashes with that conversion
+error elsewhere; this is corroboration, not exact attribution or two new root
+causes. Shader-pair hashes omit full pipeline state/permutations. There are 805
+SRT offset errors. Do not report reduced error counts without a new native run.
+
+| Candidate, exact API head | Status verified on October 23 | Decision |
+|---|---|---|
+| [SPIRV-Cross 2699](https://github.com/KhronosGroup/SPIRV-Cross/pull/2699), `81739edf516c2bef043ac61f510b4bd78e126a22` | Open, draft, unmerged; unchanged reviewed head | Portable capture/replay remains a relevant implementation direction. Our prior isolated real-module syntax checks do not install renderer bindings, topology, synchronization or resource ownership. No dependency swap follows. |
+| [MoltenVK 2858](https://github.com/KhronosGroup/MoltenVK/pull/2858), `6ed66f1b5d3575eed04b04e6332b389f398f9533` | Open, draft, unmerged; unchanged reviewed head | Adapter activation is test-only. No current general SotC/native ARM64/M1 qualification is established. |
+| [SotC 173](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/173), `ced601b30b868e67b0fac9fde50ca49a807845b9` | Open, non-draft, unmerged; files inspected | Adds a generated geometry stage for devices without barycentrics and shader-cache I/O changes. GTX 1080 Ti author tests are not qualification of our MoltenVK/Metal path; the added stage is not an isolated raw PerVertex converter fix. |
+| [SotC 258](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/258), `44633f5e6772b3008a34dc0db9a48e7ca054ba0c` | Open, non-draft, unmerged; description reviewed | Queue hints, invariant position for geometry emulation and cache-file lookup are separate CPU/driver contracts. No source-field corruption remedy or general M1 PerVertex qualification follows. |
+
+The [AnyPS5 macOS thread](https://github.com/boykopovar/AnyPS5/issues/1) was
+refreshed. Resident image write-back/import watches and inter-workgroup progress
+remain relevant review leads. Their PS5/Rosetta architecture does not establish
+our PS4/native ARM64 cause. No newly qualified general PerVertex/SRT remedy was
+found there in this review. Existing baseline findings are not counted as new
+local implementations.
+
+Runtime default main was observed at `f99460d5f02e4d762a3bee1649317b390457c4f2`,
+October 22 22:11:20 UTC, after a render-adapter refactoring series. This is an
+observed head, not a full qualification of the newer architecture or a change
+to the latest reviewed dependency pin. That refactoring is not imported here.
+
+## Independently demonstrated local SRT defects
+
+The portable VM's fixed value/pointer stacks lacked installation-time structural
+validation. An original-source sanitizer control reproduces value-stack overflow.
+A separate control shows width-32 extraction reading the wrong table element,
+and original constant-fold code triggers a shift-by-32 UBSan error. The checked
+local overlay validates owned bytecode and handles valid full/zero-width cases
+correctly. Actual installed VM and constant folding pass 2,244 arithmetic cases;
+twelve invalid controls retain explicit failure. Unknown/Phi/dynamic offsets
+still cannot be replaced by one guessed incoming edge; DMA remains off. The
+805 native errors are not shown to exercise either demonstrated defect.
+
+The current [handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint) records
+implementation, CPU validation and native limits. Next native evidence must
+check the real failure boundary, pixels and source-field state with the same
+memory/ordering guards; no automatic game comparison was performed.
+
+---
+
 # GitHub problem review: 2026-10-22
 
 Public-source review requested by the owner, checked at approximately 17:10 UTC.

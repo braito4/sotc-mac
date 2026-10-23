@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
 static uintptr_t guarded;
 static unsigned reads;
 unsigned runtime_memory_trap_reasons(uintptr_t address) {
@@ -49,6 +51,20 @@ int main(void) {
     assert(sotc_fault_read(words,(uintptr_t)object,4)==4 && words[2]==object[2]);
     assert(sotc_fault_read(words,(uintptr_t)edge,4)==1 && words[0]==*edge);
     assert(sotc_fault_read(words,(uintptr_t)p,1)==0);
+    /* Real PROT_NONE remains authoritative even if an external watch's
+     * hypothetical logical state says read/write. Neither protected reader
+     * may restore permissions to make its read succeed. */
+    for(unsigned attempt=0;attempt<3;++attempt) {
+        assert(bb_read_memory(words,(uintptr_t)p,8)==0);
+        assert(sotc_fault_read(words,(uintptr_t)p,1)==0);
+        mach_vm_address_t at=(uintptr_t)p;mach_vm_size_t bytes=0;
+        vm_region_basic_info_data_64_t info;mach_msg_type_number_t count=VM_REGION_BASIC_INFO_COUNT_64;
+        mach_port_t object_port=MACH_PORT_NULL;
+        assert(mach_vm_region(mach_task_self(),&at,&bytes,VM_REGION_BASIC_INFO_64,
+            (vm_region_info_t)&info,&count,&object_port)==KERN_SUCCESS);
+        assert(!(info.protection&(VM_PROT_READ|VM_PROT_WRITE)));
+        if(object_port!=MACH_PORT_NULL)mach_port_deallocate(mach_task_self(),object_port);
+    }
     assert(sotc_fault_read(words,UINT64_MAX-3,4)==0);
     assert(sotc_fault_read(words,(uintptr_t)&words,1)==0); /* host stack excluded */
     guarded=(uintptr_t)object+7;reads=0;

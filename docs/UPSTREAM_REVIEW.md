@@ -1,5 +1,91 @@
 # Upstream review: 2026-10-22
 
+## Applied diagnostic adaptation: 2026-10-23
+
+The macOS CPU-frame guard is now integrated as an optional diagnostic, with the
+existing ordered retirement preserved. See [the handoff](DEVELOPMENT_HANDOFF.md#continuation-checkpoint)
+for budget, fallback and native validation limits. It does not copy the Windows
+allocator or assume the failing guest object is a coroutine frame.
+
+Public main advanced to
+[e093d215](https://github.com/bloodborne-native/bloodborne-runtime/commit/e093d2151f216720be61eb7855dcfb52a1407e84)
+(October 23 12:20:19 UTC). The one-commit delta from 0d2ffb3 moves image/buffer
+access declarations to adapter enums and maps them to Vulkan transitions in
+Runtime; no CPU frame/guest object lifetime repair is supplied. Reviewed source
+is not adopted into the pinned architecture. Author validation/timing is not
+our M1/SotC validation. Other checked default heads remain unchanged.
+
+
+## Object-corruption diagnosis methods: public review 2026-10-23
+
+Newly reviewed [SotC issue #274](https://github.com/AjncSystem/ShadowOfTheColossus-PC/issues/274)
+was opened by Gabriel-TwoBits on October 23 at 06:02:28 UTC; public API shows it
+open with no comments. Its older Linux-build report faults at the same array-read
+instruction as our latest capture, with a null cursor and nonzero count. The
+newer build's report is a separate teardown/cast/null failure. These are author
+observations, not an independent reproducer or a shared-cause proof. No repair
+is supplied. Exact guest offsets and report snapshots remain private locally.
+
+The previously reviewed [0127e36](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/0127e36a00b12783b0723d448ac968863802947a)
+(October 22 05:53:49 UTC) supplies a diagnostic method: single-feature comparisons,
+then page-isolated coroutine frames made inaccessible on deletion. Source uses
+Windows-only allocation/protection and a bounded quarantine. The author's report
+says delayed draw-thread reclamation still left corruption. It is not a working
+macOS flag or evidence that our guest object is a coroutine frame. Local ordered
+recording release already addresses one consumer boundary; wider ownership is
+unproved. A future adaptation needs a small CPU-only fixture that reproduces a
+borrowed read after deletion and rejects it at first access, plus valid deferred-
+consumer controls. Do not protect a shared guest allocator page speculatively.
+
+[54f6545](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/54f6545a43a12408ad8bed28698a1bde69913595)
+(October 22 16:25:34 UTC) was rechecked via public API: hot speculative downloads
+were disabled, with CPU-modified pages filtered when reenabled. Author repeated-
+reload comparisons are not our validation; our cache has no matching hot gatherer.
+A useful independent control is delayed GPU data arriving after CPU reuse of the
+same address, with allocation/generation mismatch rejected rather than written.
+
+A new October 23 report in [AnyPS5 #1](https://github.com/boykopovar/AnyPS5/issues/1)
+separates logical watch permissions from actual kernel PROT_NONE. Checked
+[PR #7201](https://github.com/boykopovar/AnyPS5/pull/7201) head
+`6687cbac29cf7a8759329ef95b5ef1349a11b404` intersects read permissions;
+[PR #8658](https://github.com/boykopovar/AnyPS5/pull/8658) head
+`771424ae22ca9cf05808446f83c69b880cd1862e` still overrides them. Both are open,
+non-draft and unmerged. The author had not run the intersection change itself.
+Our protected reader uses kernel mach_vm_read_overwrite, with GPU-guard skips;
+that diagnostic path has no equivalent logical-permission override. Future
+protection fixtures should ensure inaccessible pages remain inaccessible and no
+read implicitly restores them. M4/Rosetta/PS5 reports do not validate SotC/M1.
+
+Public issue/comment/PR and diff snapshots are ignored local review artifacts.
+Research changes documentation only: no dependency, runtime, profile, game launch
+or publication changes. The pending owner capture command remains unchanged.
+
+
+## Direct runtime review: 2026-10-23
+
+The owner reaffirmed permanent direct review of
+[bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime).
+Public Git refs confirm main `0d2ffb3470da7e56dd82cc8ef08f58b5e777abbd`; its
+public compare patch against our selected `b2ff9cd0` contains 30 commits and
+149 distinct paths. Commit messages, dates and relevant implementation hunks
+were read; runtime/CPU pins and all qualified local overlays stay unchanged.
+No shader-recompiler/frontend implementation file is changed in that comparison;
+the CPU gitlink moves to the already reviewed CI/test series. There is no checked
+repair here for the rejected SMRD slot or the invalid string passed to strlen.
+
+| Candidate | Code reviewed | Decision and control boundary |
+|---|---|---|
+| [dcaf500](https://github.com/bloodborne-native/bloodborne-runtime/commit/dcaf500608806c5811dc35273125614a6ee7dae9), Oct 22 17:37:39 UTC | Encodes instanced tessellated draws one instance at a time with individual scratch/instance state. | Already adapted by our checked Metal tessellation overlay and production-method CPU controls; do not apply twice. Native SotC benefit is not proven by the author's Bloodborne reports. |
+| [1baeb98](https://github.com/bloodborne-native/bloodborne-runtime/commit/1baeb98c098ec240cad5228c2cc94d3273205b57), Oct 22 20:37:43 UTC | Dedicated FSR Metal queue waits/signals shared events; caller reacquires CommandBuffer after FSR may submit it. Also new build assets, initializers and inputs. | Useful future FSR-backend candidate; not a drop-in dependency update. Current upscaler is none and the new FSR backend is absent locally. Before integration, use delayed producer/consumer and old-command-after-Flush negative controls, then a separate native comparison. Author M3 Pro timing is not M1/SotC evidence. |
+| [ab31a4c](https://github.com/bloodborne-native/bloodborne-runtime/commit/ab31a4c27ea5f267862f259732e8a7918833368f), Oct 22 16:46:25 UTC | Drops the unresolved GPU-written-image guard above the critical memory mark. | Not adopted: the author explicitly reports darkened clothing under forced pressure. Preserve our unresolved-content guard and existing CPU negative controls; memory reduction alone does not qualify loss of contents. |
+| [c826fdf](https://github.com/bloodborne-native/bloodborne-runtime/commit/c826fdf7cf25ce69bb6160c408efd44058d9292c), Oct 22 22:51:59 UTC | Moves per-backing image barrier state into fixed-address backend records, part of adapter A0-A3. | Track as an architecture migration. It must preserve all local ownership, upload/import and ordered-consumer fixes; not an isolated proof of a synchronization fix. |
+
+Other changes in the compare concern FSR packaging, trophies/notifications,
+CI and documentation. No new runtime implementation is installed by this review.
+The repository remains in [the permanent watch list](DEPENDENCY_WATCH.md), with
+selected and reviewed heads separate in [the inventory](DEPENDENCIES.md).
+
+
 ## Owner-requested five-source refresh and selected adaptation
 
 Public Git transport now permits exact source/history inspection, superseding

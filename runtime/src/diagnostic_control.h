@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,9 +28,23 @@ static void *sotc_diagnostic_control_wait(void *argument) {
      * is stopping it. The stop notice is best effort: it must never delay exit.
      * This flag change is confined to cancellation, immediately before _Exit. */
     const int output_flags = fcntl(STDERR_FILENO, F_GETFL);
-    if (output_flags >= 0 && ((output_flags & O_NONBLOCK) ||
-        !fcntl(STDERR_FILENO, F_SETFL, output_flags | O_NONBLOCK)))
-        (void)write(STDERR_FILENO, message, size - 1);
+    struct stat output_info;
+    sigset_t blocked;
+    sigemptyset(&blocked);sigaddset(&blocked,SIGPIPE);
+    /* SIGPIPE is blocked only in this terminating worker. A closed output
+     * reader must not replace the intended exit status with signal 13. */
+    if (!pthread_sigmask(SIG_BLOCK,&blocked,NULL) && output_flags>=0 &&
+        !fstat(STDERR_FILENO,&output_info) &&
+        (S_ISFIFO(output_info.st_mode) || S_ISSOCK(output_info.st_mode) || isatty(STDERR_FILENO)) &&
+        ((output_flags&O_NONBLOCK) || !fcntl(STDERR_FILENO,F_SETFL,output_flags|O_NONBLOCK))) {
+        if (write(STDERR_FILENO,message,size-1)==(ssize_t)(size-1)) {
+#ifdef SOTC_DIAGNOSTIC_CONTROL_DUMP
+            /* Optional bounded atomic snapshot only; caller must not wait,
+             * allocate, take locks, read guest memory or access the driver. */
+            SOTC_DIAGNOSTIC_CONTROL_DUMP(STDERR_FILENO);
+#endif
+        }
+    }
     _Exit(count < 0 ? 28 : 21);
 }
 
@@ -50,6 +65,13 @@ static int sotc_diagnostic_control_start(void) {
     if (flags < 0 || (flags & O_ACCMODE) != O_RDONLY ||
         fstat(fd, &info) || !S_ISFIFO(info.st_mode) || fcntl(fd, F_SETFD, FD_CLOEXEC))
         goto invalid;
+#ifdef F_SETNOSIGPIPE
+    /* Closed-output stress reproduced SIGPIPE despite the worker mask. The
+     * Darwin descriptor policy also protects writes from other live threads.
+     * Set it before the ready notice/worker, without changing the process-wide
+     * signal disposition. Output remains optional on failure. */
+    (void)fcntl(STDERR_FILENO,F_SETNOSIGPIPE,1);
+#endif
     pthread_attr_t attributes;
     if (pthread_attr_init(&attributes)) goto invalid;
     int error = pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
