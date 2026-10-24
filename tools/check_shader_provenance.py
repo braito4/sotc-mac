@@ -18,9 +18,11 @@ def main():
     tree=source_path(ROOT);path=Path('gpu/shadps4/video_core/amdgpu/liverpool.cpp')
     with tempfile.TemporaryDirectory(prefix='shader-provenance-',dir=ROOT/'work') as folder:
         out=Path(folder);old=out/path;old.parent.mkdir(parents=True);old.write_bytes((tree/path).read_bytes())
-        patch=json.loads((ROOT/'tools/gpu_patches/sotc-shader-provenance.patch.json').read_text())
-        subprocess.run(['git','-C',str(out),'apply','--reverse'],input='\n'.join(patch['lines'])+'\n',
-                       text=True,check=True,capture_output=True)
+        old.with_suffix('.h').write_bytes((tree/path.with_suffix('.h')).read_bytes())
+        for name in ('sotc-shader-submit-trace.patch.json','sotc-shader-producer-trace.patch.json','sotc-shader-provenance.patch.json'):
+            patch=json.loads((ROOT/'tools/gpu_patches'/name).read_text())
+            subprocess.run(['git','-C',str(out),'apply','--reverse'],input='\n'.join(patch['lines'])+'\n',
+                           text=True,check=True,capture_output=True)
         template=(ROOT/'tests/shader_provenance_fixture.cpp.in').read_text()
         for label,text in [('previous',old.read_text()),('adapted',(tree/path).read_text())]:
             graphics=function(text,'void Liverpool::ApplyGraphicsRegisterPacket(')
@@ -53,6 +55,37 @@ def main():
                 run=subprocess.run([str(binary),'ring'],capture_output=True,text=True,timeout=5)
                 assert run.returncode==0 and 'retained=8 total=20 omitted=12' in run.stdout,run.stdout+run.stderr
                 assert 'retained=0 total=0 omitted=0' in run.stdout,run.stdout
+                for mode,expected in [('address','matched_programs=8 omitted_programs=2'),
+                                      ('missing-address','matched_programs=0 omitted_programs=0')]:
+                    run=subprocess.run([str(binary),mode],capture_output=True,text=True,timeout=5)
+                    assert run.returncode==0 and expected in run.stdout,run.stdout+run.stderr
+                    assert 'program=0x63' not in run.stdout
+                from analyze_event_journal import analyze
+                for mode in ('producer-full','producer-mutated','producer-partial','producer-short','producer-other'):
+                    state=out/mode;state.mkdir()
+                    run=subprocess.run([str(binary),mode],capture_output=True,text=True,timeout=5,
+                        env=dict(os.environ,SOTC_SHADER_PROVENANCE='1',SOTC_DIAGNOSTIC_JOURNAL='1',BB_GPU_USER_DIR=str(state)))
+                    assert run.returncode==53,(mode,run.returncode,run.stderr)
+                    events=analyze(state/'shader-events.bin','shader')['events']
+                    assert len(events)==1
+                    observed=events[0]['write_observation']
+                    assert observed['register_matches_observed_address']
+                    expected=None if mode in ('producer-partial','producer-short','producer-other') else mode!='producer-mutated'
+                    assert observed['packet_matches_register']==expected,(mode,observed)
+                    assert (observed['packet_address_words'] is None)==(expected is None)
+                for mode in ('full','gfxqueue','mutated','partial','short','other'):
+                    state=out/('compute-producer-'+mode);state.mkdir()
+                    run=subprocess.run([str(binary),'compute-producer-'+mode],capture_output=True,text=True,timeout=5,
+                        env=dict(os.environ,SOTC_SHADER_PROVENANCE='1',SOTC_DIAGNOSTIC_JOURNAL='1',BB_GPU_USER_DIR=str(state)))
+                    assert run.returncode==53,(mode,run.returncode,run.stderr)
+                    events=analyze(state/'shader-events.bin','shader')['events']
+                    assert len(events)==1
+                    event=events[0];observed=event['write_observation']
+                    assert event['actor']==(6 if mode=='gfxqueue' else 7)
+                    assert observed['register_matches_observed_address'],(mode,observed)
+                    assert observed['register_origin']==(0x987600 if mode=='mutated' else 0x12345600)
+                    expected=None if mode in ('partial','short','other') else mode!='mutated'
+                    assert observed['packet_matches_register']==expected,(mode,observed)
             print(label+': actual graphics/compute SH end/crossing controls, valid bytes and canaries checked')
         # Confirm all three legacy SH write paths call the checked guard;
         # the alternate decoder records its own already-applied register writes.

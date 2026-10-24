@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import struct
+from analyze_index_capture import validate as validate_index_capture
 
 
 def check(image,profile,selection,field_selection=None):
@@ -12,6 +13,8 @@ def check(image,profile,selection,field_selection=None):
     if 'field_selection' in spec and field_selection!=spec['field_selection']:
         raise ValueError('field selection differs from reviewed profile')
     scenarios=spec.get('scenarios',[])
+    if 'index_capture' in spec:
+        validate_index_capture(spec['index_capture'],len(spec.get('field_selection','').split(',')) if spec.get('field_selection') else 0,len(selection.split(',')) if selection else 0)
     if not isinstance(scenarios,list):raise ValueError('invalid scenario list')
     for scenario in scenarios:
         if not isinstance(scenario,dict) or not isinstance(scenario.get('name'),str):
@@ -72,6 +75,7 @@ def main():
             if 'field_selection' in spec:
                 result['field_selection_sha256']=hashlib.sha256(args.field_selection.encode()).hexdigest()
                 result['scenarios']=spec.get('scenarios',[])
+            if 'index_capture' in spec:result['index_capture']=spec['index_capture']
             with args.output.open('x') as out:json.dump(result,out,indent=2);out.write('\n')
     except (OSError,ValueError,KeyError,TypeError,struct.error) as error:parser.exit(24,'Pointer profile rejected: '+str(error)+'\n')
     print(f'PASS: {count} private pointer probe signatures match actual prepared input; no guest execution.')

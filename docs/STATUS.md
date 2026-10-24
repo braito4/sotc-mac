@@ -1,5 +1,623 @@
 # Development status
 
+### Prefix change captured before consumption
+
+The third fresh-consume owner control captures a recognized pre-enqueue prefix
+that has changed by packet consumption about 362 ms later. Bind and lookup retain
+the altered bytes. A newer registration for the same numeric origin is active;
+the original writer and allocation lifetime remain unknown. The next probe also
+compares runtime pool offsets at the two stages; see [probe semantics](SHADER_CONSUME_PROBES.md).
+The offline analyzer now recovers an evicted lookup from the saved failure-program
+history while preserving missing timestamps and independent sequence domains.
+
+### Fresh shader consumption observations
+
+The renderer now adds a [fresh prefix probe](SHADER_CONSUME_PROBES.md) at packet
+consumption, retaining pre-enqueue and fresh bytes in a separate bounded history.
+Watch-state observations distinguish registration eligibility and missing later
+coverage. These narrow the observed interval without attributing an original
+writer. The newest owner control already uses the XADD correction but repeats
+an earlier invalid-pointer SIGSEGV consumer; that failure remains unresolved.
+
+### Register XADD alias defect corrected
+
+An original CPU fixture exposed a second shared interpreter/JIT-fallback defect:
+register `XADD` with identical operands returned the old value instead of the sum.
+The checked private scalar companion now preserves the specified assignment
+order; the memory atomic path is unchanged. Both modes pass 256 cases covering
+8/16/32/64-bit results and arithmetic flags. See [the correction](CPU_XADD.md).
+There is no demonstrated link to the game's pointer or shader corruption.
+
+The latest preserved owner run rejects compute-shader metadata. Its failure-time
+snapshot reports `address_not_watched`; zero cumulative imported-copy overlaps
+therefore cannot exclude a write to that origin. The preceding SIGSEGV records
+an invalid argument loaded by a caller from an object field; its original writer
+is still unknown. These captures remain separate from CPU regression evidence.
+
+### Shader-prefix copy probes prepared
+
+After owner runs showed substantial replacement in the initial 256-slot table,
+the watch table now has 2,048 entries in four-way buckets. Four cumulative copy
+counters survive event-tail overwrite, and metadata failures preserve an exact
+numeric watch-state query for their origin. Legacy watch layouts remain readable.
+The new state distinguishes missing coverage from missing retained copy events;
+it does not establish an original writer or a corruption fix.
+
+The first owner v2 control confirms 175,950 registrations, 221 replacements and
+zero registration contention drops. All four cumulative shader-copy overlap
+totals are zero. It ends after 112.328 seconds in the repeated host operand-read
+failure associated with `bbcpu_read`, without exact guest context. This does not
+exclude direct stores, aliases, mapping reuse or coverage gaps. No terminal
+shader rejection occurs, so the failure-time watch snapshot still awaits native
+coverage.
+
+The [new copy probes](SHADER_COPY_PROBES.md) arm bounded watches from recognized
+pre-enqueue prefixes and observe overlapping imported memcpy/memset before/after
+the real operation. They retain copy arguments and caller candidates, with
+collision/contention counters and conservative offline association. No original
+writer, allocation lifetime or native shader correction is established yet.
+
+### Indexed-table SIGBUS evidence prepared
+
+The [new private SIGBUS probes](SIGBUS_INDEX_PROBES.md) capture the source pointer
+chain, 32-bit index, before/after scale registers and table/frame context. All
+previous pointer probes and reader/index roles remain; five comparator scalar
+channels were reassigned. There are 26 pointer targets and 28 scalar targets.
+Original JIT/interpreter controls verify the added capacity and preserved faults.
+Native observations are recorded below; no corruption fix is claimed.
+
+The first completed owner run with this SIGBUS profile subsequently confirms
+5,501 hits in each new role, then ends on a fragment-shader metadata rejection
+after 129.053 seconds. Its shader prefix is recognized in the pre-enqueue sample,
+changes by binding 54.821 ms later, and remains changed at lookup 29 microseconds
+after binding. Matching numeric origins narrow the window; original writer and
+allocation lifetime remain unknown. This is no longer merely a missing binding
+sample, and is not a demonstrated shader or SIGBUS correction.
+
+### Shader binding prefix probes prepared
+
+New [binding prefix probes](SHADER_BIND_PROBES.md) retain eight backing bytes and
+packet/register identity at address binding, independently of the finite
+pre-enqueue capture pool. Two histories separate recognized prefixes from
+anomalous/unavailable ones. Offline review admits only a unique matching
+program/address/packet/register/actor/thread observation between write and lookup.
+This is diagnostic coverage, not a shader correctness or writer-attribution fix.
+
+### Shared scalar shift defect corrected
+
+Two subsequent completed owner runs validate and apply `+nointro` with the new
+startup binary. One ends on a vertex-shader metadata rejection after 190.915
+seconds; the other ends in SIGSEGV after 170.134 seconds. The latter repeats the
+same host PC and `bbcpu_read` relative return offset seen before fast startup,
+with another invalid source address. Guest instruction context is still absent.
+Both runs are preserved with matched binaries and verified hashes. Option
+application is confirmed; actual skipped screens/gameplay are not established
+by these logs. Keep fast-start results separate from the earlier workload.
+
+An original fixture reproduced incorrect upper-register preservation for
+masked-zero 32-bit SHL/SHR/SAR in both the interpreter and ARM64 JIT. Checked
+private CPU companions now zero-extend the destination and preserve flags.
+The pinned checkout and guest input remain unchanged. See the
+[correction and regression coverage](CPU_ZERO_COUNT_SHIFTS.md). A causal link to
+the native corruption and a game-level correction remain unestablished.
+
+The first owner control after this correction confirms the new binary identity
+and validated base/profile settings, then exits on SIGSEGV after 183.256 seconds.
+Two distinct host reporter threads record the same host PC and different invalid
+addresses. Concurrent fatal reporting truncates the complete context; all five
+bounded journals remain readable, but no exact guest instruction is available.
+The correction has not eliminated this failure; one run establishes neither a
+regression nor improvement. Both the previous captures and this control are
+preserved with matching binaries and verified hashes.
+
+The next owner control with the same corrected binary ends after 217.014 seconds
+on a fragment-shader metadata rejection, with no CPU fatal signal recorded.
+Packet, register and descriptor origin observations agree, but the scanner input
+lacks the required prologue. No matching pre-enqueue prefix is retained for this
+case, so when the content became invalid remains unestablished. This is a
+separate stop, not evidence that SIGSEGV has been resolved.
+
+### Reader/index capture has native coverage
+
+After five base controls, the [reader/index capture](INDEX_CAPTURE.md) is active
+with base selected. It observes the fast reader's loaded value, returned index,
+reader fields and saved/calculated stages. Prior profiles are retained; all 22
+pointer targets remain alongside two numeric observations, with eleven scalar
+channels reassigned. Fixed journal storage totals 1204 KiB. Full synthetic
+contracts and final targeted controls passed before two owner runs on October 24.
+Both validate base and the new profile. They stop in distinct paths: an invalid
+host-call target and a translated pointer load from an object field. Neither
+reproduces the earlier scaled-index fault. The bounded reader/index channels
+contain native observations; no original corrupting writer is established.
+
+### First native function comparison still ends in SIGSEGV
+
+The owner run at 21:21:08 UTC validates and enters the `caller` interpreter
+interval, then stops after 187.376 seconds in a translated traversal outside it.
+The same fault instruction and displacement occurred before these variants, with
+the same prepared-input hash and another invalid pointer. No original writer or
+causal attribution is established. The capture is preserved; runtime/defaults
+remain unchanged. See the [checkpoint](SIGSEGV_CHECKPOINT.md).
+
+### Three controlled CPU comparisons implemented
+
+The owner launcher accepts `base`, `caller`, `buffer` and `table`; the private
+default is `caller`. Each variant interprets one hash-checked function interval
+and keeps other code on the JIT. This tests the three priority functions without
+changing guest instructions or the existing pointer/scalar selections. The prior
+executable and profiles are preserved. Full synthetic contracts pass in JIT and
+interpreter modes. Native results and a corruption fix remain unestablished; no
+game/GPU run was performed. See [comparison instructions](CPU_FUNCTION_COMPARISONS.md)
+and the [checkpoint](SIGSEGV_CHECKPOINT.md). Earlier sections are historical.
+
+### Candidate inventory prepared before corrective variants
+
+The latest SIGSEGV occurs in host libc on a call associated with the diagnostic
+memcpy wrapper and a null destination; the guest producer is unknown. Previous
+new captures retain an invalid store's terminal source word and a repeated
+null-object member read. These remain separate from graphics-only failures.
+
+A bounded inventory selects 20 distinct code points in nine routes: 15 known
+function entries and five interior/candidate return sites. None is a proven
+original writer. Three statically linked argument/buffer/table functions are
+prioritized for an initial hypothesis-driven comparison. No corrective variant,
+runtime/profile change or agent game launch was made while preparing the count.
+
+### Four more runs: repeated pointer consumer and a distinct null-object fault
+
+Two subsequent owner runs reproduce SIGSEGV. One repeats an earlier scalar
+consumer and candidate call site; static review identifies its indexed argument
+source, whose actual word/writer remains uncaptured. The same static caller also
+invokes the function involved in the stack-protector case, without proving a
+shared cause. The other SIGSEGV reads a byte through null RDI after a routine
+that can explicitly return null. Query/filter inputs and results remain to be
+observed. Two new shader-metadata stops are archived separately.
+
+The four captures preserve exact-input static slices, matching binary identities
+and bounded journals. No JIT semantic defect, original writer or native fix is
+established. Runtime and active profile remain unchanged by this analysis.
+See the [current checkpoint](SIGSEGV_CHECKPOINT.md).
+
+### Five-run comparison: no SIGSEGV, new stack and command-parser leads
+
+The latest five completed owner runs stop on one stack-protector discrepancy,
+three shader-metadata rejections and one unrecognized graphics PM4 opcode.
+They are preserved separately with actual classifications; none is another
+SIGSEGV. Exact-input static review narrows the stack case to a buffer owner,
+table generator and following consumer, without observing its original writer
+or proving a common cause with the earlier pointer failures.
+
+One compute shader already has the same unrecognized sampled prefix before
+enqueue and at lookup 35.615 ms later. That narrows when the sampled condition
+was present; it does not prove whole-program stability or intended identity.
+The latest PM4 failure remains an unsupported/framing/origin/content question.
+New CPU probes have native hits in all five runs; writer-watch admission remains
+limited. Runtime, profile and protections are unchanged by this comparison.
+See the [current checkpoint](SIGSEGV_CHECKPOINT.md).
+
+### First native runs with the new probes
+
+The latest owner run exits on the GPU watchdog after 183.596 seconds, child 21 /
+supervisor 31. Two command buffers in the awaited batch have scheduled callbacks
+without completion after about ten seconds. A preceding run exits 23 after
+170.984 seconds on fragment-shader metadata. Neither is a SIGSEGV example; both
+are saved independently with matching binaries and diagnostic journals.
+
+All four new pointer probes have native hits. This validates their reachability
+after the interior-probe correction, while full watch banks and admission
+refusals leave writer coverage incomplete. No responsible writer or reduction of
+the five initial analysis points is established. Runtime, active profile and
+watchdog are unchanged for this analysis. See [checkpoint](SIGSEGV_CHECKPOINT.md).
+
+### Current SIGSEGV preparation and JIT review
+
+The latest retained owner run fails after 141.614 seconds through an invalid
+incoming scalar pointer. A candidate caller loads a returned member that the
+previous terminal dump did not cover. Its original value/writer remains unknown.
+Complete evidence and matching pre-rebuild binaries are archived separately.
+
+Fixed a confirmed diagnostic omission: probes inside a translated CPU block could
+be skipped. The checked diagnostic JIT generator now splits before those probes.
+Full synthetic contracts pass through JIT and interpreter without game input.
+The active selection has 22 pointer targets and unchanged 28 scalar probes, with
+1172 KiB fixed journals. New bounded observations target the array entry and
+returned member before use; watch admission remains limited. Private output
+permissions are the launcher default. Native corruption is not corrected or
+validated by a new game run.
+
+The [JIT review](JIT_REVIEW.md) maps the relevant CPU functions and external
+evidence. The historical upstream CMPXCHG correction is already included;
+no later CPU semantic fix or matching orbis-on-macos correction was identified.
+The older profile/run descriptions below are historical.
+
+### SIGSEGV source investigation resumed
+
+The latest owner capture stops after 137.864 seconds in a pointer-array consumer.
+Its retained table entry refers to the object, and its source field already
+contains the terminal invalid pointer before the load. Neighboring operands are
+also inconsistent; no previous source value or writer is retained. The new
+eighteen-target profile is active, but one selected branch had zero hits. The
+source/table probes in this failure family are observation-only. The complete
+capture is archived privately; no native fix is demonstrated.
+
+The preceding reviewed owner capture stops after 105.418 seconds on an atomic
+consumer using an invalid pointer. Protected terminal memory retains the same
+pointer in a readable caller slot; static caller code and a candidate return
+agree with that source path. The original writer and object lifetime remain
+unknown. Three new complete captures and matching binaries are archived privately
+with checksums; the earlier captures were reverified.
+
+Fixed an offline evidence omission: terminal protected reads now appear separately
+from pre-failure pointer history, with displacement and ambiguity limits. Four
+additional private observations target the caller slot and incoming consumer;
+the previous profile is preserved. Original JIT/interpreter controls pass for
+valid atomic results and distinct pre-existing/direct/imported-copy corruption.
+No native SIGSEGV correction is claimed. The later owner run above supplies the
+first comparison; no game/GPU run was performed by the agent. See the
+[checkpoint](SIGSEGV_CHECKPOINT.md). Earlier paused entries below are historical.
+
+### Bounded pre-enqueue shader-prefix capture prepared
+
+The latest owner fragment-origin rejection still occurs with the corrected
+compute packet framing. Its packet/register/lookup/descriptor observations agree;
+a later self-describing block references the scanned metadata, while the supplied
+origin remains unbound. Offline metadata-only review confirms this distinction
+without executing shader/game instructions or relocating the live program.
+The separately saved SIGSEGV captures remain deferred; their profiles are unchanged.
+
+A new opt-in `SOTC_SHADER_SUBMIT_TRACE=1` diagnostic observes complete supplied
+SET_SH_REG address pairs and eight shader-prefix bytes before enqueue, after the
+existing optional command copy. Graphics and compute submission coroutines retain
+these observations through decoding, including bounded nested-IB candidates.
+Consumed packets publish their retained pre-enqueue observation again, so a long
+queue delay or wrapped submission tail need not erase the matching sample.
+There is no TLS scope across suspension, guest allocation retention, GPU readback,
+shader repair or metadata acceptance change. The owner launcher defaults it on;
+`SOTC_SHADER_SUBMIT_TRACE=0` or disabled diagnostic journals performs no new reads.
+
+The fixed pool admits at most 16 live captures, each with 512 prefix samples,
+4096 parsed packets, 262144 command words and four nested IB levels. Host pool
+storage is below 512 KiB plus at most 16 shared-pointer control blocks. A separate
+`shader-submit-events.bin` adds 132 KiB; the fourteen-probe profile now uses
+1044 KiB of fixed journals. Existing file sizes, profiles and cache 28/9 stay fixed.
+Unavailable reads, partial pairs, other layouts, repeated packets, budget/pool
+refusals, failed output initialization and overwritten tails remain explicit.
+The scanner observes candidate commands; it does not simulate conditional execution.
+
+Offline review joins the active submission's consumed packet with retained
+same-program/thread address-write and lookup observations. It distinguishes an
+already unrecognized prefix, a changed sampled prefix at the same numeric origin,
+and changed origins without inferring a content transition between different
+addresses. Unavailable/repeated/foreign-PID evidence remains unknown. Eight-byte
+agreement does not prove whole-program stability, intended identity, ownership,
+a responsible writer or an atomic guest observation.
+
+ARM64 compilation, all builder CPU regressions, 19 original submission-recorder
+controls with address/undefined sanitizers, eight offline join controls, 26 build
+orchestration tests and full JIT/interpreter CPU contracts pass. Guards include
+real inaccessible input pages, both compute paths, nested/repeated/partial input,
+concurrency, pool/budget saturation, disabled/failed output, retained evidence
+after unrelated exit and consumption after submission-tail wrap. No game/GPU run
+validates native usefulness or overhead yet. Runtime/CPU/reference pins are unchanged.
+
+### Compute PM4 framing corrected; native shader origin unresolved
+
+Review of the October 23 16:24:04 UTC owner capture found a reproducible defect
+in the compute command reader. Type-2 padding was sized as type 3 before the
+padding check. A buffered packet copied its entire remaining payload before
+checking the supplied extent, lost earlier pieces when split again, and shared
+ring continuation state with nested indirect buffers. Split packets could also
+exceed the fixed temporary buffer. Original actual-source CPU controls reproduce
+these failures, including a guarded out-of-range continuation read.
+
+The checked local overlay sizes padding as one word, validates headers before
+copying, appends only available continuation words, checks temporary capacity and
+keeps complete indirect buffers independent of ring continuation state. Truncated
+indirect and oversized split inputs fail explicitly before copying; supported
+complete packets, two/multiple-piece packets, following packets and ring-cursor
+wrap retain their original payload/order. The metadata association gate remains.
+The pinned sources and private SIGSEGV profile are preserved.
+
+The owner capture exits 23/23 after 148.171 s on an unbound compute origin. A
+retained full address packet, its post-copy register, lookup and separate failure
+descriptor agree; write-to-lookup observations are 24 us apart. No submission-time
+shader-code snapshot or original writer is available. This capture does not prove
+that packet framing caused its invalid shader content, and the correction is not
+a demonstrated native shader-origin, SIGSEGV, PerVertexKHR or SRT fix.
+
+ARM64 renderer compilation and all builder CPU regressions pass. New sanitizer
+controls reproduce six old failures and preserve ordinary old behavior; corrected
+framing passes those controls plus every two-piece split, a 1024-piece packet,
+following packets, complete large packets and ring wrap. All 26 build-orchestration
+tests, actual shader-metadata fixtures and full JIT/interpreter CPU contracts
+pass. One initial supervisor-cleanup test failed; its isolated suite and the full
+contract rerun pass. No game/GPU run is performed; native validation remains pending. Journal sizes, cache 28/9 and dependency pins
+are unchanged.
+
+### Compute shader address diagnostics corrected; native origin unresolved
+
+The October 23 16:07:39 UTC owner capture rejects an unbound fragment program
+after 146.057 seconds. Its supplied packet address, post-copy register, lookup
+and separate failure descriptor agree; the write-to-lookup interval is 24 us.
+The initial head matches the saved scan. Equal failure/trace files are copies
+of one lookup observation, not submission-versus-consumption content evidence.
+There is no submission-time shader snapshot or proven original writer. Keep the
+metadata gate; do not relocate to neighboring programs or accept scanned identity.
+
+Review also exposed a diagnostic layout bug: ComputeProgram starts with dispatch
+fields, while its address words begin at byte offset 48. Corrected capture reads
+that checked offset and uses register 0x20c for supplied packet coverage. New
+compute actors 6/7 distinguish corrected observations from old actors 3/4, which
+the offline reader keeps unknown. Failure descriptor context identifies the
+compute offset; old compute contexts carrying the graphics label remain unknown.
+Graphics capture, guest rendering, journal sizes and dependency pins are unchanged.
+This corrects diagnostic evidence, not the native shader origin/content failure,
+PerVertexKHR, SRT, or the paused SIGSEGV investigation. Original CPU fixtures cover
+both compute paths, deliberate register mismatch, partial and guarded short input.
+
+ARM64 renderer build, actual shader metadata/producer fixtures, 21 offline
+diagnostic tests and the full JIT/interpreter CPU contracts pass. No game/GPU
+comparison is performed; native validation remains pending.
+
+### Shader address producer capture prepared
+
+After the October 23 15:31:40 UTC owner capture rejected fragment metadata after
+155.550 s, the trace now retains the address words observed in the supplied
+SET_SH_REG packet, a separate post-copy raw program-address register observation,
+and the later lookup address. Graphics/compute and alternate-decoder call sites
+supply their bounded packet extent through a checked local overlay. Only the
+recognized packet layout and a fully covered address pair are decoded; partial,
+short or other-layout packets retain explicit unavailable pair evidence. No new
+shader-code reads, renderer repair or register changes are introduced.
+
+Existing write-event payload space holds the observations; journal sizes stay
+unchanged. Required metadata failure now also snapshots the raw CPU program
+object before the host history callback, with program/thread identity in context.
+The offline origin review selects retained same-program/thread observations and
+reports packet/register/lookup agreement separately. Older events remain legacy
+and absent pairs are unknown. Observations can race; agreement does not prove
+correct shader identity, allocation lifetime, unchanged content or writer cause.
+
+Original CPU controls cover a valid pair, deliberately changed register, partial
+write, guarded short packet, unrelated layout and evidence surviving exit without
+printing. A callback mutating the descriptor confirms the earlier failure snapshot
+is retained. Strict metadata association, the eight-case budget and paused SIGSEGV
+profile remain unchanged. No game/GPU execution or dependency pin change occurs.
+
+Public heads refreshed before the comparison include runtime
+[4f7e727ad5a4](https://github.com/bloodborne-native/bloodborne-runtime/commit/4f7e727ad5a4cc54f7b4999df82de23245433e86)
+(October 23 15:41:15 UTC). Checked A6 host-pass object ownership and host-specific
+pipeline state; the author clarifies API validation ran with the upscaler off.
+No guest shader-address or metadata-association fix is present in that delta.
+Other four tracked heads are unchanged. No upstream implementation is imported.
+
+### Shader metadata association gate applied
+
+The owner requested prevention of incorrect cross-program association. Main-program
+parameters now require the recognized self-describing prologue, an in-range
+literal-derived metadata location, a valid signature at that exact location and
+whole-dword code length of at least the prologue size, ending before the metadata.
+A signature found by scanning can no longer provide executable code parameters,
+length or hash for an unbound origin. Scanning remains bounded diagnostic evidence.
+Unrecognized layouts are explicitly unbound rather than treated as valid programs.
+This narrows supported lookup layouts; it does not prove stable guest ownership.
+
+Unavailable speculative work still returns no parameters for owning-thread retry;
+required unbound work stops with real exit 23 and an explicit association reason.
+No draw is silently skipped by this gate, no shader is fabricated, and the origin
+is never relocated to a neighbor. Candidate bytes/descriptors and eight-case trace
+remain available, now labelled accepted=false. Association status is versioned in
+lookup-event actor 2; earlier actor 0/1 journals retain unknown association status.
+Journal sizes, private SIGSEGV selection and dependency pins are unchanged.
+
+Original CPU controls cover missing prologue, conflicting/overflowed hints,
+neighbor metadata, malformed/overlapping code extents, correct and distant hinted
+programs, speculative rejection and required exit 23 with evidence. The privately
+saved owner scanner input also passes an old/new CPU metadata-only comparison:
+the previous helper accepts the borrowed neighbor identity; the corrected helper
+rejects it, while an independently supplied self-bound neighbor remains accepted.
+This comparison does not execute shader or game instructions. Native validation
+is pending; a bad original program may now stop earlier. The underlying cause of
+the missing/corrupt data, PerVertexKHR/SRT, and paused SIGSEGV remain unresolved.
+
+### Bounded fallback shader trace prepared
+
+Fallback shader lookups now retain the first eight distinct observed candidates
+before compilation, so an unrelated CPU SIGSEGV no longer necessarily loses this
+evidence. Each private case saves the exact existing scan snapshot, its metadata
+slice, a separate raw CPU program-descriptor observation, role, PID/thread/time,
+origin/hash/length, lookup/scan head comparison and bounded descriptor history.
+The trace does not read guest memory again or assert that the descriptor snapshot
+is atomic. Repeated keys are suppressed; eight slots are shared between graphics
+and compute program types. Refusals, duplicates, output failures, admitted and
+completed captures use existing shader-journal header space. No journal grows.
+
+The offline report validates extents, rejects foreign PIDs, fingerprints the saved
+bytes, checks metadata against the scan and compares a matching owned decode
+window when available. It preserves incomplete-case and exhausted-budget gaps.
+Original CPU controls verify survival of unrelated exit/source reuse, eight-slot
+saturation across program types, duplicates, disabled tracing and preservation of
+existing files. Rendering, lookup acceptance and real error exits are unchanged.
+No shader/SRT/PerVertex correctness or SIGSEGV fix is claimed.
+
+The latest owner comparison (October 23 15:07:41 UTC) stopped after 150.378 s on
+CPU SIGSEGV, not shader decode. It is retained privately while SIGSEGV work stays
+paused. There are 491 pipeline/805 SRT events; 427 pipeline events have adjacent
+PerVertex rejection evidence. All 512 retained successful shader lookups use
+hints. That bounded tail does not establish that all lookups were valid or that
+the independently reproduced metadata-association gap is fixed.
+
+Pre-comparison public heads now include runtime
+[c4f72650e63d](https://github.com/bloodborne-native/bloodborne-runtime/commit/c4f72650e63da34c14fc64ac9442088589602d53)
+(October 23 15:14:25 UTC). Checked A5 caller/pipeline shader holds and deferred
+release, then A6 resource binding/descriptor-heap moves. These do not fix guest
+program origin or metadata association. Shader ownership is a separate review
+candidate; Metal-shadow session retention remains explicitly documented upstream.
+Author frame/timing reports are not SotC ARM64/M1 validation. Other four heads
+are unchanged; no pin or upstream implementation is changed for this trace.
+
+### Metadata association gap reproduced; owner comparison unchanged
+
+Original CPU-only fixtures now reproduce a lookup association gap: when a mapped
+range starts at unrelated data but contains a later shader, the fallback signature
+scan borrows that shader's length/hash while retaining the incorrect code origin.
+An expected first token with a wrong metadata hint also permits this association.
+Correct hinted origin, missing signature and unavailable-read controls pass with
+address/undefined sanitizers; three metadata test groups pass. This confirms a
+lookup weakness, not the native writer or a shared cause with SIGSEGV.
+
+In the October 23 15:03:31 UTC capture, the failing vertex-program lookup is the
+only fallback scan among 512 retained successful lookup observations. The lookup
+head matches the owned decode head; this is two matching sampled words, not an
+atomic whole-program stability guarantee. The new private evidence records the
+metadata location and descriptor update before rejection. A valid signature does
+not prove that it belongs to the supplied origin.
+
+The owner is running another comparison. This check changes only tests and
+documentation: the renderer library, private selections and pins remain unchanged.
+Do not blindly require a first token, relocate code to a guessed start, skip the
+rejected instruction or substitute another shader. Association validation must
+handle legitimate fallback layouts explicitly; rejecting an unbound input alone
+would not recover the correct descriptor. Native correction remains unresolved.
+
+### Shader decode origin capture prepared; native correction unresolved
+
+The October 23 14:51:15 UTC capture exits 23/23 after 98.845 s during fragment
+program decoding. The rejected scalar-immediate word maps to a fork instruction;
+its interpreted relative target is outside the caller-declared program length.
+This is an input/length coherence clue, not proof of a particular corrupting writer
+or permission to remove fork behavior. The previously reviewed vertex rejection
+is a different program and format-table case. Both remain unresolved.
+
+Fixed a diagnostic gap: decoder failures now report bounded descriptor write and
+lookup history for the exact numeric program origin, and retain it beside the
+already owned input before calling the host CPU-history hook. At most eight
+matching program slots are copied, each retaining at most eight events; omitted
+slots and absent history are explicit. No guest memory is read by this report,
+and a numeric match does not establish ownership or stable allocation identity.
+Lookup events also retain metadata offset, prologue hint and scan extent in
+previously unused payload words with an explicit kind/actor marker. Legacy
+journals keep unknown context. Existing journal sizes and dependency pins stay
+unchanged; no fake shader, skipped instruction or stage substitution is added.
+
+ARM64 renderer build and original CPU-only decoder/provenance controls pass.
+The new controls cover exact-address versus foreign/missing matches, bounded
+report overflow, retained metadata location and unchanged unsupported-fork exit.
+The next owner run collects the missing origin evidence. PerVertexKHR/SRT and
+the native shader stop are not claimed fixed. SIGSEGV investigation stays paused;
+its private profile and checkpoint are preserved.
+
+Before this comparison, public default heads were refreshed at 14:58:46 UTC.
+Runtime advances through
+[64c7c5f714f5](https://github.com/bloodborne-native/bloodborne-runtime/commit/64c7c5f714f597484e9e922a2f5c37dc4cd94d10),
+October 23 14:57:13 UTC: adapter A5 moves shaders, vertex input and pipeline
+creation behind the backend device. Checked descriptions, handle mapping and
+deferred shader release; no decoder fork implementation or invalid guest-program
+origin repair is present in this delta. The author's frame/performance reports
+are not SotC ARM64/M1 validation. Other four tracked heads are unchanged. No
+upstream implementation or new pin is imported for this capture.
+
+### SIGSEGV paused; shader investigation active
+
+On October 23, 2026 the owner paused SIGSEGV work and requested shader work.
+The [paused checkpoint](SIGSEGV_CHECKPOINT.md) records the evidence, validated
+instrumentation and unimplemented entry-capture proposal. Preserve the private
+fourteen-probe profile and its hashed snapshot; do not silently switch profiles.
+The invalid-pointer source and writer remain unresolved.
+
+Start shader review with the retained vertex-program decode rejection at word
+zero from the 14:34:05 UTC capture. The installed decoder classifies that word
+as a scalar-immediate opcode outside its supported format table. Owned input
+preserves bytes at decode time; it does not prove valid origin or guest lifetime.
+Keep the 14:25:38 UTC graphics Thread ID assertion separate: its offending raw
+descriptor and validated shader identity were not retained. Neither rejection
+establishes a common cause with SIGSEGV or the PerVertexKHR/SRT failures.
+No dependency, guest-data or rendering behavior change is made by this checkpoint.
+
+Earlier checkpoints below are historical.
+
+
+### Deferred shader assertion; owner continues SIGSEGV comparisons
+
+The owner asks to retain the October 23 14:25:38 UTC shader problem for later
+review while continuing attempts to reproduce SIGSEGV. This run exits 23/23
+after 170.245 s on CalculateBufferAddress rejecting Thread ID buffer addressing
+outside compute. 673 pipeline/805 SRT events, 1444 API presentations, no audio
+queue failures. Unsupported legitimate stage use versus invalid/reused descriptor
+or stage metadata remains unresolved. No assertion bypass, stage override or
+fabricated thread/lane value is applied. Private logs, reconstructed diagnostic,
+source/profile context and review questions are saved under ignored analysis.
+The original report was missing because of an analyzer indentation error during
+an ongoing edit; this is fixed and the report is reconstructed from retained data.
+
+The active owner profile stays at the established fourteen probes/nine scenarios
+with independent watch banks. An eighteen-probe allocation-failure profile is
+preserved separately as an opt-in alternative; do not silently replace the active
+SIGSEGV selection. Its added register-only mode records numeric arguments without
+reading guest memory or arming watches; register values never become pointer
+focus/reference evidence. Existing journal sizes with fourteen probes stay 912 KiB;
+the optional eighteen-probe profile uses 976 KiB.
+
+Instruction-failure diagnostics now retain all sixteen registers and bounded
+field/history evidence before delegating to the unchanged upstream fatal body
+and exit 30. A weak no-op notification supports standalone CPU fixtures; the
+owner executable supplies the strong journal writer. Terminal kind 3 identifies
+instruction failure separately from stack-protector and translated signal cases.
+No unsupported opcode or guest INT is skipped or emulated. Offline reports now
+retain Oodle, reported guest-pool allocation failures and interrupt-vector stops
+in log order with displayed units; correlation is not a decoder or host-OOM cause.
+The anomalous guest allocation/decompression cause remains unresolved.
+
+### Independent watch banks and new linked-source capture
+
+The latest owner capture (October 23 13:57:38 UTC) stops after 116.513 seconds
+on another linked-structure read, through an invalid stored pointer plus eight
+bytes. The final node is readable; its source field is captured in the terminal
+snapshot, but no earlier observation or responsible writer survives. The previous
+allocator-focused selection still filled all 8192 shared slots and refused
+278,933 admissions, including every reached original header target. The prior
+isolation did not eliminate starvation.
+
+Persistent storage is now four disjoint banks of 2048 slots: original headers,
+selected allocator links, following allocator links and the newly failing linked
+source. Total capacity remains 8192; a bank can fill or collide independently but
+cannot consume another bank. No eviction, fallback borrowing or invented earlier
+history is introduced. Existing selections default to bank zero (2048 slots);
+optional @0..3 selects a bank after the full pointer-probe entry. Watch records
+identify their bank; existing header space retains per-bank admissions/refusals.
+Older journals remain readable with unknown bank metadata, not invented zeros.
+Small imported copies inspect active-bank buckets; large copies scan the bounded
+combined table. Both paths preserve bank attribution and existing write ordering.
+
+The private profile retains twelve earlier probes and adds two source probes,
+for fourteen targets/nine scenarios. Array/helper observations remain active;
+allocator and new-link fields request their own persistent banks. The pointer
+journal now has sixteen channels, adding 32 KiB (all journals 912 KiB). Watch
+storage remains 642 KiB plus 32 bytes of bank-usage counters. Guest behavior,
+permissions, rendering settings and dependency pins are unchanged.
+
+Fault review now separately reports terminal-register source candidates and a
+signed numeric displacement, so a fault at a stored pointer plus eight is not
+mistaken for absent pointer evidence. Displacement is not proof of the operand;
+ambiguous/incomplete register text is not used. This is an instrumentation change,
+not an established fix for native corruption or guest allocation lifetime.
+
+Validation: full ARM64 JIT/interpreter CPU contracts pass. Thirteen pointer
+tests cover isolated saturation/collision, concurrent admission, per-bank small/
+partial/large copy capture and fourteen pointer plus 28 scalar channels. Sixteen
+report tests cover legacy evidence, offset candidates, exact matches, missing
+register negatives and foreign PIDs. All fourteen private signatures match the
+prepared input. These are diagnostic controls; native effectiveness remains
+pending an owner comparison.
+
+Public default heads refreshed 2026-10-23T14:07:31.861451+00:00: runtime advances by
+three adapter A4 commits, ending at
+[ae84941d2f76](https://github.com/bloodborne-native/bloodborne-runtime/commit/ae84941d2f76c1620e41fbe50196bdaf5e1bcfb8)
+(October 23 14:06:51 UTC). Checked dynamic-state/pass conversions and recorded
+command captures; no demonstrated guest-link corruption fix was imported.
+Author Metal performance/frame reports are not SotC ARM64/M1 validation. Other
+four heads are unchanged; prior detailed PR/release limits remain.
+
 ### Allocator-link capture and recommended investigation workflow
 
 The October 23 13:39:40 UTC owner run stops after 126.462 seconds on an

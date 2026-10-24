@@ -1,6 +1,7 @@
 // Original bounded failure provenance; observations stay in private diagnostics.
 #pragma once
 #include "gpu_failure_history.h"
+#include "gpu_shader_provenance.h"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -51,9 +52,16 @@ inline void SaveOwnedEvidence(const char* reason, std::uint64_t offset) noexcept
         if (count) data.write(reinterpret_cast<const char*>(current.owned_words.data()+start),count*sizeof(std::uint32_t));
         std::ofstream meta(folder/"context.txt");
         meta<<"reason="<<reason<<"\nphase="<<current.phase<<"\nstage="<<current.stage
-            <<"\nshader="<<current.shader<<"\nword_offset="<<offset
+            <<"\nshader="<<current.shader<<"\norigin="<<reinterpret_cast<std::uintptr_t>(current.origin)<<"\nword_offset="<<offset
             <<"\nsupplied_words="<<current.supplied_words<<"\nowned_words="<<current.owned_words.size()
             <<"\nsaved_start_word="<<start<<"\nsaved_words="<<count<<"\ninput_owned=1\n";
+        if (SotcShaderProvenance::Enabled()) {
+            if(auto* report=std::fopen((folder/"provenance.txt").c_str(),"w")) {
+                SotcShaderProvenance::Get().ReportAddress(report,
+                    reinterpret_cast<std::uintptr_t>(current.origin));
+                std::fclose(report);
+            }
+        }
         if (data && meta) std::fprintf(stderr,"GPU shader decode evidence: %s\n",folder.c_str());
         else std::fputs("GPU shader decode evidence write failed\n",stderr);
     } catch (...) {
@@ -76,8 +84,13 @@ inline void SaveOwnedEvidence(const char* reason, std::uint64_t offset) noexcept
                  static_cast<long long>(required), int(has_word), word, opcode, encoding,
                  static_cast<long long>(current.supplied_words), int(current.input_owned));
     std::fflush(stderr);
-    Sotc::PreserveCpuFailureHistory();
+    // Retain already recorded descriptor/write/lookup evidence before the host
+    // callback; previously only metadata-lookup failures reported this context.
+    if (SotcShaderProvenance::Enabled())
+        SotcShaderProvenance::Get().ReportAddress(stderr,
+            reinterpret_cast<std::uintptr_t>(current.origin));
     SaveOwnedEvidence(reason,offset);
+    Sotc::PreserveCpuFailureHistory();
     assert_fail_impl();
     // An assertion handler must not permit an out-of-range read to continue.
     std::abort();

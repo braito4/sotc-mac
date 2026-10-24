@@ -18,6 +18,7 @@ static const auto base = reinterpret_cast<std::uintptr_t>(backing.data());
 static AmdGpu::ShaderProgram* tracked_program;
 [[maybe_unused]] static void mutate_history_backing() {
     if(std::getenv("SOTC_TEST_MUTATE_HISTORY"))backing.fill(std::byte{0x7f});
+    if(std::getenv("SOTC_TEST_MUTATE_DESCRIPTOR"))tracked_program->address=(base+256)>>8;
 }
 
 extern "C" std::uint64_t runtime_memory_clamp(std::uintptr_t address, std::uint64_t bytes) {
@@ -41,6 +42,40 @@ int main(int argc, char** argv) {
     program.address = base >> 8;
     assert(reinterpret_cast<std::uintptr_t>(program.Address<const u32*>()) == base);
     program.user_data[7] = 0x11223344;
+    if(argc>1 && std::string_view(argv[1])=="compute-required") {
+        AmdGpu::ComputeProgram compute{};
+        compute.dispatch_initiator=1;compute.dim_x=1;compute.address=base>>8;
+        Sotc::RequireShaderParams(compute,"compute");
+        return 99;
+    }
+    if(argc>1 && std::string_view(argv[1])=="association-required") {
+        AmdGpu::BinaryInfo info{};info.signature=info.signature_ref;info.length=32;info.shader_hash=0x1234;
+        const u32 wrong_hint[]={0xBEEB03FF,15};
+        std::memcpy(backing.data(),wrong_hint,sizeof(wrong_hint));
+        std::memcpy(backing.data()+512,&info,sizeof(info));
+        Sotc::RequireShaderParams(program,"synthetic-conflicting-hint");
+        return 99;
+    }
+    if(argc>1 && std::string_view(argv[1]).starts_with("fallback-")) {
+        const std::string_view mode=argv[1];
+        AmdGpu::BinaryInfo info{};info.signature=info.signature_ref;info.length=32;
+        AmdGpu::ComputeProgram compute{};compute.address=base>>8;
+        const unsigned attempts=mode=="fallback-cap" || mode=="fallback-types" ? 12 :
+            mode=="fallback-duplicate" ? 20 : 1;
+        for(unsigned i=0;i<attempts;++i) {
+            info.shader_hash=mode=="fallback-duplicate" ? 0x1234 : 0x1234+i;
+            std::memcpy(backing.data()+512,&info,sizeof(info));
+            reads=0;
+            const auto params=mode=="fallback-types" && i>=6 ?
+                Sotc::TryShaderParams(compute,"synthetic-compute-fallback",false) :
+                Sotc::TryShaderParams(program,"synthetic-graphics-fallback",false);
+            assert(!params && reads==2);
+        }
+        // An unrelated later exit and source reuse must not remove the earlier
+        // owned scan or force a fresh guest read during evidence writing.
+        backing.fill(std::byte{0x7f});
+        std::_Exit(mode=="fallback-exit" ? 53 : 0);
+    }
     if(argc > 1) {
         if(std::string_view(argv[1])=="changed-valid") {
             AmdGpu::BinaryInfo info{};info.signature=info.signature_ref;

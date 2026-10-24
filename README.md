@@ -14,11 +14,25 @@ The owner confirms this milestone on 2026-10-22. Rendering defects, memory failu
 and instability remain; correct graphics, sustained gameplay, audiovisual
 synchronization and save persistence are not validated.
 
-Latest owner capture (2026-10-23, 13:39:40 UTC) stops after 126.462 seconds
-on an invalid allocator link. Retained observations narrow the same-field value
-change to 404.567 ms; the writer and allocation lifetime remain unresolved.
-The follow-up prioritizes two allocator-link watches while retaining the earlier
-failure-family observations. See the first [handoff checkpoint](docs/DEVELOPMENT_HANDOFF.md).
+Compute command framing now preserves bounded ring continuations, treats padding
+as one word and isolates indirect buffers from partial ring packets. Original
+CPU controls reproduce the previous failures; the ARM64 renderer and its CPU
+regressions pass. This is not a demonstrated correction for the latest unbound
+compute shader origin; native validation remains pending. See the current
+[handoff](docs/DEVELOPMENT_HANDOFF.md#continuation-checkpoint).
+
+A bounded pre-enqueue shader-prefix diagnostic is now built and CPU-tested. It
+compares a retained submission observation with the later packet/lookup evidence
+to distinguish changed addresses, changed sampled bytes and an already unbound
+prefix. Native effectiveness and overhead remain unvalidated; shader origin and
+content failures are unresolved. See [CPU diagnostics](docs/CPU_DIAGNOSTICS.md).
+
+The owner has paused SIGSEGV investigation to continue shader work (October 23,
+2026). The memory fault remains unresolved. Evidence, diagnostic work and the
+pending entry-capture proposal are preserved in the
+[paused checkpoint](docs/SIGSEGV_CHECKPOINT.md). Current shader work starts with
+the retained vertex-program decode rejection; PerVertexKHR and SRT failures
+also remain open. See the current [handoff](docs/DEVELOPMENT_HANDOFF.md).
 
 Our most productive approach so far is the
 [bounded evidence and synthetic-control workflow](docs/MEMORY_ERROR_WORKFLOW.md).

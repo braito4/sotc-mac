@@ -1,5 +1,65 @@
 # Upstream review: 2026-10-22
 
+## October 24 render adapter refresh
+
+The current runtime head is
+[`1dda5fb086cd`](https://github.com/bloodborne-native/bloodborne-runtime/commit/1dda5fb086cd42e8d52e78c80753257d52b77f04),
+27 commits / 89 paths beyond the last reviewed `4f7e727a`. App head
+[`a55959674fcf`](https://github.com/bloodborne-native/bloodborne-mac/commit/a55959674fcfd9c3cff7a5c8dce9dc172a3fde87)
+adds 13 commits and points its runtime gitlink at that same head. Selected local
+runtime/CPU/library revisions are unchanged; counts are beyond the last review,
+not beyond our installed base.
+
+The renderer now completes adapter A6, creates buffers and supported images in
+Metal (M1) and routes shared recording through its own interface (M2 step 1).
+Metal resources are still imported into MoltenVK for recording; the upstream
+roadmap explicitly leaves a Metal command stream and full Vulkan removal later.
+The local renderer has additional checked SotC, task, shader, memory and lifetime
+overlays. Updating this base therefore requires adapting and revalidating those
+overlays across new device/recorder/transfers interfaces, not only an app update.
+
+One concrete candidate is
+[`41f289fe81`](https://github.com/bloodborne-native/bloodborne-runtime/commit/41f289fe81e0458c7ac4c1f70956915b72267bd8):
+upstream reports retaining the upscaler display view until its image is retired
+after GPU idle, fixing Metal validation lifetime errors below native render size.
+That author result is not our SotC validation, and the current diagnostic has no
+upscaler. Another motion-overlay view lifetime fix is in the M2 migration; it is
+also separate from our current CPU reader-index failure. Host-copy/tick changes
+in this delta primarily route existing operations through interfaces. No CPU
+source or recomp gitlink changes occur in the inspected 27-commit delta.
+
+The CPU translator and SotC reference default heads remain unchanged. Neither the
+renderer migration nor the absence of CPU changes proves that the existing JIT
+or shared decoder is correct. The [reader/index capture](INDEX_CAPTURE.md) and
+[translator testing references](CPU_TRANSLATOR_REFERENCES.md) address that question
+without conflating a different backend with a demonstrated correction.
+
+## Recent Bloodborne macOS changes: owner-requested recheck (2026-10-23)
+
+Public API review observes app main
+[74a53779](https://github.com/bloodborne-native/bloodborne-mac/commit/74a5377940fcf02359a431db9f6cac0044c119f3)
+(15:41:20 UTC), runtime main
+[4f7e727a](https://github.com/bloodborne-native/bloodborne-runtime/commit/4f7e727ad5a4cc54f7b4999df82de23245433e86)
+(15:41:15 UTC), and CPU main `ef153b8d` (unchanged CI/linker-test series).
+The latest app release remains
+[v0.8.3](https://github.com/bloodborne-native/bloodborne-mac/releases/tag/v0.8.3),
+published at 01:06:42 UTC. The runtime head matches the most recent prior private
+shader-producer review; the generated inventory's earlier reviewed-head entry
+was stale and is now reconciled. The selected pins remain fixed.
+
+| Recent change | Local relevance and decision |
+|---|---|
+| [A5 pipeline shader holds, 1f3f9a9](https://github.com/bloodborne-native/bloodborne-runtime/commit/1f3f9a9b7f8e8e89e292a0709a50fa53f8839d71) | The backend counts caller and pipeline holders and defers the last module release. It also releases auxiliary-stage caller holds. Useful for a future shader-replacement/lifetime adaptation, but depends on the new backend handle tables and pipeline records. Our current module replacement destroys/rebuilds through the older cache. No guest code-origin or metadata-association repair is supplied. Keep as a separate candidate with delayed-consumer/replacement controls. |
+| [A6 host passes, 5b4bf2a](https://github.com/bloodborne-native/bloodborne-runtime/commit/5b4bf2a9731cdc82e9735c11f2cf0a00d7c4e0f7) | Inspected host-specific pipeline settings and presenter lifetime. Upstream documents a per-frame presentation view freed before the Metal command buffer is finished; adapter release waits past the next submission. Our corresponding view path is inside the `upscaled` branch and currently uses `DeferOperation`. A narrow deferred-view control is worthwhile before reactivating scaling; it is not the current guest fragment-origin failure. Do not import the entire adapter refactor as a fix. |
+| [Release 0.8.3](https://github.com/bloodborne-native/bloodborne-mac/releases/tag/v0.8.3) | Multi-instance Metal tessellation is already represented by the checked local adaptation. Do not apply it twice. FSR 4.1.1 adds an optional backend/model dependency and extra GPU cost; defer while resolving instability with the upscaler off. Launcher mods, character edits and trophy UI do not address the current stop. |
+
+The author reports Bloodborne/Metal/MoltenVK validation on other hardware and
+specific upscaler settings. These are not SotC ARM64/M1 correctness, memory or
+performance measurements. No new upstream implementation is imported by this
+review. The separate pre-enqueue shader-prefix diagnostic is original local
+instrumentation and does not bypass metadata rejection or repair guest content.
+
+
 ## Applied diagnostic adaptation: 2026-10-23
 
 The macOS CPU-frame guard is now integrated as an optional diagnostic, with the

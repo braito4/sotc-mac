@@ -5,6 +5,8 @@
 #include "gpu_shader_metadata.h"
 #include "gpu_failure_history.h"
 #include "gpu_shader_provenance.h"
+#include "gpu_shader_lookup_trace.h"
+#include "gpu_shader_prefix_bridge.h"
 #include "video_core/amdgpu/regs_shader.h"
 #include <atomic>
 #include <cstdio>
@@ -33,6 +35,7 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
         return true;
     });
     SotcShaderProvenance::Lookup(program,result,required,address);
+    TraceShaderLookup(program,result,role,required,address);
     if(result.found && runtime_memory_is_mapped(address,result.info.length)) {
         return Shader::ShaderParams{.user_data=program.user_data,
             .code=std::span{reinterpret_cast<const u32*>(address),result.info.length/sizeof(u32)},
@@ -45,11 +48,18 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
         return std::nullopt;
     }
     char thread[64]{};
+    // Failure-only ordinary CPU-object snapshot, before any host-history hook.
+    // This is separate from the earlier lookup-address observation, not atomic.
+    static_assert(sizeof(Program)>=8 && sizeof(Program)<=512);
+    std::array<std::byte,sizeof(Program)> descriptor{};
+    std::memcpy(descriptor.data(),&program,descriptor.size());
+    std::uint64_t thread_id{};const auto self=pthread_self();
+    static_assert(sizeof(self)<=sizeof(thread_id));std::memcpy(&thread_id,&self,sizeof(self));
     pthread_getname_np(pthread_self(),thread,sizeof(thread));
-    std::fprintf(stderr,"STOP_GPU_SHADER_METADATA: role=%.*s thread=%s address=%#llx mapped=%zu head=%08x,%08x hint=%llu scanned=%zu found=%d length=%u metadata_offset=%zu\n",
+    std::fprintf(stderr,"STOP_GPU_SHADER_METADATA: role=%.*s thread=%s address=%#llx mapped=%zu head=%08x,%08x hint=%llu scanned=%zu found=%d length=%u metadata_offset=%zu association=%s\n",
         int(role.size()),role.data(),thread,static_cast<unsigned long long>(address),mapped,
         result.head[0],result.head[1],static_cast<unsigned long long>(result.hint),result.scanned,
-        int(result.found),unsigned(result.info.length),result.offset);
+        int(result.found),unsigned(result.info.length),result.offset,ShaderMetadataAssociationName(result.association));
     PreserveCpuFailureHistory();
     if(SotcShaderProvenance::Enabled())
         SotcShaderProvenance::Get().Report(stderr,reinterpret_cast<std::uintptr_t>(&program));
@@ -60,13 +70,27 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
         const auto folder=std::filesystem::path(directory)/"shader-metadata-failure";
         const bool created=std::filesystem::create_directory(folder,error);
         if(created && !error) {
+            const auto watch_snapshot=SotcShaderPrefixBridge::Snapshot(address);
+            std::ofstream watch(folder/"prefix-watch.txt");
+            watch<<"schema=1\naddress="<<address<<"\nstate="<<watch_snapshot.state<<'\n';
+            static constexpr std::array<const char*,8> names={"watched_address","packet","capture_id","registered_ns",
+                "last_readable_available","last_readable_value","last_readable_ns","stamp"};
+            for(std::size_t i=0;i<names.size();++i)watch<<names[i]<<'='<<watch_snapshot.values[i]<<'\n';
             const auto& snapshot=result.scan_snapshot;
             const auto bytes=snapshot.size();
             std::ofstream data(folder/"code.bin",std::ios::binary);
             if(bytes) data.write(reinterpret_cast<const char*>(snapshot.data()),snapshot.size());
+            std::ofstream raw(folder/"descriptor.bin",std::ios::binary);
+            raw.write(reinterpret_cast<const char*>(descriptor.data()),descriptor.size());raw.close();
             std::ofstream meta(folder/"context.txt");
             meta<<"role="<<role<<"\nthread="<<thread<<"\naddress="<<address
                 <<"\nmapped="<<mapped<<"\nhint="<<result.hint<<"\nscanned="<<result.scanned
+                <<"\nassociation="<<ShaderMetadataAssociationName(result.association)<<"\ncandidate_found="<<result.candidate_found
+                <<"\nproducer_pid="<<getpid()<<"\ndescriptor_bytes="<<descriptor.size()
+                <<"\nprogram="<<reinterpret_cast<std::uintptr_t>(&program)<<"\nthread_id="<<thread_id
+                <<"\ndescriptor_layout="<<(SotcShaderProvenance::AddressOffset<Program>() ? "compute_address40_at48_shift8" : "address40_shift8")
+                <<"\ndescriptor_address_offset="<<SotcShaderProvenance::AddressOffset<Program>()
+                <<"\ndescriptor_snapshot_atomic=0"
                 <<"\nsnapshot_from_scan=1\nscan_head_matches_initial="
                 <<(bytes>=sizeof(result.head) ? int(!std::memcmp(snapshot.data(),result.head.data(),sizeof(result.head))) : -1)<<'\n';
             if(SotcShaderProvenance::Enabled()) {

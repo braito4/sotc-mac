@@ -63,12 +63,13 @@ class PointerTraceTests(unittest.TestCase):
             copy.extend(b'\xe8'+struct.pack('<i',320-(64+len(copy)+5)))
             copy.extend(bytes.fromhex('5b c3'));image[320]=0xc3
         image[64:64+len(copy)]=copy
-        if mode in ('getterbad','gettervalid','getterexact'):
+        if mode in ('getterbad','gettervalid','getterexact','trap'):
             image[:12]=bytes.fromhex('488d3d')+struct.pack('<i',512-7)+bytes.fromhex('e8')+struct.pack('<i',64-12)
             image[12:19]=bytes.fromhex('8b88a8000000c3')
             image[64:69]=bytes.fromhex('488b4720c3')
             image[544:552]=struct.pack('<Q',bad)
             if mode=='getterexact':image[12:16]=bytes.fromhex('488b08c3')
+            if mode=='trap':image[12:15]=bytes.fromhex('cd41c3')
         image[900:908]=struct.pack('<Q',bad)
         if mode in ('partial','tagged','churnpartial'):image[900]=0x12
         if mode=='churnlarge':image[2048:2056]=struct.pack('<Q',bad)
@@ -162,25 +163,55 @@ class PointerTraceTests(unittest.TestCase):
             self.assertEqual(report['pre_failure_journals']['pointer']['target_probe_hits'],[0])
             self.assertTrue(any('never observed' in gap for gap in report['evidence_gaps']))
 
-    def test_returned_pointer_is_observed_before_dereference_with_twelve_channels(self):
+    def test_register_only_capture_never_reads_or_watches_values(self):
+        with tempfile.TemporaryDirectory(prefix='register-capture-',dir=ROOT/'work') as folder:
+            for jit in ('1','0'):
+                result,report=self.run_case(Path(folder),'getterbad',jit,
+                    selection='64:7:0:0:2:2,68:0:0:0:2:2,12:0:0:0:2:2')
+                self.assertEqual(result.returncode,139,result.stderr)
+                p=report['pre_failure_journals']['pointer']
+                self.assertEqual(p['target_probe_hits'],[1,1,1])
+                self.assertEqual(p['watches_armed'],0)
+                self.assertNotIn('first_out_of_range_link',p)
+                rows=p['register_observations'];self.assertEqual(len(rows),3)
+                self.assertTrue(all(e['probe_kind']=='register_value' and e['field']==0 and e['source_field']==0 for e in rows))
+                self.assertEqual(rows[-1]['value'],0x123456789abcdef0)
+
+    def test_guest_interrupt_keeps_exit_and_full_pre_exit_context(self):
+        with tempfile.TemporaryDirectory(prefix='guest-interrupt-',dir=ROOT/'work') as folder:
+            for jit in ('1','0'):
+                result,report=self.run_case(Path(folder),'trap',jit,selection='64:7:0:0:2:2')
+                self.assertEqual(result.returncode,30,result.stderr)
+                terminal=report['pre_failure_journals']['cpu']['terminal_context']
+                self.assertEqual(terminal['kind'],3)
+                self.assertEqual(terminal['source'],'instruction_failure')
+                self.assertEqual(terminal['registers']['rax'],0x123456789abcdef0)
+                self.assertEqual(len(terminal['registers']),16)
+                failure=report['current']['guest_data_failures']['instruction_failures'][0]
+                self.assertEqual(failure['interrupt_vector'],0x41)
+                self.assertTrue(report['current']['fatal_reporting']['guest_context_complete'])
+
+    def test_returned_pointer_is_observed_before_dereference_with_fourteen_channels(self):
         with tempfile.TemporaryDirectory(prefix='pointer-getter-',dir=ROOT/'work') as folder:
             selection=','.join(['64:7:32:0:1:1','68:7:32:0:1:1','12:0:168:0:1:2']+
-                [f'64:7:{offset}:0:1:2' for offset in (0,8,16,24,40,48,56,64,72)])
+                [f'64:7:{offset}:0:1:2' for offset in (0,8,16,24,40,48,56,64,72,80,88)])
             for jit in ('1','0'):
                 for mode in ('gettervalid','getterbad','getterexact'):
                     result,report=self.run_case(Path(folder),mode,jit,selection=selection,scenario_profile=True)
                     self.assertEqual(result.returncode,1 if mode=='gettervalid' else 139,result.stderr)
                     pointers=report['pre_failure_journals']['pointer']
-                    self.assertEqual(pointers['target_probe_hits'],[1]*12)
+                    self.assertEqual(pointers['target_probe_hits'],[1]*14)
                     events={e['channel']:e for e in pointers['events'] if e['actor']==1}
                     self.assertEqual(events[0]['field'],events[1]['field'])
                     self.assertEqual(events[0]['value'],events[1]['value'])
                     self.assertEqual(events[2]['object'],events[1]['value'])
                     self.assertEqual(bool(events[2]['status']&8),mode=='gettervalid')
                     self.assertEqual(pointers['overlap_events'],0)
-                    self.assertEqual(pointers['admission_refusals_by_probe'],[0]*12)
+                    self.assertEqual(pointers['admission_refusals_by_probe'],[0]*14)
                     fault_review=report.get('fault_pointer_review',{})
                     self.assertEqual(len(fault_review.get('matching_source_observations',[])),2 if mode=='getterexact' else 0)
+                    if not report['current']['fatal_reporting']['guest_context_complete']:
+                        self.assertEqual(fault_review.get('terminal_register_source_candidates',[]),[])
                     self.assertTrue(all(t['state']=='observed' for s in report['analysis_scenarios'] for t in s['targets']))
 
     def test_profile_rejects_code_or_selection_changes_before_execution(self):
@@ -221,11 +252,11 @@ class PointerTraceTests(unittest.TestCase):
 
     def test_pointer_field_does_not_chase_bad_value_and_all_channels_survive(self):
         with tempfile.TemporaryDirectory(prefix='pointer-fields-',dir=ROOT/'work') as folder:
-            # Two chain observations and ten direct/source fields
+            # Two chain observations and twelve direct/source fields
             # fields share actual block entries. All 28 scalar channels remain
             # independent of the terminal register space in the same header.
             selection='64:13:24:8,12:13:24:8,64:13:24:0:1,12:13:24:0:1,64:13:136:0:1,12:13:136:0:1'
-            selection+=','+','.join(f'12:13:{offset}:0:1:2' for offset in (144,152,160,168,176,184))
+            selection+=','+','.join(f'12:13:{offset}:0:1:2' for offset in (144,152,160,168,176,184,192,200))
             fields=','.join(f'64:13:{i*8}:0' for i in range(28))
             for jit in ('1','0'):
                 for mode in ('memcpy','direct','initial','valid'):
@@ -234,12 +265,12 @@ class PointerTraceTests(unittest.TestCase):
                         self.assertEqual(result.returncode,1 if mode=='valid' else 139,result.stderr)
                         cpu=report['pre_failure_journals']['cpu'];pointers=report['pre_failure_journals']['pointer']
                         self.assertEqual([c['attempted'] for c in cpu['channels']],[1]*28)
-                        self.assertEqual(pointers['target_probe_hits'],[1]*12)
+                        self.assertEqual(pointers['target_probe_hits'],[1]*14)
                         self.assertEqual(len(report['analysis_scenarios']),2)
                         self.assertTrue(all(t['state']=='observed' for s in report['analysis_scenarios'] for t in s['targets']))
                         self.assertEqual(cpu['incomplete_or_stale'],0)
                         direct=[e for e in pointers['events'] if e['actor']==1 and e['status']&512]
-                        self.assertEqual(len(direct),10)
+                        self.assertEqual(len(direct),12)
                         self.assertTrue(all(e['header']==0 and e['source_field']==e['field'] and e['status']&15==15 for e in direct))
                         if mode=='valid':self.assertNotIn('first_out_of_range_link',pointers)
                         else:
@@ -337,6 +368,20 @@ class PointerTraceTests(unittest.TestCase):
                 self.assertTrue(all(not e['watch_admitted'] for e in p['events'] if e['channel']==1))
                 self.assertEqual([e['actor'] for e in p['events'] if e['actor']!=1],[2,3])
                 self.assertEqual(p['first_out_of_range_link']['actor'],3)
+
+    def test_grouped_watches_capture_small_partial_and_large_copies(self):
+        with tempfile.TemporaryDirectory(prefix='pointer-banks-',dir=ROOT/'work') as folder:
+            for jit in ('1','0'):
+                for mode in ('churn','churnpartial','churnlarge'):
+                    result,report=self.run_case(Path(folder),mode,jit,
+                        selection='64:13:136:0:1:1@3,320:7:0:0:1:1@1,12:13:136:0:1:1@3')
+                    self.assertEqual(result.returncode,139,result.stderr)
+                    p=report['pre_failure_journals']['pointer']
+                    self.assertEqual([g['admitted'] for g in p['watch_groups']],[0,64,0,1])
+                    copies=[e for e in p['events'] if e['actor']!=1 and e['field']==p['first_out_of_range_link']['field']]
+                    self.assertEqual([e['actor'] for e in copies],[2,3])
+                    self.assertTrue(all(e['watch_group']==3 for e in copies))
+                    self.assertTrue(all(g['admission_refusals']==0 for g in p['watch_groups']))
 
     def test_observe_only_indexed_reference_and_overflow_do_not_arm_watches(self):
         with tempfile.TemporaryDirectory(prefix='pointer-indexed-',dir=ROOT/'work') as folder:

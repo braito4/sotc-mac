@@ -10,6 +10,8 @@
 #include "cpu_fault_diagnostics.h"
 #include "cpu_field_trace.h"
 #include "cpu_pointer_trace.h"
+#include "cpu_interp_region.h"
+#include "startup_no_intro.h"
 #define SOTC_DIAGNOSTIC_CONTROL_DUMP(fd) do { sotc_cpu_field_trace_freeze(); sotc_cpu_field_trace_dump_limited((fd),128); } while (0)
 #include "diagnostic_control.h"
 #undef SOTC_DIAGNOSTIC_CONTROL_DUMP
@@ -48,8 +50,31 @@ static _Atomic int entered_game;
 static atomic_flag stopping = ATOMIC_FLAG_INIT;
 static atomic_flag fault_reporting = ATOMIC_FLAG_INIT;
 static uint64_t fault_image_size;
+void sotc_cpu_on_instruction_failure(const SotcGuestFailureState *state,unsigned mnemonic) {
+    static atomic_flag reporting=ATOMIC_FLAG_INIT;
+    if(atomic_flag_test_and_set_explicit(&reporting,memory_order_relaxed))return;
+    sotc_cpu_field_trace_freeze();
+    sotc_event_journal_failure(&sotc_trace_journal,3,state);
+    fprintf(stderr,"CPU instruction failure: guest_rip=%#llx mnemonic=%u thread=%#llx; pre-exit snapshot, original exit retained\n",
+        (unsigned long long)state->rip,mnemonic,(unsigned long long)state->thread);
+    BbGuestRegs regs;memcpy(&regs,state->regs,sizeof(state->regs));regs.rip=state->rip;
+    fprintf(stderr,"  rax=%#llx rcx=%#llx rdx=%#llx rbx=%#llx rsp=%#llx rbp=%#llx rsi=%#llx rdi=%#llx\n",
+        (unsigned long long)state->regs[0],(unsigned long long)state->regs[1],(unsigned long long)state->regs[2],(unsigned long long)state->regs[3],
+        (unsigned long long)state->regs[4],(unsigned long long)state->regs[5],(unsigned long long)state->regs[6],(unsigned long long)state->regs[7]);
+    fprintf(stderr,"  r8=%#llx r9=%#llx r10=%#llx r11=%#llx r12=%#llx r13=%#llx r14=%#llx r15=%#llx\n",
+        (unsigned long long)state->regs[8],(unsigned long long)state->regs[9],(unsigned long long)state->regs[10],(unsigned long long)state->regs[11],
+        (unsigned long long)state->regs[12],(unsigned long long)state->regs[13],(unsigned long long)state->regs[14],(unsigned long long)state->regs[15]);
+    sotc_cpu_fault_context(STDERR_FILENO,&regs,bb_image_base,fault_image_size);
+    sotc_cpu_field_trace_dump_limited(STDERR_FILENO,128);
+}
 void sotc_cpu_pointer_copy_write(uintptr_t address,size_t size,unsigned actor,uintptr_t input) {
     sotc_pointer_copy(address,size,actor,input);
+}
+void sotc_shader_prefix_watch(uint64_t address,uint64_t packet,uint64_t capture) {
+    const int saved=errno;sotc_shader_prefix_register(address,packet,capture);errno=saved;
+}
+int sotc_shader_prefix_watch_snapshot(uint64_t address,uint64_t out[8]) {
+    return out?sotc_shader_prefix_snapshot(address,out):4;
 }
 void sotc_cpu_field_trace_on_stack_failure(const SotcGuestFailureState *state) {
     sotc_cpu_field_trace_freeze();
@@ -255,6 +280,15 @@ static void *run_guest(void *opaque) {
 }
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    SotcCpuInterpRegion experiment_region;
+    if(sotc_cpu_region_parse(getenv("SOTC_CPU_INTERPRET_RANGE"),&experiment_region)) {
+        fputs("Invalid SOTC_CPU_INTERPRET_RANGE: expected one bounded 0xbegin:0xend interval\n",stderr);
+        return 24;
+    }
+    if(experiment_region.enabled && getenv("BB_JIT") && !strcmp(getenv("BB_JIT"),"0")) {
+        fputs("Interpreter range comparison requires BB_JIT=1\n",stderr);
+        return 24;
+    }
     if (sotc_cpu_fault_fields_init(getenv("SOTC_CPU_FAULT_FIELDS"))) {
         fputs("Invalid SOTC_CPU_FAULT_FIELDS: expected reg:offset[:words], up to 16 fields and 1..8 words each\n",stderr);
         return 24;
@@ -264,7 +298,7 @@ int main(int argc, char **argv) {
         return 24;
     }
     if (sotc_pointer_init(getenv("SOTC_CPU_POINTER_TRACE"))) {
-        fputs("Invalid SOTC_CPU_POINTER_TRACE: expected site:reg:offset:inner, up to twelve reviewed entries\n",stderr);
+        fputs("Invalid SOTC_CPU_POINTER_TRACE: expected site:reg:offset:inner, up to twenty-six reviewed entries\n",stderr);
         return 24;
     }
     if (sotc_diagnostic_control_start()) return 28;
@@ -277,7 +311,11 @@ int main(int argc, char **argv) {
         sotc_pointer_journal.map[180]=SOTC_POINTER_PERSISTENT;
         sotc_pointer_journal.map[181]=sizeof(sotc_pointer_persistent)+sizeof(sotc_pointer_pages);
         sotc_pointer_journal.map[183]=1; /* Per-probe persistent admission refusals at 192+. */
+        sotc_pointer_journal.map[184]=SOTC_POINTER_GROUPS;
+        sotc_pointer_journal.map[185]=SOTC_POINTER_GROUP_SLOTS;
+        sotc_pointer_journal.map[186]=1; /* Independent bank counters at 224+. */
     }
+    sotc_shader_prefix_init();
     /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
     if (argc == 3 && !strcmp(argv[1], "--gpu-load-check"))
         return bootstrap_gpu_load_check(argv[2]);
@@ -366,6 +404,13 @@ int main(int argc, char **argv) {
         if ((s->flags & 1) && entry >= s->at && entry - s->at < s->size) executable_entry = 1;
     }
     if (!executable_entry) fail("entry is not executable");
+    if(experiment_region.enabled) {
+        int executable_range=0;
+        for(uint64_t i=0;i<ns;++i)
+            if((segments[i].flags&1) && experiment_region.begin>=segments[i].at &&
+               experiment_region.end<=segments[i].at+segments[i].size)executable_range=1;
+        if(!executable_range)fail("CPU interpreter range is outside an executable image segment");
+    }
     if (linked && (!mapped(segments, ns, procparam, 64) || !mapped(segments, ns, main_tls[0], main_tls[1])))
         fail("unmapped process parameter or main TLS");
     for (uint64_t i = 0; i < module_count; ++i)
@@ -387,6 +432,16 @@ int main(int argc, char **argv) {
     if (!image || !traps || !data) fail("mapping failed");
     if (fread(image, 1, (size_t)size, f) != size || fgetc(f) != EOF) fail("incorrect image size");
     fclose(f);
+    const char *startup_site=getenv("SOTC_SKIP_INTRO_SITE");
+    if(startup_site&&*startup_site) {
+        char *end=NULL;unsigned long long site=strtoull(startup_site,&end,0);
+        if(!end||end==startup_site||*end||startup_site[0]=='-'||site>=size)
+            fail("invalid no-intro command-line site");
+        unsigned char *startup_text=runtime_low_map(16384,PROT_READ|PROT_WRITE);
+        if(!startup_text||sotc_startup_no_intro(image,(size_t)size,(size_t)site,startup_text,16384)||
+           mprotect(startup_text,16384,PROT_READ))fail("no-intro command-line validation failed");
+        puts("Engine startup option: +nointro (original initialization retained)");
+    }
     if (bootstrap) {
         if (!(capabilities & 1)) fail("bootstrap requires verified libc capability");
         bootstrap_initialize(capabilities);

@@ -16,7 +16,8 @@ not claim universal superiority or a native corruption fix.
    values to terminal registers; retain earlier different observations and their
    timestamps. A previous value is not automatically valid, and a numeric address
    is not an allocation identity.
-5. Prioritize a small set of source watches. Keep high-volume helper probes in
+5. Prioritize a small set of source watches with independent capacity for each
+   investigation family. Keep high-volume helper probes in
    observation mode. Report admission refusal, hash collisions, contention and
    overwritten history; never equate configured probes with successful coverage.
 6. Capture imported-copy observations before and after the actual operation.

@@ -274,3 +274,29 @@ actual IR and SPIR-V emitters. Nine original synthetic modules reproduce missing
 MSL workgroup declarations; nine corrected modules convert. It also checks exact
 Flat conversion for vertex zero and unchanged rejection of other vertices. No GPU
 is initialized; driver compilation and rendering need native verification.
+
+The `sotc-shader-producer-trace` overlay passes bounded original packet spans to
+address provenance. It changes no register-copy ordering or shader selection.
+Only SET_SH_REG full address pairs are decoded; partial, short and other-layout
+packets remain unavailable. Existing journal space records separate packet and
+post-copy register observations, without shader-code reads. CPU controls exercise
+actual graphics/compute cases and guarded packet extents.
+
+The local `sotc-compute-packet-framing` overlay sizes type-2 padding before checking
+packet extent, appends bounded ring continuations and rejects overflowing split
+packets before copying. Complete nested indirect buffers do not use the ring's
+partial-packet state; truncated indirect buffers stop explicitly. Original
+actual-source CPU controls in `tools/check_compute_packets.py` reproduce six old
+failures, including a guarded continuation over-read, and check payload/order,
+following packets and cursor wrap after correction. The exact preceding overlay
+cohort migrates through checked digests. This is not proof of the native shader
+origin/content cause; metadata association, journal sizes and pins stay fixed.
+
+The original `sotc-shader-submit-trace` overlay attaches bounded pre-enqueue
+prefix observations to graphics/compute coroutine parameters and propagates them
+to real nested IBs. Consumed packet pointers publish the retained earlier sample,
+not a new shader read. All seven register indices are compile-checked against
+the pinned layout. The recorder has a fixed pool and a separate 132 KiB journal;
+unknown coverage never changes shader acceptance. Its exact preceding source
+cohort remains recognized and migrates idempotently. See CPU diagnostics for
+budgets, explicit gaps, original controls and native validation limits.

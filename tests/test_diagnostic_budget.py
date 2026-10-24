@@ -135,7 +135,7 @@ class LauncherBudgetTests(unittest.TestCase):
             sources = {
                 'clang': '#!/bin/sh\nexit 0\n',
                 'lipo': '#!/bin/sh\necho arm64\n',
-                'ar': '#!/bin/sh\nif [ "$1" = -t ]; then printf "cpu.c.o\\ninterp_vec.c.o\\n"; fi\n',
+                'ar': '#!/bin/sh\nif [ "$1" = -t ]; then printf "cpu.c.o\\ninterp_vec.c.o\\ninterp.c.o\\njit_arm64.c.o\\n"; fi\n',
                 'python3': '#!'+os.sys.executable+'\n'
                            'import json,os,sys\n'
                            'with open(os.environ["SOTC_FIXTURE_CALLS"],"a") as out:\n'

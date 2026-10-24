@@ -131,6 +131,11 @@ user-space timer guarantees recovery from a kernel/driver hang.
 
 ## Isolated renderer build
 
+`python3 tools/check_compute_packets.py` tests the installed compute command reader
+with original CPU inputs and address/undefined sanitizers. It reproduces the old
+framing failures and checks corrected padding, split extents, indirect isolation,
+payload/order and ring-cursor wrap. It does not launch the game or a GPU.
+
 The checked Metal retention regression (`python3 tools/check_metal_retention.py`)
 uses production batch creation, rollover, commit and scratch-return methods with
 Foundation CPU doubles. The original unretained policy must reproduce premature

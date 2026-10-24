@@ -40,13 +40,19 @@ build_diagnostic() {
         -I"$trial_root/runtime/src" -I"$trial_root/tests" -I"$trial_root/work")
     cp "$cpu_repo/out/libbbcpu.a" "$trial_root/work/libbbcpu-context.a"
     trial_archive_members=$(ar -t "$trial_root/work/libbbcpu-context.a") || fail 'Cannot read bbcpu archive.'
-    for trial_member in cpu.c.o interp_vec.c.o; do
+    for trial_member in cpu.c.o interp_vec.c.o interp.c.o jit_arm64.c.o; do
         case $'\n'"$trial_archive_members"$'\n' in
             *$'\n'"$trial_member"$'\n'*) ;;
             *) fail 'Unexpected bbcpu archive layout.' ;;
         esac
     done
-    ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o interp_vec.c.o
+    ar -d "$trial_root/work/libbbcpu-context.a" cpu.c.o interp_vec.c.o interp.c.o jit_arm64.c.o
+    python3 "$trial_root/tools/prepare_cpu_scalar_support.py" "$cpu_repo/src/cpu/interp.c" "$trial_root/work/interp_scalar_diagnostic.c"
+    clang "${trial_flags[@]}" -c "$trial_root/work/interp_scalar_diagnostic.c" -o "$trial_root/work/interp_scalar_diagnostic.o"
+    ar -r "$trial_root/work/libbbcpu-context.a" "$trial_root/work/interp_scalar_diagnostic.o"
+    python3 "$trial_root/tools/prepare_cpu_probe_support.py" "$cpu_repo/src/cpu/jit_arm64.c" "$trial_root/work/jit_arm64_probe_diagnostic.c"
+    clang "${trial_flags[@]}" -c "$trial_root/work/jit_arm64_probe_diagnostic.c" -o "$trial_root/work/jit_arm64_probe_diagnostic.o"
+    ar -r "$trial_root/work/libbbcpu-context.a" "$trial_root/work/jit_arm64_probe_diagnostic.o"
     python3 "$trial_root/tools/prepare_runtime_support.py" "$runtime_repo/src/runtime_mutex.c" "$trial_root/work/runtime_mutex_diagnostic.c"
     python3 "$trial_root/tools/prepare_memory_support.py" "$runtime_repo/src/runtime_memory.c" "$trial_root/work/runtime_memory_diagnostic.c"
     trial_support=("$trial_root/runtime/src/bootstrap_contracts.c" "$trial_root/runtime/src/bootstrap_clocks.c"
@@ -84,13 +90,22 @@ build_cpu_strings() {
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_sse4a.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_sse4a"
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_widen.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_widen"
     clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_indexed.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_indexed"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_zero_shift.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_zero_shift"
+    clang "${trial_flags[@]}" "$trial_root/tests/test_cpu_xadd.c" "${trial_sources[@]}" -o "$trial_root/work/test_cpu_xadd"
 }
 test_cpu_sse4a() {
     BB_JIT="$1" "$trial_root/work/test_cpu_sse4a"
     BB_JIT="$1" "$trial_root/work/test_cpu_widen"
     BB_JIT="$1" "$trial_root/work/test_cpu_indexed"
+    BB_JIT="$1" "$trial_root/work/test_cpu_zero_shift"
+    BB_JIT="$1" "$trial_root/work/test_cpu_xadd"
 }
 contracts() {
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_copy_probes.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_consume.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_sigbus_index_probes.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_bind.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_startup_no_intro.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_content_audit.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_gpu_build.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_visual_trace.py
@@ -106,12 +121,20 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_budget.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_fault_diagnostics.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_field_trace.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_probe_boundaries.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_interp_region.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_experiment.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_index_capture.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_field_analysis.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_host_fault_analysis.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_run.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_terminal_memory_sources.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_submit_analysis.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_diagnostic_journal.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_stack_failure.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_pointer_trace.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_pointer_release.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_pointer_entries.py
     python3 "$trial_root/tools/check_task_guard.py"
     python3 -m unittest discover -s "$trial_root/tests" -p test_graphics_entry.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_prepare_linked.py
@@ -366,12 +389,27 @@ case "$trial_mode" in
             --ngs2-module "$trial_system_modules/libSceNgs2.sprx" \
             --out "$trial_root/work/sotc-graphics-arm64"
         trial_gpu_state=$(mktemp -d "$trial_root/work/gpu-game-state-XXXXXX")
+        unset SOTC_SKIP_INTRO_SITE
+        if [[ ${SOTC_SKIP_INTRO:-0} == 1 ]]; then
+            trial_startup_site=$(python3 "$trial_root/tools/check_startup_profile.py" \
+                --image "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
+                --profile "${SOTC_STARTUP_PROFILE:?Missing private startup profile}" \
+                --output "$trial_gpu_state/startup-profile-check.json" --print-site)
+            export SOTC_SKIP_INTRO_SITE="$trial_startup_site"
+        fi
         if [[ -n ${SOTC_CPU_POINTER_PROFILE:-} ]]; then
             python3 "$trial_root/tools/check_pointer_profile.py" \
                 --image "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
                 --profile "$SOTC_CPU_POINTER_PROFILE" --selection "${SOTC_CPU_POINTER_TRACE:-}" \
                 --field-selection "${SOTC_CPU_FIELD_TRACE:-}" \
                 --output "$trial_gpu_state/pointer-profile-check.json"
+        fi
+        if [[ -n ${SOTC_CPU_EXPERIMENT_PROFILE:-} ]]; then
+            python3 "$trial_root/tools/check_cpu_experiment.py" \
+                --profile "$SOTC_CPU_EXPERIMENT_PROFILE" --variant "${SOTC_CPU_EXPERIMENT:-base}" \
+                --range "${SOTC_CPU_INTERPRET_RANGE:-}" \
+                --image "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
+                --output "$trial_gpu_state/cpu-experiment-check.json"
         fi
         trial_log="$trial_root/logs/graphics-game-$(date -u +%Y%m%dT%H%M%SZ).log"
         # Reuse the pinned renderer's host-side flip statistics, only on request.

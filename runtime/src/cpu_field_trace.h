@@ -133,7 +133,9 @@ static void sotc_cpu_field_probe(const uint64_t regs[16], uint64_t address, uint
         sotc_trace_thread=atomic_fetch_add_explicit(&sotc_trace_threads,1,memory_order_relaxed)+1;
     /* Independent per-site tails survive a fatal signal/full stderr pipe.
      * An unrelated hot site cannot evict this site's evidence. No extra reads. */
-    const uint64_t evidence[SOTC_JOURNAL_DATA_WORDS]={address,object,field,value,status,sotc_trace_thread};
+    /* Optional seventh payload word joins numeric thread identities with the
+     * pointer journal. Legacy records leave this word zero. No extra reads. */
+    const uint64_t evidence[SOTC_JOURNAL_DATA_WORDS]={address,object,field,value,status,sotc_trace_thread,(uintptr_t)pthread_self()};
     sotc_event_journal_record(&sotc_trace_journal,tag,ticks,evidence);
     const uint64_t ticket=atomic_fetch_add_explicit(&sotc_trace_next,1,memory_order_relaxed);
     SotcTraceRecord *r=&sotc_trace_records[ticket%SOTC_TRACE_RECORDS];

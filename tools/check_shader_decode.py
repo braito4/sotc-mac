@@ -59,6 +59,7 @@ def main():
             'borrowed-mutated': ('illegal_encoding', 'word_offset=1'),
             'main-reserved': ('unknown_instruction_format', 'input_owned=1',
                               'supplied_words=2', 'remaining_words=0', 'phase=main'),
+            'main-fork': ('unknown_instruction_format', 'input_owned=1', 'word_offset=1', 'phase=main'),
             'main-oversize': ('invalid_program_size', 'input_owned=0',
                               'supplied_words=4194304', 'phase=main'),
             'read32': ('truncated_instruction', 'word_offset=1', 'required_words=1'),
@@ -79,7 +80,7 @@ def main():
         for mode, fragments in cases.items():
             case_state=state/mode;case_state.mkdir()
             result = subprocess.run([str(output), mode], capture_output=True, text=True,
-                                    timeout=15, env=dict(os.environ, BB_GPU_USER_DIR=str(case_state)))
+                                    timeout=15, env=dict(os.environ, BB_GPU_USER_DIR=str(case_state),SOTC_SHADER_PROVENANCE='1'))
             expected = 0 if fragments is None else 23
             if result.returncode != expected:
                 raise RuntimeError(f'{mode}: expected {expected}, got {result.returncode}: {result.stderr}')
@@ -89,6 +90,11 @@ def main():
         captured=state/'main-reserved/shader-decode-failure'
         assert (captured/'code.bin').read_bytes()==struct.pack('<II',0xbf800000,0xc3c00000)
         assert 'saved_start_word=0\nsaved_words=2' in (captured/'context.txt').read_text()
+        for mode in ('main-reserved','main-fork'):
+            provenance=(state/mode/'shader-decode-failure/provenance.txt').read_text()
+            assert 'matched_programs=1 omitted_programs=0' in provenance
+            assert 'program=0x40 retained=2' in provenance and 'program=0x80' not in provenance
+            assert 'metadata_offset=64 hint=64 scanned=128' in provenance
         window=state/'owned-evidence-window/shader-decode-failure'
         data=(window/'code.bin').read_bytes()
         assert 0<len(data)<=65536 and data==struct.pack('<I',0xbf800000)*(len(data)//4)
@@ -125,7 +131,7 @@ int main() {
         result = subprocess.run([str(original)], capture_output=True, text=True, timeout=10)
         if result.returncode not in (-10, -11):
             raise RuntimeError(f'pinned guard control did not fault: {result.returncode}')
-        print('PASS: eighteen installed-decoder cases; owned main-program capture, '
+        print(f'PASS: {len(cases)} installed-decoder cases; bounded exact-address descriptor provenance, unsupported fork rejection, owned main-program capture, '
               'borrowed-reuse negative control, source unmapping, bounded size rejection, '
               'explicit exit 23 before guarded reads, '
               'SMRD opcode 15 provenance, empty main/copy, fetch, valid literals, '

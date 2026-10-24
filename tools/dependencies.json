@@ -6,9 +6,10 @@
     "previous_revision": "3170535f59cadbe5ce9c38e6bb961ed5fd215194",
     "revision": "b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548",
     "branch": "main",
-    "latest_reviewed_revision": "dda931c5779bdd6e437baa224d9de94911426aba",
-    "latest_reviewed_commit_date": "2026-10-23T12:56:02Z",
-    "review_scope": "Permanent upstream. Public main dda931c5 reviewed: adapter A4 flat bindings and direct recording-chunk conversion, with layout assertions. Author Metal validation/timings are not local SotC ARM64/M1 evidence; not adopted as a guest object/frame lifetime repair. Earlier access-declaration and deferred-recording reviews retained. Qualified pin unchanged."
+    "latest_reviewed_revision": "1dda5fb086cd42e8d52e78c80753257d52b77f04",
+    "latest_reviewed_commit_date": "2026-10-24T01:12:58Z",
+    "review_scope": "October 24 source refresh: 27 commits / 89 paths beyond the preceding reviewed head, adapter A6 completion, Metal-made buffers/images (M1), shared recording interface M2 step 1. Metal still imports resources into MoltenVK; native command stream and complete Vulkan removal remain future steps. Display-view lifetime fix is a separate candidate. No CPU/recomp source change in this delta, no demonstrated reader-index fix. Selected runtime and local overlays unchanged.",
+    "latest_reviewed_at": "2026-10-24T06:44:58.828166+00:00"
   },
   "cpu": {
     "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
@@ -16,9 +17,10 @@
     "revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70",
     "branch": "main",
     "latest_reviewed_revision": "ef153b8d35768aff86fa1643c12e7d0340b16501",
-    "latest_reviewed_commit_date": "2026-10-22T17:51:55+01:00",
+    "latest_reviewed_commit_date": "2026-10-22T16:51:55Z",
     "reviewed_commits_ahead": 3,
-    "review_scope": "Three commits ahead: CI and linker test flags only; no CPU implementation changes, selected translator unchanged."
+    "review_scope": "October 24 source refresh: default head unchanged; no newer translator implementation correction. Selected CPU remains unchanged.",
+    "latest_reviewed_at": "2026-10-24T06:44:58.828166+00:00"
   },
   "reference": {
     "repository": "https://github.com/AjncSystem/ShadowOfTheColossus-PC",
@@ -28,10 +30,11 @@
     "scope": "Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations.",
     "branch": "main",
     "latest_reviewed_revision": "40ec52a5a246bbaf20402520fe8fc9682f0a30c0",
-    "latest_reviewed_commit_date": "2026-10-22T13:40:58-03:00",
+    "latest_reviewed_commit_date": "2026-10-22T16:40:58Z",
     "reviewed_commits_ahead": 10,
     "review_scope": "v0.60.6 reviewed; speculative readback fix has no matching local mechanism. Nested-task retirement warning requires follow-up against our draw-pipe ownership.",
-    "latest_reviewed_release": "v0.60.6"
+    "latest_reviewed_release": "v0.60.6",
+    "latest_reviewed_at": "2026-10-24T06:44:58.828166+00:00"
   },
   "packages": [
     {
@@ -253,13 +256,13 @@
   ],
   "validation": {
     "integration": "Added an opt-in native CPU coroutine-frame guard, inspired by the reviewed SotC quarantine technique but implemented for macOS. The renderer's actual Task promise allocates independent mappings when SOTC_TASK_GUARD=1. Existing ordered recording-consumer retirement remains unchanged; deletion makes that frame's pages PROT_NONE and retains up to 64 frames within an 8 MiB total live/quarantine mapping budget. This does not retain or change guest objects/pages or GPU resource ownership. Budget/slot/allocation exhaustion uses normal new/delete, explicitly recorded as unguarded fallback. Protection/unmap failures preserve owned mapping accounting and report incomplete coverage; no false release. A separate task-events.bin retains 256 allocations/fallbacks and 256 retirement/ unmap/failure events, with address, rounded/requested size, generation, thread, current budget and counters. Offline diagnostics match a fault address to the latest retained mapping event only as a candidate, excluding foreign producer PIDs. Reuse/finite retention, fallback and eviction can hide lifetime bugs. The journal adds 68 KiB (all files 784 KiB when enabled), plus bounded host metadata and at most 8 MiB of frame mappings; not a total process-memory limit. No native corruption correction or overhead measurement is established. Runtime default remains disabled; the owner diagnostic launcher defaults the guard on, with explicit SOTC_TASK_GUARD=0 opting out. All persistent source/header and indexed referring-object probes remain active; the guard tests CPU renderer frames, not whether the failing PS4 object is alive. The new command explicitly sets SOTC_TASK_GUARD=1. No game/GPU test was launched. Original CPU controls use the actual production Task/retirement helper: valid ordered consumers pass, premature and later stale reads trap on real protected pages. Budget fallback, quarantine rotation, concurrency, injected protection/ unmap failures and stale-PID rejection are checked. Existing delayed-consumer ASan controls remain. Repeated native protected-reader tests confirm PROT_NONE reads fail without changing kernel permissions. The renderer builds ARM64 with all builder CPU regressions; cache remains 28/9. Exact task_guard_previous cohort migration and idempotence checks pass. Dependencies stay pinned. Pre-test public refresh October 23 12:36:59 UTC finds one new runtime commit, e093d2151f216720be61eb7855dcfb52a1407e84 (12:20:19 UTC): access-declaration adapter refactoring. Its diff is reviewed and not adopted as a lifetime fix. Other checked default heads unchanged; previous PR/release and object-method limits retained. Full ARM64 JIT/interpreter contracts, nine guard cases, ten pointer tests, four protected-reader tests, fourteen reports, twenty-six builder tests and 46/46 symbols pass; native validation pending.",
-    "native_game": "Owner 2026-10-23 13:39:40 UTC: allocator-link SIGSEGV at 126.462 s, 139/139. Same numeric word observed with earlier different and terminal bad values 404.567 ms apart; two-word content match across captures is not shared-cause proof. Complete report and 16 registers match. 1377 API presentations, 403 pipeline/805 SRT failures, no audio queue failures. Native allocation samples last/peak 10.213/10.241 GiB are not controlled pressure results. Writer/lifetime unresolved. Prepared allocator source watches; no game launched.",
+    "native_game": "Owner 2026-10-23 13:57:38 UTC: linked-source SIGSEGV after 116.513 s, 139/139. Readable node stores invalid pointer; next access is pointer+8. Complete report reconstruction and 16 registers match. Earlier source/writer not retained. Previous shared watch table again full: 8192 admissions, 278933 refusals. 1079 API presentations, 330 pipeline/271 SRT failures; no audio queue failures. Last/peak native samples 8.940/8.982 GiB do not establish savings or cause. Native corruption unresolved. No game launched for follow-up.",
     "renderer_cache": "28/9",
     "symbol_coverage": "46/46 host imports present; ABI/device rendering not established",
     "latest_runtime_guard": "selected b2ff9cd protects unresolved GPU image contents; reviewed ab31a4c critical-pressure content discard is not integrated",
     "hosted_ci": "not yet observed for this commit",
     "combined_failure_capture": "Prepared allocator-search follow-up and corrected terminating-context loss. Six new private observations cover the actual search root, next-node header/ children and left/right-load sources, at current linked branch entries. The joint profile now uses 24 observations; earlier insertion/comparator/source coverage and 13 fatal fields remain. CPU channels retain 128 records each, shader channels 512 writes/512 changed lookups; combined fixed files are 520 KiB. No invalid pointer, opcode or failure is skipped; the native writer/cause remains unknown, so this is not a demonstrated correction of allocator corruption. A concrete diagnostic defect is corrected: the guest stack-protector handler previously printed one line then exited 22 without caller/register evidence. It now snapshots only an existing active TLS CPU, publishes bounded raw import registers to reserved CPU-journal header space before stderr, and invokes an optional host context/history reporter. Standalone binaries retain a weak fallback and exit 22. No CPU creation, decoder access, return-slot edit or assumed canary layout is used. Translated fatal faults also publish their available registers before rich mapping/provider diagnostics. The first committed terminal snapshot is retained; interrupted publication is rejected. Interpreter faults outside translated code are not promoted to exact fault-register snapshots. Actual synthetic guest import controls preserve exit 22 and raw context in JIT/ interpreter with drained, discarded, full and closed stderr. Actual translated fault controls preserve exit 139 and terminal registers with discarded stderr; CPU per-site evidence remains available in both modes. Full ARM64 CPU contracts, renderer CPU regressions and symbol checks validate diagnostics, not native corruption, memory savings or tracing overhead. Public default heads checked October 23 10:59:12 UTC unchanged; earlier PR/release limits retained. Pins/cache 28/9 and render settings unchanged; no game launched. Same combined owner command next, with private selections unset in the inherited environment so the updated profile loads. Read first handoff checkpoint.",
-    "pointer_watch_capture": "Twelve signature-checked probes and eight scenarios. Two allocator links request persistent watches; array source temporarily observe-only, previous helper/referrer/header observations preserved. Same 8192 slots; bounded-hash refusal remains possible. Per-probe refusal and retained same-field transition reports expose gaps. Fourteen-channel pointer journal; all journals 880 KiB. Original CPU controls distinguish exact/offset faults, saturation and legitimate use; native corruption unresolved."
+    "pointer_watch_capture": "Four independent persistent banks of 2048 slots (total 8192), explicit optional @bank suffix and per-bank/per-probe admission counters. Header, selected allocator, following allocator and new linked-source investigations cannot consume another bank. Each bank may still refuse for capacity/hash/contention; no eviction or ownership inference. Fourteen reviewed probes/nine scenarios, sixteen pointer channels, all files 912 KiB. Small/partial/large copy observations preserve bank; exact-address and separate terminal-register displacement candidates. Thirteen pointer controls and sixteen report tests pass in CPU-only validation; native fix unestablished."
   },
   "transitive": [
     {
@@ -312,11 +315,11 @@
       "id": "bloodborne-mac",
       "repository": "https://github.com/bloodborne-native/bloodborne-mac",
       "branch": "main",
-      "revision": "f761502eb4d34e92a5446751f3d8f1d2140339ad",
-      "scope": "Observed October 23 01:07:19 UTC, app 0.8.3/Metal FSR 4.1.1 and launcher changes reviewed. Reference only; not imported into the native diagnostic.",
-      "previous_reviewed_revision": "ab1f0c57d1e25cc130c59be9a874e98099822cc4",
-      "commit_date": "2026-10-22T18:37:44+01:00",
-      "checked_at": "2026-10-23T06:44:45Z"
+      "revision": "a55959674fcfd9c3cff7a5c8dce9dc172a3fde87",
+      "scope": "October 24 source review: 13 commits beyond preceding app review; runtime gitlink now 1dda5fb086cd, matching reviewed runtime main. Adapter A6 complete, Metal resources M1 and M2 shared recording step 1. This is a staged renderer migration, not complete MoltenVK removal. No code/pin update or native SotC validation performed.",
+      "previous_reviewed_revision": "f761502eb4d34e92a5446751f3d8f1d2140339ad",
+      "commit_date": "2026-10-24T01:13:52Z",
+      "checked_at": "2026-10-24T06:44:58.828166+00:00"
     },
     {
       "id": "bbport-mac",
@@ -324,7 +327,7 @@
       "branch": "macos-native-0.6",
       "revision": "a69f56af2069df45357e86c27396baa945b53231",
       "scope": "Selected copy batching and stale-proxy detection adapted; its Rosetta/KosmicKrisp architecture is not substituted.",
-      "checked_at": "2026-10-23T06:44:45Z"
+      "checked_at": "2026-10-24T06:44:58.828166+00:00"
     },
     {
       "id": "MoltenVK development",
@@ -332,7 +335,7 @@
       "branch": "main",
       "revision": "5189f8de86ec365860f63bf1da736815cfaea5cd",
       "scope": "Development head tracked; selected installed release is v1.4.2.",
-      "checked_at": "2026-10-23T06:44:45Z"
+      "checked_at": "2026-10-24T06:44:58.828166+00:00"
     },
     {
       "id": "SPIRV-Cross development",
@@ -340,7 +343,7 @@
       "branch": "main",
       "revision": "300681bbcb8365a8d1eacdacdbdd0249bbf1d6b1",
       "scope": "Development head tracked; selected compiler uses the latest SDK tag.",
-      "checked_at": "2026-10-23T06:44:45Z"
+      "checked_at": "2026-10-24T06:44:58.828166+00:00"
     },
     {
       "id": "mesa-kosmickrisp",
@@ -348,7 +351,7 @@
       "branch": "main",
       "revision": "52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1",
       "scope": "Alternative driver reference; not installed in the active renderer.",
-      "checked_at": "2026-10-23T06:44:45Z"
+      "checked_at": "2026-10-24T06:44:58.828166+00:00"
     },
     {
       "id": "Pink-shadPS4",
@@ -357,7 +360,15 @@
       "revision": "4a3511ba9aa33b59ab0e57048013b0b85d29402a",
       "commit_date": "2026-10-15T19:45:05-03:00",
       "scope": "Permanent SotC/shadPS4 reference requested by the owner. Reviewed readback lifetime, pending label writes, optional GCN NaN/MAD and heap/stack workarounds; no Windows/NVIDIA-specific settings or code imported.",
-      "checked_at": "2026-10-23T06:44:45Z"
+      "checked_at": "2026-10-24T06:44:58.828166+00:00"
+    },
+    {
+      "id": "Box64 JIT comparison",
+      "repository": "https://github.com/ptitSeb/box64",
+      "branch": "main",
+      "revision": "420eda69ff51ab5d5a7cbc3dee2e70433be3411d",
+      "checked_at": "2026-10-24T06:57:38.369818+00:00",
+      "scope": "Permanent owner-requested independent semantic/testing reference for CPU/JIT investigations. Compare minimized original inputs under local interpreter/JIT and Box64 where executable; resolve disputed results with native x86 or ISA semantics. Range-limited COSIM and no-dynarec diagnostics reviewed. Not installed, executed, linked or substituted as a CPU backend."
     }
   ],
   "proposals": [
@@ -398,5 +409,5 @@
     }
   ],
   "workspace_key": "22923f080229",
-  "sources_checked_at": "2026-10-23T06:44:45Z"
+  "sources_checked_at": "2026-10-24T06:44:58.828166+00:00"
 }

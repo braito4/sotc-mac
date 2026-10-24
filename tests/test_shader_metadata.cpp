@@ -24,23 +24,25 @@ int main() {
     memory.resize(128);put(32);
     const std::uint32_t head[]={0xBEEB03FFu,3};std::memcpy(memory.data(),head,sizeof(head));
     auto result=lookup();assert(result.found && result.offset==32 && result.info.shader_hash==info.shader_hash && reads==2);
-    // Four-byte-aligned metadata must not require eight-byte struct alignment.
-    memory.assign(80,std::byte{});put(4);result=lookup();assert(result.found && result.offset==4);
+    // Unaligned scanner candidates remain readable evidence, never a binding.
+    memory.assign(80,std::byte{});put(4);result=lookup();assert(!result.found && result.candidate_found && result.offset==4);
     // The largest literal must not wrap into the code head or trigger a far read.
     memory.assign(128,std::byte{});put(32);
     const std::uint32_t bad_hint[]={0xBEEB03FFu,0xffffffffu};std::memcpy(memory.data(),bad_hint,sizeof(bad_hint));
-    result=lookup();assert(result.found && result.offset==32 && result.hint==0x800000000ull);
+    result=lookup();assert(!result.found && result.candidate_found && result.offset==32 && result.hint==0x800000000ull);
+    assert(result.association==Sotc::ShaderMetadataAssociation::InvalidHint);
     for(unsigned n=0;n<8;++n) {memory.assign(n,std::byte{});assert(!lookup().found);}
     for(unsigned n=1;n<sizeof(info);++n) {
         memory.assign(16+n,std::byte{});std::memcpy(memory.data()+16,&info,n);assert(!lookup().found);
     }
-    for(unsigned length : {0u,3u,132u}) {
-        memory.assign(128,std::byte{});info.length=length;put(32);assert(!lookup().found);
+    for(unsigned length : {0u,3u,4u,36u,132u}) {
+        memory.assign(128,std::byte{});std::memcpy(memory.data(),head,sizeof(head));
+        info.length=length;put(32);assert(!lookup().found);
     }
     info.length=16;
-    // Preserve the old scan's final candidate, including its complete trailer.
+    // Preserve the old scan's final candidate as evidence, with its full trailer.
     memory.assign(Sotc::ShaderMetadataScanBytes+sizeof(info)-4,std::byte{});
-    put(Sotc::ShaderMetadataScanBytes-4);result=lookup();assert(result.found && result.offset==Sotc::ShaderMetadataScanBytes-4);
+    put(Sotc::ShaderMetadataScanBytes-4);result=lookup();assert(!result.found && result.candidate_found && result.offset==Sotc::ShaderMetadataScanBytes-4);
     memory.assign(Sotc::ShaderMetadataScanBytes+sizeof(info),std::byte{});
     put(Sotc::ShaderMetadataScanBytes);assert(!lookup().found);
     // A real prologue hint can locate a distant trailer without scanning its body.

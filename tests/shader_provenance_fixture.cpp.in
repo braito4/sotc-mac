@@ -3,9 +3,15 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <sys/mman.h>
+#include <unistd.h>
 #include "video_core/amdgpu/regs.h"
 #include "video_core/amdgpu/pm4_cmds.h"
 #include "gpu_shader_provenance.h"
+// No guest backing memory in this register-only fixture.
+extern "C" std::uint64_t runtime_memory_clamp(std::uintptr_t,std::uint64_t){return 0;}
+extern "C" int runtime_memory_is_mapped(std::uintptr_t,std::uint64_t){return 0;}
+extern "C" void runtime_memory_read_backing(std::uintptr_t,void*,std::uint64_t){std::abort();}
 #undef ASSERT
 #define ASSERT(x) assert(x)
 using namespace AmdGpu;
@@ -25,6 +31,47 @@ static void Compute(const PM4Header* header) {
 }
 int main(int argc,char** argv) {
     assert(argc==2);const std::string mode=argv[1];
+    if(mode.starts_with("compute-producer-")) {
+        ComputeProgram program{};
+        program.dispatch_initiator=1;program.dim_x=1;program.address=0x123456;
+        static_assert(SotcShaderProvenance::AddressOffset<ComputeProgram>()==48);
+        const auto page=std::size_t(sysconf(_SC_PAGESIZE));
+        auto* memory=static_cast<char*>(mmap(nullptr,page*2,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0));
+        assert(memory!=MAP_FAILED && !mprotect(memory+page,page,PROT_NONE));
+        const bool short_packet=mode=="compute-producer-short";
+        auto* packet=reinterpret_cast<u32*>(memory+page)-(short_packet ? 2 : 4);
+        WriteHeader<PM4ItOpcode::SetShReg>(packet,3);packet[1]=0x20c;
+        if(!short_packet) {packet[2]=0x123456;packet[3]=0;}
+        if(mode=="compute-producer-mutated")program.address=0x9876;
+        const bool partial=mode=="compute-producer-partial";
+        if(mode=="compute-producer-other")WriteHeader<PM4ItOpcode::SetContextReg>(packet,3);
+        SotcShaderProvenance::Write(program,&program,packet,partial ? 0x20d : 0x20c,
+            partial ? 1 : 2,mode=="compute-producer-gfxqueue" ? 3 : 4,short_packet ? 2 : 4);
+        munmap(memory,page*2);std::_Exit(53);
+    }
+    if(mode.starts_with("producer-")) {
+        ShaderProgram program{};program.address=0x123456;
+        const auto page=std::size_t(sysconf(_SC_PAGESIZE));
+        auto* memory=static_cast<char*>(mmap(nullptr,page*2,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0));
+        assert(memory!=MAP_FAILED && !mprotect(memory+page,page,PROT_NONE));
+        const bool short_packet=mode=="producer-short";
+        auto* packet=reinterpret_cast<u32*>(memory+page)-(short_packet ? 2 : 4);
+        WriteHeader<PM4ItOpcode::SetShReg>(packet,3);packet[1]=0;
+        if(!short_packet) {packet[2]=0x123456;packet[3]=0;}
+        if(mode=="producer-mutated")program.address=0x9876;
+        if(mode=="producer-other")WriteHeader<PM4ItOpcode::SetContextReg>(packet,3);
+        const bool partial=mode=="producer-partial";
+        SotcShaderProvenance::Write(program,&program,packet,partial ? 1 : 0,partial ? 1 : 2,1,short_packet ? 2 : 4);
+        munmap(memory,page*2);
+        std::_Exit(53); // Shared evidence survives without a final print/dump.
+    }
+    if(mode=="address" || mode=="missing-address") {
+        SotcShaderProvenance::Recorder recorder;
+        for(unsigned i=1;i<=10;++i)recorder.Record({.program=i,.address=42,.kind=1});
+        recorder.Record({.program=99,.address=43,.kind=1});
+        recorder.ReportAddress(stdout,mode=="address" ? 42 : 44);
+        return 0;
+    }
     if(mode=="ring") {
         SotcShaderProvenance::Recorder recorder;
         for(unsigned i=0;i<20;++i)recorder.Record({.program=99,.address=i,.kind=1});
@@ -60,7 +107,8 @@ int main(int argc,char** argv) {
         assert(bank.regs.reg_array[Regs::ShRegWordOffset+offset]==0x11223344);
         if(SotcShaderProvenance::Enabled()) {
             struct Result {struct {u64 shader_hash=99;u32 length=32;} info;
-                bool found=true;std::array<u32,2> head{1,2};} result;
+                bool found=true;std::array<u32,2> head{1,2};
+                std::size_t offset=64,scanned=128;std::uint64_t hint=64;unsigned association=1;} result;
             const auto address=reinterpret_cast<std::uintptr_t>(bank.regs.vs_program.Address<const u32*>());
             for(unsigned i=0;i<100;++i)SotcShaderProvenance::Lookup(bank.regs.vs_program,result,true,address);
             result.head[0]=3;result.found=false;SotcShaderProvenance::Lookup(bank.regs.vs_program,result,true,address);

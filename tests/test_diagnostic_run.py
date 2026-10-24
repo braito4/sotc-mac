@@ -8,11 +8,113 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
-from analyze_diagnostic_run import collect, summarize, fault_register_history, shader_provenance, fault_field_transitions
+from analyze_diagnostic_run import collect, summarize, fault_register_history, shader_provenance, fault_field_transitions, shader_origin_review, shader_origin_with_fallback
 from analyze_gpu_submission import analyze as gpu_analysis
 
 
 class DiagnosticRunTests(unittest.TestCase):
+    def test_saved_program_snapshot_recovers_evicted_lookup_without_timing(self):
+        saved=[dict(kind=1,program=8,address=256,seq=10),dict(kind=2,program=8,address=256,seq=11)]
+        other=[dict(kind=2,program=9,address=512,seq=100,ns=900)]
+        result=shader_origin_with_fallback(other,saved,256,8,7)
+        self.assertEqual(result['evidence_source'],'failure_program_snapshot')
+        self.assertFalse(result['timing_available'])
+        self.assertNotIn('ns',result['lookup'])
+        self.assertNotIn('observed_interval_us',result)
+        primary=[dict(kind=2,program=8,address=256,seq=12,ns=800,thread=7)]
+        result=shader_origin_with_fallback(primary,saved,256,8,7)
+        self.assertEqual(result['evidence_source'],'pre_failure_journal')
+        self.assertEqual(result['lookup']['ns'],800)
+        self.assertNotIn('write',result) # No merging of sequence domains.
+        self.assertEqual(shader_origin_with_fallback(other,saved,1024,8,7)['state'],'lookup_absent')
+
+    def test_compute_descriptor_offset_and_legacy_unknown(self):
+        with tempfile.TemporaryDirectory() as folder:
+            state=Path(folder);snapshot=state/'shader-metadata-failure';snapshot.mkdir()
+            (snapshot/'code.bin').write_bytes(bytes(8))
+            raw=bytearray(80)
+            struct.pack_into('<Q',raw,0,0x100000001) # Dispatch, not the address.
+            struct.pack_into('<Q',raw,48,0x1234)
+            (snapshot/'descriptor.bin').write_bytes(raw)
+            log=state/'run.log';log.write_text('')
+            base='role=compute\naddress=1192960\n'
+            (snapshot/'context.txt').write_text(base+'descriptor_layout=compute_address40_at48_shift8\n')
+            descriptor=collect(log,state)['shader_metadata_snapshot']['descriptor']
+            self.assertEqual(descriptor['origin_observation'],0x123400)
+            self.assertEqual(descriptor['address_offset'],48)
+            self.assertTrue(descriptor['matches_lookup_address'])
+            (snapshot/'context.txt').write_text(base+'descriptor_layout=address40_shift8\n')
+            self.assertNotIn('origin_observation',collect(log,state)['shader_metadata_snapshot']['descriptor'])
+            self.assertEqual(collect(log,state)['shader_metadata_snapshot']['descriptor']['address_comparison_state'],
+                             'legacy_compute_layout_unavailable')
+
+    def test_compute_prefix_cannot_be_misread_as_shader_address(self):
+        from analyze_event_journal import shader_write_observation
+        for actor in (3,4):
+            write=dict(kind=1,actor=actor,required=1,hash=0x100000001,
+                       head=[0,0],found=0,length=3221386754,address=0x123400,
+                       program=16,seq=1)
+            observed=shader_write_observation(write)
+            self.assertEqual(observed['raw_program_prefix'],0x100000001)
+            for key in ('raw_address_register','register_origin','packet_origin',
+                        'packet_matches_register','register_matches_observed_address'):
+                self.assertIsNone(observed[key])
+            write['write_observation']=observed
+            lookup=dict(kind=2,actor=2,address=0x123400,program=16,seq=2)
+            row=shader_origin_review([write,lookup],0x123400)
+            self.assertIsNone(row['register_matches_lookup'])
+            self.assertIsNone(row['packet_matches_lookup'])
+
+    def test_shader_producer_pair_register_and_lookup_are_separate(self):
+        text=('Shader provenance: program=0x10 retained=2 total=2 omitted=0 slot_evictions=0 suppressed=0\n'
+              'Shader provenance event: seq=1 program=0x10 address=0x123400 kind=1 actor=1 bank=0x10 packet=0x20 first=0 words=2 found=1 head=00001234,00000000 length=3221386752 hash=0000000000001234 required=1\n'
+              'Shader provenance event: seq=2 program=0x10 address=0x123400 kind=2 actor=2 bank=0 packet=0 first=8 words=2 found=0 head=00000000,00000000 length=0 hash=0000000000000000 required=1\n')
+        events=shader_provenance(text)[0]['events']
+        row=shader_origin_review(events,0x123400)
+        self.assertTrue(row['packet_matches_lookup']);self.assertTrue(row['register_matches_lookup'])
+        self.assertTrue(row['write']['write_observation']['packet_matches_register'])
+        self.assertEqual(shader_origin_review(events,0x567800)['state'],'lookup_absent')
+        partial=shader_provenance(text.replace('words=2 found=1 head=','words=1 found=0 head='))[0]['events']
+        self.assertIsNone(shader_origin_review(partial,0x123400)['packet_matches_lookup'])
+        events[0]['thread']=1;events[1]['thread']=2
+        self.assertEqual(shader_origin_review(events,0x123400)['state'],'write_absent')
+    def test_owned_decode_provenance_and_explicit_lookup_context(self):
+        header='Shader provenance: program=0x10 retained=1 total=1 omitted=0 slot_evictions=0 suppressed=0\n'
+        legacy=('Shader provenance event: seq=1 program=0x10 address=0x400 kind=2 actor=0 '
+                'bank=0 packet=0 first=0 words=0 found=1 head=00000001,00000002 length=8 hash=0000000000001234 required=1\n')
+        self.assertNotIn('metadata_context',shader_provenance(header+legacy)[0]['events'][0])
+        enhanced=legacy.replace('actor=0 bank=0 packet=0 first=0','actor=1 bank=0x40 packet=0x80 first=256')
+        rejected=enhanced.replace('actor=1','actor=2').replace('words=0','words=4').replace('found=1','found=0')
+        event=shader_provenance(header+rejected)[0]['events'][0]
+        self.assertEqual(event['metadata_association'],'unbound_hint_metadata')
+        self.assertEqual(event['found'],0)
+        with tempfile.TemporaryDirectory() as folder:
+            state=Path(folder);snapshot=state/'shader-decode-failure';snapshot.mkdir()
+            (snapshot/'code.bin').write_bytes(struct.pack('<2I',1,2))
+            (snapshot/'context.txt').write_text('input_owned=1\nsaved_start_word=0\nsaved_words=2\n')
+            (snapshot/'provenance.txt').write_text(header+enhanced)
+            log=state/'run.log';log.write_text('')
+            report=collect(log,state)
+            event=report['shader_decode_snapshot']['provenance'][0]['events'][0]
+            self.assertEqual(event['metadata_context'],dict(offset=64,hint=128,scanned=256))
+            self.assertEqual(event['head'],[1,2])
+
+    def test_guest_decode_memory_and_interrupt_messages_keep_order_and_units(self):
+        text=('OODLE ERROR : LZ corruption : bad decode len\n'
+              '* Message: Out of Memory, Requesting 63.13 GiB from CPUMemory - Free: 170.06 MiB / 654.50 MiB\n'
+              'STOP: bbcpu: unsupported instruction: int at guest 0x1234 (bytes cd 41 )\n')
+        info=summarize(text)['guest_data_failures']
+        self.assertEqual(info['decompression_error_count'],1)
+        self.assertEqual(info['memory_failure_count'],1)
+        self.assertEqual(info['memory_failures'][0]['requested'],63.13)
+        self.assertEqual(info['memory_failures'][0]['requested_unit'],'GiB')
+        self.assertEqual(info['memory_failures'][0]['free_unit'],'MiB')
+        self.assertEqual(info['instruction_failures'][0]['interrupt_vector'],65)
+        self.assertEqual([info['decompression_errors'][0]['line'],info['memory_failures'][0]['line'],info['instruction_failures'][0]['line']],[1,2,3])
+        self.assertIn('physical host OOM',info['limitation'])
+        negative=summarize('STOP: bbcpu: unsupported instruction: ud2 at guest 0x1234 (bytes 0f 0b )\n')['guest_data_failures']
+        self.assertEqual(negative['memory_failure_count'],0)
+        self.assertIsNone(negative['instruction_failures'][0]['interrupt_vector'])
     def test_fault_field_transition_uses_readable_prior_same_field_and_states_limits(self):
         bad=0x123456789abcde
         rows=[dict(field=32,value=64,status=3,ns=1000,seq=1),
@@ -30,10 +132,10 @@ class DiagnosticRunTests(unittest.TestCase):
     def test_fault_source_is_separate_from_earlier_focus_and_reports_refused_admission(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);log=root/'run.log'
-            log.write_text('CPU fatal minimum: signal=0xb address=0x123456789 pc=0x456 lr=0x789\n')
+            log.write_text('CPU fatal minimum: signal=0xb address=0x123456789abc pc=0x456 lr=0x789\n')
             words=[0]*512;words[0]=int.from_bytes(b'SOTCEV01','little')
             words[1:6]=[1,3,1,16,1];words[16]=1;words[183]=1;words[192]=7
-            payload=[0x40,0x200,0x220,0,0x220,0x123456789,15|512|1024|16384|(1<<16),0,0,0,8]
+            payload=[0x40,0x200,0x220,0,0x220,0x123456789abc,15|512|1024|16384|(1<<16),0,0,0,8]
             words[160]=1;words[161]=1
             words[162:173]=[0x30,0x300,0x320,0,0x320,0x987654321,15|(1<<16),0,0,0,9]
             data=struct.pack('<512Q',*words)+struct.pack('<16Q',1,0,1,1,2,*payload)+bytes(2*128)
@@ -45,6 +147,14 @@ class DiagnosticRunTests(unittest.TestCase):
             self.assertFalse(source['watch_admitted'])
             self.assertEqual(report['pre_failure_journals']['pointer']['admission_refusals_by_probe'],[7])
             self.assertTrue(any('terminal fault source observed but' in s for s in report['evidence_gaps']))
+            log.write_text('CPU fatal minimum: signal=0xb address=0x123456789ac4 pc=0x456 lr=0x789\n'
+                '  rax=0 rcx=0 rdx=0 rbx=0 rsp=0 rbp=0 rsi=0x123456789abc rdi=0\n'
+                '  r8=0 r9=0 r10=0 r11=0 r12=0 r13=0 r14=0 r15=0\n')
+            offset_review=collect(log,root)['fault_pointer_review']
+            self.assertEqual(offset_review['matching_source_observations'],[])
+            candidate=offset_review['terminal_register_source_candidates'][0]
+            self.assertEqual(candidate['matching_registers'],['rsi'])
+            self.assertEqual(candidate['fault_displacement'],8)
             words[8]=2
             (root/'pointer-events.bin').write_bytes(struct.pack('<512Q',*words)+data[4096:])
             log.write_text('GPU supervisor: child_pid=1\n'+log.read_text())

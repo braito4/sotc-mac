@@ -124,6 +124,13 @@ class DiagnosticJournalTests(unittest.TestCase):
             self.assertEqual(settings['SOTC_SHADER_PROVENANCE'],'1')
             self.assertEqual(settings['SOTC_CPU_FIELD_TRACE'],'literal $(touch UNEXPECTED) `not a command`')
             self.assertFalse((root/'UNEXPECTED').exists())
+            # The launcher applies restrictive permissions to new local output
+            # without evaluating selections or altering guest memory access.
+            (root/'packaging/test-arm64.sh').write_text(
+                '#!/bin/bash\ntouch private-capture\npython3 -c \'import json,os;print(json.dumps({k:v for k,v in os.environ.items() if k.startswith("SOTC_")}))\'\n')
+            secured=subprocess.run(['bash',str(script)],env=env,capture_output=True,text=True,timeout=5,cwd=root)
+            self.assertEqual(secured.returncode,0,secured.stderr)
+            self.assertEqual((root/'private-capture').stat().st_mode&0o777,0o600)
             env.update(SOTC_CPU_FIELD_TRACE='',SOTC_DIAGNOSTIC_JOURNAL='0')
             result=subprocess.run(['bash',str(script)],env=env,capture_output=True,text=True,timeout=5,cwd=root)
             settings=json.loads(result.stdout)

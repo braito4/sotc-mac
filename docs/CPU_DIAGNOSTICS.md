@@ -1,5 +1,204 @@
 # Private CPU fault diagnostics
 
+## Current reader/index capture
+
+The default is now base with the [reader/index profile](INDEX_CAPTURE.md): 24
+pointer targets (the original 22 plus two numeric register observations) and 28
+scalar channels, including eleven reassigned to the reader/index stages. Previous
+profiles and binaries are preserved. All enabled journals total 1204 KiB. The
+new native thread field occupies an unused payload word; legacy journals remain
+readable. Synthetic controls pass; game coverage and root cause remain unproven.
+The following profile and default descriptions preserve earlier stages.
+
+## First native range comparison observed
+
+The first `caller` owner run has matching input/function validation and a real
+range-entry marker. It still stops with SIGSEGV outside that interval, repeating a
+pre-variant traversal instruction. One run does not identify or exclude a CPU
+translation defect. See the [checkpoint](SIGSEGV_CHECKPOINT.md) for the retained
+comparison and source-coverage limits. The private default remains `caller`.
+
+## Controlled function comparisons ready
+
+The launcher now supports `base`, `caller`, `buffer` and `table`. Each selected
+variant interprets one exact-input, hash-checked function interval while keeping
+the remaining code on the JIT. The private default is `caller`. The pointer and
+scalar selections below are unchanged. Full synthetic contracts pass, including
+range boundaries, cached execution, nested calls and concurrent threads. No
+native game run or corruption fix is established for these variants. See
+[Controlled CPU function comparisons](CPU_FUNCTION_COMPARISONS.md) for commands,
+validation evidence and interpretation limits. Earlier entries are historical.
+
+## Current interior-probe and entry capture preparation
+
+The current private profile has 22 pointer targets (21 distinct instruction sites)
+and the unchanged 28 scalar probes. Four added observations cover an array's first
+element through the object, the current entry before its load, a returned object's
+member before argument loading, and the incoming numeric consumer argument.
+The previous eighteen-target profile is preserved. Fixed journal storage is now
+1172 KiB; the parser supports at most 24 targets. Persistent additions share the
+existing bank zero, with explicit admission refusal and unchanged bounded storage.
+
+A checked generator for the pinned JIT source ends translated blocks before
+interior probes. Previously a probe within a block could be silently skipped.
+The original CPU source remains unchanged; the diagnostic archive substitutes the
+generated object. Registration is before execution, not dynamic after compilation.
+A probed instruction executes through the existing interpreter dispatcher, so a
+fault there can lack a translated terminal context. Earlier probe observations
+must remain distinct from terminal evidence that is actually available.
+
+Original controls reproduce the omission and verify flags, registers, repeated
+loop visits and cached decoded blocks. Additional JIT/interpreter fixtures check
+first/second invalid array entries, inaccessible arrays, returned members,
+register-only observations, all 24 channels and bounded watch admission. Full
+synthetic contracts pass without game input. Native pointer corruption remains
+unresolved. The owner launcher applies `umask 077`; existing protected reads,
+ordering and executable-memory protections remain in place. See
+[JIT review](JIT_REVIEW.md) for the function map and external-project comparison.
+
+The following eighteen-target and earlier profile entries are historical.
+
+## SIGSEGV source capture resumed
+
+The owner resumed this investigation after another atomic consumer fault. The
+active private profile adds four pointer probes to the preserved fourteen-target
+selection: caller entry, before the selected source load/call, after replacement,
+and the incoming consumer register. All eighteen signatures and the unchanged
+twenty-eight scalar-probe signatures match the actual prepared input. New source
+watches use bank zero; admission remains bounded and can fail. The earlier
+profile and the allocation-failure alternative are retained separately.
+
+The offline report exposes `fault_pointer_review.terminal_memory_sources` as
+protected terminal reads, separate from pre-failure observations. It deduplicates
+labels for the same numeric field/value, records matching registers and signed
+fault displacement, and bounds output. A terminal source match does not identify
+the earlier load, writer, allocation identity or lifetime. Malformed, incomplete
+and ambiguous contexts do not supply source evidence.
+
+`test_terminal_memory_sources.py` covers these offline limits.
+`test_pointer_release.py` runs ten original controls through the actual JIT and
+interpreter: correct old/new atomic counts, a deliberately wrong count, an
+already-invalid source slot, a direct overwrite and an imported-copy overwrite.
+Actual continuation probes retain source and incoming-operand observations;
+interpreter faults outside translated code do not acquire invented terminal
+memory snapshots. Native correction remains unresolved. See the current
+[checkpoint](SIGSEGV_CHECKPOINT.md). Older profile descriptions below are
+historical; adding the pre-enqueue shader journal brings current fixed journal
+storage to 1108 KiB for eighteen pointer targets.
+
+## Pre-enqueue shader-prefix observations
+
+The owner launcher enables `SOTC_SHADER_SUBMIT_TRACE=1` alongside diagnostic
+journals. The runtime default is off. This diagnostic adds checked CPU backing
+reads of eight bytes at fully covered SET_SH_REG origins before enqueue, after
+the existing optional command copy. It does not retain guest memory or request
+GPU readback. Up to 16 immutable per-submission captures survive coroutine
+suspension; nested IB candidates use a checked backing reader with bounded depth
+and work. Owned command copies use their existing bounded vector span.
+
+`shader-submit-events.bin` has independent 512-record submission and consumption
+tails. Consumption republishes the retained earlier prefix and timestamp, rather
+than rereading code at that point. The file adds 132 KiB; old journal sizes stay
+fixed. The host pool is below 512 KiB plus bounded shared-pointer control blocks.
+Pool exhaustion, output initialization failure and disabled tracing skip new
+observations without changing execution. Captures expose partial pairs, unavailable
+reads, unrecognized layouts, repeated numeric packets, work/depth/sample limits,
+contention and overwritten history. Conditional execution is not simulated.
+
+The combined offline report includes `shader_submission_review` on a metadata
+failure. It joins a complete address write to a matching consumed packet and
+compares the saved eight-byte head with the lookup head only when numeric origins
+agree. Changed addresses, missing/foreign/stale evidence and repeated packets do
+not become content-change or writer claims. Neither matching heads nor a prologue
+proves correct identity, allocation lifetime or whole-program stability.
+
+`python3 tools/check_shader_submit.py` runs 19 original sanitizer controls;
+`python3 -m unittest discover -s tests -p test_shader_submit_analysis.py` checks
+original offline joins, absence, changed addresses/prefixes, both compute paths,
+foreign PIDs and reader versions. No game, shader execution or GPU is involved.
+
+
+### Deferred shader assertion; owner continues SIGSEGV comparisons
+
+The owner asks to retain the October 23 14:25:38 UTC shader problem for later
+review while continuing attempts to reproduce SIGSEGV. This run exits 23/23
+after 170.245 s on CalculateBufferAddress rejecting Thread ID buffer addressing
+outside compute. 673 pipeline/805 SRT events, 1444 API presentations, no audio
+queue failures. Unsupported legitimate stage use versus invalid/reused descriptor
+or stage metadata remains unresolved. No assertion bypass, stage override or
+fabricated thread/lane value is applied. Private logs, reconstructed diagnostic,
+source/profile context and review questions are saved under ignored analysis.
+The original report was missing because of an analyzer indentation error during
+an ongoing edit; this is fixed and the report is reconstructed from retained data.
+
+The active owner profile stays at the established fourteen probes/nine scenarios
+with independent watch banks. An eighteen-probe allocation-failure profile is
+preserved separately as an opt-in alternative; do not silently replace the active
+SIGSEGV selection. Its added register-only mode records numeric arguments without
+reading guest memory or arming watches; register values never become pointer
+focus/reference evidence. Existing journal sizes with fourteen probes stay 912 KiB;
+the optional eighteen-probe profile uses 976 KiB.
+
+Instruction-failure diagnostics now retain all sixteen registers and bounded
+field/history evidence before delegating to the unchanged upstream fatal body
+and exit 30. A weak no-op notification supports standalone CPU fixtures; the
+owner executable supplies the strong journal writer. Terminal kind 3 identifies
+instruction failure separately from stack-protector and translated signal cases.
+No unsupported opcode or guest INT is skipped or emulated. Offline reports now
+retain Oodle, reported guest-pool allocation failures and interrupt-vector stops
+in log order with displayed units; correlation is not a decoder or host-OOM cause.
+The anomalous guest allocation/decompression cause remains unresolved.
+
+### Independent watch banks and new linked-source capture
+
+The latest owner capture (October 23 13:57:38 UTC) stops after 116.513 seconds
+on another linked-structure read, through an invalid stored pointer plus eight
+bytes. The final node is readable; its source field is captured in the terminal
+snapshot, but no earlier observation or responsible writer survives. The previous
+allocator-focused selection still filled all 8192 shared slots and refused
+278,933 admissions, including every reached original header target. The prior
+isolation did not eliminate starvation.
+
+Persistent storage is now four disjoint banks of 2048 slots: original headers,
+selected allocator links, following allocator links and the newly failing linked
+source. Total capacity remains 8192; a bank can fill or collide independently but
+cannot consume another bank. No eviction, fallback borrowing or invented earlier
+history is introduced. Existing selections default to bank zero (2048 slots);
+optional @0..3 selects a bank after the full pointer-probe entry. Watch records
+identify their bank; existing header space retains per-bank admissions/refusals.
+Older journals remain readable with unknown bank metadata, not invented zeros.
+Small imported copies inspect active-bank buckets; large copies scan the bounded
+combined table. Both paths preserve bank attribution and existing write ordering.
+
+The private profile retains twelve earlier probes and adds two source probes,
+for fourteen targets/nine scenarios. Array/helper observations remain active;
+allocator and new-link fields request their own persistent banks. The pointer
+journal now has sixteen channels, adding 32 KiB (all journals 912 KiB). Watch
+storage remains 642 KiB plus 32 bytes of bank-usage counters. Guest behavior,
+permissions, rendering settings and dependency pins are unchanged.
+
+Fault review now separately reports terminal-register source candidates and a
+signed numeric displacement, so a fault at a stored pointer plus eight is not
+mistaken for absent pointer evidence. Displacement is not proof of the operand;
+ambiguous/incomplete register text is not used. This is an instrumentation change,
+not an established fix for native corruption or guest allocation lifetime.
+
+Validation: full ARM64 JIT/interpreter CPU contracts pass. Thirteen pointer
+tests cover isolated saturation/collision, concurrent admission, per-bank small/
+partial/large copy capture and fourteen pointer plus 28 scalar channels. Sixteen
+report tests cover legacy evidence, offset candidates, exact matches, missing
+register negatives and foreign PIDs. All fourteen private signatures match the
+prepared input. These are diagnostic controls; native effectiveness remains
+pending an owner comparison.
+
+Public default heads refreshed 2026-10-23T14:07:31.861451+00:00: runtime advances by
+three adapter A4 commits, ending at
+[ae84941d2f76](https://github.com/bloodborne-native/bloodborne-runtime/commit/ae84941d2f76c1620e41fbe50196bdaf5e1bcfb8)
+(October 23 14:06:51 UTC). Checked dynamic-state/pass conversions and recorded
+command captures; no demonstrated guest-link corruption fix was imported.
+Author Metal performance/frame reports are not SotC ARM64/M1 validation. Other
+four heads are unchanged; prior detailed PR/release limits remain.
+
 ### Allocator-link capture and recommended investigation workflow
 
 The October 23 13:39:40 UTC owner run stops after 126.462 seconds on an
@@ -255,8 +454,8 @@ review limitations retained. Dependencies, renderer/cache and game settings fixe
 ## Targeted header and imported-copy tracing
 
 The owner follow-up also enables SOTC_CPU_POINTER_TRACE from a private reviewed
-profile. Each of up to ten observations is
-site:register:offset:inner[:field-only[:watch-policy[:index-register:scale]]].
+profile. Each of up to fourteen observations is
+site:register:offset:inner[:field-only[:watch-policy[:index-register:scale]]][@bank].
 Watch policy 0 rotates sixteen fields, 1 requests non-evicting bounded admission,
 and 2 records observations without arming a watch. An optional index applies to
 the second chain address, with scale 1/2/4/8 and checked unsigned arithmetic;

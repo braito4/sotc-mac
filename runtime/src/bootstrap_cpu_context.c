@@ -1,14 +1,36 @@
 /* Context bridge for bloodborne-native/bloodborne-recomp
  * f749c155c2ff3bb932795de85c9c8fe9c4aa59ad. The original cpu.c is included
  * unchanged; its object is omitted from the diagnostic's private archive.
- * The JIT and decoder remain unchanged. A separate vector extension wraps the
- * pinned interpreter for additional instructions.
+ * The decoder remains pinned. A checked private JIT companion supplies probe
+ * boundaries, zero-count shift correction and optional interpreter comparison
+ * ranges. A checked scalar interpreter companion matches the shift correction. A separate vector
+ * extension wraps the pinned interpreter for additional instructions.
  * Foundations: deadinside28/bbport and shadPS4.
  */
+#define bbcpu_fatal sotc_upstream_cpu_fatal
 #include "../upstream/recomp/src/cpu/cpu.c"
+#undef bbcpu_fatal
 #include "bootstrap_cpu_context.h"
 #include "guest_failure_state.h"
 #include <pthread.h>
+
+/* Standalone CPU fixtures have no diagnostic consumer. A weak no-op keeps
+ * them linkable; the executable supplies the strong evidence writer. */
+__attribute__((weak,noinline)) void sotc_cpu_on_instruction_failure(const SotcGuestFailureState *state,unsigned mnemonic) {
+    (void)state;(void)mnemonic;
+}
+/* Preserve the pinned fatal implementation and its exit 30. External decoder/
+ * interpreter calls get a bounded pre-exit snapshot; no opcode is skipped. */
+_Noreturn void bbcpu_fatal(BbCpu *cpu,const BbInsn *in,const char *what) {
+    {
+        SotcGuestFailureState state={0};
+        state.available=1;state.rip=cpu->rip;state.fs_base=cpu->fs_base;
+        state.stack_top=cpu->stack_top;state.thread=(uintptr_t)pthread_self();
+        memcpy(state.regs,cpu->r,sizeof(state.regs));
+        sotc_cpu_on_instruction_failure(&state,in?(unsigned)in->mnemonic:0);
+    }
+    sotc_upstream_cpu_fatal(cpu,in,what);
+}
 
 int bootstrap_cpu_failure_state(SotcGuestFailureState *out) {
     memset(out,0,sizeof(*out));

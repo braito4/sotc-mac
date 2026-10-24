@@ -1,5 +1,23 @@
 # Dependency and reference watch
 
+## October 24 source refresh
+
+Default heads were resolved from GitHub's repository/commit APIs and compared with
+the preceding recorded review, independently of installed pins. Runtime main is
+`1dda5fb086cd42e8d52e78c80753257d52b77f04` (27 additional commits, 89 changed paths)
+and the app is `a55959674fcfd9c3cff7a5c8dce9dc172a3fde87` (13 commits), whose
+runtime gitlink matches that runtime head. A6, Metal resource creation M1 and M2
+shared recording step 1 are now documented upstream. Complete Metal command
+recording and removal of Vulkan/MoltenVK remain later steps.
+
+The SotC reference, CPU translator, Pink, bmy, MoltenVK, SPIRV-Cross and KosmicKrisp
+default heads match the preceding recorded heads. Orbis matches the reviewed tree;
+Prosperity matches the exact owner-linked commit. AnyPS5's default head was recorded
+without claiming a complete change review against an unavailable prior baseline.
+No installed runtime, CPU, driver or library revision was updated. See the latest
+[source assessment](UPSTREAM_REVIEW.md#october-24-render-adapter-refresh) and
+[CPU testing references](CPU_TRANSLATOR_REFERENCES.md).
+
 The owner requested continuing review of upstream changes. This document keeps
 the permanent source list for development-session reviews. Scheduled public
 checks are separate; this review does not create or reactivate them. Source
@@ -22,6 +40,7 @@ cuts, and [metadata tracing](AUDIO_DIAGNOSTICS.md) now measures candidate gaps.
 | [bloodborne-native/bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac) | Preferred app/reference upstream; follow its runtime links rather than copying app-specific assumptions. |
 | [bloodborne-native/bloodborne-runtime](https://github.com/bloodborne-native/bloodborne-runtime) | Permanent direct upstream, explicitly reaffirmed October 23; our pinned renderer/runtime base. Compare selected and last-reviewed SHAs, shader input ownership/decoding, GPU/CPU memory ordering, command reuse, resource lifetime, Metal and host contracts. |
 | [bloodborne-native/bloodborne-recomp](https://github.com/bloodborne-native/bloodborne-recomp) | Our pinned native CPU translator; instruction/ABI fixes and interpreter/JIT parity. |
+| [ptitSeb/box64](https://github.com/ptitSeb/box64) | Permanent owner-requested reference for suspected JIT defects: interpreter/ARM64 dynarec semantics and range-limited differential checks. Confirm disputed results against native x86 or the ISA; not an installed replacement backend. See [CPU testing workflow](CPU_TRANSLATOR_REFERENCES.md#standing-box64-reference-requested-by-the-owner). |
 | [bmy/bbport-mac](https://github.com/bmy/bbport-mac) | Additional Mac reference requested by the owner; native renderer, memory, driver and recording fixes. Not a direct submodule. |
 | [KhronosGroup/MoltenVK](https://github.com/KhronosGroup/MoltenVK) | Installed Vulkan-on-Metal driver; native memory, resource lifetime and experimental PerVertexKHR #2858. |
 | [KhronosGroup/SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross) | Installed SPIR-V-to-MSL compiler; interface lowering and proposals #2699/#2697. |

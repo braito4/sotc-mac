@@ -51,9 +51,18 @@ int main(int argc, char** argv) {
         assert(slice.atEnd());
         if (mode != "owned-unmapped") munmap(pages, page * 2);
         return 0;
-    } else if (mode == "main-reserved" || mode == "main-oversize") {
+    } else if (mode == "main-reserved" || mode == "main-oversize" || mode == "main-fork") {
         std::vector<u32> words(mode == "main-oversize" ? (1u << 22) : 2, 0xbf800000u);
         if (mode == "main-reserved") words[1] = u32(InstEncoding::SMRD) | (15u << 22u);
+        if (mode == "main-fork") words[1] = u32(InstEncoding::SOPK) | (17u << 23u) | 8u;
+        if (SotcShaderProvenance::Enabled()) {
+            const auto address=reinterpret_cast<std::uintptr_t>(words.data());
+            SotcShaderProvenance::Get().Record({.program=0x40,.address=address,.kind=1});
+            SotcShaderProvenance::Get().Record({.program=0x40,.address=address,
+                .bank=64,.packet=64,.first=128,.hash=0x5678,.kind=2,.actor=1,
+                .head0=words[0],.head1=words[1],.found=1,.length=u32(words.size()*4),.required=1});
+            SotcShaderProvenance::Get().Record({.program=0x80,.address=address+256,.kind=1});
+        }
         Info info{};
         info.pgm_hash = 0x5678;
         info.hw_stage = HwStage::Compute;

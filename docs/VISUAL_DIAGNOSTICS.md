@@ -45,6 +45,74 @@ I/O failure preserves the original assertion/exit 23. Initial copying can still
 race or start from invalid data, so saved bytes do not identify their writer or
 prove correct shader provenance.
 
+## Shader address producer observations
+
+New kind-1 shader events with `required=1` mark a supplied packet observation.
+For graphics events only, `hash` stores the post-copy raw address register, `length`
+stores the original packet header, and `head` stores the SET_SH_REG address pair
+when `found=1`. These are not shader hashes, code lengths or shader-code words.
+Kind-2 lookup-event meanings remain unchanged. Older kind-1 events have no such
+marker and cannot supply packet data retrospectively.
+
+Legacy compute write actors 3/4 store the first eight bytes of ComputeProgram,
+which are dispatch fields rather than its later address register. The offline
+reader preserves this as `raw_program_prefix` and marks register/packet address
+comparisons unavailable. Earlier apparent mismatches from this layout are not
+corruption evidence. Corrected actors 6/7 capture the actual address words at byte
+offset 48, checked against the pinned ComputeProgram layout, and match packet
+coverage against register 0x20c rather than dispatch register 0x200. Required
+compute descriptor contexts now identify the address offset; old compute contexts
+with the graphics layout remain unknown. Original CPU fixtures cover both paths,
+deliberately changed registers, partial writes and guarded short packets.
+
+The packet observation occurs during command consumption, after the register
+copy; it is not a submission-time snapshot. Equal failure/trace files can be
+copies of the same lookup scan. They do not establish unchanged shader content
+between enqueue and consumption; that comparison requires two timed observations
+and a submission/packet identity, including indirect-buffer paths.
+
+The checked overlay passes the actual packet extent. Pair decoding requires the
+SET_SH_REG layout and coverage of both address words; partial/short/other packets
+are unavailable, never interpreted as zero addresses. Raw packet, register and
+lookup are separate observations. No additional shader-code reads or GPU work
+are performed, and existing event-journal capacities remain unchanged.
+
+Required metadata rejection saves `descriptor.bin` before the host-history hook.
+Its context identifies the program slot and thread. `shader_origin_review` picks
+the nearest retained matching program/thread write before the lookup and reports
+packet/register/lookup agreement independently. An absent write or old event is
+explicit. Agreement is not proof that the address/content is correct; differences
+do not name the responsible writer. Raw descriptors are not atomic snapshots.
+
+## Fallback shader lookup trace
+
+With `SOTC_SHADER_PROVENANCE=1`, the first eight distinct unbound scanner
+candidates save private `shader-lookup-trace/case-N` evidence before compilation.
+`code.bin` is the exact existing scanner input (at most 65,564 bytes for the
+current BinaryInfo); `metadata.bin` is its accepted metadata slice.
+`descriptor.bin` is a separate CPU register-object observation, at most 512 bytes,
+not an atomic guest descriptor snapshot. Context retains role, origin, hash,
+length, metadata offset, hint, PID/thread/time and initial-head comparison.
+`provenance.txt` retains the existing bounded register-write/lookup history.
+
+The eight-slot budget is shared across graphics/compute types and never evicts
+an earlier case. The distinct key uses origin, hash, metadata offset, length and
+two initial words; it is not allocation or whole-content identity. Duplicate,
+refused, failed, admitted and completed counts live in existing journal header
+space. Cases add bounded private disk output without enlarging event journals;
+ordinary hinted lookups perform no new capture I/O. Exit/signals can interrupt a
+case; incomplete output is reported. Files are not a power-loss guarantee.
+
+`diagnostic.json` includes `shader_lookup_trace` even when an unrelated CPU stop
+ends the run. It checks saved extents/metadata, fingerprints content, excludes
+foreign PIDs and compares an available decode window by numeric origin/hash.
+Matching bytes do not identify an original writer; differing observations need
+ownership/order investigation. The main-program lookup now accepts only metadata at the recognized prologue
+reference, with a bounded non-overlapping code extent. Scanned candidates are
+evidence only, and context marks them rejected with an association status.
+Unrecognized layouts remain unbound. This does not validate guest object lifetime
+or make the initial reads atomic.
+
 ## Offline shader failure grouping
 
 Run `python3 tools/analyze_shader_failures.py logs/OWNER_CAPTURE.log --output
