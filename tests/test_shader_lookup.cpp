@@ -56,6 +56,13 @@ int main(int argc, char** argv) {
         Sotc::RequireShaderParams(program,"synthetic-conflicting-hint");
         return 99;
     }
+    if(argc>1 && std::string_view(argv[1])=="indexed-fail") {
+        SotcShaderOriginCache::Observe(base,0x800,base>>8,
+            std::uint64_t(4)<<32|0xbeeb03ffu,1,7,10000,
+            std::uint64_t(8)<<32|0xc0027600u,4096);
+        Sotc::RequireShaderParams(program,"synthetic-indexed-required");
+        return 99;
+    }
     if(argc>1 && std::string_view(argv[1]).starts_with("fallback-")) {
         const std::string_view mode=argv[1];
         AmdGpu::BinaryInfo info{};info.signature=info.signature_ref;info.length=32;

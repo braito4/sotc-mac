@@ -35,6 +35,63 @@ class InterpreterRegionTests(unittest.TestCase):
                         run=subprocess.run([str(binary),mode]+(['threads'] if threaded else []),env=env,capture_output=True,text=True,timeout=15)
                         self.assertEqual(run.returncode,0,run.stdout+run.stderr)
                         self.assertEqual('CPU region interpreter entered:' in run.stderr,mode!='none')
+                        boundaries=[line for line in run.stderr.splitlines() if line.startswith('CPU region tail:')]
+                        if mode=='none':self.assertEqual(boundaries,[])
+                        else:
+                            self.assertTrue(any('kind=enter ' in line and 'thread=' in line and 'rdi=' in line for line in boundaries),run.stderr)
+                            self.assertTrue(any('kind=exit ' in line and 'thread=' in line and 'rsi=' in line for line in boundaries),run.stderr)
+                            self.assertLessEqual(len(boundaries),32 if threaded else 8)
+                            seqs=[int(line.split(' seq=')[1].split()[0],0) for line in boundaries]
+                            self.assertGreater(min(seqs),64,run.stderr)
+            snapshot=subprocess.run([str(binary),'callee','snapshot'],env=env,capture_output=True,text=True,timeout=15)
+            self.assertEqual(snapshot.returncode,0,snapshot.stdout+snapshot.stderr)
+            tails=[line for line in snapshot.stderr.splitlines() if line.startswith('CPU region tail:')]
+            self.assertTrue(tails,snapshot.stderr)
+            self.assertLessEqual(len(tails),160)
+            for line in tails:
+                values=dict(token.split('=',1) for token in line.split()[3:])
+                self.assertIn(values['kind'],('enter','exit'))
+                self.assertGreater(int(values['seq'],0),0)
+                self.assertGreater(int(values['ns'],0),0)
+                self.assertTrue(all(k in values for k in ('rax','rcx','rdx','rsi','rdi')))
+            field_modes=('field-base','field-load','field-consumer','field-both')
+            field_results=[]
+            for mode in field_modes:
+                with self.subTest(field_mode=mode):
+                    run=subprocess.run([str(binary),mode],env=env,capture_output=True,text=True,timeout=15)
+                    self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+                    self.assertIn('result=0x8309008f80',run.stdout)
+                    field_results.append(run.stdout)
+                    boundaries=[line for line in run.stderr.splitlines() if line.startswith('CPU region tail:')]
+                    if mode=='field-base':self.assertEqual(boundaries,[])
+                    else:
+                        self.assertTrue(any('kind=enter ' in line for line in boundaries),run.stderr)
+                        self.assertTrue(any('kind=exit ' in line for line in boundaries),run.stderr)
+            self.assertTrue(all('result=0x8309008f80' in line for line in field_results),field_results)
+            selection=[]
+            for mode in ('selection-base','selection-interpreted'):
+                run=subprocess.run([str(binary),mode],env=env,capture_output=True,text=True,timeout=15)
+                self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+                self.assertIn('result=0x9999aaaabbbbcccc',run.stdout)
+                tails=[line for line in run.stderr.splitlines() if line.startswith('CPU region tail:')]
+                if mode=='selection-base':self.assertEqual(tails,[])
+                else:
+                    self.assertEqual(len(tails),2,run.stderr)
+                    self.assertTrue(any('kind=enter ' in line and 'offset=0x306 ' in line for line in tails),run.stderr)
+                    self.assertTrue(any('kind=exit ' in line and 'offset=0x311 ' in line for line in tails),run.stderr)
+                selection.append(run.stdout.splitlines()[-1].split(' result=')[-1])
+            self.assertEqual(selection,['0x9999aaaabbbbcccc']*2)
+            selection_interpreter=subprocess.run([str(binary),'selection-base'],env=dict(env,BB_JIT='0'),
+                capture_output=True,text=True,timeout=15)
+            self.assertEqual(selection_interpreter.returncode,0,selection_interpreter.stdout+selection_interpreter.stderr)
+            self.assertIn('result=0x9999aaaabbbbcccc',selection_interpreter.stdout)
+            full_field=subprocess.run([str(binary),'field-base'],env=dict(env,BB_JIT='0'),capture_output=True,text=True,timeout=15)
+            self.assertEqual(full_field.returncode,0,full_field.stdout+full_field.stderr)
+            self.assertEqual(full_field.stdout.splitlines()[-1].split(' result=')[-1],
+                             field_results[0].splitlines()[-1].split(' result=')[-1])
+            invalid=subprocess.run([str(binary),'field-invalid'],env=env,capture_output=True,text=True,timeout=15)
+            self.assertEqual(invalid.returncode,139,invalid.stdout+invalid.stderr)
+            self.assertTrue(any('kind=enter ' in line for line in invalid.stderr.splitlines()),invalid.stderr)
             full=subprocess.run([str(binary),'none'],env=dict(env,BB_JIT='0'),capture_output=True,text=True,timeout=15)
             self.assertEqual(full.returncode,0,full.stdout+full.stderr)
             for mode,status in [('fault',139),('unsupported',30)]:

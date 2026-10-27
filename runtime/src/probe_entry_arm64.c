@@ -10,9 +10,11 @@
 #include "cpu_fault_diagnostics.h"
 #include "cpu_field_trace.h"
 #include "cpu_pointer_trace.h"
+#include "shader_backing_trace.h"
 #include "cpu_interp_region.h"
 #include "startup_no_intro.h"
-#define SOTC_DIAGNOSTIC_CONTROL_DUMP(fd) do { sotc_cpu_field_trace_freeze(); sotc_cpu_field_trace_dump_limited((fd),128); } while (0)
+extern void sotc_cpu_region_dump(void);
+#define SOTC_DIAGNOSTIC_CONTROL_DUMP(fd) do { sotc_cpu_field_trace_freeze(); sotc_cpu_region_dump(); sotc_cpu_field_trace_dump_limited((fd),128); } while (0)
 #include "diagnostic_control.h"
 #undef SOTC_DIAGNOSTIC_CONTROL_DUMP
 #include "host_fault_diagnostics.h"
@@ -32,6 +34,10 @@
 /* This metadata lookup is lock-free; never take the VMA registry lock from a
  * signal handler (the interrupted thread may already own it). */
 extern unsigned runtime_memory_trap_reasons(uintptr_t address);
+/* Private diagnostic overlay: 2 is generated JIT code, 4 is one active
+ * interpreter instruction, and 0 means no exact guest context. */
+extern int sotc_cpu_fault_context_kind(void *context);
+extern void sotc_cpu_region_dump(void);
 static size_t fault_hex(char *out, const char *label, uint64_t value) {
     size_t n=0;
     while (*label) out[n++]=*label++;
@@ -54,6 +60,7 @@ void sotc_cpu_on_instruction_failure(const SotcGuestFailureState *state,unsigned
     static atomic_flag reporting=ATOMIC_FLAG_INIT;
     if(atomic_flag_test_and_set_explicit(&reporting,memory_order_relaxed))return;
     sotc_cpu_field_trace_freeze();
+    sotc_cpu_region_dump();
     sotc_event_journal_failure(&sotc_trace_journal,3,state);
     fprintf(stderr,"CPU instruction failure: guest_rip=%#llx mnemonic=%u thread=%#llx; pre-exit snapshot, original exit retained\n",
         (unsigned long long)state->rip,mnemonic,(unsigned long long)state->thread);
@@ -71,7 +78,32 @@ void sotc_cpu_pointer_copy_write(uintptr_t address,size_t size,unsigned actor,ui
     sotc_pointer_copy(address,size,actor,input);
 }
 void sotc_shader_prefix_watch(uint64_t address,uint64_t packet,uint64_t capture) {
-    const int saved=errno;sotc_shader_prefix_register(address,packet,capture);errno=saved;
+    const int saved=errno;sotc_shader_prefix_register(address,packet,capture);
+    sotc_shader_backing_prefix_registered(address,packet,capture);errno=saved;
+}
+void sotc_cpu_shader_write_observe(uintptr_t address,uint64_t low,uint64_t high,
+        uint64_t size,uint64_t rip,unsigned route) {
+    const int saved=errno;
+    sotc_shader_backing_cpu_write(address,low,high,size,rip,route);
+    errno=saved;
+}
+void sotc_shader_gpu_write(uint64_t address,const void* data,uint64_t size,unsigned source,uint64_t sequence,uintptr_t caller) {
+    if(source<11)sotc_shader_backing_observe(address,data,size,3+source,0,caller,sequence);
+}
+void sotc_shader_writable_binding(uint64_t address,uint64_t size,uint64_t shader,uint64_t slot,uint64_t declared) {
+    sotc_shader_backing_binding(address,size,shader,slot,declared,0);
+}
+void sotc_shader_paged_writable_binding(uint64_t address,uint64_t size,uint64_t shader,uint64_t slot,uint64_t declared) {
+    sotc_shader_backing_binding(address,size,shader,slot,declared,1);
+}
+void sotc_shader_image_writable_binding(uint64_t address,uint64_t size,uint64_t shader,uint64_t slot,uint64_t declared) {
+    sotc_shader_backing_binding(address,size,shader,slot,declared,2);
+}
+void sotc_shader_target_writable_binding(uint64_t address,uint64_t size,uint64_t shader,uint64_t slot,uint64_t declared) {
+    sotc_shader_backing_binding(address,size,shader,slot,declared,3);
+}
+void sotc_shader_resolved_image_writable_binding(uint64_t address,uint64_t size,uint64_t shader,uint64_t slot,uint64_t declared) {
+    sotc_shader_backing_binding(address,size,shader,slot,declared,4);
 }
 int sotc_shader_prefix_watch_snapshot(uint64_t address,uint64_t out[8]) {
     return out?sotc_shader_prefix_snapshot(address,out):4;
@@ -106,6 +138,7 @@ void sotc_cpu_field_trace_on_gpu_assert(void) {
     static atomic_flag reporting = ATOMIC_FLAG_INIT;
     if (!atomic_flag_test_and_set_explicit(&reporting, memory_order_relaxed)) {
         sotc_cpu_field_trace_freeze();
+        sotc_cpu_region_dump();
         sotc_cpu_field_trace_dump(STDERR_FILENO);
     }
 }
@@ -185,14 +218,16 @@ static void fault(int sig, siginfo_t *info, void *context) {
         _Exit(128+sig);
     }
     sotc_cpu_field_trace_freeze();
+    sotc_cpu_region_dump();
     /* Publish registers before rich mapping/provider diagnostics or guest reads.
      * No recorder mutex/loader/file initialization is entered from this signal. */
     BbGuestRegs regs;
-    const int have_guest_regs=bbcpu_fault_guest_regs(context,&regs);
+    const unsigned guest_context_kind=(unsigned)sotc_cpu_fault_context_kind(context);
+    const int have_guest_regs=guest_context_kind && bbcpu_fault_guest_regs(context,&regs);
     if (have_guest_regs) {
         SotcGuestFailureState state={.available=1,.rip=regs.rip,.thread=(uintptr_t)pthread_self()};
         memcpy(state.regs,&regs,sizeof(state.regs));
-        sotc_event_journal_failure(&sotc_trace_journal,2,&state);
+        sotc_event_journal_failure(&sotc_trace_journal,guest_context_kind,&state);
     }
     /* Signal-safe header: report the failure type/address even when it is
      * outside registered guest code. Recovered GPU/speculative faults return
@@ -316,6 +351,7 @@ int main(int argc, char **argv) {
         sotc_pointer_journal.map[186]=1; /* Independent bank counters at 224+. */
     }
     sotc_shader_prefix_init();
+    sotc_shader_backing_init();
     /* Isolated prerequisites: no boot image, game mount or CPU initialization. */
     if (argc == 3 && !strcmp(argv[1], "--gpu-load-check"))
         return bootstrap_gpu_load_check(argv[2]);

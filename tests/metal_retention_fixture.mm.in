@@ -22,6 +22,7 @@ static unsigned destroyed = 0, commits = 0, ended = 0;
 @property(readonly) BOOL retainedReferences;
 - (void)addCompletedHandler:(void (^)(id<MTLCommandBuffer>))handler;
 - (void)commit;
+- (void)encodeSignalEvent:(id)event value:(u64)value;
 @end
 
 @interface FixtureResource : NSObject <MTLBuffer>
@@ -59,6 +60,7 @@ static NSMutableArray<FixtureCommand*>* pending;
     assert(!_submitted);
     [_handlers addObject:[handler copy]];
 }
+- (void)encodeSignalEvent:(id)event value:(u64)value { assert(!_submitted); (void)event; (void)value; }
 - (void)commit {
     assert(!_submitted);
     _submitted = YES;
@@ -114,6 +116,7 @@ void CommitCommandBuffer(Owned& o) { [o.cmd commit]; }
 @CHUNK@
 }
 namespace Layer {
+struct EventSignal { id event; u64 value; };
 using MetalFrame::Owned;
 FixtureQueue* queue;
 std::mutex owned_mutex;

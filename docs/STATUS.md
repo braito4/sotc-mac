@@ -1,5 +1,87 @@
 # Development status
 
+## October 27: playable with artifacts — owner-confirmed milestone
+
+The owner confirms that the game is playable on Apple M1 (16 GB), with character
+geometry artifacts, intermittent vegetation and low FPS. The latest measured
+session lasted 205.045 seconds and ended with a normal window close (exit zero).
+SDL detected and connected a DualSense. Recent frame-rate windows were 3.6–5.7
+FPS. Whole-device GPU samples averaged 63.2% (maximum 74%); these include other
+applications and do not establish a purely GPU-bound workload.
+
+The single-pool import reduced startup Metal allocation from 8002 to 6978 MiB;
+the final sample was 9913 MiB. No memory failure occurred in this session, but
+previous OOMs are not considered permanently fixed. Geometry at offsets above
+4 GiB remains a comparison target; the log does not identify the artifact cause.
+Safe math and staging correction remain enabled. Full ARM64 JIT/interpreter CPU
+contracts pass, including synthetic gamepad controls. Sustained performance,
+visual correctness, audiovisual synchronization and save persistence remain open.
+
+Earlier entries below are historical checkpoints.
+
+
+## October 27: safe-math visual improvement, memory stop and measured trial
+
+The owner reports improved graphics with Metal safe math, with intermittent
+vegetation and low FPS remaining. Both safe/fast comparison runs stop on Metal
+insufficient memory; neither detects a physical gamepad. The next opt-in trial
+keeps safe math and staging correction, uses a single native guest-pool import,
+enables FPS statistics and records whole-device macOS GPU utilization. Sony SDL
+drivers are explicitly enabled and startup reports detected gamepad count.
+See [the comparison and limits](SHADER_QUALITY_TRIAL.md). Native effectiveness,
+vegetation correctness, and real controller input remain unverified.
+
+## October 26: native Metal RC integration
+
+The active renderer is `a27f0ca477bd8356a015311d1eaa92e6f6a0b007`, the runtime
+selected by bloodborne-mac `9c8ac5c` (0.9.0 RC1). Local SotC adaptations were
+merged onto this revision, with the existing CPU translator `196ed99` deliberately
+retained. New native device/queue initialization, capabilities, 3D texture support,
+resource ownership routing and native-resolution classification are included.
+The launcher selects `BB_METAL_NATIVE_BOOT=1` without Vulkan discovery. Explicit
+`BB_METAL_NATIVE_BOOT=0` retains the previous Metal-on-Vulkan startup comparison;
+the dedicated Vulkan check still uses the loader. These modes are not identical.
+
+Four optional button-prompt imports preserve SotC's original icons (no Bloodborne
+input-name replacement). Input handling itself stays on our existing SDL adapter.
+Old workspace/build `84daa9f13e5c` remains available. Copied dependency install names
+were relocated to the new prefix; old libraries were not edited. No game has been
+launched as part of this update, and the observed Metal OOM is not claimed fixed.
+
+Next manual trial: `bash prueba_runtime_actualizado.command`. This establishes a
+new baseline: native boot, three balanced pool windows, default collector budget,
+shim residency enabled, existing exact-shader barrier trial, resource observations,
+single inflight command, skipped intro, GPU wait120s and global500s. Other optional
+render/indirect/CPU probes are off. This is not a single-variable comparison with
+the preceding single-pool/early-GC trial. Native buffer summaries distinguish the
+shim's residency switch from the separate renderer address-buffer residency set.
+Build/check evidence: `work/analysis/runtime-update-20261026/`.
+
+### Resolved storage-image alias probe prepared
+
+Adaptive round 15 ended on a separately preserved SIGSEGV and produced no
+shader-metadata rejection, so it does not justify a semantic shader correction
+or an unchanged repeat. Review found a distinct coverage gap: texture-cache
+overlap resolution can bind a cached image whose actual guest range differs from
+the requested storage-image descriptor, while the prior probe recorded only the
+requested range. Layout 10 now records that resolved range as
+`storage_image_resolved` only when the two differ. This is bounded write-intent
+evidence; it does not change image/view selection, descriptors, barriers,
+invalidation, shader acceptance, guest bytes or GPU ordering, and cannot prove a
+GPU store, allocation identity or writer. Layouts 1 through 9 remain readable.
+Focused controls, exact overlay migration, the complete ARM64 renderer build and
+full JIT/interpreter contracts pass. Native coverage remains pending.
+
+### Adaptive diagnostics authorized and backing-write probes prepared
+
+The owner now authorizes serial native tests with probe revisions between rounds.
+The analyst's own process cannot access Metal and computer control cannot use
+Terminal, so the [adaptive controller](ADAPTIVE_TESTS.md) requires one owner launch
+in a GPU-capable Terminal. Each next request waits for analysis and checked probe
+changes; this is not a blind retry loop. The first request adds
+[runtime backing-write overlaps](SHADER_BACKING_PROBES.md), retaining prior evidence.
+CPU-only contracts pass in both modes; native coverage is pending.
+
 ### Prefix change captured before consumption
 
 The third fresh-consume owner control captures a recognized pre-enqueue prefix

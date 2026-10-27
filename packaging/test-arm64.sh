@@ -1,10 +1,10 @@
 #!/bin/bash
-# CPU-only Shadow of the Colossus diagnostic. No Rosetta, renderer or save access.
+# Native ARM64 SotC diagnostics; graphics and game execution require explicit modes.
 set -euo pipefail
 trial_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
-runtime_repo="$trial_root/runtime/upstream"
+runtime_repo="${SOTC_RUNTIME_SOURCE:-$trial_root/work/gpu-source-a27f0ca477bd}"
 cpu_repo="$runtime_repo/recomp"
-reference_repo="$trial_root/reference"
+reference_repo="$trial_root/work/sotc-reference-75b48137bc33"
 trial_deps="${BB_DEPS:-$trial_root/work/deps-arm64}"
 trial_mode="${1:---check}"
 trial_game="${SOTC_GAME_ROOT:-$trial_root/game/CUSA08809/SotC-PC/Game/CUSA08809}"
@@ -14,9 +14,17 @@ require_arm64() {
     [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 ]] || fail 'Run in a native ARM64 macOS Terminal.'
 }
 configure_gpu_driver() {
-    # The pinned Metal layer still needs Vulkan's WSI setup. Without this ICD
-    # the standalone loader advertises only its own non-surface extensions.
-    trial_gpu_prefix="$trial_root/work/gpu-source-22923f080229/deps/macos-arm64"
+    # Native Metal now boots without a Vulkan loader/ICD. Keep the old bridge
+    # available explicitly for comparison and the dedicated Vulkan check.
+    if [[ "$trial_mode" != --vulkan-check && "${BB_METAL_NATIVE_BOOT:-1}" == 1 ]]; then
+        # Native startup has no VMA allocator: resources must use Metal too.
+        export BB_METAL_FRAME=1 BB_METAL_NATIVE_BOOT=1 BB_GFX_BACKEND=metal
+        unset VK_DRIVER_FILES VK_ICD_FILENAMES SDL_VULKAN_LIBRARY
+        printf 'Renderer startup: native Metal adapter; no Vulkan loader/ICD.\n'
+        return
+    fi
+    export BB_METAL_NATIVE_BOOT=0
+    trial_gpu_prefix="$trial_root/work/gpu-source-a27f0ca477bd/deps/macos-arm64"
     [[ -f "$trial_gpu_prefix/lib/libvulkan.1.dylib" && -f "$trial_gpu_prefix/lib/libMoltenVK.dylib" &&
        -f "$trial_gpu_prefix/share/vulkan/icd.d/MoltenVK_icd.json" ]] || fail 'Build the isolated GPU dependencies first.'
     export VK_DRIVER_FILES="$trial_gpu_prefix/share/vulkan/icd.d/MoltenVK_icd.json"
@@ -102,7 +110,10 @@ test_cpu_sse4a() {
 }
 contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_copy_probes.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_watch_history.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_watch_summary.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_consume.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_shader_backing.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_sigbus_index_probes.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_shader_bind.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_startup_no_intro.py
@@ -122,6 +133,7 @@ contracts() {
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_fault_diagnostics.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_field_trace.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_probe_boundaries.py
+    python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_shader_write_trace.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_interp_region.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_cpu_experiment.py
     python3 -m unittest discover -s "$trial_root/tests" -p test_index_capture.py
@@ -305,10 +317,10 @@ case "$trial_mode" in
         ;;
     --fetch)
         need git
+        # Historical submodules supply the before-fix regression fixtures.
         git -C "$trial_root" submodule update --init runtime/upstream reference
-        git -C "$runtime_repo" submodule update --init recomp
-        git -C "$runtime_repo" checkout --detach b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548
-        git -C "$cpu_repo" checkout --detach b9652d75edc0a281f06cec0da6ff72e9f5150a70
+        git -C "$trial_root/runtime/upstream" submodule update --init recomp
+        python3 "$trial_root/tools/build_gpu.py" --fetch
         printf 'Pinned CPU sources initialized; no game data downloaded.\n'
         ;;
     --test-emitter) need clang; test_emitter ;;
@@ -357,9 +369,9 @@ case "$trial_mode" in
         if [[ "$trial_mode" == --renderer-check ]]; then
             BB_GPU_USER_DIR="$trial_gpu_state" BB_CONFIG="$trial_gpu_state/bbport.ini" \
                 BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_METAL_FRAME=1 \
-                "$trial_root/work/probe_entry_arm64" --renderer-check "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
+                "$trial_root/work/probe_entry_arm64" --renderer-check "$trial_root/work/gpu-build-a27f0ca477bd/libbbgpu.dylib"
         else
-            BB_GPU_USER_DIR="$trial_gpu_state" "$trial_root/work/probe_entry_arm64" --gpu-load-check "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
+            BB_GPU_USER_DIR="$trial_gpu_state" "$trial_root/work/probe_entry_arm64" --gpu-load-check "$trial_root/work/gpu-build-a27f0ca477bd/libbbgpu.dylib"
         fi
         ;;
     --graphics-game-test)
@@ -432,7 +444,7 @@ case "$trial_mode" in
             python3 "$trial_root/tools/run_gpu_diagnostic.py" \
             --seconds "${SOTC_DIAGNOSTIC_SECONDS-0}" --log "$trial_log" --cooperative-stop \
             -- "$trial_root/work/probe_entry_arm64" "$trial_root/work/sotc-graphics-arm64/boot-linked.bin" \
-            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build-22923f080229/libbbgpu.dylib"
+            --bootstrap --game-root "$trial_game" --graphics-library "$trial_root/work/gpu-build-a27f0ca477bd/libbbgpu.dylib"
         then trial_status=0; else trial_status=$?; fi
         python3 "$trial_root/tools/analyze_diagnostic_run.py" --log "$trial_log" \
             --state "$trial_gpu_state" --output "$trial_gpu_state/diagnostic.json" || \

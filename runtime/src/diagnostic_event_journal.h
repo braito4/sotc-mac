@@ -90,7 +90,8 @@ static inline void sotc_event_journal_record(SotcEventJournal *journal,unsigned 
     __atomic_store_n(record+1,0,__ATOMIC_RELEASE);
 }
 /* First terminating register snapshot occupies reserved header words 128..150.
- * kind 1: stack-protector import, kind 2: translated fatal fault. No I/O or
+ * kind 1: stack-protector import, kind 2: translated fatal fault, kind 3:
+ * instruction failure, kind 4: active interpreted fatal fault. No I/O or
  * pointed-to memory reads; interrupted publication is rejected offline. */
 static inline void sotc_event_journal_failure(SotcEventJournal *journal,uint64_t kind,
                                              const SotcGuestFailureState *state) {

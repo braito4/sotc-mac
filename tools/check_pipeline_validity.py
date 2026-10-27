@@ -16,8 +16,14 @@ def fixture(source):
     end = cache.index('    // bbport BB_ASYNC_PIPELINES:', start)
     cache_guard = cache[start:end]
     shadow = (source / BASE / 'vk_metal_shadow.h').read_text()
-    start = shadow.index('    if (!Enabled() || !pipeline')
-    end = shadow.index('    std::array<bool,', start)
+    modern = 'GraphicsFromVulkan' not in shadow
+    if modern:
+        shadow = (source / BASE / 'vk_backend_pipeline.cpp').read_text()
+        start = shadow.index('    if (!pipeline) { return; }')
+        end = shadow.index('    const auto& guest', start)
+    else:
+        start = shadow.index('    if (!Enabled() || !pipeline')
+        end = shadow.index('    std::array<bool,', start)
     shadow_guard = shadow[start:end]
     return r'''
 #include <cstdint>
@@ -56,7 +62,7 @@ int main() {
     std::printf("cache rejects invalid=%d; Metal rejects null registration=%d\n", cache_ok, shadow_ok);
     return cache_ok && shadow_ok ? 0 : 2;
 }
-'''.replace('@CACHE@', cache_guard).replace('@SHADOW@', shadow_guard)
+'''.replace('@CACHE@', cache_guard).replace('@SHADOW@', ('const auto pipeline = owner ? owner->Handle() : 0;\n' if modern else '') + shadow_guard).replace('void Register(const std::unique_ptr<Pipeline>& pipeline)', 'void Register(const std::unique_ptr<Pipeline>& owner)' if modern else 'void Register(const std::unique_ptr<Pipeline>& pipeline)')
 
 def check_sources(pinned, adapted, output):
     output.mkdir(parents=True, exist_ok=True)

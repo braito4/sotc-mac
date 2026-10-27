@@ -46,6 +46,7 @@ inline void CheckShWrite(std::uint64_t offset,std::uint64_t words,
 }
 struct Event {
     std::uint64_t seq{},program{},address{},bank{},packet{},first{},words{},hash{};
+    std::uint64_t ns{},thread{};
     std::uint32_t kind{},actor{},head0{},head1{},found{},length{},required{};
 };
 class Recorder {
@@ -67,6 +68,11 @@ public:
             __atomic_fetch_add(journal.map+index,1,__ATOMIC_RELAXED);
     }
     void Record(Event event) {
+        struct timespec now{};
+        const auto self=pthread_self();static_assert(sizeof(self)<=sizeof(event.thread));
+        std::memcpy(&event.thread,&self,sizeof(self));
+        if(!clock_gettime(CLOCK_MONOTONIC,&now))
+            event.ns=std::uint64_t(now.tv_sec)*1000000000+now.tv_nsec;
         std::lock_guard lock(mutex);
         Slot* slot=nullptr;
         for(auto& candidate:slots)if(candidate.kept && candidate.program==event.program) {slot=&candidate;break;}
@@ -91,16 +97,12 @@ public:
         // Persist a separate bounded tail of writes and lookups before any
         // terminating path. Signals never query the recorder mutex or loader.
         if(journal.map) {
-            struct timespec now{};std::uint64_t ns{},thread{};
-            const auto self=pthread_self();static_assert(sizeof(self)<=sizeof(thread));
-            std::memcpy(&thread,&self,sizeof(self));
-            if(!clock_gettime(CLOCK_MONOTONIC,&now))ns=std::uint64_t(now.tv_sec)*1000000000+now.tv_nsec;
             const std::uint64_t evidence[SOTC_JOURNAL_DATA_WORDS]={event.program,event.address,
                 event.bank,event.packet,event.first,event.words,event.hash,
                 std::uint64_t(event.kind)|(std::uint64_t(event.actor)<<32),
                 std::uint64_t(event.head0)|(std::uint64_t(event.head1)<<32),
-                std::uint64_t(event.length)|(std::uint64_t(event.found)<<32)|(std::uint64_t(event.required)<<33),thread};
-            sotc_event_journal_record(&journal,event.kind==1 ? 0 : 1,ns,evidence);
+                std::uint64_t(event.length)|(std::uint64_t(event.found)<<32)|(std::uint64_t(event.required)<<33),event.thread};
+            sotc_event_journal_record(&journal,event.kind==1 ? 0 : 1,event.ns,evidence);
         }
     }
 private:
@@ -110,11 +112,11 @@ private:
             (unsigned long long)(copy.total-copy.kept),(unsigned long long)lost,(unsigned long long)copy.suppressed);
         for(std::size_t i=0;i<copy.kept;++i) {
             const auto& e=copy.events[i];
-            std::fprintf(out,"Shader provenance event: seq=%llu program=%#llx address=%#llx kind=%u actor=%u bank=%#llx packet=%#llx first=%llu words=%llu found=%u head=%08x,%08x length=%u hash=%016llx required=%u\n",
+            std::fprintf(out,"Shader provenance event: seq=%llu program=%#llx address=%#llx kind=%u actor=%u bank=%#llx packet=%#llx first=%llu words=%llu found=%u head=%08x,%08x length=%u hash=%016llx required=%u ns=%llu thread=%#llx\n",
                 (unsigned long long)e.seq,(unsigned long long)e.program,(unsigned long long)e.address,
                 e.kind,e.actor,(unsigned long long)e.bank,(unsigned long long)e.packet,
                 (unsigned long long)e.first,(unsigned long long)e.words,e.found,e.head0,e.head1,e.length,
-                (unsigned long long)e.hash,e.required);
+                (unsigned long long)e.hash,e.required,(unsigned long long)e.ns,(unsigned long long)e.thread);
             if(e.kind==2 && (e.actor==1 || e.actor==2))
                 std::fprintf(out,"Shader lookup metadata: seq=%llu metadata_offset=%llu hint=%llu scanned=%llu\n",
                     (unsigned long long)e.seq,(unsigned long long)e.bank,

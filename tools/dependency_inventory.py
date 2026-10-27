@@ -79,8 +79,8 @@ def render(data):
               'Author tests on other machines are not our M1 validation.', '',
               '## Reproduce and maintain','',
               'A separate versioned integration workspace preserves the preceding qualified build. '
-              'Its directory key stays fixed during this integration; the exact required Git HEAD '
-              'is checked independently against the lock. Local overlays and the Dear ImGui override are '
+              'The selected workspace key and exact required Git HEAD are recorded '
+              'and checked independently against the lock. Local overlays and the Dear ImGui override are '
               'digest/revision checked. Dependency caches are separated by the version lock; installed '
               'markers contain the actual selected version, so an old empty marker cannot skip an update.', '',
               'Run `python3 tools/dependency_inventory.py --check` to check this document and lock. '

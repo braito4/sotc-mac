@@ -15,6 +15,31 @@ def fixture(tree):
     frame = (base / 'mtl_frame.mm').read_text()
     commit = function(layer, 'void CommitOwned(')
     text = (ROOT / 'tests/metal_retention_fixture.mm.in').read_text()
+    if 'FenceState' in commit:
+        fence_support = ('#include <memory>\n#include <condition_variable>\n')
+        text = fence_support + text
+        support = ('struct FenceState { std::atomic<bool> signaled{false}; };\n'
+                   'std::condition_variable fences_cv;\n' +
+                   function(layer, 'void CompleteFence('))
+        text = text.replace('@OWN@', support + '\n@OWN@')
+        # Exercise the new native fence path with the real completion handler:
+        # a submit with no command buffers and a submit with retained resources.
+        extra = r'''
+        auto fence = std::make_shared<Layer::FenceState>();
+        Layer::CommitOwned(0, [&](unsigned) { return key; }, nullptr, fence);
+        assert(pending.count == 1 && !fence->signaled.load());
+        [(FixtureCommand*)pending[0] complete];
+        assert(pending.count == 0 && fence->signaled.load());
+        auto resource_fence = std::make_shared<Layer::FenceState>();
+        Layer::OwnBuffer(key);
+        __weak FixtureResource* fenced;
+        @autoreleasepool { fenced = Encode(Layer::owned.at(key)->cmd); }
+        Layer::CommitOwned(1, [&](unsigned) { return key; }, nullptr, resource_fence);
+        assert(pending.count == 1 && fenced != nil && !resource_fence->signaled.load());
+        [(FixtureCommand*)pending[0] complete];
+        assert(pending.count == 0 && fenced == nil && resource_fence->signaled.load());
+'''
+        text = text.replace('        return early ? 2 : 0;', extra + '        return early ? 2 : 0;')
     fragments = {
         '@OWN@': function(layer, 'void OwnBuffer('),
         '@COMMIT_OWNED@': 'template <typename Get>\n' + commit,
@@ -26,6 +51,9 @@ def fixture(tree):
     if 'CommitCommandBuffer(o);' not in fragments['@CHUNK@']:
         fragments['@CHUNK@'] = fragments['@CHUNK@'].replace(
             '[o.cmd commit];', 'CommitCommandBuffer(o);')
+    if 'FindOwned(get(i))' in commit:
+        fragments['@COMMIT_OWNED@'] = function(layer, 'Owned* FindOwned(') + '\n' + fragments['@COMMIT_OWNED@']
+        text = text.replace('using VkCommandBuffer = void*;', 'using VkCommandBuffer = void*;\n#define VK_NULL_HANDLE nullptr')
     for name, source in fragments.items():
         text = text.replace(name, source)
     return text

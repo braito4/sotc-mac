@@ -1,6 +1,15 @@
+# Base activa del 26 de octubre de 2026
+
+El manifiesto activo selecciona `a27f0ca477bd8356a015311d1eaa92e6f6a0b007`
+y `sotc-metal-adapter-20261026.patch.json`, con hashes antes/después completos.
+Los parches y cohortes documentados a continuación son el historial de la base
+anterior, conservados como referencia; no se reaplican sobre el backend nuevo.
+Las adaptaciones se han trasladado a sus interfaces y probado; caché activo 29/9.
+El workspace anterior se conserva. Véase docs/UPSTREAM_REVIEW.md.
+
 # Reviewed renderer adaptations
 
-The current cache is 28/9; older cohort/cache entries below are historical.
+The current cache is 29/9; older cohort/cache entries below are historical.
 
 `sotc-task-guard` adds production Task promise allocation/deletion hooks to a
 bounded opt-in macOS CPU-frame quarantine. It preserves the seven ordered frame
@@ -300,3 +309,20 @@ the pinned layout. The recorder has a fixed pool and a separate 132 KiB journal;
 unknown coverage never changes shader acceptance. Its exact preceding source
 cohort remains recognized and migrates idempotently. See CPU diagnostics for
 budgets, explicit gaps, original controls and native validation limits.
+
+## Generic GPU-write intent observations
+
+The checked free-check entry overlay calls an optional shader-prefix bridge before
+its allocator-specific enable guard. It does not activate that allocator checker
+or label trapping. Original CPU fixtures exercise all eleven source enum values,
+bridge-present/absent and enabled/disabled cases with preserved errno. The source
+cohort migrates through shader_write_previous with reviewed hashes and preserves
+all earlier checked overlays. No game-derived inputs or GPU launch are required.
+
+The later image-alias overlay observes a fifth route only when a writable storage
+descriptor resolves to a cached image with a different actual guest range. The
+hook runs after image rebind resolution and before view lookup, records the
+resolved range, and changes no cache, descriptor, view, barrier or ordering
+semantics. Its exact predecessor is the complete render-target overlay and
+migrates as `image_alias_previous`; files unchanged by this final patch inherit
+their reviewed `after` digest for that one migration state.

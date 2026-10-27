@@ -46,12 +46,12 @@ class ShaderMetadataTests(unittest.TestCase):
                             str(ROOT/'tests/test_shader_metadata.cpp'),'-o',str(binary)],check=True)
             subprocess.run([str(binary)],check=True,timeout=15)
 
-    @unittest.skipUnless(shutil.which('c++') and (ROOT/'work/gpu-source-22923f080229/deps/macos-arm64/include/fmt/format.h').is_file(),
+    @unittest.skipUnless(shutil.which('c++') and (ROOT/'work/gpu-source-84daa9f13e5c/deps/macos-arm64/include/fmt/format.h').is_file(),
                          'C++ compiler and prepared renderer headers required')
     def test_runtime_wrapper_and_required_failure_evidence(self):
         import os
         source=ROOT/'runtime/upstream'
-        prefix=ROOT/'work/gpu-source-22923f080229/deps/macos-arm64'
+        prefix=ROOT/'work/gpu-source-84daa9f13e5c/deps/macos-arm64'
         with tempfile.TemporaryDirectory(prefix='shader lookup ') as directory:
             work=Path(directory)
             binary=work/'lookup'
@@ -61,6 +61,18 @@ class ShaderMetadataTests(unittest.TestCase):
                             str(ROOT/'tests/test_shader_lookup.cpp'), '-o',str(binary)]
             subprocess.run(command,check=True)
             subprocess.run([str(binary)],check=True,timeout=15)
+            indexed=work/'indexed-fail';indexed.mkdir()
+            result=subprocess.run([str(binary),'indexed-fail'],capture_output=True,text=True,timeout=15,
+                env=dict(os.environ,BB_GPU_USER_DIR=str(indexed)))
+            self.assertEqual(result.returncode,23,result.stderr)
+            from analyze_diagnostic_run import shader_submission_index
+            context=dict(line.split('=',1) for line in
+                         (indexed/'shader-metadata-failure/context.txt').read_text().splitlines())
+            snapshot=shader_submission_index(indexed/'shader-metadata-failure/submission-prefix.txt',int(context['address']))
+            self.assertEqual(snapshot['state'],'matched')
+            self.assertEqual(snapshot['matches'][0]['packet'],0x800)
+            self.assertEqual(snapshot['matches'][0]['head'],[0xbeeb03ff,4])
+            self.assertEqual(snapshot['matches'][0]['capture_id'],7)
             state=work/'compute-required';state.mkdir()
             result=subprocess.run([str(binary),'compute-required'],capture_output=True,text=True,timeout=15,
                 env=dict(os.environ,BB_GPU_USER_DIR=str(state)))

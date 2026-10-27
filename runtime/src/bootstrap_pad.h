@@ -2,6 +2,11 @@
 #define SOTC_BOOTSTRAP_PAD_H
 #include <stdbool.h>
 #include <stdint.h>
+/* Optional renderer prompt ABI: preserve original SotC icons. */
+int runtime_pad_prompt_device(void);
+unsigned runtime_pad_prompt_generation(void);
+int runtime_pad_mouse_look(void);
+int runtime_pad_prompt(const char *name, int prefer_mouse, char *label, int size);
 /* SDL callback ABI; populated on the renderer's main thread after SDL startup.
  * Numeric subsystem flags are checked against the pinned SDL3 API. */
 typedef struct {

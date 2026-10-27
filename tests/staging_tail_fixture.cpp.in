@@ -17,6 +17,7 @@ constexpr bool adapted=@ADAPTED@;
 namespace Common {u64 AlignUp(u64 n,u64 step){return (n+step-1)&~(step-1);}}
 namespace SotcVisual {enum Counter {StagingNewBuffers,StagingReuses,StagingOversizeReuses};void Count(Counter){}}
 struct Instance {u64 atom=256;u64 NonCoherentAtomSize()const{return atom;}};
+struct BackendDevice { static const Instance& From(const Instance& i){return i;} };
 namespace VideoCore {
 enum class MemoryType {DeviceLocal,HostUncached,HostCached};
 struct Buffer {

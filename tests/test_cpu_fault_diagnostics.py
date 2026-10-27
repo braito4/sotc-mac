@@ -84,9 +84,13 @@ class CpuFaultDiagnosticsTests(unittest.TestCase):
                         self.assertIn('CPU fault field candidate reg=r12 offset=0x131', result.stderr)
                         self.assertIn(hex(field_marker), result.stderr)
                     else:
-                        self.assertIn('CPU fault context: unavailable outside translated code', result.stderr)
-                        self.assertNotIn('CPU fault memory', result.stderr)
-                        self.assertNotIn('CPU fault field candidate', result.stderr)
+                        self.assertIn('interpreted guest instruction', result.stderr)
+                        self.assertNotIn('CPU fault context: unavailable outside translated code', result.stderr)
+                        self.assertIn('CPU fault memory r12', result.stderr)
+                        self.assertIn(hex(bad_size), result.stderr)
+                        self.assertIn('CPU fault context: end', result.stderr)
+                        self.assertIn('CPU fault field candidate reg=r12 offset=0x131', result.stderr)
+                        self.assertIn(hex(field_marker), result.stderr)
 
     @unittest.skipUnless(PROBE.is_file(), 'built native diagnostic required')
     def test_invalid_fields_stop_before_loading_input(self):

@@ -48,6 +48,8 @@ enum class Stage { Vertex };
 static void SetBuffer(Owned&, Stage, id, u64 offset, unsigned slot){assert(offset%64==slot);}
 struct Leaf { u32 vertices,first_vertex,instance,first; s32 vertex_offset; bool indexed; u32 first_index; };
 static std::vector<Leaf> leaves;
+// Draw trace is validated by the dedicated render metadata fixture.
+template<class... T> void TraceRenderDraw(T&&...) {}
 @DRAW@
 @FLUSH@
 static void Reset(){leaves.clear();encoded.clear();stats={};}

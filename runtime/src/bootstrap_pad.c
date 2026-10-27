@@ -294,3 +294,16 @@ void bootstrap_pad_report(void) {
         (unsigned long long)physical_reads,(unsigned long long)led_ok,(unsigned long long)rumble_ok);
     pthread_mutex_unlock(&pad_lock);
 }
+
+/* Optional upstream prompt replacement ABI. SotC keeps its own button artwork:
+ * Bloodborne action-name/icon substitutions are unsupported here. Kind 0 is
+ * the documented "keep the game's icon" result; this does not synthesize input.
+ */
+int runtime_pad_prompt_device(void) { return 0; }
+unsigned runtime_pad_prompt_generation(void) { return 0; }
+int runtime_pad_mouse_look(void) { return 0; }
+int runtime_pad_prompt(const char *name, int prefer_mouse, char *label, int size) {
+    (void)name; (void)prefer_mouse;
+    if (label && size > 0) label[0] = 0;
+    return 0;
+}

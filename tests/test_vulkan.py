@@ -12,7 +12,7 @@ ROOT = Path(__file__).parents[1]
 spec = importlib.util.spec_from_file_location('check_vulkan', ROOT / 'tools/check_vulkan.py')
 vulkan = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(vulkan)
-PREFIX = ROOT / 'work/gpu-source-22923f080229/deps/macos-arm64'
+PREFIX = ROOT / 'work/gpu-source-84daa9f13e5c/deps/macos-arm64'
 LOADER = PREFIX / 'lib/libvulkan.1.dylib'
 ICD = PREFIX / 'share/vulkan/icd.d/MoltenVK_icd.json'
 

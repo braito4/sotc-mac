@@ -24,7 +24,7 @@ class CpuExperimentTests(unittest.TestCase):
         self.image.write_bytes(struct.pack('<8s9Q',b'BBPROBE2',256,0,1,0,0,0,0,256,5)+data)
         self.spec=dict(schema=1,image_sha256=hashlib.sha256(self.image.read_bytes()).hexdigest(),variants={
             name:dict(begin=16+i*16,end=32+i*16,sha256=hashlib.sha256(data[16+i*16:32+i*16]).hexdigest())
-            for i,name in enumerate(('caller','buffer','table'))})
+            for i,name in enumerate(('caller','buffer','table','field578'))})
         self.write_profile()
 
     def tearDown(self):self.temp.cleanup()
@@ -32,7 +32,7 @@ class CpuExperimentTests(unittest.TestCase):
     def write_profile(self):self.profile.write_text(json.dumps(self.spec))
 
     def test_each_selection_and_base_match_exact_input(self):
-        for name in ('base','caller','buffer','table'):
+        for name in ('base','caller','buffer','table','field578'):
             row=check(self.profile,name,self.image)
             self.assertEqual(row['status'],'matched')
             self.assertEqual(row['variant'],name)
@@ -75,15 +75,16 @@ class CpuExperimentTests(unittest.TestCase):
 python3 - <<'PYCODE'
 import json,os
 with open(os.environ['TEST_CAPTURE'],'w') as out:
- json.dump({k:os.getenv(k) for k in ['SOTC_CPU_EXPERIMENT','SOTC_CPU_INTERPRET_RANGE','BB_JIT_DENY','BB_JIT']},out)
+ json.dump({k:os.getenv(k) for k in ['SOTC_CPU_EXPERIMENT','SOTC_CPU_INTERPRET_RANGE','BB_JIT_DENY','BB_JIT','BB_SUBMIT_AHEAD']},out)
 PYCODE
 ''')
-        output=root/'env.json';env=dict(os.environ,TEST_CAPTURE=str(output),BB_JIT_DENY='mem',SOTC_CPU_INTERPRET_RANGE='foreign')
-        for arg,label,interval in [(None,'caller','0x10:0x20'),('buffer','buffer','0x20:0x30'),('table','table','0x30:0x40'),('base','base',None)]:
+        output=root/'env.json';env=dict(os.environ,TEST_CAPTURE=str(output),BB_JIT_DENY='mem',SOTC_CPU_INTERPRET_RANGE='foreign',BB_SUBMIT_AHEAD='99')
+        for arg,label,interval in [(None,'caller','0x10:0x20'),('buffer','buffer','0x20:0x30'),('table','table','0x30:0x40'),('field578','field578','0x40:0x50'),('base','base',None)]:
             run=subprocess.run(['bash',str(root/'launch.command')]+([] if arg is None else [arg]),env=env,capture_output=True,text=True)
             self.assertEqual(run.returncode,0,run.stderr)
             row=json.loads(output.read_text());self.assertEqual(row['SOTC_CPU_EXPERIMENT'],label);self.assertEqual(row['SOTC_CPU_INTERPRET_RANGE'],interval)
             self.assertIsNone(row['BB_JIT_DENY']);self.assertEqual(row['BB_JIT'],'1')
+            self.assertEqual(row['BB_SUBMIT_AHEAD'],'0')
         output.unlink();(root/'work/cpu-experiment-selection.txt').write_text('caller;touch invalid')
         run=subprocess.run(['bash',str(root/'launch.command')],env=env,capture_output=True,text=True)
         self.assertEqual(run.returncode,24);self.assertFalse(output.exists())
@@ -101,6 +102,14 @@ PYCODE
         self.assertEqual(cpu_experiment_review(text+configured+entered.replace('0x10','0x30'),state)['state'],'evidence_mismatch')
         record['variant']='table';(state/'cpu-experiment-check.json').write_text(json.dumps(record))
         self.assertEqual(cpu_experiment_review(text+configured+entered,state)['state'],'evidence_mismatch')
+        field_record=check(self.profile,'field578',self.image)
+        (state/'cpu-experiment-check.json').write_text(json.dumps(field_record))
+        field_text='GPU supervisor: settings='+json.dumps(dict(SOTC_CPU_EXPERIMENT='field578',SOTC_CPU_INTERPRET_RANGE='0x40:0x50'))+'\n'
+        field_configured='CPU region interpreter configured: begin=0x40 end=0x50\n'
+        field_entered='CPU region interpreter entered: offset=0x40\n'
+        self.assertEqual(cpu_experiment_review(field_text+field_configured,state)['state'],'validated_not_observed')
+        self.assertEqual(cpu_experiment_review(field_text+field_configured+field_entered,state)['state'],'validated_entered')
+        self.assertEqual(cpu_experiment_review(field_text+field_configured+field_entered.replace('0x40','0x60'),state)['state'],'evidence_mismatch')
         record=check(self.profile,'base',self.image);(state/'cpu-experiment-check.json').write_text(json.dumps(record))
         baseline='GPU supervisor: settings='+json.dumps(dict(SOTC_CPU_EXPERIMENT='base',SOTC_CPU_INTERPRET_RANGE=None))+'\n'
         self.assertEqual(cpu_experiment_review(baseline,state)['state'],'validated_base')

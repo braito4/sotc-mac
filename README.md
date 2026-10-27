@@ -9,10 +9,21 @@
   <sub>Built on <a href="https://github.com/bloodborne-native/bloodborne-mac"><strong>bloodborne-native</strong></a>, <a href="https://github.com/deadinside28/bloodborne_pc"><strong>bbport</strong></a> by deadinside28, and <a href="https://github.com/shadps4-emu/shadPS4">shadPS4</a>. SotC reference: <a href="https://github.com/AjncSystem/ShadowOfTheColossus-PC">AjncSystem/ShadowOfTheColossus-PC</a>.</sub>
 </p>
 
-**The game reaches the first gameplay image on Apple M1, but it is not playable yet.**
-The owner confirms this milestone on 2026-10-22. Rendering defects, memory failures
-and instability remain; correct graphics, sustained gameplay, audiovisual
-synchronization and save persistence are not validated.
+**Playable on Apple Silicon, with graphical artifacts and low frame rates.**
+On October 27, 2026, the owner confirmed playable gameplay on Apple M1 (16 GB).
+Character geometry artifacts and intermittent vegetation remain. The latest
+205-second session closed normally and detected a DualSense controller; recent
+frame-rate intervals were 3.6–5.7 FPS. Long-session stability, correct graphics,
+audiovisual synchronization and save persistence are not fully validated.
+
+Metal safe math improves the image according to the owner. The current measured
+trial retains the staging correction and uses a single guest-memory import;
+large-offset geometry correctness remains under investigation. Run
+`bash prueba_calidad_memoria.command` after completing the documented setup.
+See [current status](docs/STATUS.md) and [the quality comparison](docs/SHADER_QUALITY_TRIAL.md).
+
+The following checkpoints describe earlier investigations and their validation
+at the time; they do not supersede the current playable-with-artifacts status.
 
 Compute command framing now preserves bounded ring continuations, treats padding
 as one word and isolates indirect buffers from partial ring packets. Original

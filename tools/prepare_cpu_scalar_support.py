@@ -39,6 +39,45 @@ def prepare(data):
         flags_add(cpu, a, b, 0, a + b, size);
         if (dst->type == OP_MEM) bbcpu_write(cpu, in, src, a);'''
     if source.count(old)!=1:raise ValueError('Unexpected register XADD write ordering.')
+    source=source.replace(old,new)
+    old='''uint64_t bbcpu_step_insn(BbCpu *cpu, const BbInsn *in) {
+    const int locked = in->lock || (in->mnemonic == M(XCHG) &&
+                                    (in->op[0].type == OP_MEM || in->op[1].type == OP_MEM));
+    if (!locked) return step(cpu, in);
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    const uint64_t next = step(cpu, in);
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    return next;
+}'''
+    new='''/* The terminating diagnostic can otherwise recover guest registers only
+ * from generated JIT code. Keep the current interpreter CPU in thread-local
+ * state for the duration of exactly one original instruction. The fault path
+ * only copies register values; it does not read, repair or retry the operand. */
+static _Thread_local BbCpu *sotc_interp_fault_cpu;
+
+int sotc_cpu_interp_fault_guest_regs(BbGuestRegs *regs) {
+    BbCpu *cpu=__atomic_load_n(&sotc_interp_fault_cpu,__ATOMIC_RELAXED);
+    if(!cpu || !regs)return 0;
+    memcpy(regs->r,cpu->r,sizeof(regs->r));
+    regs->rip=cpu->rip;
+    return 1;
+}
+
+uint64_t bbcpu_step_insn(BbCpu *cpu, const BbInsn *in) {
+    BbCpu *outer=__atomic_exchange_n(&sotc_interp_fault_cpu,cpu,__ATOMIC_RELAXED);
+    const int locked = in->lock || (in->mnemonic == M(XCHG) &&
+                                    (in->op[0].type == OP_MEM || in->op[1].type == OP_MEM));
+    uint64_t next;
+    if (!locked) next=step(cpu,in);
+    else {
+        __atomic_thread_fence(__ATOMIC_SEQ_CST);
+        next=step(cpu,in);
+        __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    }
+    __atomic_store_n(&sotc_interp_fault_cpu,outer,__ATOMIC_RELAXED);
+    return next;
+}'''
+    if source.count(old)!=1:raise ValueError('Unexpected interpreter step wrapper.')
     return source.replace(old,new)
 
 

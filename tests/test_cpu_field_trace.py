@@ -208,19 +208,22 @@ class CpuFieldTraceTests(unittest.TestCase):
                 self.assertEqual({e['value'] for e in evidence['events']},{0,0x22})
                 if mode=='1':
                     self.assertEqual(evidence['terminal_context']['kind'],2)
+                    self.assertEqual(evidence['terminal_context']['source'],'translated_fault')
                     self.assertEqual(evidence['terminal_context']['available'],1)
                     self.assertEqual(evidence['terminal_context']['registers']['rax'],0)
                 else:
-                    # Interpreter faults occur in host code; never promote
-                    # its stale TLS registers to a translated-fault snapshot.
-                    self.assertNotIn('terminal_context',evidence)
+                    self.assertEqual(evidence['terminal_context']['kind'],4)
+                    self.assertEqual(evidence['terminal_context']['source'],'interpreted_fault')
+                    self.assertEqual(evidence['terminal_context']['available'],1)
+                    self.assertEqual(evidence['terminal_context']['registers']['rax'],0)
                 # No stderr dump is needed for the persistent records.
                 hidden=Path(folder)/('hidden'+mode);hidden.mkdir();env['BB_GPU_USER_DIR']=str(hidden)
                 result=subprocess.run([str(ROOT/'work/probe_entry_arm64'),str(image)],
                     env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
                 self.assertEqual(result.returncode,139)
                 self.assertEqual(analyze(hidden/'cpu-events.bin','cpu')['retained'],2)
-                if mode=='1':self.assertEqual(analyze(hidden/'cpu-events.bin','cpu')['terminal_context']['kind'],2)
+                hidden_context=analyze(hidden/'cpu-events.bin','cpu')['terminal_context']
+                self.assertEqual(hidden_context['kind'],2 if mode=='1' else 4)
 
     @unittest.skipUnless((ROOT/'work/probe_entry_arm64').is_file(), 'built diagnostic required')
     def test_filtered_history_in_actual_loader_both_modes(self):

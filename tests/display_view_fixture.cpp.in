@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// CPU device/scheduler doubles, with the actual selected renderer methods injected.
+#include <vulkan/vulkan.hpp>
+#include <cassert>
+#include <cstdio>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+#include <vector>
+using u32=uint32_t; using VAddr=uint64_t;
+constexpr bool adapted=@ADAPTED@;
+std::set<VkImageView> live;
+unsigned created=0;
+struct Owner {
+    vk::ImageView view;
+    ~Owner(){assert(live.erase(static_cast<VkImageView>(view))==1);}
+};
+struct UniqueView {
+    std::shared_ptr<Owner> owner;
+    vk::ImageView operator*() const { return owner->view; }
+};
+struct Device {
+    vk::ImageView createImageView(const vk::ImageViewCreateInfo& ci) const {
+        assert(ci.image); assert(ci.components.a==vk::ComponentSwizzle::eOne);
+        auto raw=reinterpret_cast<VkImageView>(uintptr_t(++created));live.insert(raw);
+        return vk::ImageView(raw);
+    }
+    UniqueView createImageViewUnique(const vk::ImageViewCreateInfo& ci) const {
+        auto owner=std::make_shared<Owner>();owner->view=createImageView(ci);return {owner};
+    }
+    void destroyImageView(vk::ImageView view) const {assert(live.erase(static_cast<VkImageView>(view))==1);}
+};
+struct Instance { Device GetDevice(){return {};} } instance;
+template<class T> T Check(T v){return v;}
+struct Scheduler {
+    std::vector<std::function<void()>> pending;
+    template<class F> void DeferOperation(F f){pending.emplace_back(f);}
+    void Retire(){for(auto& f:pending) f();pending.clear();}
+} draw_scheduler;
+struct TemporalUpscaler {
+    struct MirrorView {vk::Format format; vk::ComponentMapping mapping; UniqueView view;};
+    struct Entry {vk::Image image; std::vector<MirrorView> views; vk::Format format; u32 width=1280,height=720; bool valid=true;};
+    struct Display {vk::Image image; vk::Format format; u32 width,height; vk::ImageView view;};
+    std::map<VAddr,Entry> displays;
+    std::mutex display_mutex;
+    Instance instance;
+    vk::ImageView Mirror(vk::Image,std::vector<MirrorView>&,vk::Format,vk::ComponentMapping);
+    bool DisplayOverride(VAddr address,Display& display@FORMAT_DECL@);
+    bool PresentDumpDue(){return false;}
+    void DumpPresented(vk::Image,u32,u32,vk::Format){assert(false);}
+};
+@METHODS@
+vk::ImageView Acquire(TemporalUpscaler& upscaler, VAddr address, vk::Format format) {
+    TemporalUpscaler::Display display{};
+    if(!upscaler.DisplayOverride(address,display@FORMAT_ARG@)) return {};
+    struct { vk::Format format; } view_info{format};
+    vk::ImageView image_view{};
+@ACQUISITION@
+    return image_view;
+}
+int main(){
+    TemporalUpscaler upscaler;
+    auto& entry=upscaler.displays[42]; entry.image=vk::Image(reinterpret_cast<VkImage>(uintptr_t(100)));
+    entry.format=vk::Format::eR8G8B8A8Unorm;
+    assert(!Acquire(upscaler,43,entry.format));
+    entry.valid=false;assert(!Acquire(upscaler,42,entry.format));entry.valid=true;
+    auto first=Acquire(upscaler,42,entry.format);
+    assert(live.count(static_cast<VkImageView>(first)));
+    // A Metal presentation consumer may outlive the draw scheduler's retirement.
+    draw_scheduler.Retire();
+    bool retained=live.count(static_cast<VkImageView>(first));
+    if(!adapted){assert(!retained);std::puts("BEFORE: delayed presentation consumer has a retired view");return 2;}
+    assert(retained);
+    for(int i=0;i<1000;++i) assert(Acquire(upscaler,42,entry.format)==first);
+    assert(created==1);
+    auto srgb=Acquire(upscaler,42,vk::Format::eR8G8B8A8Srgb);
+    assert(srgb!=first && created==2 && live.size()==2);
+    assert(Acquire(upscaler,42,vk::Format::eR8G8B8A8Srgb)==srgb);
+    draw_scheduler.Retire(); assert(live.size()==2);
+    // Model completion of all image consumers, then actual cache destruction.
+    entry.views.clear(); assert(live.empty());
+    auto replacement=Acquire(upscaler,42,entry.format);
+    assert(replacement!=first && created==3);
+    upscaler.displays.clear(); assert(live.empty());
+    std::puts("AFTER: delayed consumers retain views; format caches and release pass");
+}

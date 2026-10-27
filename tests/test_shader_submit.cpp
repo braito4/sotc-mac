@@ -69,9 +69,21 @@ int main(int argc,char** argv) {
         packet={0xc0023f00,0x20000000,0,4};auto c=Begin(packet,0,true);
         assert(c && !c->count && c->gaps&Unavailable && !backing_reads);
     } else if(mode=="budget") {
+        Words late(5000,0x80000000);
+        late.insert(late.end(),packet.begin(),packet.end());
+        auto c=Begin(late,0,true);assert(c && c->count==1 && !(c->gaps&PacketLimit));
+        assert(c->packets==5001);
+        assert(c->samples[0].packet==reinterpret_cast<std::uintptr_t>(late.data()+5000));
         Words many;
-        for(unsigned i=0;i<Samples+1;++i)many.insert(many.end(),packet.begin(),packet.end());
-        auto c=Begin(many,0,true);assert(c && c->count==Samples && c->gaps&SampleLimit);
+        constexpr unsigned Extra=300;
+        for(unsigned i=0;i<Samples+Extra;++i)many.insert(many.end(),packet.begin(),packet.end());
+        c=Begin(many,0,true);assert(c && c->count==Samples && c->gaps&SampleLimit);
+        assert(c->tail_replacements==Extra);
+        const auto base=reinterpret_cast<std::uintptr_t>(many.data());
+        assert(c->samples.front().packet==base);
+        assert(c->samples[HeadSamples-1].packet==base+(HeadSamples-1)*packet.size()*4);
+        assert(c->samples[HeadSamples].packet==base+(Samples+Extra-TailSamples)*packet.size()*4);
+        assert(c->samples.back().packet==base+(Samples+Extra-1)*packet.size()*4);
         Words padding(PacketBudget+1,0x80000000);c=Begin(padding,0,true);
         assert(c && c->packets==PacketBudget && c->gaps&PacketLimit);
         Words large(WordBudget+1,0);
@@ -82,7 +94,10 @@ int main(int argc,char** argv) {
     } else if(mode=="pool") {
         std::vector<std::shared_ptr<Capture>> held;
         for(unsigned i=0;i<Slots;++i) {held.push_back(Begin(packet,0,true));assert(held.back());}
-        const auto before=backing_reads.load();assert(!Begin(packet,0,true) && backing_reads==before);
+        const auto before=backing_reads.load();assert(!Begin(packet,0,true) && backing_reads==before+1);
+        const auto snapshot=SotcShaderOriginCache::Find(0x10000000);
+        assert(snapshot.state==5 && snapshot.count==SotcShaderOriginCache::Ways && snapshot.total==Slots+1);
+        assert(snapshot.matches[snapshot.count-1].capture==Slots+1);
         held.clear();assert(Begin(packet,0,true));
     } else if(mode=="concurrent") {
         std::mutex lock;std::set<std::uint64_t> ids;std::vector<std::thread> threads;

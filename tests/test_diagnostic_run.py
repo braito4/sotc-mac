@@ -13,6 +13,19 @@ from analyze_gpu_submission import analyze as gpu_analysis
 
 
 class DiagnosticRunTests(unittest.TestCase):
+    def test_last_supervised_child_owns_journals_after_preflight(self):
+        from analyze_event_journal import analyze as journal
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); data=bytearray(4096+24*512*128)
+            data[:8]=b'SOTCEV01';struct.pack_into('<4Q',data,8,1,24,512,16)
+            struct.pack_into('<Q',data,8+7*8,45900)
+            struct.pack_into('<Q',data,8+8*8,1);struct.pack_into('<Q',data,8+14*8,8)
+            (root/'shader-watch-events.bin').write_bytes(data)
+            log=root/'run.log';log.write_text('GPU supervisor: child_pid=45822\nGPU supervisor: child_pid=45900\n')
+            report=collect(log,root)
+            self.assertEqual(report['pre_failure_journals']['shader_watch']['state'],'readable')
+            self.assertFalse(any('shader_watch journal producer PID differs' in gap for gap in report['evidence_gaps']))
+
     def test_saved_program_snapshot_recovers_evicted_lookup_without_timing(self):
         saved=[dict(kind=1,program=8,address=256,seq=10),dict(kind=2,program=8,address=256,seq=11)]
         other=[dict(kind=2,program=9,address=512,seq=100,ns=900)]
@@ -27,6 +40,15 @@ class DiagnosticRunTests(unittest.TestCase):
         self.assertEqual(result['lookup']['ns'],800)
         self.assertNotIn('write',result) # No merging of sequence domains.
         self.assertEqual(shader_origin_with_fallback(other,saved,1024,8,7)['state'],'lookup_absent')
+
+    def test_saved_program_snapshot_retains_timing_and_thread_when_present(self):
+        saved=[dict(kind=1,actor=1,program=8,address=256,seq=10,ns=1000,thread=7),
+               dict(kind=2,actor=2,program=8,address=256,seq=11,ns=4000,thread=7)]
+        result=shader_origin_with_fallback([],saved,256,8,7)
+        self.assertEqual(result['evidence_source'],'failure_program_snapshot')
+        self.assertTrue(result['timing_available'])
+        self.assertEqual(result['lookup']['thread'],7)
+        self.assertEqual(result['observed_interval_us'],3)
 
     def test_compute_descriptor_offset_and_legacy_unknown(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -173,6 +195,15 @@ class DiagnosticRunTests(unittest.TestCase):
         self.assertEqual(report['events'][1]['hash'],255)
         self.assertEqual(len(report['events']),2)
         self.assertTrue(report['mismatched_event_program'])
+
+    def test_shader_provenance_reads_optional_failure_snapshot_time_and_thread(self):
+        text=('Shader provenance: program=0x10 retained=1 total=1 omitted=0 slot_evictions=0 suppressed=0\n'
+              'Shader provenance event: seq=1 program=0x10 address=0x400 kind=2 actor=2 '
+              'bank=0 packet=0 first=8 words=2 found=0 head=00000000,00000000 '
+              'length=0 hash=0000000000000000 required=1 ns=12345 thread=0x77\n')
+        event=shader_provenance(text)[0]['events'][0]
+        self.assertEqual(event['ns'],12345)
+        self.assertEqual(event['thread'],0x77)
 
     def test_scan_snapshot_source_and_provenance_sidecar_are_preserved(self):
         with tempfile.TemporaryDirectory() as folder:

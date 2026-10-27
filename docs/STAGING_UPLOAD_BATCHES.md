@@ -21,11 +21,10 @@ In a local native-runtime test, stream-block creation dropped from243 to14
 controllable gameplay. The run later reported Metal insufficient memory at about
 12.53 GB: total memory pressure and graphical defects remain unresolved.
 
-The gameplay evidence is from local runtime a27f0ca477bd. This commit backports
-the same policy to the repository's existing b2ff9cd0 runtime without changing its
-pin or publishing private diagnostics. The public adapter wraps its original
-UploadImage body in UploadImageUnbatched so markers end before submission.
-Gameplay on this older public pin has not been revalidated.
+The gameplay evidence is from runtime a27f0ca477bd, now selected by the public
+dependency manifest as well. Its adapter includes the same bounded upload policy.
+The retained sotc-upload-batches patch records the earlier b2ff9cd0 backport; it
+is not reapplied to the newer adapter. Private diagnostics remain unpublished.
 
 Validation: current local native renderer builds and loads; public adapter passes
 C++ syntax checking against the matching runtime headers/dependencies; clean

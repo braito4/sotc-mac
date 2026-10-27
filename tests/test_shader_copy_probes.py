@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
 from analyze_event_journal import analyze
 from analyze_shader_copy import review,activity
-from analyze_shader_watch import review as watch_review
+from analyze_shader_watch import review as watch_review, transition_review
 
 
 class ShaderCopyReviewTests(unittest.TestCase):
@@ -108,6 +108,15 @@ int main(void){
             subprocess.run([str(binary)],env=dict(os.environ,BB_GPU_USER_DIR=str(folder),
                 SOTC_DIAGNOSTIC_JOURNAL='1',SOTC_SHADER_COPY_TRACE='1'),check=True)
             journal=analyze(folder/'pointer-events.bin','pointer');self.assertEqual(journal['state'],'readable')
+            lifecycle=analyze(folder/'shader-watch-events.bin','shader_watch')
+            self.assertEqual(lifecycle['state'],'readable')
+            arms=[e for e in lifecycle['events'] if e['action']=='arm']
+            target=arms[0]['address']
+            history=transition_review(lifecycle,target)
+            self.assertEqual([e['action'] for e in history['events']],['arm','evict','registration_dropped'])
+            self.assertEqual(history['continuity'],'known_gap_or_registration_failure')
+            self.assertEqual(history['events'][0]['capture_id'],42)
+            self.assertEqual(history['events'][1]['watch_generation'],history['events'][0]['watch_generation'])
             events=journal['events'];self.assertEqual([e['actor'] for e in events],[6,7,8,9,6])
             self.assertEqual(events[0]['value'],0x0000002cbeeb03ff)
             self.assertEqual(events[1]['value'],0x1122334455667788)

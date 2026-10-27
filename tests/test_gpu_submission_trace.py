@@ -13,6 +13,20 @@ sys.path.insert(0, str(ROOT/'tools'))
 from analyze_gpu_submission import analyze as analyze_submissions
 
 class SubmissionTraceTests(unittest.TestCase):
+    def test_standalone_metal_failure_does_not_certify_progress(self):
+        log = """GPU submission trace: FAILED_METAL chunk=7 retained=1 buffer=0x10 recording=9 status=5 error=1
+GPU submission trace: Metal chunk=7 scheduled_callback=1 completed_callback=1
+GPU submission trace: Metal progress chunk=7 available=1 reached=26 encoded=26 event=0x20
+GPU render trace: buffer=0x10 recording=9 checkpoint=2 progress_event=0x20 draws=1
+GPU render trace: draw=1 kind=3 indirect=0x30 offset=0
+"""
+        report = analyze_submissions(log)['reports'][0]
+        self.assertEqual(report['kind'], 'native_failure')
+        batch = report['submissions'][0]
+        self.assertEqual(batch['buffers'][0]['chunks'][0]['progress']['reached'], 26)
+        self.assertEqual(batch['render_scopes'][0]['completion'], 'failed_command_progress_unreliable')
+        self.assertEqual(len(batch['render_scopes'][0]['draw_details']), 1)
+
     @unittest.skipUnless(shutil.which('c++'), 'native C++ compiler required')
     def test_failed_command_preserves_optional_cpu_history(self):
         with tempfile.TemporaryDirectory(prefix='command history ') as temporary:
@@ -80,7 +94,12 @@ class SubmissionTraceTests(unittest.TestCase):
                     run = subprocess.run([str(binary), '1' if value == '1' else '0'],
                                          env=env, capture_output=True, text=True, timeout=30)
                     self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-                    if value == '1': self.assertIn('PASS:', run.stdout)
+                    if value == '1':
+                        self.assertIn('PASS:', run.stdout)
+                        progress = analyze_submissions(run.stdout)['reports'][0]['submissions'][0]['buffers'][0]['chunks'][0]['progress']
+                        self.assertEqual(progress['encoded'], 26)
+                        self.assertEqual(progress['reached'], 7)
+                        self.assertEqual(progress['event'], 999)
             log = Path(temporary) / 'synthetic-supervisor.log'
             run = subprocess.run([sys.executable, str(ROOT / 'tools/run_gpu_diagnostic.py'),
                                   '--seconds', '2', '--cooperative-stop', '--log', str(log),
@@ -96,6 +115,17 @@ class SubmissionTraceTests(unittest.TestCase):
             report = analyze_submissions(text)['reports'][0]
             batch = report['submissions'][0]
             self.assertEqual(batch['tick'], 1)
+            encoding = batch['native_encoding']
+            self.assertEqual(encoding['retained'], 1)
+            event = encoding['events'][0]
+            self.assertEqual(event['entry'], 'cs_indirect_fixture')
+            self.assertEqual(event['pipeline'], 6)
+            self.assertEqual(event['backend_pipeline'], 9)
+            self.assertEqual([event[k] for k in ('source','destination','source_offset','destination_offset','bytes','source_length','destination_length')], [101,202,16,32,64,128,256])
+            self.assertEqual(event['indirect'], 7)
+            self.assertEqual(event['offset'], 48)
+            self.assertEqual(event['groups'], [0, 0, 0])  # indirect dimensions were not read
+            self.assertEqual(event['threads'], [32, 1, 1])
             self.assertEqual(batch['waits'], [dict(semaphore=66, value=7)])
             self.assertEqual(batch['signals'], [dict(semaphore=55, value=1)])
             self.assertEqual(batch['observed_chunks'], 0)

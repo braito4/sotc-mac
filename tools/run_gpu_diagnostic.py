@@ -15,6 +15,7 @@ import signal
 import subprocess
 import sys
 import time
+from gpu_utilization import Monitor
 
 CONTROL_FD_ENV = 'SOTC_DIAGNOSTIC_CONTROL_FD'
 
@@ -104,10 +105,16 @@ def supervise(command, seconds, log_path, cooperative=False):
 
         settings = {key: os.getenv(key) for key in ('BB_DIRECT_MEMORY_ACCESS',
                     'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER', 'BB_FRAME_STATS',
+                    'BB_MSL_SAFE_MATH', 'SOTC_UPLOAD_BATCH', 'SOTC_GPU_UTILIZATION',
+                    'SDL_JOYSTICK_HIDAPI', 'SDL_JOYSTICK_HIDAPI_PS4', 'SDL_JOYSTICK_HIDAPI_PS5',
+                    'SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS',
                     'BB_FRAME_LOG', 'BB_UPSCALE_PRESET', 'BB_RENDER_RES', 'BB_OUTPUT_RES',
                     'BB_FULLSCREEN', 'SDL_VIDEO_MAC_FULLSCREEN_SPACES',
                     'BB_POOL_LAYOUT', 'BB_POOL_SPLIT',
-                    'SOTC_GPU_SUBMIT_TRACE', 'SOTC_VISUAL_TRACE', 'SOTC_VISUAL_CAPTURE', 'SOTC_AUDIO_TRACE',
+                    'BB_METAL_NATIVE_BOOT', 'BB_METAL_FRAME', 'BB_GFX_BACKEND', 'BB_RESIDENCY_SET', 'BB_GC_BUDGET_MB', 'SOTC_BUFFER_CHAIN', 'SOTC_UPLOAD_BATCH_TRIAL',
+                    'BB_TOGGLE_FILE', 'BB_SUBMIT_AHEAD', 'BB_SUBMIT_LOCK', 'BB_WORK_RETIRED',
+                    'BB_HONEST_LABELS', 'BB_GUEST_IN_PLACE', 'BB_UNIFIED_GUEST_MEMORY',
+                    'SOTC_GPU_WATCHDOG_SECONDS', 'SOTC_TEST_REDUCTION_BARRIERS', 'SOTC_ARGUMENT_FILL_TRACE', 'SOTC_ARGUMENT_INPUT_SHADER', 'SOTC_INDIRECT_WRITER_TRACE', 'SOTC_INDIRECT_COPY_TRACE', 'SOTC_INDIRECT_PREP_TRACE', 'SOTC_COMPUTE_BIND_TRACE', 'SOTC_GPU_SUBMIT_TRACE', 'SOTC_GPU_ENCODER_PROGRESS', 'SOTC_VISUAL_TRACE', 'SOTC_VISUAL_CAPTURE', 'SOTC_AUDIO_TRACE',
                     'SOTC_DIAGNOSTIC_JOURNAL',
                     'SOTC_CPU_POINTER_TRACE',
                     'SOTC_CPU_EXPERIMENT', 'SOTC_CPU_INTERPRET_RANGE',
@@ -129,6 +136,7 @@ def supervise(command, seconds, log_path, cooperative=False):
         cleanup_error = None
         stop_requested_at = None
         started = time.monotonic()
+        monitor = None
         try:
             deadline = started + seconds if seconds else None
             child_env = dict(os.environ)
@@ -140,6 +148,10 @@ def supervise(command, seconds, log_path, cooperative=False):
                                      bufsize=0, start_new_session=True, env=child_env,
                                      pass_fds=(control_read,) if cooperative else ())
             emit(f'GPU supervisor: child_pid={child.pid}\n'.encode())
+            if os.getenv('SOTC_GPU_UTILIZATION') == '1':
+                monitor = Monitor(str(log_path) + '.gpu.csv')
+                emit(f'GPU utilization: whole-device samples (includes other apps): {monitor.path}\n'.encode())
+                monitor.start()
             if control_read is not None:
                 os.close(control_read)
                 control_read = None
@@ -174,6 +186,8 @@ def supervise(command, seconds, log_path, cooperative=False):
         except OSError as error:
             reason = (1, f'STOP_GPU_SUPERVISOR: {error}\n'.encode())
         finally:
+            if monitor is not None:
+                monitor.close()
             # Preserve the decision before cleanup, which itself may fail. A
             # natural child exit has no stop decision; the footer records it.
             if reason:

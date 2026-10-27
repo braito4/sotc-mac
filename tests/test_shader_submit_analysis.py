@@ -8,7 +8,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
-from analyze_diagnostic_run import shader_submit_review,shader_origin_review,collect
+from analyze_diagnostic_run import shader_submit_review,shader_origin_review,shader_submission_index,collect
 from analyze_event_journal import analyze
 
 
@@ -72,6 +72,36 @@ class ShaderSubmitAnalysisTests(unittest.TestCase):
             self.assertEqual(shader_submit_review(origin,dict(state=state,events=[s]))['state'],state)
         l.pop('ns');self.assertEqual(self.review(s,w,l)['state'],'lookup_time_unavailable')
 
+    def test_failure_index_recovers_exact_pool_refused_submission(self):
+        _,w,l=fixture();origin=shader_origin_review([w,l],l['address'])
+        index=dict(state='matched',matches=[dict(packet=0x800,raw_address=0x1234,origin=0x123400,
+            head=[0xbeeb03ff,4],head_available=True,ambiguous_packet=False,compute=False,
+            register_index=8,capture_id=77,submit_ns=10000)])
+        result=shader_submit_review(origin,dict(state='readable',events=[]),index)
+        self.assertEqual(result['state'],'observed')
+        self.assertEqual(result['evidence_source'],'failure_submission_index')
+        self.assertTrue(result['pre_enqueue_head_matches_lookup'])
+        self.assertNotIn('enqueue_to_consume_us',result)
+        index['matches'][0]['packet']=0x900
+        self.assertEqual(shader_submit_review(origin,dict(state='readable',events=[]),index)['state'],
+                         'matching_consumption_absent')
+
+    def test_failure_index_file_is_bounded_and_exact(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'submission-prefix.txt'
+            path.write_text('schema=1\naddress=1192960\nstate=5\ntotal=9\nreplacements=2\n'
+                'capacity=4096\nways=4\nbucket_population=1\nmatches=1\n'
+                'match0_address=1192960\nmatch0_packet=2048\nmatch0_raw=4660\n'
+                'match0_head=200145476052991\nmatch0_flags=1\nmatch0_capture_id=7\n'
+                'match0_sampled_ns=10000\nmatch0_context=309237649152\n'
+                'match0_physical=4096\nmatch0_stamp=9\n')
+            result=shader_submission_index(path,0x123400)
+            self.assertEqual(result['state'],'matched')
+            self.assertEqual(result['matches'][0]['packet'],0x800)
+            self.assertTrue(result['matches'][0]['head_available'])
+            self.assertEqual(result['matches'][0]['origin'],0x123400)
+            self.assertEqual(shader_submission_index(path,0x567800)['state'],'invalid')
+
     def test_reader_version_and_foreign_pid(self):
         with tempfile.TemporaryDirectory() as folder:
             state=Path(folder);header=[0]*512
@@ -83,7 +113,17 @@ class ShaderSubmitAnalysisTests(unittest.TestCase):
             log=state/'run.log';log.write_text('GPU supervisor: child_pid=999\n')
             report=collect(log,state)['pre_failure_journals']['shader_submit']
             self.assertEqual(report['state'],'foreign_process');self.assertFalse(report['events'])
-            struct.pack_into('<Q',data,9*8,2);path.write_bytes(data)
+            struct.pack_into('<Q',data,9*8,3);path.write_bytes(data)
+            report=analyze(path,'shader_submit')
+            self.assertEqual(report['state'],'readable')
+            self.assertEqual(report['capture_limits']['head_samples'],64)
+            struct.pack_into('<Q',data,9*8,4);path.write_bytes(data)
+            self.assertEqual(analyze(path,'shader_submit')['state'],'invalid')
+            struct.pack_into('<Q',data,12*8,32768);path.write_bytes(data)
+            report=analyze(path,'shader_submit')
+            self.assertEqual(report['state'],'readable')
+            self.assertEqual(report['capture_limits']['packets_per_capture'],32768)
+            struct.pack_into('<Q',data,9*8,5);path.write_bytes(data)
             self.assertEqual(analyze(path,'shader_submit')['state'],'invalid')
 
 

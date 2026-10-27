@@ -18,6 +18,8 @@ def main():
     ranges='\n'.join(function(buffer,s) for s in (
         'std::optional<std::pair<const Buffer*, u64>> BufferCache::UnifiedRange(',
         'std::pair<const Buffer*, u64> BufferCache::UnifiedCopy('))
+    if 'UniqueImage::~UniqueImage()' not in image:
+        image=(tree/'gpu/shadps4/video_core/renderer_vulkan/vk_resource_backend.cpp').read_text()
     destruction='\n'.join(function(image,s) for s in ('UniqueImage::~UniqueImage()', 'void UniqueImage::Destroy()'))
     prefix=fixture(tree).replace('int main(){','int staging_fixture_main(){')
     prefix=prefix.replace('struct Instance {','struct Instance {u64 StorageMinAlignment()const{return 256;}')
@@ -36,6 +38,7 @@ bool runtime_memory_pool_phys(u64,u64* physical,std::uintptr_t* end){
 struct Memory {u64 copied{};void CopySparseMemory(u64,unsigned char*,u64 size){copied=size;}};
 namespace VideoCore {
 struct BufferCache {
+    struct Device {struct Caps {u64 storage_min_alignment=256;}; Caps GetCapabilities(){return {};}} device;
     Instance instance;Scheduler scheduler;StagingBufferPool staging_pool;Memory storage;Memory* memory=&storage;
     std::array<std::unique_ptr<Buffer>,2> pool_windows;unsigned page_tables=0;
     BufferCache(){for(auto& p:pool_windows)p=std::make_unique<Buffer>(instance,0,3584*MB,MemoryType::DeviceLocal,"fake");}
@@ -55,9 +58,12 @@ namespace BbStats {std::atomic<u64> vk_image_bytes{8192};}
 namespace BbMetalResidency {void RemoveImage(vk::Image){}}
 unsigned destruction_calls=0;
 void vmaDestroyImage(void*,vk::Image,void*){++destruction_calls;}
+namespace MetalResources {void Release(void*){++destruction_calls;}}
 namespace VideoCore {
 struct UniqueImage {
     void* allocator{};vk::Image image{};void* allocation{};u64 size_bytes{};
+    bool metal_only=false;void* metal_texture=nullptr;
+    struct Device {void destroyImage(vk::Image){}} device{};
     ~UniqueImage();void Destroy();
 };
 @DESTRUCTION_METHODS@

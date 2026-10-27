@@ -21,12 +21,12 @@ def fixture(tree):
     entry = function(header, '    struct Entry {')+';'
     scheduler = (base/'vk_scheduler.h').read_text()
     defer = function(scheduler, '    void DeferOperationPastNext(')
-    destruction = function((source_path(ROOT)/'gpu/shadps4/video_core/texture_cache/image.cpp').read_text(),
+    destruction = function((ROOT/'runtime/upstream/gpu/shadps4/video_core/texture_cache/image.cpp').read_text(),
                            'UniqueImage::~UniqueImage()')
     rasterizer = (base/'vk_rasterizer.cpp').read_text()
     on_submit = function(rasterizer, 'void Rasterizer::OnSubmit()')
     maintenance = function(rasterizer, 'void Rasterizer::MaintainCaches(') if 'void Rasterizer::MaintainCaches(' in rasterizer else 'void Rasterizer::MaintainCaches(bool) {}'
-    return r'''
+    result = r'''
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -187,6 +187,62 @@ int main(){
 '''.replace('@GET@',get).replace('@CLEANUP@',cleanup).replace('@ENTRY@',entry) \
        .replace('@DEFER@',defer).replace('@DESTRUCTION@',destruction) \
        .replace('@ON_SUBMIT@',on_submit).replace('@MAINTENANCE@',maintenance).replace('@ADAPTED@','true' if adapted else 'false')
+
+    if 'VideoCore::Backend::ImageAllocation' in entry:
+        result = modern_fixture(result, source)
+    return result
+
+
+def modern_fixture(text, source):
+    # CPU doubles implement the adapter ownership interface; production Get,
+    # CleanupStaleEntries, Destroy, maintenance and scheduler deferral remain injected.
+    definitions = r"""
+namespace VideoCore::Backend {
+struct ImageDesc {u32 width=1280,height=720,levels=1;};
+struct ImageAllocation {u64 handle=0,native=0;vk::Image image;};
+std::unordered_map<u64,std::unique_ptr<vk::View>> held_views;
+struct ImageViewAllocation {
+    u64 handle=0;
+    ImageViewAllocation(std::unique_ptr<vk::View> view){
+        static u64 next=1;handle=next++;held_views.emplace(handle,std::move(view));
+    }
+};
+enum class ImageAccess {Sampled};
+}
+"""
+    text = text.replace('namespace VideoCore {', definitions+'\nnamespace VideoCore {',1)
+    text = text.replace('struct Backing {struct {vk::ImageCreateInfo image_ci;} image;};',
+                        'struct Backing {VideoCore::Backend::ImageDesc desc;};')
+    device = r"""
+struct Device {
+    Scheduler& scheduler;
+    u64 CurrentTick()const{return scheduler.CurrentTick();}
+    VideoCore::Backend::ImageAllocation CreateImage(VideoCore::Backend::ImageDesc desc,const char*){
+        u64 id=next_image++;u64 bytes=u64(desc.width)*desc.height*4;
+        sizes[id]=bytes;BbStats::vk_image_bytes+=bytes;
+        SotcMemory::ImageAllocated(id,bytes,{desc.width,desc.height,1,1,1,1,37,31,0});
+        return {id,id,{reinterpret_cast<VkImage>(id)}};
+    }
+    static inline std::unordered_map<u64,u64> sizes;
+    void DestroyImageView(u64 handle){scheduler.DeferOperationPastNext([handle]{
+        VideoCore::Backend::held_views.erase(handle);
+    });}
+    void DestroyImage(u64 handle){scheduler.DeferOperationPastNext([handle]{
+        assert(views[handle]==0);++destroyed;
+        BbStats::vk_image_bytes-=sizes.at(handle);
+        SotcMemory::ImageFreed(handle,sizes.at(handle));sizes.erase(handle);
+    });}
+};
+"""
+    text=text.replace('struct SceneTargets {',device+'\nstruct SceneTargets {',1)
+    text=text.replace('u64 generation=0;', 'u64 generation=0;Device device{scheduler};')
+    text=text.replace('void CleanupStaleEntries();','void CleanupStaleEntries();void Destroy(Entry&);')
+    text=text.replace('void SceneTargets::CleanupStaleEntries()',
+                      function(source,'void SceneTargets::Destroy(')+'\nvoid SceneTargets::CleanupStaleEntries()',1)
+    text=text.replace('#include <algorithm>','#include <algorithm>\n#include <optional>\n#define ASSERT_MSG(x,...) assert(x)')
+    text=text.replace('scheduler.pending_ops.size()==1 && scheduler.pending_ops.front().gpu_tick==11',
+                      'scheduler.pending_ops.size()==4 && scheduler.pending_ops.front().gpu_tick==11')
+    return text
 
 
 def main():

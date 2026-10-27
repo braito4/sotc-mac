@@ -4,7 +4,8 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'reference/scripts'))
+from build_gpu import reference_path
+sys.path.insert(0, str(reference_path(ROOT) / 'scripts'))
 import prepare
 
 game = Path(os.environ.get('SOTC_GAME_ROOT', ROOT / 'game/CUSA08809/SotC-PC/Game/CUSA08809')).expanduser().resolve()

@@ -122,11 +122,12 @@ class LauncherBudgetTests(unittest.TestCase):
             shutil.copy2(ROOT/'packaging/test-arm64.sh', script)
             # Only orchestration runs: all compiler/loader/renderer commands are
             # synthetic, and the recording stub never executes a GPU command.
-            for name in ('work/probe_entry_arm64', 'runtime/upstream/recomp/out/libbbcpu.a',
+            runtime_key = json.loads((ROOT/'tools/dependencies.json').read_text())['runtime']['revision'][:12]
+            for name in ('work/probe_entry_arm64', f'work/gpu-source-{runtime_key}/recomp/out/libbbcpu.a',
                          'work/deps-arm64/lib/libZydis.a', 'work/deps-arm64/lib/libZycore.a',
-                         'work/gpu-source-22923f080229/deps/macos-arm64/lib/libvulkan.1.dylib',
-                         'work/gpu-source-22923f080229/deps/macos-arm64/lib/libMoltenVK.dylib',
-                         'work/gpu-source-22923f080229/deps/macos-arm64/share/vulkan/icd.d/MoltenVK_icd.json'):
+                         f'work/gpu-source-{runtime_key}/deps/macos-arm64/lib/libvulkan.1.dylib',
+                         f'work/gpu-source-{runtime_key}/deps/macos-arm64/lib/libMoltenVK.dylib',
+                         f'work/gpu-source-{runtime_key}/deps/macos-arm64/share/vulkan/icd.d/MoltenVK_icd.json'):
                 path = root/name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('synthetic fixture only')

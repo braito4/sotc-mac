@@ -24,7 +24,8 @@ def fixture(cache,header):
 enum ImageFlagBits:unsigned {MaybeCpuDirty=1,CpuDirty=2,GpuDirty=4,Dirty=7,GpuModified=8};
 bool True(unsigned flags){return flags!=0;}bool False(unsigned flags){return flags==0;}
 struct Image {unsigned flags;@METHOD@};
-bool Keep(Image image,bool tiled,bool pressured){
+bool Keep(Image image,bool tiled,bool pressured, bool aggresive=false){
+    (void)aggresive;
     const bool download=image.SafeToDownload();
     @DECLARATION@
     @CONDITION@ return true;
@@ -39,18 +40,18 @@ int main(){
     assert(!Keep({GpuModified},false,true)); // Clean linear data can still download/evict under pressure.
     assert(Keep({GpuModified},false,false));
     unsigned retained=0;
-    for(unsigned flags=0;flags<16;++flags)for(bool tiled:{false,true})for(bool pressure:{false,true}){
+    for(unsigned flags=0;flags<16;++flags)for(bool tiled:{false,true})for(bool pressure:{false,true})for(bool aggressive:{false,true}){
         const auto image=Image{flags};const bool download=image.SafeToDownload();
         const bool existing=(tiled&&download)||(download&&!pressure);
         const bool unresolved=(flags&GpuModified)&&!download&&!(flags&CpuDirty);
-        assert(Keep(image,tiled,pressure)==(existing||(corrected&&unresolved)));
+        assert(Keep(image,tiled,pressure,aggressive)==(existing||(corrected&&unresolved&&(!@AGGRESSIVE@ || !aggressive))));
         retained+=Keep(image,tiled,pressure);
     }
     std::printf("retained combinations=%u; neighboring dirty page preserved=%d; real CPU overwrite remains evictable\n",retained,corrected);
     return corrected?0:2;
 }
 '''.replace('@METHOD@',method).replace('@DECLARATION@',declaration).replace('@CONDITION@',condition) \
-       .replace('@CORRECTED@','true' if declaration else 'false').replace('#include <cassert>','#include <cassert>\n#include <initializer_list>')
+       .replace('@AGGRESSIVE@','true' if '!aggresive' in declaration else 'false').replace('@CORRECTED@','true' if declaration else 'false').replace('#include <cassert>','#include <cassert>\n#include <initializer_list>')
 
 
 def main():
@@ -69,7 +70,7 @@ def main():
             if result.returncode!=expected:
                 raise RuntimeError(f'{name}: expected {expected}, got {result.returncode}: '+result.stderr)
             print(name+': '+result.stdout.strip())
-    print('PASS: current upstream collector protects unresolved GPU contents; CPU-only, no image readback or eviction')
+    print('PASS: collector policy checked in ordinary and aggressive modes; aggressive upstream eviction may discard unresolved contents; CPU-only')
 
 
 if __name__=='__main__':

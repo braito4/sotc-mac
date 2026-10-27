@@ -169,6 +169,12 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
                 fputs("STOP_INPUT_BACKEND: incomplete SDL3 gamepad provider\n",stderr);
                 fflush(NULL); _Exit(28);
             }
+            int controller_count = 0;
+            uint32_t *controller_ids = controller.devices(&controller_count);
+            printf("Input: SDL3 gamepads visible at startup=%d; hotplug enabled\n", controller_count);
+            if (!controller_count)
+                puts("Input: no physical gamepad detected; connect by Bluetooth or a USB data cable");
+            controller.free_devices(controller_ids);
             uintptr_t (*resolve)(const char *) = (void *)dlsym(library, "bbgpu_resolve");
             if (bootstrap_graphics_bind(resolve)) {
                 fputs("STOP_GPU_IMPORTS: incomplete provider or existing CPU queues\n", stderr);

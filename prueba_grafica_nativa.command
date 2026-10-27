@@ -6,7 +6,7 @@ umask 077
 trial_root="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 # One immutable comparison per process. Private selections remain data.
 if [[ $# -gt 1 ]]; then
-    printf 'Usage: %s [base|caller|buffer|table]\n' "$0" >&2
+    printf 'Usage: %s [base|caller|buffer|table|field578]\n' "$0" >&2
     exit 24
 fi
 trial_variant="${1-}"
@@ -16,13 +16,13 @@ if [[ $# == 0 ]]; then
         trial_variant="$(< "$trial_root/work/cpu-experiment-selection.txt")"
     fi
 fi
-case "$trial_variant" in base|caller|buffer|table) ;; *)
-    printf 'Unknown CPU comparison; expected base, caller, buffer or table.\n' >&2
+case "$trial_variant" in base|caller|buffer|table|field578) ;; *)
+    printf 'Unknown CPU comparison; expected base, caller, buffer, table or field578.\n' >&2
     exit 24 ;;
 esac
 unset SOTC_CPU_INTERPRET_RANGE SOTC_CPU_EXPERIMENT_PROFILE BB_JIT_DENY
-unset SOTC_SKIP_INTRO_SITE
-export SOTC_SKIP_INTRO="${SOTC_SKIP_INTRO:-1}"
+unset SOTC_SKIP_INTRO_SITE SOTC_STARTUP_PROFILE
+export SOTC_SKIP_INTRO="${SOTC_SKIP_INTRO:-0}"
 case "$SOTC_SKIP_INTRO" in 0|1) ;; *) printf 'SOTC_SKIP_INTRO must be 0 or 1.\n' >&2; exit 24;; esac
 if [[ "$SOTC_SKIP_INTRO" == 1 ]]; then
     export SOTC_STARTUP_PROFILE="$trial_root/work/startup-no-intro-profile.json"
@@ -40,6 +40,9 @@ unset BB_RENDER_RES BB_OUTPUT_RES
 export BB_UPSCALE_PRESET=0 BB_UPSCALER=none
 export BB_FULLSCREEN=0
 export BB_DIRECT_MEMORY_ACCESS=0 BB_ASYNC_SUBMIT=0 BB_JIT=1 BB_FRAME_STATS=1
+# The renderer's default early-submission allowance assumes Bloodborne's two
+# frame contexts. SotC has no validated equivalent; wait before reusing a frame.
+export BB_SUBMIT_AHEAD=0
 # Capture all reviewed failure families in the same owner-supervised run.
 # Selections contain private guest offsets, loaded only as data and never eval'd.
 export SOTC_DIAGNOSTIC_JOURNAL="${SOTC_DIAGNOSTIC_JOURNAL:-1}"

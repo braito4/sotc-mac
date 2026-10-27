@@ -61,11 +61,11 @@ class GpuBuildTests(unittest.TestCase):
                 gpu.normalize_pkgconfig_paths(prefix)
 
     def test_selected_versions_and_nonempty_markers_prevent_stale_reuse(self):
-        recipe = gpu.prepare_recipe((gpu.ROOT/'runtime/upstream/scripts/macos/build-deps.sh').read_bytes())
+        recipe = gpu.prepare_recipe((gpu.source_path()/'scripts/macos/build-deps.sh').read_bytes())
         self.assertIn('FMT_VERSION=12.2.0\n', recipe)
         self.assertIn('FFMPEG_VERSION=n9.0.2\n', recipe)
         self.assertIn('VULKAN_VERSION=v1.4.366\n', recipe)
-        self.assertIn('VULKAN_LOADER_VERSION=v1.4.365\n', recipe)
+        self.assertIn('VULKAN_LOADER_VERSION=v1.4.366\n', recipe)
         self.assertIn('Vulkan-Headers $VULKAN_VERSION', recipe)
         self.assertIn('Vulkan-Loader $VULKAN_LOADER_VERSION', recipe)
         self.assertIn('$work/src/xxhash/build/cmake', recipe)
@@ -112,7 +112,7 @@ needed fmt || exit 4
         for name in gpu.backport_manifest()['files']:
             target = root / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((gpu.ROOT / 'runtime/upstream' / name).read_bytes())
+            target.write_bytes(subprocess.check_output(['git','-C',str(gpu.source_path()),'show',gpu.REVISION+':'+name]))
 
     def test_backports_match_reviewed_outputs_and_are_idempotent(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -126,7 +126,8 @@ needed fmt || exit 4
             self.assertEqual(once, {name: (source / name).read_bytes() for name in once})
 
     def test_previous_cohort_migrates_without_reapplying_existing_overlays(self):
-        for state in ('upload_previous', 'maintenance_previous', 'integer_previous', 'binding_previous', 'tail_previous', 'retention_previous', 'probe_previous', 'tess_previous', 'decode_previous', 'inflight_previous', 'srt_previous', 'uniform_previous', 'finite_previous', 'task_previous', 'pool_previous', 'cfg_previous', 'snapshot_previous', 'srt_program_previous', 'pool_v2_previous', 'sample_previous', 'format_previous', 'provenance_previous', 'task_guard_previous', 'producer_previous', 'compute_packet_previous', 'shader_submit_previous'):
+        for state in ('maintenance_previous', 'integer_previous', 'binding_previous', 'tail_previous', 'retention_previous', 'probe_previous', 'tess_previous', 'decode_previous', 'inflight_previous', 'srt_previous', 'uniform_previous', 'finite_previous', 'task_previous', 'pool_previous', 'cfg_previous', 'snapshot_previous', 'srt_program_previous', 'pool_v2_previous', 'sample_previous', 'format_previous', 'provenance_previous', 'task_guard_previous', 'producer_previous', 'compute_packet_previous', 'shader_write_previous', 'shader_submit_previous', 'image_alias_previous', 'display_view_previous'):
+            if state+'_patches' not in gpu.backport_manifest(): continue
             with self.subTest(state=state), tempfile.TemporaryDirectory() as temporary:
                 source=Path(temporary)
                 self.backport_fixture(source)
@@ -143,7 +144,8 @@ needed fmt || exit 4
                 self.assertEqual(once,{name:(source/name).read_bytes() for name in once})
 
     def test_reviewed_predecessors_pass_checkout_verification_before_migration(self):
-        for state in ('retention_previous', 'sample_previous', 'format_previous', 'provenance_previous', 'task_guard_previous', 'producer_previous', 'compute_packet_previous', 'shader_submit_previous'):
+        for state in ('retention_previous', 'sample_previous', 'format_previous', 'provenance_previous', 'task_guard_previous', 'producer_previous', 'compute_packet_previous', 'shader_write_previous', 'shader_submit_previous', 'image_alias_previous', 'display_view_previous'):
+            if state+'_patches' not in gpu.backport_manifest(): continue
             with tempfile.TemporaryDirectory() as temporary:
                 source = Path(temporary)
                 self.backport_fixture(source)
@@ -158,7 +160,7 @@ needed fmt || exit 4
                     if not path.exists():
                         path.write_text('// fixture prerequisite\n')
                 changed = {name for name, item in manifest['files'].items()
-                           if item[state] != item['before']}
+                           if item.get(state, item['after'] if state == 'image_alias_previous' else None) != item['before']}
 
                 def metadata(path, *args):
                     if path != source:
@@ -196,7 +198,7 @@ needed fmt || exit 4
             self.assertEqual(before, {n: (source / n).read_bytes() for n in before})
             self.backport_fixture(source)
             gpu.apply_backports(source)
-            path.write_bytes((gpu.ROOT / 'runtime/upstream' / name).read_bytes())
+            path.write_bytes(subprocess.check_output(['git','-C',str(gpu.source_path()),'show',gpu.REVISION+':'+name]))
             with self.assertRaisesRegex(gpu.BuildError, 'Incomplete'):
                 gpu.apply_backports(source)
 
@@ -205,9 +207,9 @@ needed fmt || exit 4
 
 
     def test_checked_recipe_is_portable_and_excludes_app_runtimes(self):
-        original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
+        original = (gpu.source_path() / 'scripts/macos/build-deps.sh').read_bytes()
         recipe = gpu.prepare_recipe(original)
-        self.assertEqual((gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes(), original)
+        self.assertEqual((gpu.source_path() / 'scripts/macos/build-deps.sh').read_bytes(), original)
         self.assertIn('cd -- "$SOTC_GPU_SOURCE"', recipe)
         self.assertIn('jobs=$SOTC_GPU_JOBS', recipe)
         self.assertIn('SPIRV_CROSS_VERSION=', recipe)
@@ -223,7 +225,7 @@ needed fmt || exit 4
 
     @unittest.skipUnless(shutil.which('cmake') and shutil.which('ninja'), 'CMake/Ninja required')
     def test_generated_include_flag_builds_with_spaces_in_prefix(self):
-        original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
+        original = (gpu.source_path() / 'scripts/macos/build-deps.sh').read_bytes()
         recipe = gpu.prepare_recipe(original)
         flag_line = next(line.strip().removesuffix('\\').strip() for line in recipe.splitlines()
                          if '-DCMAKE_C_FLAGS=' in line)
@@ -327,7 +329,7 @@ needed fmt || exit 4
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_unknown_recipe_is_rejected(self):
-        original = (gpu.ROOT / 'runtime/upstream/scripts/macos/build-deps.sh').read_bytes()
+        original = (gpu.source_path() / 'scripts/macos/build-deps.sh').read_bytes()
         for data in (b'', original + b'\n', original.replace(b'FMT_VERSION=12.0.0', b'FMT_VERSION=other')):
             with self.assertRaises(gpu.BuildError):
                 gpu.prepare_recipe(data)

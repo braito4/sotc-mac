@@ -7,6 +7,7 @@
 #include "gpu_shader_provenance.h"
 #include "gpu_shader_lookup_trace.h"
 #include "gpu_shader_prefix_bridge.h"
+#include "gpu_shader_origin_cache.h"
 #include "video_core/amdgpu/regs_shader.h"
 #include <atomic>
 #include <cstdio>
@@ -76,6 +77,21 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
             static constexpr std::array<const char*,8> names={"watched_address","packet","capture_id","registered_ns",
                 "last_readable_available","last_readable_value","last_readable_ns","stamp"};
             for(std::size_t i=0;i<names.size();++i)watch<<names[i]<<'='<<watch_snapshot.values[i]<<'\n';
+            const auto submission_snapshot=SotcShaderOriginCache::Find(address);
+            std::ofstream submission(folder/"submission-prefix.txt");
+            submission<<"schema=1\naddress="<<address<<"\nstate="<<submission_snapshot.state
+                <<"\ntotal="<<submission_snapshot.total<<"\nreplacements="<<submission_snapshot.replacements
+                <<"\ncapacity="<<SotcShaderOriginCache::Slots<<"\nways="<<SotcShaderOriginCache::Ways
+                <<"\nbucket_population="<<submission_snapshot.bucket_population
+                <<"\nmatches="<<submission_snapshot.count<<'\n';
+            for(std::size_t i=0;i<submission_snapshot.count;++i) {
+                const auto& item=submission_snapshot.matches[i];const auto prefix="match"+std::to_string(i)+"_";
+                submission<<prefix<<"address="<<item.address<<'\n'<<prefix<<"packet="<<item.packet
+                    <<'\n'<<prefix<<"raw="<<item.raw<<'\n'<<prefix<<"head="<<item.head
+                    <<'\n'<<prefix<<"flags="<<item.flags<<'\n'<<prefix<<"capture_id="<<item.capture
+                    <<'\n'<<prefix<<"sampled_ns="<<item.sampled_ns<<'\n'<<prefix<<"context="<<item.context
+                    <<'\n'<<prefix<<"physical="<<item.physical<<'\n'<<prefix<<"stamp="<<item.stamp<<'\n';
+            }
             const auto& snapshot=result.scan_snapshot;
             const auto bytes=snapshot.size();
             std::ofstream data(folder/"code.bin",std::ios::binary);
@@ -99,7 +115,7 @@ std::optional<Shader::ShaderParams> TryShaderParams(const Program& program,
                     std::fclose(report);
                 }
             }
-            if(data && meta) std::fprintf(stderr,"GPU shader lookup evidence: %s\n",folder.c_str());
+            if(data && raw && meta && watch && submission) std::fprintf(stderr,"GPU shader lookup evidence: %s\n",folder.c_str());
             else std::fprintf(stderr,"GPU shader lookup evidence write failed\n");
         }
     }

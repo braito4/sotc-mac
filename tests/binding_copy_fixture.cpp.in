@@ -24,6 +24,7 @@ constexpr bool adapted=@ADAPTED@;
 namespace Common { u64 AlignUp(u64 value,u64 step){return (value+step-1)&~(step-1);} }
 namespace SotcVisual { enum Counter {StagingNewBuffers,StagingReuses,StagingOversizeReuses};void Count(Counter){} }
 struct Instance {u64 StorageMinAlignment()const{return 16;}u64 NonCoherentAtomSize()const{return 256;}};
+struct BackendDevice { static const Instance& From(const Instance& i){return i;} };
 namespace VideoCore {
 enum class MemoryType {DeviceLocal,HostUncached,HostCached};
 struct Buffer {
@@ -43,7 +44,8 @@ struct StagingBufferRef {
 struct StagingBufferPool {
     struct LargeBuffer {std::unique_ptr<Buffer> buffer;u64 tick,last_used_frame;bool held;u64 used_bytes=0;bool tail_open=false;};
     std::array<std::vector<LargeBuffer>,3> large_caches;
-    Instance instance;Scheduler scheduler;u64 frame=0;
+    Instance instance;
+    struct Device {struct Caps {u64 storage_min_alignment=16;}; Caps GetCapabilities(){return {};}} device;Scheduler scheduler;u64 frame=0;
     StagingBufferRef RequestLarge(u64,MemoryType,bool,u64 alignment=0);
     StagingBufferRef Request(u64 size,MemoryType type,u64 alignment){return RequestLarge(size,type,false,alignment);}
     void PublishStats()const{}
@@ -76,6 +78,7 @@ struct BufferCache {
     StagingBufferPool staging_pool;
     Scheduler& scheduler=staging_pool.scheduler;
     Instance instance;
+    struct Device {struct Caps {u64 storage_min_alignment=16;}; Caps GetCapabilities(){return {};}} device;
     Memory backing;Memory* memory=&backing;
     Buffer direct{instance,0,4*GiB,MemoryType::HostUncached,"direct"};
     bool direct_hit=false;

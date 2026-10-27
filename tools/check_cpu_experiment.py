@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import struct
 
-VARIANTS=('base','caller','buffer','table')
+VARIANTS=('base','caller','buffer','table','field578')
 
 
 def profile(path,variant):

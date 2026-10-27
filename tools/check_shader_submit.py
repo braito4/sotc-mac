@@ -36,7 +36,14 @@ def main():
                 assert consumed[0]['ambiguous_packet']==(mode=='repeated')
             if mode=='exit':assert samples and not consumed
             if mode=='tail-wrap':assert consumed[0]['capture_id']==1 and report['channels'][0]['overwritten']>0
-            if mode=='pool':assert report['capture_counters']['pool_refused']==1
+            if mode=='pool':
+                assert report['capture_counters']['pool_refused']==1
+                assert report['capture_counters']['snapshot_fallback']==1
+                assert report['capture_counters']['snapshot_fallback_failed']==0
+            if mode=='budget':
+                assert report['capture_limits']['head_samples']==64
+                assert report['capture_limits']['tail_samples']==448
+                assert report['capture_counters']['tail_replacements']==300
             fresh=analyze(state/'shader-consume-events.bin','shader_consume')
             if consumed:
                 assert fresh['state']=='readable' and not fresh['incomplete_or_stale'],(mode,fresh)

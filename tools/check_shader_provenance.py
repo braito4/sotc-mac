@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 from build_gpu import ROOT, source_path, build_path
 from check_buffer_copy_chunks import function
+from analyze_diagnostic_run import shader_provenance
 
 
 def case(text):
@@ -45,6 +46,8 @@ def main():
                 elif label=='adapted' and mode=='graphics-valid':
                     assert 'kind=1 actor=1' in run.stdout and 'retained=3 total=3 omitted=0' in run.stdout,run.stdout
                     assert 'suppressed=99' in run.stdout and 'found=0 head=00000003,00000002' in run.stdout,run.stdout
+                    assert all(event.get('ns') and event.get('thread') for event in
+                        shader_provenance(run.stdout)[0]['events']),run.stdout
             if label=='adapted':
                 for mode in ('compute-zero','graphics-zero'):
                     run=subprocess.run([str(binary),mode],capture_output=True,text=True,timeout=5)

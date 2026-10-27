@@ -25,7 +25,8 @@ for entry in filter(None, entries):
     if mode == '160000':
         modules[name] = digest
         continue
-    if name not in allowed_root and not name.startswith(allowed_directories):
+    if (name not in allowed_root and not name.startswith(allowed_directories)
+            and not re.fullmatch(r'prueba_[a-z0-9_]+\.command', name)):
         errors.append(f'Unexpected tracked path: {name}')
     if mode not in ('100644', '100755'):
         errors.append(f'Unexpected file mode: {name}')

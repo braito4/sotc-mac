@@ -10,6 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def function(text, signature):
     start = text.index(signature)
     begin = text.index('{', start)
+    # Functions can have braced parameter defaults; this helper also extracts
+    # structs, whose first parenthesis may occur inside their body.
+    parameters = text.find('(', start, begin)
+    if parameters != -1:
+        position, parentheses = parameters + 1, 1
+        while parentheses:
+            parentheses += (text[position] == '(') - (text[position] == ')')
+            position += 1
+        begin = text.index('{', position)
     depth = 1
     end = begin + 1
     while depth:
@@ -22,7 +31,7 @@ def fixture(tree):
     base = tree/'gpu/shadps4/video_core/renderer_vulkan'
     runtime = (base/'vk_runtime.cpp').read_text()
     scheduler = (base/'vk_scheduler.h').read_text()
-    methods = '\n'.join(function(runtime, 'void Runtime::'+name+'(') for name in ('CopyBuffer', 'CopyFromGuestChunk'))
+    methods = '\n'.join(function(runtime[runtime.rindex('void Runtime::'+name+'('):], 'void Runtime::'+name+'(') for name in ('CopyBuffer', 'CopyFromGuestChunk'))
     guard = function(scheduler, '    void ReserveRecordData(size_t bytes)')
     constant = re.search(r'constexpr size_t MaxRecordedBufferCopies = \d+;\s*static_assert\([^;]+;', runtime)
     capacity = re.search(r'static constexpr size_t Capacity = [\d *]+;', scheduler)[0]
@@ -54,7 +63,7 @@ struct CommandBuffer {
     }
 };
 }
-namespace VideoCore { struct Buffer { unsigned id; unsigned Handle() const { return id; } }; }
+namespace VideoCore { namespace Backend { using BufferCopy=vk::BufferCopy; enum class BufferAccess { TransferRead, TransferWrite }; } struct Buffer { unsigned id; unsigned Handle() const { return id; } }; }
 struct RecordChunk { @CAPACITY@ std::size_t busy{Capacity - 64}; std::size_t Size() const { return busy; } };
 struct Scheduler {
     RecordChunk chunk;
@@ -78,12 +87,18 @@ struct Scheduler {
 };
 @CONSTANT@
 constexpr bool Batched = @BATCHED@;
+struct Encoder { void CopyBuffer(vk::CommandBuffer cmd, vk::Buffer src, vk::Buffer dst,
+                                std::span<const vk::BufferCopy> regions) {
+    cmd.copyBuffer(src,dst,regions.size(),regions.data());
+} } test_encoder;
 struct Runtime {
+    Encoder* encoder=&test_encoder;
     Scheduler scheduler;
     unsigned barriers{}, accesses{};
     bool IsBufferAccessed(const VideoCore::Buffer*, u64, u64, bool = false) { return true; }
     void FlushBarriers() { ++barriers; }
     void AccessBuffer(const VideoCore::Buffer*, u64, u64, vk::PipelineStageFlagBits2, vk::AccessFlagBits2) { ++accesses; }
+    void AccessBuffer(const VideoCore::Buffer*, u64, u64, VideoCore::Backend::BufferAccess) { ++accesses; }
     void CopyBuffer(const VideoCore::Buffer*, const VideoCore::Buffer*, std::span<const vk::BufferCopy>);
     void CopyFromGuestChunk(vk::Buffer, const VideoCore::Buffer*, std::span<const vk::BufferCopy>);
 };

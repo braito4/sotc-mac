@@ -34,6 +34,14 @@ static int32_t call(uintptr_t entry,uint64_t a,uint64_t b,uint64_t c,uint64_t d)
 }
 static uint64_t load(const void *p,size_t size) { uint64_t v=0;memcpy(&v,p,size);return v; }
 int main(void) {
+    char prompt_guard[3] = {'x','y','z'};
+    assert(runtime_pad_prompt("cross", 1, prompt_guard + 1, 1) == 0);
+    assert(prompt_guard[0] == 'x' && prompt_guard[1] == 0 && prompt_guard[2] == 'z');
+    assert(runtime_pad_prompt(NULL, 0, NULL, 0) == 0);
+    assert(runtime_pad_prompt("cross", 0, prompt_guard, 0) == 0 && prompt_guard[0] == 'x');
+    assert(runtime_pad_prompt_device() == 0 && runtime_pad_prompt_generation() == 0);
+    assert(runtime_pad_mouse_look() == 0);
+
     bootstrap_initialize(1);
     assert(!bootstrap_resolve("hv1luiJrqQM#H#I",0));
     assert(!bootstrap_resolve("RR4novUEENY#H#I",0));

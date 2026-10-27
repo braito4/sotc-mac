@@ -4,6 +4,7 @@
 #include "diagnostic_event_journal.h"
 #include "gpu_shader_prefix_bridge.h"
 #include "gpu_shader_consume_trace.h"
+#include "gpu_shader_origin_cache.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -13,6 +14,7 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <span>
 #include <pthread.h>
 #include <time.h>
@@ -22,8 +24,11 @@ extern "C" int runtime_memory_is_mapped(std::uintptr_t,std::uint64_t);
 extern "C" void runtime_memory_read_backing(std::uintptr_t,void*,std::uint64_t);
 
 namespace SotcShaderSubmit {
-inline constexpr std::size_t Slots=16, Samples=512, PacketBudget=4096,
+inline constexpr std::size_t Slots=16, Samples=512, HeadSamples=64,
+                             TailSamples=Samples-HeadSamples, PacketBudget=32768,
                              WordBudget=262144, DepthBudget=4;
+static_assert(HeadSamples>0);
+static_assert(TailSamples>0);
 inline constexpr std::uint64_t Summary=1ull<<63;
 enum Gap : std::uint64_t {
     PacketLimit=1, WordLimit=2, SampleLimit=4, DepthLimit=8,
@@ -31,7 +36,9 @@ enum Gap : std::uint64_t {
     RepeatedPacket=256
 };
 enum Counter : unsigned { Attempts,Admitted,PoolRefused,AllocationFailed,
-                          ScanFailed,LimitedCaptures,UnreadableHeads,CounterCount };
+                          ScanFailed,LimitedCaptures,UnreadableHeads,
+                          SnapshotFallback,SnapshotFallbackFailed,TailReplacements,
+                          CounterCount };
 inline bool Enabled() {
     static const bool on=[] {
         const auto* p=std::getenv("SOTC_SHADER_SUBMIT_TRACE");
@@ -52,7 +59,7 @@ struct Sample {
 };
 struct Capture {
     std::uint64_t id{},root{},words{},submitter{},started{},gaps{};
-    std::size_t count{},packets{},scanned_words{};
+    std::size_t count{},packets{},scanned_words{},tail_replacements{};
     unsigned queue{};
     std::array<Sample,Samples> samples{};
     struct Buffer {std::uintptr_t base;std::size_t words;bool owned;};
@@ -95,13 +102,24 @@ struct Capture {
                         }
                     }
                     if(repeated)continue;
-                    if(count==samples.size()) {gaps|=SampleLimit;return;}
                     std::uint64_t raw{};
                     if(!get(at+2+(index-reg),&raw,8)) {gaps|=Unavailable;continue;}
                     const auto origin=(raw&((1ull<<40)-1))<<8;
                     std::uint64_t head{};
                     const bool available=origin && read(origin,&head,8,false);
-                    samples[count++]={buffer.base+at*4,raw,origin,head,
+                    std::size_t selected=count;
+                    if(count==samples.size()) {
+                        // Preserve a small beginning plus the most recent bounded tail.
+                        // Large real submissions can place the failing SET_SH_REG after
+                        // the first 512 address pairs; stopping here made both the
+                        // pre-enqueue index and later Consume join unknowable.
+                        gaps|=SampleLimit;
+                        selected=HeadSamples+(tail_replacements%TailSamples);
+                        ++tail_replacements;
+                    } else {
+                        ++count;
+                    }
+                    samples[selected]={buffer.base+at*4,raw,origin,head,
                         std::uint64_t(available)|(std::uint64_t(index==0x20c)<<1)|
                         (std::uint64_t(depth)<<8)|(std::uint64_t(queue)<<16),Now(),
                         std::uint64_t(header)|(std::uint64_t(index)<<32),
@@ -131,15 +149,16 @@ public:
     Recorder() {
         sotc_event_journal_init(&journal,"shader-submit-events.bin",2,512);
         if(journal.map) {
-            journal.map[9]=1;journal.map[10]=Slots;journal.map[11]=Samples;
+            journal.map[9]=4;journal.map[10]=Slots;journal.map[11]=Samples;
             journal.map[12]=PacketBudget;journal.map[13]=DepthBudget;
             journal.map[14]=WordBudget;journal.map[15]=8;
         }
     }
-    void Note(Counter which) {
-        if(journal.map)__atomic_fetch_add(journal.map+256+which,1,__ATOMIC_RELAXED);
+    void Note(Counter which,std::uint64_t amount=1) {
+        if(journal.map)__atomic_fetch_add(journal.map+256+which,amount,__ATOMIC_RELAXED);
     }
     bool Available() const {return journal.map!=nullptr;}
+    std::uint64_t NextId() {return sequence.fetch_add(1,std::memory_order_relaxed)+1;}
     std::shared_ptr<Capture> Acquire() noexcept {
         Note(Attempts);std::size_t selected=slots.size();
         {std::lock_guard lock(mutex);
@@ -151,7 +170,7 @@ public:
             auto result=std::shared_ptr<Capture>(&slots[selected].capture,[this,selected](Capture*) {
                 std::lock_guard lock(mutex);slots[selected].used=false;
             });
-            *result={};result->id=sequence.fetch_add(1,std::memory_order_relaxed)+1;
+            *result={};result->id=NextId();
             Note(Admitted);return result;
         } catch(...) {
             // shared_ptr invokes the deleter when control-block allocation fails.
@@ -176,26 +195,35 @@ template<class Reader>
 std::shared_ptr<Capture> BeginWith(std::span<const std::uint32_t> input,unsigned queue,bool owned,Reader&& reader) noexcept {
     if(!Enabled())return {};
     auto& recorder=Get();if(!recorder.Available())return {};
-    auto c=recorder.Acquire();if(!c)return {};
-    c->root=reinterpret_cast<std::uintptr_t>(input.data());c->words=input.size();
-    c->queue=queue;c->submitter=Thread();c->started=Now();
+    auto c=recorder.Acquire();std::unique_ptr<Capture> fallback;
+    Capture* active=c.get();
+    if(!active) {
+        fallback.reset(new(std::nothrow) Capture);
+        if(!fallback) {recorder.Note(SnapshotFallbackFailed);return {};}
+        recorder.Note(SnapshotFallback);fallback->id=recorder.NextId();active=fallback.get();
+    }
+    active->root=reinterpret_cast<std::uintptr_t>(input.data());active->words=input.size();
+    active->queue=queue;active->submitter=Thread();active->started=Now();
     try {
-        c->Scan({std::uintptr_t(c->root),input.size(),owned},0,reader);
-        for(std::size_t i=0;i<c->count;++i) {
-            auto& sample=c->samples[i];
+        active->Scan({std::uintptr_t(active->root),input.size(),owned},0,reader);
+        if(active->tail_replacements)recorder.Note(TailReplacements,active->tail_replacements);
+        for(std::size_t i=0;i<active->count;++i) {
+            auto& sample=active->samples[i];
+            SotcShaderOriginCache::Observe(sample.origin,sample.packet,sample.raw,sample.head,
+                sample.flags,active->id,sample.ns,sample.context,sample.physical);
             if((sample.flags&5)==1 && std::uint32_t(sample.head)==0xbeeb03ffu) {
-                SotcShaderPrefixBridge::Register(sample.origin,sample.packet,c->id);
+                SotcShaderPrefixBridge::Register(sample.origin,sample.packet,active->id);
                 if(SotcShaderConsume::Enabled())sample.flags|=1ull<<24;
             }
             if(SotcShaderConsume::Enabled())
                 sample.flags|=std::uint64_t(SotcShaderPrefixBridge::Snapshot(sample.origin).state+1)<<25;
-            recorder.Publish(*c,c->samples[i],0);
-            if(!(c->samples[i].flags&1))recorder.Note(UnreadableHeads);
+            recorder.Publish(*active,active->samples[i],0);
+            if(!(active->samples[i].flags&1))recorder.Note(UnreadableHeads);
         }
         // Immutable once submitted. No TLS scope spans a coroutine suspension.
-        std::sort(c->samples.begin(),c->samples.begin()+c->count,
+        std::sort(active->samples.begin(),active->samples.begin()+active->count,
                   [](const Sample& a,const Sample& b){return a.packet<b.packet;});
-        recorder.SummaryOf(*c);return c;
+        recorder.SummaryOf(*active);return c;
     } catch(...) {recorder.Note(ScanFailed);return {};}
 }
 inline std::shared_ptr<Capture> Begin(std::span<const std::uint32_t> input,unsigned queue,bool owned=false) noexcept {

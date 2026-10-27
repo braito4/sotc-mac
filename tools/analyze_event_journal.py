@@ -72,8 +72,10 @@ def analyze(path, kind):
         if version!=1 or not 1<=channels<=28 or not 1<=capacity<=512 or words!=16:
             raise ValueError('unsupported layout')
         if size!=4096+channels*capacity*128: raise ValueError('truncated or excess records')
-        if kind not in ('cpu','shader','shader_submit','shader_bind','shader_consume','shader_mapping','pointer','task') or kind in ('shader','shader_submit','shader_bind','shader_consume','shader_mapping','task') and channels!=2 or kind=='pointer' and not 3<=channels<=28:
+        if kind not in ('shader_watch','cpu','shader','shader_submit','shader_bind','shader_consume','shader_mapping','shader_backing','pointer','task') or kind in ('shader','shader_submit','shader_bind','shader_consume','shader_mapping','shader_backing','task') and channels!=2 or kind=='pointer' and not 3<=channels<=28:
             raise ValueError('invalid journal kind/channels')
+        if kind=='shader_watch' and (channels!=24 or header[9]!=1 or header[15]!=8):
+            raise ValueError('unsupported shader watch lifecycle layout')
         total,drops,suppressed=header[5:8]
         if kind=='shader_bind' and (header[9]!=1 or header[15]!=8):
             raise ValueError('unsupported shader binding prefix layout')
@@ -82,13 +84,65 @@ def analyze(path, kind):
             report['observation_counters']=dict(zip(('observed','changed','unavailable'),header[256:259]))
         if kind=='shader_mapping' and (header[9]!=1 or header[15]!=8):
             raise ValueError('unsupported shader mapping observation layout')
+        if kind=='shader_backing':
+            if header[9] not in (1,2,3,4,5,6,7,8,9,10,11,12,13) or header[15]!=8:raise ValueError('unsupported backing-write observation layout')
+            report['observation_counters']=dict(before=header[256],after=header[257])
+            if header[9]>=2:report['observation_counters']['write_notifications']=header[258]
+            if header[9]>=3:report['observation_counters']['gpu_write_intents']=header[259]
+            if header[9]>=4:report['eligible_call_counters']=dict(before=header[260],after=header[261],
+                write_notifications=header[262],gpu_by_source=dict(zip(('eop','eos','eos_gds','write_data',
+                    'compute_write_data','release_mem','const_ram','dma_fill','dma_copy','buffer_download','image_download'),header[263:274])))
+            if header[9]>=5:
+                report['observation_counters']['writable_buffer_bindings']=header[275]
+                report['eligible_call_counters']['writable_buffer_bindings']=header[274]
+            if header[9]>=6:
+                report['observation_counters']['writable_buffer_bindings']=header[275]+header[277]
+                report['eligible_call_counters']['writable_buffer_bindings']=header[274]+header[276]
+                report['observation_counters']['writable_buffer_bindings_by_route']=dict(classic=header[275],paged=header[277])
+                report['eligible_call_counters']['writable_buffer_bindings_by_route']=dict(classic=header[274],paged=header[276])
+            if header[9]>=8:
+                report['observation_counters']['writable_buffer_bindings']+=header[286]
+                report['eligible_call_counters']['writable_buffer_bindings']+=header[285]
+                report['observation_counters']['writable_buffer_bindings_by_route']['storage_image']=header[286]
+                report['eligible_call_counters']['writable_buffer_bindings_by_route']['storage_image']=header[285]
+            if header[9]>=9:
+                report['observation_counters']['writable_buffer_bindings']+=header[288]
+                report['eligible_call_counters']['writable_buffer_bindings']+=header[287]
+                report['observation_counters']['writable_buffer_bindings_by_route']['render_target']=header[288]
+                report['eligible_call_counters']['writable_buffer_bindings_by_route']['render_target']=header[287]
+            if header[9]>=10:
+                report['observation_counters']['writable_buffer_bindings']+=header[290]
+                report['eligible_call_counters']['writable_buffer_bindings']+=header[289]
+                report['observation_counters']['writable_buffer_bindings_by_route']['storage_image_resolved']=header[290]
+                report['eligible_call_counters']['writable_buffer_bindings_by_route']['storage_image_resolved']=header[289]
+            if header[9]>=11:
+                report['observation_counters']['cpu_direct_stores']=dict(scalar=header[291],vector=header[292])
+            if header[9]>=12:
+                report['eligible_call_counters']['cpu_direct_stores']=dict(scalar=header[293],vector=header[294])
+            if header[9]>=13:
+                report['eligible_call_counters']['cpu_direct_store_candidates']=dict(
+                    shader_page= dict(scalar=header[295],vector=header[296]),
+                    shader_bucket=dict(scalar=header[297],vector=header[298]))
+            if header[9]>=7:
+                if header[278]!=4096:raise ValueError('invalid prior writable-binding history layout')
+                report['prior_binding_history']=dict(capacity=header[278],published=header[279],
+                    busy_drops=header[280],replacements=header[281],prefix_scans=header[282],
+                    unstable_records=header[283],retrospective_matches=header[284],
+                    limitation='Fixed recent numeric binding history. Replacement, contention and finite time coverage leave explicit gaps; a descriptor binding is write intent, not proof that a GPU store occurred.')
         if kind=='shader_submit':
-            if header[9:16]!=(1,16,512,4096,4,262144,8):
+            if header[9] not in (1,2,3,4) or header[10:12]!=(16,512) or \
+               header[12:16]!=((32768,4,262144,8) if header[9]>=4 else (4096,4,262144,8)):
                 raise ValueError('unsupported shader submission capture layout')
             report['capture_limits']=dict(live_captures=header[10],samples_per_capture=header[11],
                 packets_per_capture=header[12],indirect_depth=header[13],words_per_capture=header[14],prefix_bytes=header[15])
+            if header[9]>=3:
+                report['capture_limits'].update(head_samples=64,tail_samples=448)
             report['capture_counters']=dict(zip(('attempted','admitted','pool_refused','allocation_failed',
                 'scan_failed','limited_captures','unreadable_heads'),header[256:263]))
+            if header[9]>=2:
+                report['capture_counters'].update(snapshot_fallback=header[263],snapshot_fallback_failed=header[264])
+            if header[9]>=3:
+                report['capture_counters']['tail_replacements']=header[265]
         if kind=='shader' and header[9]==1:
             if header[15]!=8:raise ValueError('invalid shader capture budget')
             report['lookup_capture']=dict(capacity=header[15],admitted=header[10],duplicates=header[11],
@@ -126,13 +180,13 @@ def analyze(path, kind):
         terminal=header[128]
         if terminal==1:
             values=header[129:151]
-            if values[0] not in (1,2,3) or values[1] not in (0,1):
+            if values[0] not in (1,2,3,4) or values[1] not in (0,1):
                 report['terminal_context_invalid']=True
             else:
                 report['terminal_context']=dict(zip(('kind','available','guest_rip','fs_base','stack_top','thread'),values[:6]))
                 report['terminal_context']['registers']=dict(zip(
                     ('rax','rcx','rdx','rbx','rsp','rbp','rsi','rdi','r8','r9','r10','r11','r12','r13','r14','r15'),values[6:]))
-                report['terminal_context']['source']={1:'raw_stack_protector_import',2:'translated_fault',3:'instruction_failure'}[values[0]]
+                report['terminal_context']['source']={1:'raw_stack_protector_import',2:'translated_fault',3:'instruction_failure',4:'interpreted_fault'}[values[0]]
                 report['terminal_context']['limitation']='First committed numeric snapshot; no validated caller, canary location, allocation lifetime or writer.'
         elif terminal:
             report['terminal_context_incomplete']=True
@@ -159,6 +213,64 @@ def analyze(path, kind):
                     event=pointer_event(values)
                     if event['actor'] not in range(1,10):rejected+=1;continue
                     if event['actor'] in (6,7,8,9) and header[187] not in (1,2):rejected+=1;continue
+                elif kind=='shader_watch':
+                    action,address,packet,capture,generation,prior_address,prior_packet,prior_capture,prior_generation,thread,extent=values
+                    key=address>>8;key^=key>>17
+                    if action not in (1,2,3,4) or not address or not capture or extent!=8 or channel!=(key&7)+(16 if action==3 else 8 if action==4 else 0):
+                        rejected+=1;continue
+                    event=dict(action={1:'arm',2:'refresh',3:'evict',4:'registration_dropped'}[action],
+                        address=address,packet=packet,capture_id=capture,watch_generation=generation,
+                        related_address=prior_address,related_packet=prior_packet,related_capture_id=prior_capture,
+                        related_generation=prior_generation,thread=thread,watched_bytes=extent)
+                elif kind=='shader_backing':
+                    field,packet,capture,head,status,address,length,source,thread,site,caller=values
+                    notification=bool(status&8);gpu_intent=bool(status&16);binding=bool(status&32)
+                    cpu_route=status>>32
+                    binding_route=((status>>6)&(7 if header[9]>=10 else 3)) if binding and header[9]>=8 else int(bool(status&64))
+                    paged_binding=binding_route==1;image_binding=binding_route==2;target_binding=binding_route==3
+                    resolved_image_binding=binding_route==4
+                    historical=bool(status&(32768 if header[9]>=8 else 128));source_id=(status>>8)-1
+                    if cpu_route:
+                        if header[9]<11 or cpu_route not in (1,2) or status!=((cpu_route<<32)|int(bool(status&1))) or \
+                           not capture or not length or length>16 or channel:
+                            rejected+=1;continue
+                        event=dict(field=field,packet=packet,capture_id=capture,head=[head&0xffffffff,head>>32],
+                            head_available=bool(status&1),write_address=address,write_bytes=length,
+                            value_low=source,value_high=thread,guest_instruction=site,
+                            cpu_store_route='scalar' if cpu_route==1 else 'vector',
+                            thread=caller,phase='cpu_direct_store',write_succeeded=True)
+                    elif historical and not binding:
+                        if header[9]<7 or status!=(32768 if header[9]>=8 else 128) or channel or not capture or not length:
+                            rejected+=1;continue
+                        event=dict(field=field,packet=packet,capture_id=capture,head=[0,0],
+                            head_available=False,write_succeeded=None,history_oldest_ns=address,
+                            history_newest_ns=length if length!=1 else 0,history_matches=source,
+                            thread=thread,history_stable_records=site,history_total_attempted=caller,
+                            phase='prior_binding_scan')
+                    elif status&~0xffff or (historical and (header[9]<7 or not binding or status&1)) or \
+                       (paged_binding and (not binding or header[9]<6)) or (image_binding and (not binding or header[9]<8)) or \
+                       (target_binding and (not binding or header[9]<9)) or \
+                       (resolved_image_binding and (not binding or header[9]<10)) or \
+                       (binding and (header[9]<5 or binding_route>(4 if header[9]>=10 else 3) or status&~(1|32|64|128|(256 if header[9]>=10 else 0)|(32768 if header[9]>=8 else 0)) or channel!=int(bool(status&1) and head&0xffffffff!=0xbeeb03ff))) or \
+                       (gpu_intent and (header[9]<3 or channel!=0 or status&46 or not 0<=source_id<=10)) or \
+                       (not gpu_intent and not binding and status>>8) or (notification and (header[9]<2 or channel!=0 or status&22)) or \
+                       (not notification and not gpu_intent and not binding and status&6 not in ((0,) if channel==0 else (2,4))) or not capture or not length:
+                        rejected+=1;continue
+                    else:
+                        event=dict(field=field,packet=packet,capture_id=capture,head=[head&0xffffffff,head>>32],
+                            head_available=bool(status&1),write_succeeded=bool(status&2) if channel and not binding else None,
+                            write_address=address,write_bytes=length,source=source,thread=thread,
+                            guest_site_candidate=site,host_caller_candidate=caller,
+                            phase='prior_writable_buffer_binding' if historical else 'writable_buffer_binding' if binding else 'gpu_write_intent' if gpu_intent else 'write_notification' if notification else 'after' if channel else 'before')
+                        if gpu_intent:
+                            event['fence_sequence']=event.pop('guest_site_candidate')
+                            event['gpu_write_source']=('eop','eos','eos_gds','write_data','compute_write_data','release_mem',
+                                'const_ram','dma_fill','dma_copy','buffer_download','image_download')[source_id]
+                        if binding:
+                            event['shader']=event.pop('source');event['descriptor_slot']=event.pop('guest_site_candidate')
+                            event['binding_address']=event.pop('write_address');event['binding_bytes']=event.pop('write_bytes')
+                            event['declared_bytes']=event.pop('host_caller_candidate')
+                            event['binding_route']=('classic','paged','storage_image','render_target','storage_image_resolved')[binding_route]
                 elif kind=='shader_mapping':
                     capture,packet,address,before,after,sampled_ns,consume_ns,thread,old_head,new_head,status=values
                     if not capture or not packet or not 0<sampled_ns<=consume_ns==ns or status>3 or \

@@ -1,40 +1,40 @@
 {
   "schema": 1,
-  "checked_at": "2026-10-23T06:44:45Z",
+  "checked_at": "2026-10-27T13:07:46.280620+00:00",
   "runtime": {
     "repository": "https://github.com/bloodborne-native/bloodborne-runtime",
-    "previous_revision": "3170535f59cadbe5ce9c38e6bb961ed5fd215194",
-    "revision": "b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548",
+    "previous_revision": "84daa9f13e5cf000d5fb59dc65803e28026fa77b",
+    "revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
     "branch": "main",
-    "latest_reviewed_revision": "1dda5fb086cd42e8d52e78c80753257d52b77f04",
-    "latest_reviewed_commit_date": "2026-10-24T01:12:58Z",
-    "review_scope": "October 24 source refresh: 27 commits / 89 paths beyond the preceding reviewed head, adapter A6 completion, Metal-made buffers/images (M1), shared recording interface M2 step 1. Metal still imports resources into MoltenVK; native command stream and complete Vulkan removal remain future steps. Display-view lifetime fix is a separate candidate. No CPU/recomp source change in this delta, no demonstrated reader-index fix. Selected runtime and local overlays unchanged.",
-    "latest_reviewed_at": "2026-10-24T06:44:58.828166+00:00"
+    "latest_reviewed_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
+    "latest_reviewed_commit_date": "2026-10-26T19:30:48Z",
+    "review_scope": "October26 RC native Metal migration adapted to SotC and CPU-tested; CPU translator retained at196ed99. Native game validation pending.",
+    "latest_reviewed_at": "2026-10-26T20:48:46.876305+00:00"
   },
   "cpu": {
     "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
-    "previous_revision": "f749c155c2ff3bb932795de85c9c8fe9c4aa59ad",
-    "revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70",
+    "previous_revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70",
+    "revision": "196ed99d961f084c772923ce7c62785e271d5f4c",
     "branch": "main",
-    "latest_reviewed_revision": "ef153b8d35768aff86fa1643c12e7d0340b16501",
-    "latest_reviewed_commit_date": "2026-10-22T16:51:55Z",
+    "latest_reviewed_revision": "196ed99d961f084c772923ce7c62785e271d5f4c",
+    "latest_reviewed_commit_date": "2026-10-25T03:06:58Z",
     "reviewed_commits_ahead": 3,
-    "review_scope": "October 24 source refresh: default head unchanged; no newer translator implementation correction. Selected CPU remains unchanged.",
-    "latest_reviewed_at": "2026-10-24T06:44:58.828166+00:00"
+    "review_scope": "Full owner-requested update October 25; adapted SotC integration and diagnostics. Native validation pending.",
+    "latest_reviewed_at": "2026-10-25T17:39:06.501411+00:00"
   },
   "reference": {
     "repository": "https://github.com/AjncSystem/ShadowOfTheColossus-PC",
-    "previous_revision": "2250f328feafab953aac85e758e7bddb2e80e891",
-    "revision": "411fdd86dadce347dcc4443228b009ae9265a548",
-    "release": "v0.60.5",
-    "scope": "Reference/preparation source; the game renderer remains the macOS runtime with selected SotC adaptations.",
+    "previous_revision": "40ec52a5a246bbaf20402520fe8fc9682f0a30c0",
+    "revision": "75b48137bc33c3f26242ed064a53cff28916c88f",
+    "release": "v0.60.6-C3",
+    "scope": "Preparation/reference checkout work/sotc-reference-75b48137bc33. scripts/prepare.py unchanged byte-for-byte; supported EU1.01 remains unchanged.",
     "branch": "main",
-    "latest_reviewed_revision": "40ec52a5a246bbaf20402520fe8fc9682f0a30c0",
-    "latest_reviewed_commit_date": "2026-10-22T16:40:58Z",
-    "reviewed_commits_ahead": 10,
-    "review_scope": "v0.60.6 reviewed; speculative readback fix has no matching local mechanism. Nested-task retirement warning requires follow-up against our draw-pipe ownership.",
-    "latest_reviewed_release": "v0.60.6",
-    "latest_reviewed_at": "2026-10-24T06:44:58.828166+00:00"
+    "latest_reviewed_revision": "75b48137bc33c3f26242ed064a53cff28916c88f",
+    "latest_reviewed_commit_date": "2026-10-27T02:50:29-03:00",
+    "reviewed_commits_ahead": 64,
+    "review_scope": "Reviewed C1-C3 page allocator/texture reserve, image barriers, barycentric invariance, UI and FPS changes. Windows/x86 game patches and Vulkan renderer changes are references, not silently applied to native Metal.",
+    "latest_reviewed_release": "v0.60.6-C3",
+    "latest_reviewed_at": "2026-10-27T13:10:10.992025+00:00"
   },
   "packages": [
     {
@@ -47,19 +47,20 @@
       "latest_available": "v1.4.366",
       "latest_url": "https://github.com/KhronosGroup/Vulkan-Headers/tree/v1.4.366",
       "selected_revision": "73814d006638aa00bd553215b054f0f02e457e22",
-      "note": "Updated October 23: reviewed registry/C/C++ generated headers. Loader independently remains 1.4.365; header updates do not establish new device support or a CPU corruption fix."
+      "note": "Headers and loader now both select1.4.366; device capability support is unchanged by header versions."
     },
     {
       "id": "vulkan-loader",
       "repository": "https://github.com/KhronosGroup/Vulkan-Loader",
       "recipe_variable": "VULKAN_LOADER_VERSION",
       "recipe_version": "v1.4.365",
-      "version": "v1.4.365",
-      "upstream_tag": "v1.4.365",
-      "latest_available": "v1.4.365",
-      "latest_url": "https://github.com/KhronosGroup/Vulkan-Loader/tree/v1.4.365",
-      "selected_revision": "f866657ff687a36d767cd7783bab800e31ebafaa",
-      "note": "Version is independent of Vulkan-Headers: latest reviewed loader tag remains 1.4.365 while headers are 1.4.366."
+      "version": "v1.4.366",
+      "upstream_tag": "v1.4.366",
+      "latest_available": "v1.4.366",
+      "latest_url": "https://github.com/KhronosGroup/Vulkan-Loader/releases/tag/v1.4.366",
+      "selected_revision": "3187e1e4d463ddf7f60f0bbaf26c7d7b7e40ca34",
+      "note": "Reviewed October 27. Stable dependency update; native Metal frame bypasses this component. Build and game validation tracked separately.",
+      "previous_selected_version": "v1.4.365"
     },
     {
       "id": "moltenvk",
@@ -138,12 +139,14 @@
       "repository": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator",
       "recipe_variable": "VMA_VERSION",
       "recipe_version": "v3.3.0",
-      "version": "v3.4.0",
-      "upstream_tag": "v3.4.0",
-      "latest_available": "v3.4.0",
-      "latest_url": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.4.0",
-      "selected_revision": "3aa921224c154a0d2c43912bc88e1c42ce1f7607",
-      "release_published_at": "2026-06-04T22:51:10Z"
+      "version": "v3.5.0",
+      "upstream_tag": "v3.5.0",
+      "latest_available": "v3.5.0",
+      "latest_url": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/releases/tag/v3.5.0",
+      "selected_revision": "0f1a757da579831283413295cc7f3b47eb521c77",
+      "release_published_at": "2026-06-04T22:51:10Z",
+      "previous_selected_version": "v3.4.0",
+      "note": "Reviewed October 27. Stable dependency update; native Metal frame bypasses this component. Build and game validation tracked separately."
     },
     {
       "id": "miniz",
@@ -255,10 +258,10 @@
     }
   ],
   "validation": {
-    "integration": "Added an opt-in native CPU coroutine-frame guard, inspired by the reviewed SotC quarantine technique but implemented for macOS. The renderer's actual Task promise allocates independent mappings when SOTC_TASK_GUARD=1. Existing ordered recording-consumer retirement remains unchanged; deletion makes that frame's pages PROT_NONE and retains up to 64 frames within an 8 MiB total live/quarantine mapping budget. This does not retain or change guest objects/pages or GPU resource ownership. Budget/slot/allocation exhaustion uses normal new/delete, explicitly recorded as unguarded fallback. Protection/unmap failures preserve owned mapping accounting and report incomplete coverage; no false release. A separate task-events.bin retains 256 allocations/fallbacks and 256 retirement/ unmap/failure events, with address, rounded/requested size, generation, thread, current budget and counters. Offline diagnostics match a fault address to the latest retained mapping event only as a candidate, excluding foreign producer PIDs. Reuse/finite retention, fallback and eviction can hide lifetime bugs. The journal adds 68 KiB (all files 784 KiB when enabled), plus bounded host metadata and at most 8 MiB of frame mappings; not a total process-memory limit. No native corruption correction or overhead measurement is established. Runtime default remains disabled; the owner diagnostic launcher defaults the guard on, with explicit SOTC_TASK_GUARD=0 opting out. All persistent source/header and indexed referring-object probes remain active; the guard tests CPU renderer frames, not whether the failing PS4 object is alive. The new command explicitly sets SOTC_TASK_GUARD=1. No game/GPU test was launched. Original CPU controls use the actual production Task/retirement helper: valid ordered consumers pass, premature and later stale reads trap on real protected pages. Budget fallback, quarantine rotation, concurrency, injected protection/ unmap failures and stale-PID rejection are checked. Existing delayed-consumer ASan controls remain. Repeated native protected-reader tests confirm PROT_NONE reads fail without changing kernel permissions. The renderer builds ARM64 with all builder CPU regressions; cache remains 28/9. Exact task_guard_previous cohort migration and idempotence checks pass. Dependencies stay pinned. Pre-test public refresh October 23 12:36:59 UTC finds one new runtime commit, e093d2151f216720be61eb7855dcfb52a1407e84 (12:20:19 UTC): access-declaration adapter refactoring. Its diff is reviewed and not adopted as a lifetime fix. Other checked default heads unchanged; previous PR/release and object-method limits retained. Full ARM64 JIT/interpreter contracts, nine guard cases, ten pointer tests, four protected-reader tests, fourteen reports, twenty-six builder tests and 46/46 symbols pass; native validation pending.",
+    "integration": "October26 renderer a27f0ca native Metal adaptation complete; CPU196ed99 retained. Full ARM64 library build,35renderer checks,26builder tests,22supervisor tests,native startup and input tests pass.50/50 host imports and final load/unload pass. Direct Vulkan/MoltenVK linkage absent; native gameplay and OOM improvement unverified.",
     "native_game": "Owner 2026-10-23 13:57:38 UTC: linked-source SIGSEGV after 116.513 s, 139/139. Readable node stores invalid pointer; next access is pointer+8. Complete report reconstruction and 16 registers match. Earlier source/writer not retained. Previous shared watch table again full: 8192 admissions, 278933 refusals. 1079 API presentations, 330 pipeline/271 SRT failures; no audio queue failures. Last/peak native samples 8.940/8.982 GiB do not establish savings or cause. Native corruption unresolved. No game launched for follow-up.",
-    "renderer_cache": "28/9",
-    "symbol_coverage": "46/46 host imports present; ABI/device rendering not established",
+    "renderer_cache": "29/9",
+    "symbol_coverage": "50/50 host imports; final library load/unload passes. GPU execution pending.",
     "latest_runtime_guard": "selected b2ff9cd protects unresolved GPU image contents; reviewed ab31a4c critical-pressure content discard is not integrated",
     "hosted_ci": "not yet observed for this commit",
     "combined_failure_capture": "Prepared allocator-search follow-up and corrected terminating-context loss. Six new private observations cover the actual search root, next-node header/ children and left/right-load sources, at current linked branch entries. The joint profile now uses 24 observations; earlier insertion/comparator/source coverage and 13 fatal fields remain. CPU channels retain 128 records each, shader channels 512 writes/512 changed lookups; combined fixed files are 520 KiB. No invalid pointer, opcode or failure is skipped; the native writer/cause remains unknown, so this is not a demonstrated correction of allocator corruption. A concrete diagnostic defect is corrected: the guest stack-protector handler previously printed one line then exited 22 without caller/register evidence. It now snapshots only an existing active TLS CPU, publishes bounded raw import registers to reserved CPU-journal header space before stderr, and invokes an optional host context/history reporter. Standalone binaries retain a weak fallback and exit 22. No CPU creation, decoder access, return-slot edit or assumed canary layout is used. Translated fatal faults also publish their available registers before rich mapping/provider diagnostics. The first committed terminal snapshot is retained; interrupted publication is rejected. Interpreter faults outside translated code are not promoted to exact fault-register snapshots. Actual synthetic guest import controls preserve exit 22 and raw context in JIT/ interpreter with drained, discarded, full and closed stderr. Actual translated fault controls preserve exit 139 and terminal registers with discarded stderr; CPU per-site evidence remains available in both modes. Full ARM64 CPU contracts, renderer CPU regressions and symbol checks validate diagnostics, not native corruption, memory savings or tracing overhead. Public default heads checked October 23 10:59:12 UTC unchanged; earlier PR/release limits retained. Pins/cache 28/9 and render settings unchanged; no game launched. Same combined owner command next, with private selections unset in the inherited environment so the updated profile loads. Read first handoff checkpoint.",
@@ -315,11 +318,12 @@
       "id": "bloodborne-mac",
       "repository": "https://github.com/bloodborne-native/bloodborne-mac",
       "branch": "main",
-      "revision": "a55959674fcfd9c3cff7a5c8dce9dc172a3fde87",
-      "scope": "October 24 source review: 13 commits beyond preceding app review; runtime gitlink now 1dda5fb086cd, matching reviewed runtime main. Adapter A6 complete, Metal resources M1 and M2 shared recording step 1. This is a staged renderer migration, not complete MoltenVK removal. No code/pin update or native SotC validation performed.",
+      "revision": "9c8ac5c93bbf62be7a096134f363f014c42c044d",
+      "scope": "October26 RC0.9.0; runtime pinned a27f0ca. Packaging remains SotC-specific; native Metal boot adapted.",
       "previous_reviewed_revision": "f761502eb4d34e92a5446751f3d8f1d2140339ad",
       "commit_date": "2026-10-24T01:13:52Z",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00"
+      "checked_at": "2026-10-24T06:44:58.828166+00:00",
+      "latest_reviewed_at": "2026-10-26T20:48:46.876305+00:00"
     },
     {
       "id": "bbport-mac",
@@ -408,6 +412,6 @@
       "checked_at": "2026-10-23T06:44:45Z"
     }
   ],
-  "workspace_key": "22923f080229",
-  "sources_checked_at": "2026-10-24T06:44:58.828166+00:00"
+  "workspace_key": "a27f0ca477bd",
+  "sources_checked_at": "2026-10-25T17:39:06.501411+00:00"
 }

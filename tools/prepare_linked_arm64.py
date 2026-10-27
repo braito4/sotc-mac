@@ -10,7 +10,8 @@ import json
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / 'runtime/upstream/scripts'
+SCRIPTS = ROOT / 'work' / ('gpu-source-' + json.loads(
+    (ROOT / 'tools/dependencies.json').read_text())['workspace_key']) / 'scripts'
 import os
 GAME = Path(os.environ.get('SOTC_GAME_ROOT', ROOT / 'game/CUSA08809/SotC-PC/Game/CUSA08809')).expanduser().resolve()
 ORIGINAL = ROOT / 'work/sotc-original/boot.bin'

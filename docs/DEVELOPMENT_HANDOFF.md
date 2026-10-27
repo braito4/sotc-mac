@@ -1,5 +1,70 @@
 # Development and debugging handoff
 
+## October 27: playable with artifacts — owner-confirmed milestone
+
+The owner confirms that the game is playable on Apple M1 (16 GB), with character
+geometry artifacts, intermittent vegetation and low FPS. The latest measured
+session lasted 205.045 seconds and ended with a normal window close (exit zero).
+SDL detected and connected a DualSense. Recent frame-rate windows were 3.6–5.7
+FPS. Whole-device GPU samples averaged 63.2% (maximum 74%); these include other
+applications and do not establish a purely GPU-bound workload.
+
+The single-pool import reduced startup Metal allocation from 8002 to 6978 MiB;
+the final sample was 9913 MiB. No memory failure occurred in this session, but
+previous OOMs are not considered permanently fixed. Geometry at offsets above
+4 GiB remains a comparison target; the log does not identify the artifact cause.
+Safe math and staging correction remain enabled. Full ARM64 JIT/interpreter CPU
+contracts pass, including synthetic gamepad controls. Sustained performance,
+visual correctness, audiovisual synchronization and save persistence remain open.
+
+Earlier entries below are historical checkpoints.
+
+
+## October 26: native Metal RC integration
+
+The active renderer is `a27f0ca477bd8356a015311d1eaa92e6f6a0b007`, the runtime
+selected by bloodborne-mac `9c8ac5c` (0.9.0 RC1). Local SotC adaptations were
+merged onto this revision, with the existing CPU translator `196ed99` deliberately
+retained. New native device/queue initialization, capabilities, 3D texture support,
+resource ownership routing and native-resolution classification are included.
+The launcher selects `BB_METAL_NATIVE_BOOT=1` without Vulkan discovery. Explicit
+`BB_METAL_NATIVE_BOOT=0` retains the previous Metal-on-Vulkan startup comparison;
+the dedicated Vulkan check still uses the loader. These modes are not identical.
+
+Four optional button-prompt imports preserve SotC's original icons (no Bloodborne
+input-name replacement). Input handling itself stays on our existing SDL adapter.
+Old workspace/build `84daa9f13e5c` remains available. Copied dependency install names
+were relocated to the new prefix; old libraries were not edited. No game has been
+launched as part of this update, and the observed Metal OOM is not claimed fixed.
+
+Next manual trial: `bash prueba_runtime_actualizado.command`. This establishes a
+new baseline: native boot, three balanced pool windows, default collector budget,
+shim residency enabled, existing exact-shader barrier trial, resource observations,
+single inflight command, skipped intro, GPU wait120s and global500s. Other optional
+render/indirect/CPU probes are off. This is not a single-variable comparison with
+the preceding single-pool/early-GC trial. Native buffer summaries distinguish the
+shim's residency switch from the separate renderer address-buffer residency set.
+Build/check evidence: `work/analysis/runtime-update-20261026/`.
+
+## Adaptive owner-authorized series
+
+The owner authorized up to 20 serial tests, probe changes between results,
+corrections when justified, and removal of redundant probes after a tested fix.
+After current failures are fixed, investigate compatible near-colossus startup.
+See [controller and stopping behavior](ADAPTIVE_TESTS.md). Agent Metal access is
+unavailable and Terminal UI control is blocked; one owner Terminal command must
+start the controller. Never claim a game run happened from the failed precheck.
+The first reviewed request adds backing-write probes; preserve its ninth journal
+and stop on incomplete exit, cleanup uncertainty or GPU stall.
+
+Round 15 is sealed as a SIGSEGV and remains evidence-only. Do not repeat it. The
+next checked shader probe covers one separate gap: a writable storage descriptor
+can resolve to a cached image with a different actual guest range. Journal layout
+10 labels this range `storage_image_resolved` only when it differs from the
+requested descriptor. A match is still write intent, not proof of a GPU store,
+stable allocation identity or original writer. Addressless resources and direct
+guest stores remain outside coverage.
+
 ## Pool-offset observations after the first fresh prefix transition
 
 The latest owner control captures the altered prefix already at consumption,

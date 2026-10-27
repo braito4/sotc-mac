@@ -21,9 +21,9 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = 'b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548'
+REVISION = 'a27f0ca477bd8356a015311d1eaa92e6f6a0b007'
 REPOSITORY = 'https://github.com/bloodborne-native/bloodborne-runtime.git'
-DEPS_SHA256 = '8866a556db9d2ff2eaec245157d293ca9bd000f4b98d588f7370dd5bdb5e96ef'
+DEPS_SHA256 = 'da54408b8208237c854126d0ef2c67fec79667957ee195dbee6d99861016dd2e'
 SUBMODULES = ('gpu/third_party/fsr-vulkan', 'gpu/third_party/imgui', 'recomp')
 REQUIRED_FILES = (
     'gpu/CMakeLists.txt', 'gpu/bbgpu.h', 'scripts/macos/build-deps.sh',
@@ -45,6 +45,29 @@ def source_path(root=ROOT):
 
 def build_path(root=ROOT):
     return private_path(root / 'work', 'gpu-build-' + dependency_lock()['workspace_key'])
+
+
+def reference_path(root=ROOT):
+    return private_path(root / 'work', 'sotc-reference-' + dependency_lock()['reference']['revision'][:12])
+
+
+def fetch_reference(root, runner):
+    """Keep the selected preparation source separate from the historical regression oracle."""
+    selected = dependency_lock()['reference']
+    destination = reference_path(root)
+    if not destination.exists():
+        stage = Path(tempfile.mkdtemp(prefix='reference-fetch-', dir=root / 'work'))
+        try:
+            checkout = stage / 'source'
+            runner.run(['git', 'clone', '--no-checkout', selected['repository'], checkout])
+            runner.run(['git', '-C', checkout, 'checkout', '--detach', selected['revision']])
+            checkout.rename(destination)
+        finally:
+            shutil.rmtree(stage)
+    if (git_output(destination, 'rev-parse', 'HEAD') != selected['revision'] or
+            git_output(destination, 'diff', '--name-only', 'HEAD', '--', 'scripts/prepare.py') or
+            not (destination / 'scripts/prepare.py').is_file()):
+        raise BuildError('Selected SotC preparation source differs from its reviewed revision.')
 
 
 def moved_build_cache(output, source):
@@ -97,19 +120,20 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'upload_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
             raise BuildError('Refusing redirected GPU backport source.')
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        matches = {state for state in states if digest == digests.get(state)}
+        matches = {state for state in states if digest == digests.get(
+            state, digests.get('after') if state == 'image_alias_previous' else None)}
         if not any(digest == value for value in digests.values()):
             raise BuildError('Unrecognized GPU backport source: ' + name)
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'upload_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -373,11 +397,11 @@ def verify_source(source):
             changed = set(git_output(source, 'diff', '--name-only', 'HEAD', '--').splitlines())
             state = backport_state(source)
             expected = {name for name, digests in backport_manifest()['files'].items()
-                        if digests[state] != digests['before']}
+                        if digests.get(state, digests['after'] if state == 'image_alias_previous' else None) != digests['before']}
             for name, override in backport_manifest().get('submodule_overrides', {}).items():
                 if git_output(source / name, 'rev-parse', 'HEAD') == override['after']:
                     expected.add(name)
-            if state not in ('shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
+            if state not in ('display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -496,6 +520,13 @@ def build(root, runner, jobs, compiler):
     runner.run([sys.executable, root / 'tools/check_staging_reuse.py'])
     runner.run([sys.executable, root / 'tools/check_staging_tail.py'])
     runner.run([sys.executable, root / 'tools/check_binding_copy.py'])
+    runner.run([sys.executable, root / 'tools/check_display_view_lifetime.py'])
+    runner.run([sys.executable, root / 'tools/check_metal_resource_init.py'])
+    runner.run([sys.executable, root / 'tools/check_native_encoder_trace.py'])
+    runner.run([sys.executable, root / 'tools/check_tiling_trace.py'])
+    runner.run([sys.executable, root / 'tools/check_encoder_progress.py'])
+    runner.run([sys.executable, root / 'tools/check_render_trace.py'])
+    runner.run([sys.executable, root / 'tools/check_indirect_origin.py'])
     runner.run([sys.executable, root / 'tools/check_memory_trace.py'])
     runner.run([sys.executable, root / 'tools/check_pool_windows.py'])
     runner.run([sys.executable, root / 'tools/check_scene_proxy_retirement.py'])
@@ -509,6 +540,7 @@ def build(root, runner, jobs, compiler):
     runner.run([sys.executable, root / 'tools/check_shader_provenance.py'])
     runner.run([sys.executable, root / 'tools/check_compute_packets.py'])
     runner.run([sys.executable, root / 'tools/check_shader_submit.py'])
+    runner.run([sys.executable, root / 'tools/check_shader_gpu_writes.py'])
     runner.run([sys.executable, root / 'tools/check_shader_cfg.py'])
     runner.run([sys.executable, root / 'tools/check_sample_counts.py'])
     runner.run([sys.executable, root / 'tools/check_shader_memory.py'])
@@ -588,6 +620,7 @@ def main():
         runner = Runner(log)
         if args.fetch:
             fetch_source(work, source_path(ROOT), runner)
+            fetch_reference(ROOT, runner)
             print('Pinned source and renderer submodules ready; no libraries were built.')
         else:
             build(ROOT, runner, jobs, compiler)

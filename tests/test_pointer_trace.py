@@ -277,7 +277,10 @@ class PointerTraceTests(unittest.TestCase):
                             if jit=='1':
                                 self.assertEqual(cpu['terminal_context']['kind'],2)
                                 self.assertEqual(len(cpu['terminal_context']['registers']),16)
-                            else:self.assertNotIn('terminal_context',cpu) # Interpreter host fault is not translated GPR evidence.
+                            else:
+                                self.assertEqual(cpu['terminal_context']['kind'],4)
+                                self.assertEqual(cpu['terminal_context']['source'],'interpreted_fault')
+                                self.assertEqual(len(cpu['terminal_context']['registers']),16)
                             self.assertIn('first_out_of_range_link',pointers)
                         if mode in ('direct','initial'):
                             self.assertEqual(pointers['overlap_events'],0)

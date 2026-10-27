@@ -42,6 +42,22 @@ static _Atomic uint64_t sotc_shader_prefix_pages[256];
 static _Atomic uint64_t sotc_shader_prefix_registered_ns[SOTC_SHADER_PREFIX_WATCHES];
 static _Atomic unsigned sotc_shader_prefix_bucket_busy[SOTC_SHADER_PREFIX_BUCKETS];
 static int sotc_shader_prefix_enabled;
+/* Separate bounded lifecycle evidence; generation is a watch registration,
+ * never an allocation identity. Evictions/drops cannot be displaced by ARM. */
+#include "shader_watch_summary.h"
+static SotcEventJournal sotc_shader_watch_journal;
+static void sotc_shader_watch_transition(unsigned kind,uint64_t address,uint64_t packet,
+        uint64_t capture,uint64_t generation,uint64_t previous_address,
+        uint64_t previous_packet,uint64_t previous_capture,uint64_t previous_generation,
+        uint64_t ns) {
+    sotc_ws_record(kind,address,packet,capture,generation,previous_address,ns);
+    uint64_t key=address>>8;key^=key>>17;
+    const unsigned channel=(unsigned)(key&7)+(kind==3?16:kind==4?8:0);
+    const uint64_t values[SOTC_JOURNAL_DATA_WORDS]={kind,address,packet,capture,generation,
+        previous_address,previous_packet,previous_capture,previous_generation,
+        (uintptr_t)pthread_self(),8};
+    sotc_event_journal_record(&sotc_shader_watch_journal,channel,ns,values);
+}
 typedef char SotcShaderPrefixBudget[(sizeof(sotc_shader_prefix_watches)+sizeof(sotc_shader_prefix_pages)+
     sizeof(sotc_shader_prefix_registered_ns)+sizeof(sotc_shader_prefix_bucket_busy)<=262144)?1:-1];
 
@@ -200,6 +216,11 @@ static void sotc_shader_prefix_init(void) {
     const char *p=getenv("SOTC_SHADER_COPY_TRACE");
     sotc_shader_prefix_enabled=p&&!strcmp(p,"1")&&sotc_pointer_count&&sotc_pointer_journal.map;
     if(sotc_shader_prefix_enabled) {
+        sotc_ws_init();
+        sotc_event_journal_init(&sotc_shader_watch_journal,"shader-watch-events.bin",24,512);
+        if(sotc_shader_watch_journal.map) {
+            sotc_shader_watch_journal.map[9]=1;sotc_shader_watch_journal.map[15]=8;
+        }
         sotc_pointer_journal.map[187]=2;sotc_pointer_journal.map[188]=SOTC_SHADER_PREFIX_WATCHES;
         sotc_pointer_journal.map[244]=1;sotc_pointer_journal.map[245]=SOTC_SHADER_PREFIX_WAYS;
     }
@@ -214,7 +235,8 @@ static void sotc_shader_prefix_register(uint64_t address,uint64_t packet,uint64_
     const unsigned bucket=sotc_shader_prefix_bucket(address),begin=bucket*SOTC_SHADER_PREFIX_WAYS;
     unsigned expected=0;
     if(!atomic_compare_exchange_strong_explicit(&sotc_shader_prefix_bucket_busy[bucket],&expected,1,memory_order_acquire,memory_order_relaxed)) {
-        sotc_pointer_stat(191);return;
+        sotc_pointer_stat(191);
+        sotc_shader_watch_transition(4,address,packet,capture,0,0,0,0,0,sotc_pointer_now());return;
     }
     unsigned selected=begin;uint64_t oldest=UINT64_MAX;
     for(unsigned i=begin;i<begin+SOTC_SHADER_PREFIX_WAYS;++i) {
@@ -224,10 +246,20 @@ static void sotc_shader_prefix_register(uint64_t address,uint64_t packet,uint64_
     }
     SotcPointerWatch *w=&sotc_shader_prefix_watches[selected];expected=0;
     if(!atomic_compare_exchange_strong_explicit(&w->busy,&expected,1,memory_order_acquire,memory_order_relaxed)) {
-        sotc_pointer_stat(191);atomic_store_explicit(&sotc_shader_prefix_bucket_busy[bucket],0,memory_order_release);return;
+        sotc_pointer_stat(191);
+        sotc_shader_watch_transition(4,address,packet,capture,0,0,0,0,0,sotc_pointer_now());
+        atomic_store_explicit(&sotc_shader_prefix_bucket_busy[bucket],0,memory_order_release);return;
     }
-    if(atomic_load_explicit(&w->stamp,memory_order_relaxed)&&
-       atomic_load_explicit(&w->field,memory_order_relaxed)!=address)sotc_pointer_stat(190);
+    const uint64_t prior_generation=atomic_load_explicit(&w->stamp,memory_order_relaxed);
+    const uint64_t prior_address=atomic_load_explicit(&w->field,memory_order_relaxed);
+    const uint64_t prior_packet=atomic_load_explicit(&w->source,memory_order_relaxed);
+    const uint64_t prior_capture=atomic_load_explicit(&w->header,memory_order_relaxed);
+    const uint64_t ns=sotc_pointer_now();
+    if(prior_generation && prior_address!=address) {
+        sotc_pointer_stat(190);
+        sotc_shader_watch_transition(3,prior_address,prior_packet,prior_capture,prior_generation,
+            address,packet,capture,0,ns);
+    }
     atomic_store_explicit(&w->stamp,0,memory_order_release);
     atomic_store_explicit(&w->object,address,memory_order_relaxed);
     atomic_store_explicit(&w->source,packet,memory_order_relaxed);
@@ -235,11 +267,13 @@ static void sotc_shader_prefix_register(uint64_t address,uint64_t packet,uint64_
     atomic_store_explicit(&w->field_only,2,memory_order_relaxed);
     atomic_store_explicit(&w->field,address,memory_order_relaxed);
     atomic_store_explicit(&w->last_valid,0,memory_order_relaxed);
-    atomic_store_explicit(sotc_shader_prefix_registered_ns+selected,sotc_pointer_now(),memory_order_relaxed);
+    atomic_store_explicit(sotc_shader_prefix_registered_ns+selected,ns,memory_order_relaxed);
     const unsigned bit=sotc_pointer_page_bit(address);
     atomic_fetch_or_explicit(sotc_shader_prefix_pages+bit/64,UINT64_C(1)<<(bit%64),memory_order_relaxed);
     const uint64_t stamp=atomic_fetch_add_explicit(&sotc_shader_prefix_sequence,1,memory_order_relaxed)+1;
     atomic_store_explicit(&w->stamp,stamp,memory_order_release);
+    sotc_shader_watch_transition(prior_generation && prior_address==address?2:1,
+        address,packet,capture,stamp,prior_address,prior_packet,prior_capture,prior_generation,ns);
     atomic_store_explicit(&w->busy,0,memory_order_release);sotc_pointer_stat(189);
     atomic_store_explicit(&sotc_shader_prefix_bucket_busy[bucket],0,memory_order_release);
 }

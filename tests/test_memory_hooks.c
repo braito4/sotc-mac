@@ -17,6 +17,18 @@ static void *test_realloc(void *pointer, size_t size) {
 }
 static PendingHook expected[10000];
 static size_t expected_count, delivered;
+static unsigned backing_observed,notifications_observed;
+static uintptr_t backing_target;
+static void observe_backing(uintptr_t address,const void* source,uint64_t bytes,unsigned after,int ok,uintptr_t caller) {
+    assert(!exclusive_depth && bytes==8 && caller);
+    assert(!pthread_rwlock_trywrlock(&lock));pthread_rwlock_unlock(&lock);
+    assert(runtime_memory_is_mapped(backing_target,8)); /* Real query reentry. */
+    if(after==2){assert(!source&&!ok);++notifications_observed;errno=EDOM;return;}
+    assert(source);
+    assert(after==(backing_observed%2));
+    if(after)assert(ok==(address==backing_target));
+    ++backing_observed;errno=EDOM;
+}
 static void record(int kind, uintptr_t address, uint64_t size) {
     assert(!exclusive_depth); /* Never call the GPU while holding the region lock. */
     assert(delivered < expected_count);
@@ -81,6 +93,17 @@ int main(int argc, char **argv) {
     }
     hook_map=NULL; write_lock(); queue_hook(HOOK_MAP, PAGE, PAGE); write_unlock();
     assert(!pending_count);
+    hook_map=NULL;hook_unmap=NULL;hook_invalidate=NULL;
+    void* memory=NULL;assert(!map_flexible(&memory,PAGE,3,0));backing_target=(uintptr_t)memory;
+    uint64_t input=UINT64_C(0x1122334455667788),output=0;
+    sotc_memory_set_backing_write_observer(observe_backing);errno=ERANGE;
+    assert(runtime_memory_write_backing(backing_target,&input,8));assert(errno==ERANGE);
+    runtime_memory_read_backing(backing_target,&output,8);assert(output==input&&backing_observed==2);
+    assert(!runtime_memory_write_backing(1,&input,8)&&backing_observed==4);
+    runtime_memory_note_write(backing_target,8);assert(notifications_observed==1&&errno==ERANGE);
+    sotc_memory_set_backing_write_observer(NULL);
+    assert(runtime_memory_write_backing(backing_target,&input,8)&&backing_observed==4);
     puts("PASS: growable GPU notifications: 257 real aliases replayed/released through guest ABI, 8193 mixed events in FIFO order, unlocked/reentrant callbacks, rollback, reuse and absent hooks");
+    puts("PASS: backing-write observers before/after success and failure, outside region locks, reentrant queries, unchanged bytes/results/errno and disabled control");
     return 0;
 }

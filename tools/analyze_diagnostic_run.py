@@ -12,8 +12,10 @@ from analyze_host_fault import analyze as host_analysis
 from analyze_index_capture import review as index_capture_review
 from analyze_shader_bind import review as shader_bind_review
 from analyze_shader_consume import review as shader_consume_review, mapping_review as shader_mapping_review
+from analyze_shader_backing import review as shader_backing_review
 from analyze_shader_copy import review as shader_copy_review,activity as shader_copy_activity
-from analyze_shader_watch import review as shader_watch_review
+from analyze_shader_watch_summary import review as shader_watch_summary
+from analyze_shader_watch import review as shader_watch_review, transition_review as shader_watch_transitions
 from analyze_gpu_submission import analyze as gpu_analysis
 from analyze_event_journal import analyze as event_journal
 from analyze_event_journal import shader_write_observation
@@ -92,12 +94,43 @@ def shader_origin_with_fallback(events, fallback, address, program=None, thread=
     if result['state']=='lookup_absent':
         saved=shader_origin_review(fallback,address,program,thread)
         if saved['state']!='lookup_absent':
-            saved.update(evidence_source='failure_program_snapshot',timing_available=False)
+            saved.update(evidence_source='failure_program_snapshot',
+                         timing_available=bool(saved.get('lookup',{}).get('ns')))
             return saved
     return result
 
 
-def shader_submit_review(origin, journal):
+def shader_submission_index(path, address):
+    """Read the bounded failure-time index without guest memory access."""
+    path=Path(path);result=dict(state='absent',matches=[],limitation=
+        'Latest bounded pre-enqueue observations sharing the numeric origin. Packet/capture matches do not prove allocation identity, intended shader identity, continuous lifetime or an original writer.')
+    if not path.is_file():return result
+    try:
+        if path.stat().st_size>16384:raise ValueError('oversized submission index snapshot')
+        rows=dict(line.split('=',1) for line in path.read_text().splitlines() if '=' in line)
+        if rows.get('schema')!='1' or int(rows['address'])!=address:raise ValueError('invalid submission index identity')
+        status=int(rows['state']);capacity=int(rows['capacity']);ways=int(rows['ways']);count=int(rows['matches'])
+        if status not in (0,1,2,5) or capacity!=4096 or ways!=4 or not 0<=count<=ways or (status==5)!=(count>0):
+            raise ValueError('invalid submission index layout')
+        result.update(state={0:'no_observations',1:'empty_bucket',2:'address_not_retained',5:'matched'}[status],
+            total=int(rows['total']),replacements=int(rows['replacements']),capacity=capacity,ways=ways,
+            bucket_population=int(rows['bucket_population']))
+        for i in range(count):
+            prefix=f'match{i}_';values={key:int(rows[prefix+key]) for key in
+                ('address','packet','raw','head','flags','capture_id','sampled_ns','context','physical','stamp')}
+            if values['address']!=address or not values['packet'] or not values['capture_id'] or values['stamp']<=0:
+                raise ValueError('invalid submission index observation')
+            flags=values.pop('flags');context=values.pop('context');head=values.pop('head')
+            values.update(head=[head&0xffffffff,head>>32],head_available=bool(flags&1),compute=bool(flags&2),
+                ambiguous_packet=bool(flags&4),register_index=context>>32,packet_header=context&0xffffffff,
+                raw_address=values.pop('raw'),origin=address,submit_ns=values.pop('sampled_ns'))
+            result['matches'].append(values)
+    except (OSError,ValueError,KeyError) as error:
+        result.update(state='invalid',matches=[],reason=str(error))
+    return result
+
+
+def shader_submit_review(origin, journal, index=None):
     """Join the active submission's retained sample to a paired address write."""
     result=dict(state='unavailable',
         limitation='Bounded pre-enqueue eight-byte prefixes and later CPU observations, not atomic content, whole-program stability, original writer, intended shader identity or guest allocation lifetime. Indirect scans do not model conditional execution.')
@@ -112,18 +145,30 @@ def shader_submit_review(origin, journal):
     for e in journal['events']:
         if e.get('event')!='sample' or e.get('phase')!='consume' or e['packet']!=write.get('packet') or e['compute']!=compute:
             continue
-        index=e['register_index']+(0 if compute else 0x2c00)
-        if not write.get('first',0)<=index or index-write['first']+2>write.get('words',0):continue
+        register_index=e['register_index']+(0 if compute else 0x2c00)
+        if not write.get('first',0)<=register_index or register_index-write['first']+2>write.get('words',0):continue
         if not e.get('ns') or not e.get('submit_ns') or not e['submit_ns']<=e['ns']<=lookup['ns']:continue
         if lookup.get('thread') and e.get('consumer_thread')!=lookup['thread']:continue
         candidates.append(e)
-    if not candidates:
-        result['state']='matching_consumption_absent';return result
-    event=max(candidates,key=lambda e:e['seq'])
+    if candidates:
+        event=max(candidates,key=lambda e:e['seq']);result['evidence_source']='consumed_capture'
+    else:
+        indexed=[]
+        if index and index.get('state')=='matched':
+            pair=write.get('write_observation',{}).get('packet_address_words')
+            raw=(pair[0]|(pair[1]<<32)) if pair is not None else None
+            indexed=[e for e in index.get('matches',[]) if e['packet']==write.get('packet') and
+                     (raw is None or e['raw_address']==raw) and e['compute']==compute and
+                     (not e.get('submit_ns') or not write.get('ns') or e['submit_ns']<=write['ns'])]
+        if len(indexed)!=1:
+            result.update(state='matching_consumption_absent',submission_index_state=index.get('state') if index else 'absent',
+                          submission_index_matches=len(indexed));return result
+        event=indexed[0];result['evidence_source']='failure_submission_index'
     result.update(state='observed',sample=event,address_write=write,
-        enqueue_to_lookup_us=(lookup['ns']-event['submit_ns'])/1000,
-        enqueue_to_consume_us=(event['ns']-event['submit_ns'])/1000,
+        enqueue_to_lookup_us=(lookup['ns']-event['submit_ns'])/1000 if event.get('submit_ns') else None,
         pre_enqueue_origin_matches_lookup=event['origin']==lookup['address'])
+    if event.get('ns') and event.get('submit_ns'):
+        result['enqueue_to_consume_us']=(event['ns']-event['submit_ns'])/1000
     observation=write.get('write_observation',{})
     pair=observation.get('packet_address_words')
     result['pre_enqueue_packet_matches_write']=(event['raw_address']==(pair[0]|(pair[1]<<32))) if pair is not None else None
@@ -347,7 +392,7 @@ def cpu_experiment_review(text,state):
     ranges=re.findall(r'^CPU region interpreter configured: begin=(0x[0-9a-f]+|0) end=(0x[0-9a-f]+|0)$',text,re.M)
     entries=re.findall(r'^CPU region interpreter entered: offset=(0x[0-9a-f]+|0)$',text,re.M)
     valid=variant=='base' and not interval and not ranges and not entries
-    if variant in ('caller','buffer','table') and re.fullmatch(r'0x[0-9a-f]+:0x[0-9a-f]+',interval):
+    if variant in ('caller','buffer','table','field578') and re.fullmatch(r'0x[0-9a-f]+:0x[0-9a-f]+',interval):
         begin,end=[int(v,16) for v in interval.split(':')]
         valid=0<=begin<end<=512*1024*1024 and end-begin<=65536 and len(ranges)==1 and [int(v,0) for v in ranges[0]]==[begin,end]
         result['entry_observed']=bool(valid and len(entries)==1 and begin<=int(entries[0],0)<end)
@@ -397,15 +442,19 @@ def collect(log, state, previous=()):
         # Already committed pre-failure evidence survives signals, _Exit, full
         # stderr and unrelated stop paths. Keep distinct from a terminating dump.
         journals={kind:event_journal(state/(kind.replace('_','-')+'-events.bin'),kind)
-                  for kind in ('cpu','shader','pointer','task','shader_submit','shader_bind','shader_consume','shader_mapping')}
+                  for kind in ('cpu','shader','pointer','task','shader_submit','shader_bind','shader_consume','shader_mapping','shader_backing','shader_watch')}
         report['pre_failure_journals']=journals
-        child_pid=re.search(r'^GPU supervisor: child_pid=(\d+)$',log.read_text(errors='replace'),re.M)
-        report['shader_lookup_trace']=shader_lookup_captures(state,int(child_pid[1]) if child_pid else None)
+        # A diagnostic log can contain completed synthetic preflight runs before
+        # the actual game run. Associate persisted journals with the last
+        # supervised child, which is the process that produced the final run.
+        child_pids=re.findall(r'^GPU supervisor: child_pid=(\d+)$',log.read_text(errors='replace'),re.M)
+        child_pid=child_pids[-1] if child_pids else None
+        report['shader_lookup_trace']=shader_lookup_captures(state,int(child_pid) if child_pid else None)
         for case in report['shader_lookup_trace']['cases']:
             if case['state']!='readable':gaps.append(f"shader lookup capture {case['case']} {case['state']}")
             elif not case['metadata_matches_scan']:gaps.append(f"shader lookup capture {case['case']} metadata differs from saved scan")
         for kind,item in journals.items():
-            if child_pid and item['state']=='readable' and item['producer_pid']!=int(child_pid[1]):
+            if child_pid and item['state']=='readable' and item['producer_pid']!=int(child_pid):
                 item.update(state='foreign_process',events=[],channels=[],retained=0)
                 item.pop('terminal_context',None)
                 item.pop('first_out_of_range_link',None)
@@ -432,15 +481,17 @@ def collect(log, state, previous=()):
             if capture.get('write_failures'):gaps.append('shader lookup capture output failed; inspect partial cases')
             if capture.get('admitted',0)>capture.get('completed',0):gaps.append('shader lookup capture incomplete or interrupted')
             submit=item.get('capture_counters',{})
-            for counter in ('pool_refused','allocation_failed','scan_failed','limited_captures','unreadable_heads'):
+            for counter in ('snapshot_fallback_failed','allocation_failed','scan_failed','limited_captures','unreadable_heads'):
                 if submit.get(counter):gaps.append('shader submission capture '+counter+'; coverage incomplete')
+            if submit.get('pool_refused') and not submit.get('snapshot_fallback'):
+                gaps.append('shader submission capture pool_refused without fallback snapshots; coverage incomplete')
             if any(c['overwritten'] for c in item['channels']):
                 gaps.append(f'{kind} journal earlier events overwritten within independent bounded channels')
         report['shader_copy_activity']=shader_copy_activity(journals['pointer'])
         if journals['cpu']['state']=='readable':
             journals['cpu']['fault_register_history']=fault_register_history(log.read_text(errors='replace'),journals['cpu']['events'])
             terminal=journals['cpu'].get('terminal_context',{})
-            if terminal.get('kind')==2 and terminal.get('available'):
+            if terminal.get('kind') in (2,4) and terminal.get('available'):
                 report['fault_field_transitions']=fault_field_transitions(journals['cpu']['events'],terminal.get('registers',{}))
         settings_match=re.search(r'^GPU supervisor: .*?settings=(\{.*\})$',log.read_text(errors='replace'),re.M)
         try: settings=json.loads(settings_match[1]) if settings_match else {}
@@ -476,7 +527,7 @@ def collect(log, state, previous=()):
             for kind,item in journals.items():
                 expected=(settings.get('SOTC_TASK_GUARD')=='1' if kind=='task' else bool(settings.get('SOTC_CPU_FIELD_TRACE')) if kind=='cpu' else
                           bool(settings.get('SOTC_CPU_POINTER_TRACE')) if kind=='pointer' else
-                          settings.get('SOTC_SHADER_COPY_TRACE')=='1' if kind in ('shader_consume','shader_mapping') else
+                          settings.get('SOTC_SHADER_COPY_TRACE')=='1' if kind in ('shader_consume','shader_mapping','shader_backing','shader_watch') else
                           settings.get('SOTC_SHADER_SUBMIT_TRACE')=='1' if kind=='shader_submit' else settings.get('SOTC_SHADER_PROVENANCE')=='1')
                 if expected and item['state']=='absent': gaps.append(f'{kind} pre-failure journal requested but absent; initialization or reachability unknown')
         pointers=journals['pointer']
@@ -505,7 +556,7 @@ def collect(log, state, previous=()):
                 address=next(iter(fault_addresses))
                 matches=[e for e in pointers['events'] if e['actor']==1 and e['probe_kind']!='register_value' and e['status']&8 and e['value']==address]
                 terminal=journals['cpu'].get('terminal_context',{})
-                registers=terminal.get('registers',{}) if terminal.get('kind')==2 and terminal.get('available') else {}
+                registers=terminal.get('registers',{}) if terminal.get('kind') in (2,4) and terminal.get('available') else {}
                 if not registers:
                     snapshots=re.findall(r'^  rax=.*$(?:\n  r8=.*$)?',log.read_text(errors='replace'),re.M)
                     if len(snapshots)==1:
@@ -612,6 +663,10 @@ def collect(log, state, previous=()):
             provenance=snapshot.parent/'provenance.txt'
             if provenance.is_file():
                 report['shader_metadata_snapshot']['provenance']=shader_provenance(provenance.read_text(errors='replace'))
+            meta=report['shader_metadata_snapshot'].get('context',{})
+            if 'address' in meta:
+                report['shader_metadata_snapshot']['submission_index']=shader_submission_index(
+                    snapshot.parent/'submission-prefix.txt',int(meta['address']))
             descriptor=snapshot.parent/'descriptor.bin'
             if descriptor.is_file():
                 raw=descriptor.read_bytes()
@@ -637,10 +692,14 @@ def collect(log, state, previous=()):
                     report['shader_origin_review']=shader_origin_with_fallback(events,fallback,int(meta['address']),
                         int(meta['program']) if 'program' in meta else None,
                         int(meta['thread_id']) if 'thread_id' in meta else None)
-                    report['shader_submission_review']=shader_submit_review(report['shader_origin_review'],journals['shader_submit'])
+                    report['shader_submission_review']=shader_submit_review(report['shader_origin_review'],journals['shader_submit'],
+                        report['shader_metadata_snapshot'].get('submission_index'))
                     report['shader_binding_review']=shader_bind_review(report['shader_origin_review'],journals['shader_bind'])
                     report['shader_consumption_review']=shader_consume_review(report['shader_origin_review'],journals['shader_consume'])
                     report['shader_mapping_review']=shader_mapping_review(report['shader_consumption_review'],journals['shader_mapping'])
+                    report['shader_watch_summary']=shader_watch_summary(state/'shader-watch-summary.bin',int(meta['address']))
+                    report['shader_watch_transition_review']=shader_watch_transitions(journals['shader_watch'],int(meta['address']))
+                    report['shader_backing_review']=shader_backing_review(report['shader_origin_review'],report['shader_submission_review'],journals['shader_backing'])
                     report['shader_copy_review']=shader_copy_review(report['shader_origin_review'],report['shader_submission_review'],journals['pointer'])
                     report['shader_prefix_watch_snapshot']=shader_watch_review(state/'shader-metadata-failure/prefix-watch.txt',
                         report['shader_origin_review'],report['shader_submission_review'])

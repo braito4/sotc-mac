@@ -60,12 +60,10 @@ class PointerReleaseTests(unittest.TestCase):
                         self.assertEqual(pointers['target_probe_hits'],[1,1,1,0])
                         self.assertEqual(report['current']['fatal_reporting']['minimal_snapshots'][0]['address'],0x123456789abcde40)
                         sources=report['fault_pointer_review']['terminal_memory_sources']['candidates']
-                        if jit=='1':
-                            self.assertTrue(any('rbx' in row['labels'] and row['value']==0x123456789abcde00 and row['fault_displacement']==64 for row in sources))
-                        else:
-                            # Native interpreter helper faults outside translated
-                            # code: do not invent protected terminal guest reads.
-                            self.assertEqual(sources,[])
+                        self.assertTrue(any('rbx' in row['labels'] and row['value']==0x123456789abcde00 and row['fault_displacement']==64 for row in sources))
+                        terminal=report['pre_failure_journals']['cpu']['terminal_context']
+                        self.assertEqual(terminal['kind'],2 if jit=='1' else 4)
+                        self.assertEqual(terminal['source'],'translated_fault' if jit=='1' else 'interpreted_fault')
                         copies=[e for e in pointers['events'] if e['actor']!=1]
                         self.assertEqual([e['actor'] for e in copies],[2,3] if mode=='memcpy' else [])
                         incoming=pointers['register_observations'][0]

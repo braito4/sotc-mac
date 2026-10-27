@@ -1,5 +1,6 @@
 // Original, bounded CPU observations. Never controls allocation, eviction or GPU completion.
 #pragma once
+#include "gpu_shader_writer_bridge.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -45,7 +46,11 @@ struct Binding {
 inline thread_local Binding binding{};
 struct BindingScope {
     Binding previous;
-    explicit BindingScope(Binding value) : previous{binding} { binding = value; }
+    explicit BindingScope(Binding value) : previous{binding} {
+        binding = value;
+        if(value.written&&value.clamped)
+            SotcShaderWriterBridge::Binding(value.address,value.clamped,value.shader,value.slot,value.declared);
+    }
     ~BindingScope() { binding = previous; }
     BindingScope(const BindingScope&) = delete;
 };

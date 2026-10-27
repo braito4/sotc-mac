@@ -1,0 +1,21 @@
+{
+  "lines": [
+    "--- a/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+    "+++ b/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp",
+    "@@ -4102,6 +4102,12 @@",
+    "             }",
+    "",
+    "             bound_images.emplace_back(image_id);",
+    "",
+    "             auto& image = texture_cache.GetImage(image_id);",
+    "+            if (is_storage && image.info.guest_address && image.info.guest_size &&",
+    "+                (image.info.guest_address != desc.info.guest_address ||",
+    "+                 image.info.guest_size != desc.info.guest_size)) {",
+    "+                SotcShaderWriterBridge::ResolvedImageBinding(image.info.guest_address,",
+    "+                    image.info.guest_size,stage.pgm_hash,binding_index,desc.info.guest_size);",
+    "+            }",
+    "             auto& image_view = texture_cache.FindTexture(",
+    "                 image_id, desc, memo_entry ? &memo_entry->view_memo : nullptr, !on_helper);",
+    "             const auto binding = image.binding;"
+  ]
+}

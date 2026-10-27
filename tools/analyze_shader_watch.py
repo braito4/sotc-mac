@@ -32,3 +32,21 @@ def review(path,origin,submission):
                 result['latest_observation_before_lookup']=(values['last_readable_ns']<=lookup['ns'] if lookup.get('ns') else None)
     except (OSError,ValueError,KeyError) as error:result.update(state='invalid',reason=str(error))
     return result
+
+
+def transition_review(journal,address):
+    """Offline registration history only; never certify allocation continuity."""
+    result=dict(state=journal.get('state','absent'),address=address,events=[],
+        continuity='unknown',allocation_identity='unknown',
+        limitation='Bounded numeric registration transitions, not memory writes or allocation lifetime. Missing events do not prove continuous coverage; times precede publication while the watch slot is busy.')
+    if journal.get('state')!='readable':return result
+    key=address>>8;key^=key>>17
+    channels=[c for c in journal.get('channels',[]) if c['channel'] in (key&7,(key&7)+8,(key&7)+16)]
+    result['relevant_channel_losses']=sum(c.get('overwritten',0)+c.get('busy_drops',0)+c.get('incomplete_or_stale',0) for c in channels)
+    result['events']=[e for e in journal.get('events',[]) if e['address']==address]
+    result['state']='observed' if result['events'] else 'not_retained'
+    result['known_evictions']=sum(e['action']=='evict' for e in result['events'])
+    result['registration_drops']=sum(e['action']=='registration_dropped' for e in result['events'])
+    if result['known_evictions'] or result['registration_drops']:result['continuity']='known_gap_or_registration_failure'
+    elif result['relevant_channel_losses']:result['continuity']='history_incomplete'
+    return result

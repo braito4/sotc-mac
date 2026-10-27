@@ -655,3 +655,67 @@ accepted explicit budgets remain 1..1800. No upstream source, dependency pin or 
 semantics changed in this rollback. GPU tests are paused; only CPU/synthetic
 contracts and read-only source/log review are used during containment. A user-space
 timeout cannot guarantee recovery from a kernel/driver hang.
+
+
+## Actualización completa del 25 de octubre de 2026
+
+Por petición expresa del propietario se incorpora el runtime completo
+[84daa9f13e5c](https://github.com/bloodborne-native/bloodborne-runtime/commit/84daa9f13e5cf000d5fb59dc65803e28026fa77b),
+la CPU [196ed99d961f](https://github.com/bloodborne-native/bloodborne-recomp/commit/196ed99d961f084c772923ce7c62785e271d5f4c)
+y SotC [0.60.6](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/40ec52a5a246bbaf20402520fe8fc9682f0a30c0).
+La aplicación bloodborne-mac revisada apunta a
+[27b72fe52133](https://github.com/bloodborne-native/bloodborne-mac/commit/27b72fe5213364347833633ab78779a56df7382a):
+se incorpora su base runtime, manteniendo el lanzador específico de SotC.
+Los incrementos desde la revisión del día 24 son 46 commits del runtime, 20 de CPU
+y 24 de la aplicación; la referencia SotC no añadió cambios desde aquella revisión.
+
+Se migran las interfaces de dispositivo/recorder, rutas Metal, recursos y shaders;
+las adaptaciones locales de copias, límites, propiedad, compatibilidad de shaders
+y captura siguen presentes. La compatibilidad SPIR-V común pasa a CreateShader,
+para cubrir tanto compilación como caché. Las sondas de imágenes pasan a las nuevas
+rutas de asignación/liberación; la retirada de proxies usa la propiedad diferida del
+adaptador. Se conserva la corrección upstream de liberación de texturas Metal.
+Las optimizaciones nuevas de CPU incluyen recompilación estática; su presencia no
+significa que nuestras ejecuciones dinámicas las recorran.
+
+La fuente activa está en el workspace de la revisión nueva. Los submódulos históricos
+runtime/upstream y reference se conservan como oráculos de regresión; el preparador
+activo usa la nueva referencia aislada. El caché de shaders es 29/9. Dependencias
+copiadas se relocalizan sin cambiar el prefijo antiguo; los binarios anteriores y
+el código previo se conservan privadamente. No se fusionan tasas de fallo anteriores
+y posteriores a esta actualización. El nuevo colector admite descarte agresivo de
+contenido GPU pendiente: es una decisión upstream incorporada, no una garantía de
+fidelidad; los tests distinguen expresamente ambos modos.
+
+Validación: contratos ARM64 completos en ambos modos, 29 comprobaciones del renderer,
+26 tests de construcción y 46/46 símbolos del host. El escalado FSR4 opcional sigue
+sujeto a las herramientas/activos que upstream requiere; el diagnóstico usa escalado
+desactivado. No se ha ejecutado el juego ni demostrado una corrección del stall.
+La estrategia de clasificación y cierre está en [BUG_REPAIR_STRATEGY.md](BUG_REPAIR_STRATEGY.md).
+
+## October 26: native Metal RC integration
+
+The active renderer is `a27f0ca477bd8356a015311d1eaa92e6f6a0b007`, the runtime
+selected by bloodborne-mac `9c8ac5c` (0.9.0 RC1). Local SotC adaptations were
+merged onto this revision, with the existing CPU translator `196ed99` deliberately
+retained. New native device/queue initialization, capabilities, 3D texture support,
+resource ownership routing and native-resolution classification are included.
+The launcher selects `BB_METAL_NATIVE_BOOT=1` without Vulkan discovery. Explicit
+`BB_METAL_NATIVE_BOOT=0` retains the previous Metal-on-Vulkan startup comparison;
+the dedicated Vulkan check still uses the loader. These modes are not identical.
+
+Four optional button-prompt imports preserve SotC's original icons (no Bloodborne
+input-name replacement). Input handling itself stays on our existing SDL adapter.
+Old workspace/build `84daa9f13e5c` remains available. Copied dependency install names
+were relocated to the new prefix; old libraries were not edited. No game has been
+launched as part of this update, and the observed Metal OOM is not claimed fixed.
+
+Next manual trial: `bash prueba_runtime_actualizado.command`. This establishes a
+new baseline: native boot, three balanced pool windows, default collector budget,
+shim residency enabled, existing exact-shader barrier trial, resource observations,
+single inflight command, skipped intro, GPU wait120s and global500s. Other optional
+render/indirect/CPU probes are off. This is not a single-variable comparison with
+the preceding single-pool/early-GC trial. Native buffer summaries distinguish the
+shim's residency switch from the separate renderer address-buffer residency set.
+Build/check evidence: `work/analysis/runtime-update-20261026/`.
+

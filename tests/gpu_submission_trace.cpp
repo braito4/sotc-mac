@@ -33,10 +33,28 @@ static Submission Batch(Key scheduler, U64 tick) {
 }
 int main(int argc, char** argv) {
     assert(argc == 2);
+    // Prefix/tail coverage survives merging already-truncated recordings.
+    {
+        Commands a,b;NativeEvent e{};
+        for(unsigned i=1;i<=100;++i){e.ordinal=i;a.AddNative(e);}
+        for(unsigned i=101;i<=500;++i){e.ordinal=i;b.AddNative(e);}
+        a.Merge(b);assert(a.native_total==500 && a.native_tail.size()==256);
+        for(unsigned i=0;i<192;++i)assert(a.native_tail[i].ordinal==i+1);
+        for(unsigned i=192;i<256;++i)assert(a.native_tail[i].ordinal==437+i-192);
+    }
     if (std::string(argv[1]) == "supervised") {
         assert(Enabled()); assert(fixture_control_start() == 0);
         Recorder recorder;
         recorder.Begin(100); recorder.Note(100, "dispatch", 123, 0, 2, 3, 4);
+        NativeEvent encoded{};
+        std::snprintf(encoded.event.data(), encoded.event.size(), "dispatch_indirect");
+        std::snprintf(encoded.entry.data(), encoded.entry.size(), "cs_indirect_fixture");
+        encoded.encoder = 5; encoded.pipeline = 6; encoded.indirect_buffer = 7;
+        encoded.offset = 48; encoded.threads = {32, 1, 1};
+        encoded.backend_pipeline = 9;
+        encoded.source=101;encoded.destination=202;encoded.source_offset=16;
+        encoded.destination_offset=32;encoded.bytes=64;encoded.source_length=128;encoded.destination_length=256;
+        recorder.Native(100, encoded);
         const Key buffers[] = {100}; recorder.Submit(Batch(10, 1), buffers);
         recorder.Returned(10, 1, 0);
         recorder.Report(stderr, 10, 1, 0);
@@ -47,6 +65,12 @@ int main(int argc, char** argv) {
     if (std::string(argv[1]) != "1") return 0;
     Recorder recorder;
     const auto first = recorder.Begin(100);
+    NativeEvent native_note{};
+    std::snprintf(native_note.event.data(), native_note.event.size(), "dispatch_direct");
+    std::snprintf(native_note.entry.data(), native_note.entry.size(), "cs_fixture_hash");
+    native_note.encoder = 200; native_note.pipeline = 300;
+    native_note.groups = {2, 3, 4}; native_note.threads = {32, 1, 1};
+    for (unsigned i = 0; i < 300; ++i) recorder.Native(100, native_note);
     recorder.Note(100, "dispatch", 123, 0, 2, 3, 4);
     const auto chunk1 = recorder.CommitMetal(100, first);
     const Key buffers[] = {100};
@@ -56,6 +80,15 @@ int main(int argc, char** argv) {
     assert(prepared.find("submit_returned=0") != std::string::npos);
     assert(prepared.find("wait semaphore=0x42 value=7") != std::string::npos);
     assert(prepared.find("count=2,3,4") != std::string::npos);
+    assert(prepared.find("retained=256 total=300 omitted=44 limit=256") != std::string::npos);
+    assert(prepared.find("ordinal=1 ")!=std::string::npos);
+    assert(prepared.find("ordinal=192 ")!=std::string::npos);
+    assert(prepared.find("ordinal=193 ")==std::string::npos);
+    assert(prepared.find("ordinal=237 ")!=std::string::npos);
+    assert(prepared.find("ordinal=300 ")!=std::string::npos);
+
+    assert(prepared.find("event=dispatch_direct encoder=0xc8 pipeline=0x12c entry=cs_fixture_hash") != std::string::npos);
+    assert(prepared.find("groups=2,3,4 threads=32,1,1") != std::string::npos);
     recorder.Returned(10, 1, 0);
     recorder.MetalEvent(chunk1, 0); recorder.MetalEvent(chunk1, 1);
     recorder.MetalEvent(chunk1, 2, 4);
@@ -70,10 +103,11 @@ int main(int argc, char** argv) {
     recorder.Submit(Batch(10, 2), buffers);
     recorder.MetalEvent(chunk2, 2, 5, 99);
     auto reused = Report(recorder, 10, 2);
+    assert(reused.find("cs_fixture_hash") == std::string::npos);
     assert(reused.find("Metal chunk=1 ") == std::string::npos);
     assert(reused.find("Metal chunk=2 ") != std::string::npos);
     assert(reused.find("status=5 error=99") != std::string::npos);
-    assert(reused.find(" dispatch ") == std::string::npos);
+    assert(reused.find(" dispatch shader=") == std::string::npos);
     auto failure = FailureReport(recorder, chunk2);
     assert(failure.find("FAILED_METAL chunk=2 retained=1") != std::string::npos);
     assert(failure.find("tick=2 status=5 error=99") != std::string::npos);
@@ -221,11 +255,15 @@ int main(int argc, char** argv) {
     const auto probe_chunk = probes.CommitMetal(800, probe_generation, [&] {
         ++samples;
         probes.Returned(40, 1, 0);
-        return MetalObservation{.available = true, .retained_references = true, .memory_available = true,
+        return MetalObservation{.progress_enabled = true, .progress_available = true,
+                                .progress_encoded = 26, .progress_reached = 7, .progress_event = 999,
+                                .available = true, .retained_references = true, .memory_available = true,
                                 .status = 2, .allocated = 12345, .recommended = 54321};
     });
     assert(samples == 0); // registration/normal recording does not sample the driver
     auto native = Report(probes, 40, 1);
+    assert(native.find("enabled=1 available=1 encoded=26 reached=7 omitted=0 event=0x3e7") != std::string::npos);
+    std::fwrite(native.data(), 1, native.size(), stdout);
     assert(samples == 1);
     assert(native.find("scheduled_callback=0 completed_callback=0 status=0") != std::string::npos);
     assert(native.find("probe_registered=1 available=1 probe_error=0") != std::string::npos);

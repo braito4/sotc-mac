@@ -34,6 +34,7 @@ constexpr u64 MB=1024*1024,LARGE_MIN_GRANULARITY=64_KB;
 namespace Common { u64 AlignUp(u64 value,u64 step){return (value+step-1)&~(step-1);} }
 namespace SotcVisual { enum Counter {StagingNewBuffers,StagingReuses,StagingOversizeReuses};void Count(Counter){} }
 struct Instance {u64 NonCoherentAtomSize()const{return 256;}};
+struct BackendDevice { static const Instance& From(const Instance& i){return i;} };
 namespace VideoCore {
 enum class MemoryType {DeviceLocal,HostUncached,HostCached};
 struct Buffer {

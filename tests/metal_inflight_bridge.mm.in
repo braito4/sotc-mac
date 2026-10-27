@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include "gpu_metal_inflight.h"
+#include "gpu_buffer_chain.h"
 @protocol MTLDevice <NSObject>
 @property(readonly) NSUInteger currentAllocatedSize;
 @property(readonly) NSUInteger recommendedMaxWorkingSetSize;
@@ -73,6 +74,12 @@ struct Owned {
     id<MTLCommandBuffer> cmd;
     u64 trace_buffer{}, trace_recording{};
 };
+// Checkpoint behavior is tested independently by encoder_progress_fixture.mm.
+namespace SotcEncoderProgress {
+template<class T> auto Observe(T&, SotcGpuTrace::MetalProbe probe) { return probe; }
+}
+// Resource registry sampling is outside this admission/callback fixture.
+void ReportMemoryBuffers(bool) {}
 @COMMIT@
 int main(int argc, char**) {
     @autoreleasepool {
