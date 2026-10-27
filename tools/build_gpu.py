@@ -97,7 +97,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'upload_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -109,7 +109,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'upload_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):

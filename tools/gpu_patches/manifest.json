@@ -38,7 +38,8 @@
       "task_guard_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985",
       "producer_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985",
       "compute_packet_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985",
-      "shader_submit_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985"
+      "shader_submit_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985",
+      "upload_previous": "1b4b691e823b61428504a79af7afd7e107ebfb855cea1fa05af2cc08f83f7985"
     },
     "gpu/shadps4/core/libraries/videoout/driver.cpp": {
       "before": "dbc9d698f3a3d58683b802516d7197e585e120559261d65919a8ca82a2e7738d",
@@ -67,7 +68,8 @@
       "task_guard_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
       "producer_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
       "compute_packet_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
-      "shader_submit_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
+      "shader_submit_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0",
+      "upload_previous": "740a48e1a449a52b8ace0241473b25541d6b58cf3a931247e942079a309ed7b0"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp": {
       "before": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
@@ -96,7 +98,8 @@
       "task_guard_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8",
       "producer_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8",
       "compute_packet_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8",
-      "shader_submit_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8"
+      "shader_submit_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8",
+      "upload_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/lower_wave64_pass.cpp": {
       "before": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
@@ -125,7 +128,8 @@
       "task_guard_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
       "producer_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
       "compute_packet_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
-      "shader_submit_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
+      "shader_submit_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
+      "upload_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.cpp": {
       "before": "d2e1a4b0b0eb6c64c99d319fa4bdfd9c2a99e54c89cd1811bfcc44e8abc84798",
@@ -154,7 +158,8 @@
       "task_guard_previous": "fe73bac16d302c224464b98e2cac477f9b5a1a075f5fb2b1ae7638c0cc7a49b0",
       "producer_previous": "fe73bac16d302c224464b98e2cac477f9b5a1a075f5fb2b1ae7638c0cc7a49b0",
       "compute_packet_previous": "8719fe78d339818a74f8c49f0de136d75c47537db316034eb7e2909969b222a6",
-      "shader_submit_previous": "4fb40a4a3867f0d09a76a2552962f0abed1a4c9172df921e0c25f7675a87eb36"
+      "shader_submit_previous": "4fb40a4a3867f0d09a76a2552962f0abed1a4c9172df921e0c25f7675a87eb36",
+      "upload_previous": "b018e0cea0b47b4553180bc122e951dda54e2570f6f1d7320c114b7f67bd3078"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp": {
       "before": "df8f68a5bae66c42e94babe3ab3c850357c140282a0aa4ff85b46792309bf9c2",
@@ -183,7 +188,8 @@
       "task_guard_previous": "a1cca5a455d20a969aa4d1d7662e6730d4d037feab85af04bb5a5c6fdec3cb04",
       "producer_previous": "a1cca5a455d20a969aa4d1d7662e6730d4d037feab85af04bb5a5c6fdec3cb04",
       "compute_packet_previous": "a1cca5a455d20a969aa4d1d7662e6730d4d037feab85af04bb5a5c6fdec3cb04",
-      "shader_submit_previous": "a1cca5a455d20a969aa4d1d7662e6730d4d037feab85af04bb5a5c6fdec3cb04"
+      "shader_submit_previous": "a1cca5a455d20a969aa4d1d7662e6730d4d037feab85af04bb5a5c6fdec3cb04",
+      "upload_previous": "a1cca5a455d20a969aa4d1d7662e6730d4d037feab85af04bb5a5c6fdec3cb04"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
       "before": "d554160440bb533dbc2e75fd9213458ea8de7c09ddbee7f99a8d2d807aec8acf",
@@ -212,7 +218,8 @@
       "task_guard_previous": "cce8b23932b4e15b4b261fcc82f7ac2302d6c32f3c85943b4e4062432d0a2950",
       "producer_previous": "cce8b23932b4e15b4b261fcc82f7ac2302d6c32f3c85943b4e4062432d0a2950",
       "compute_packet_previous": "cce8b23932b4e15b4b261fcc82f7ac2302d6c32f3c85943b4e4062432d0a2950",
-      "shader_submit_previous": "cce8b23932b4e15b4b261fcc82f7ac2302d6c32f3c85943b4e4062432d0a2950"
+      "shader_submit_previous": "cce8b23932b4e15b4b261fcc82f7ac2302d6c32f3c85943b4e4062432d0a2950",
+      "upload_previous": "cce8b23932b4e15b4b261fcc82f7ac2302d6c32f3c85943b4e4062432d0a2950"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "0c34ee4e0772db4de5873445c47f361e06a5fbf15e9c04b0adae955e54c98174",
@@ -241,7 +248,8 @@
       "task_guard_previous": "ea087e42000d79e296f01db8defcf2d24f5a37b932047aa20f5e33fa3e54673c",
       "producer_previous": "ea087e42000d79e296f01db8defcf2d24f5a37b932047aa20f5e33fa3e54673c",
       "compute_packet_previous": "ea087e42000d79e296f01db8defcf2d24f5a37b932047aa20f5e33fa3e54673c",
-      "shader_submit_previous": "ea087e42000d79e296f01db8defcf2d24f5a37b932047aa20f5e33fa3e54673c"
+      "shader_submit_previous": "ea087e42000d79e296f01db8defcf2d24f5a37b932047aa20f5e33fa3e54673c",
+      "upload_previous": "ea087e42000d79e296f01db8defcf2d24f5a37b932047aa20f5e33fa3e54673c"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
       "before": "248769c350ff886780216dc20a41b4dfdf21ac08d226c083d11553f24b1cefe8",
@@ -270,7 +278,8 @@
       "task_guard_previous": "38e76b71ccec27011db40dcffbd2faf24e31cb4515ae877343b0981a2adad69d",
       "producer_previous": "38e76b71ccec27011db40dcffbd2faf24e31cb4515ae877343b0981a2adad69d",
       "compute_packet_previous": "38e76b71ccec27011db40dcffbd2faf24e31cb4515ae877343b0981a2adad69d",
-      "shader_submit_previous": "38e76b71ccec27011db40dcffbd2faf24e31cb4515ae877343b0981a2adad69d"
+      "shader_submit_previous": "38e76b71ccec27011db40dcffbd2faf24e31cb4515ae877343b0981a2adad69d",
+      "upload_previous": "38e76b71ccec27011db40dcffbd2faf24e31cb4515ae877343b0981a2adad69d"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_graphics_pipeline.cpp": {
       "before": "4e518ca6ba526d549f4ca4b4090e4ebe4b1b645e4f7baed13f361d9c843c1279",
@@ -299,7 +308,8 @@
       "task_guard_previous": "a5a789fe5f22699e31b65ecc7559a4bd01f3d71554c66153c85a9c19303bd102",
       "producer_previous": "a5a789fe5f22699e31b65ecc7559a4bd01f3d71554c66153c85a9c19303bd102",
       "compute_packet_previous": "a5a789fe5f22699e31b65ecc7559a4bd01f3d71554c66153c85a9c19303bd102",
-      "shader_submit_previous": "a5a789fe5f22699e31b65ecc7559a4bd01f3d71554c66153c85a9c19303bd102"
+      "shader_submit_previous": "a5a789fe5f22699e31b65ecc7559a4bd01f3d71554c66153c85a9c19303bd102",
+      "upload_previous": "a5a789fe5f22699e31b65ecc7559a4bd01f3d71554c66153c85a9c19303bd102"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_metal_shadow.h": {
       "before": "ef2111e3c8ea5ff693b3761b4957dc5a790ef8eaae1781b362808e9b57da0fc4",
@@ -328,7 +338,8 @@
       "task_guard_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
       "producer_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
       "compute_packet_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
-      "shader_submit_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
+      "shader_submit_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974",
+      "upload_previous": "f5ff4c3386c97973711667991caa21ceb4eea8f9ee72e42d228506d46d393974"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
       "before": "2aa776f2253c009f93d89545c9f765ed9584e1741c27c9150541c0ebc2ef5fc8",
@@ -357,7 +368,8 @@
       "task_guard_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c",
       "producer_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c",
       "compute_packet_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c",
-      "shader_submit_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c"
+      "shader_submit_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c",
+      "upload_previous": "ea0280573c254dd57fa79cc1c16329a3c601b28d97c34629b059a3b44072900c"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
       "before": "52d4a240543f15b10cc200567ce3ad34c1f19a2e9cbbfe2f4b8361b1bd35ccfa",
@@ -386,7 +398,8 @@
       "task_guard_previous": "55e804279588e4b95a1162d214296331af09954b2daa85d6a037f9fcfc975d94",
       "producer_previous": "55e804279588e4b95a1162d214296331af09954b2daa85d6a037f9fcfc975d94",
       "compute_packet_previous": "55e804279588e4b95a1162d214296331af09954b2daa85d6a037f9fcfc975d94",
-      "shader_submit_previous": "55e804279588e4b95a1162d214296331af09954b2daa85d6a037f9fcfc975d94"
+      "shader_submit_previous": "55e804279588e4b95a1162d214296331af09954b2daa85d6a037f9fcfc975d94",
+      "upload_previous": "55e804279588e4b95a1162d214296331af09954b2daa85d6a037f9fcfc975d94"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
       "before": "d8e18677499a71fa1d216932ba208b6e4a0804a0c1abce6c2d6d1c29af216334",
@@ -415,7 +428,8 @@
       "task_guard_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20",
       "producer_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20",
       "compute_packet_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20",
-      "shader_submit_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20"
+      "shader_submit_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20",
+      "upload_previous": "c27d1db2a5e77bbbc83b48809e884aeb82f5a6fa3f9d45a004d0ebc5ffa51a20"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
       "before": "48fa552c0ff5d48f683e2d06d980ff38a3ada5789ef28249417bcb01057f01b9",
@@ -444,11 +458,12 @@
       "task_guard_previous": "2c844cb56c3efa388a7b46e22a5fdbc2038e273d0f2251ced197cac53bdb3b30",
       "producer_previous": "2c844cb56c3efa388a7b46e22a5fdbc2038e273d0f2251ced197cac53bdb3b30",
       "compute_packet_previous": "2c844cb56c3efa388a7b46e22a5fdbc2038e273d0f2251ced197cac53bdb3b30",
-      "shader_submit_previous": "2c844cb56c3efa388a7b46e22a5fdbc2038e273d0f2251ced197cac53bdb3b30"
+      "shader_submit_previous": "2c844cb56c3efa388a7b46e22a5fdbc2038e273d0f2251ced197cac53bdb3b30",
+      "upload_previous": "2c844cb56c3efa388a7b46e22a5fdbc2038e273d0f2251ced197cac53bdb3b30"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp": {
       "before": "e49152360a975810c1ecf8e4a0eeccb56cf1c7a5982cff8423d34c6c9363b3a2",
-      "after": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5",
+      "after": "7f0cb07d0df3709a781a78f6adaad4d66a93ed1dd9ac7fb634c15d3704198759",
       "maintenance_previous": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b",
       "integer_previous": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b",
       "binding_previous": "8a6f085933005198598cb8e7efb4f9e15d279e0eed86e99adf39b5d14f150d3b",
@@ -473,7 +488,8 @@
       "task_guard_previous": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5",
       "producer_previous": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5",
       "compute_packet_previous": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5",
-      "shader_submit_previous": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5"
+      "shader_submit_previous": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5",
+      "upload_previous": "c015893d785836ae9fbb24d15fd2d0f50fce41004a6e732734b09f8d2361eee5"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.cpp": {
       "before": "1f15789800f4d37dd41b749a5b8d0c26aa73eb2ca4bb22efbb932df1d5c12a19",
@@ -502,7 +518,8 @@
       "task_guard_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25",
       "producer_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25",
       "compute_packet_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25",
-      "shader_submit_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25"
+      "shader_submit_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25",
+      "upload_previous": "859ea5a2da90aebd72cfa7fef12a4fa819b4ec0e98607559a42fa9c2ec36fe25"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.h": {
       "before": "d892aab04453d5e29d6cae4b5111a570815d106f6a00fa8b3af5cc03bac53d9c",
@@ -531,7 +548,8 @@
       "task_guard_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81",
       "producer_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81",
       "compute_packet_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81",
-      "shader_submit_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81"
+      "shader_submit_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81",
+      "upload_previous": "8c611624483c9cd0ed640a18daedd45c44e97f770ca0cf2a68fc2f2a2ddadf81"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
       "before": "b27c716e2a37883ba48f189df910ad8a77ddd2e10b2805ad8025068b44416de3",
@@ -560,7 +578,8 @@
       "task_guard_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
       "producer_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
       "compute_packet_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
-      "shader_submit_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
+      "shader_submit_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942",
+      "upload_previous": "23b1ccab1dc89892c8402eac38f809126361c514f3f592873df9acd48f614942"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
       "before": "09ba162aa1170fa76a459ba8beb2fd886e0d22d7f465baeac137d9215b4564ef",
@@ -589,7 +608,8 @@
       "task_guard_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
       "producer_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
       "compute_packet_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
-      "shader_submit_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
+      "shader_submit_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0",
+      "upload_previous": "e3d1989677f6ca7274ebbebbfc557b0e6658a4f66b4b9e03f8e521c38b0df2c0"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.cpp": {
       "before": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
@@ -618,7 +638,8 @@
       "task_guard_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
       "producer_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
       "compute_packet_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
-      "shader_submit_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
+      "shader_submit_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
+      "upload_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.h": {
       "before": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
@@ -647,7 +668,8 @@
       "task_guard_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
       "producer_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
       "compute_packet_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
-      "shader_submit_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
+      "shader_submit_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
+      "upload_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp": {
       "before": "a9f8ec28118f3589908c557446d030f5347c1d85735607d4c0ee4c7213265522",
@@ -676,7 +698,8 @@
       "task_guard_previous": "bd3a3df23418fac7b87ac8b41461739d435b18aec2d056c83c5682495db781f6",
       "producer_previous": "bd3a3df23418fac7b87ac8b41461739d435b18aec2d056c83c5682495db781f6",
       "compute_packet_previous": "bd3a3df23418fac7b87ac8b41461739d435b18aec2d056c83c5682495db781f6",
-      "shader_submit_previous": "bd3a3df23418fac7b87ac8b41461739d435b18aec2d056c83c5682495db781f6"
+      "shader_submit_previous": "bd3a3df23418fac7b87ac8b41461739d435b18aec2d056c83c5682495db781f6",
+      "upload_previous": "bd3a3df23418fac7b87ac8b41461739d435b18aec2d056c83c5682495db781f6"
     },
     "gpu/shadps4/video_core/texture_cache/image.cpp": {
       "before": "2d24691861f219b24cd031a108b0d6107d2c5040af6807d77099861408081c4f",
@@ -705,7 +728,8 @@
       "task_guard_previous": "920961a8ccf2ad5c2cf933caa9835d0f5f096204c30e33a894de58748dd95558",
       "producer_previous": "920961a8ccf2ad5c2cf933caa9835d0f5f096204c30e33a894de58748dd95558",
       "compute_packet_previous": "920961a8ccf2ad5c2cf933caa9835d0f5f096204c30e33a894de58748dd95558",
-      "shader_submit_previous": "920961a8ccf2ad5c2cf933caa9835d0f5f096204c30e33a894de58748dd95558"
+      "shader_submit_previous": "920961a8ccf2ad5c2cf933caa9835d0f5f096204c30e33a894de58748dd95558",
+      "upload_previous": "920961a8ccf2ad5c2cf933caa9835d0f5f096204c30e33a894de58748dd95558"
     },
     "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
       "before": "05d738dc7041cbb9f6567ca7871963f7b8629a260f23d515ce676c37ba585d3a",
@@ -734,7 +758,8 @@
       "task_guard_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c",
       "producer_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c",
       "compute_packet_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c",
-      "shader_submit_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c"
+      "shader_submit_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c",
+      "upload_previous": "f0e13491ce1dbaa3417d621878bdb59836e74d13dad97f8fbd9dace32d05343c"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h": {
       "before": "50548c9374b5bf2e3009cf6309ac413580478bccff717bbc58305abd742e2bd4",
@@ -763,7 +788,8 @@
       "task_guard_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd",
       "producer_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd",
       "compute_packet_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd",
-      "shader_submit_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd"
+      "shader_submit_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd",
+      "upload_previous": "1bedefdd9c4d719cb6b649ddb0415d10b0a7f26f0c4840f37cd89a812064e0cd"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer_cache.h": {
       "maintenance_previous": "65d3c545b48064e488b7511eed024b7dcb446092f1a012a987164fd488555b6e",
@@ -792,7 +818,8 @@
       "task_guard_previous": "d3d5ef5028689589a29adcb494c3f789700b00d8944c948bb98cb02a70a773f8",
       "producer_previous": "d3d5ef5028689589a29adcb494c3f789700b00d8944c948bb98cb02a70a773f8",
       "compute_packet_previous": "d3d5ef5028689589a29adcb494c3f789700b00d8944c948bb98cb02a70a773f8",
-      "shader_submit_previous": "d3d5ef5028689589a29adcb494c3f789700b00d8944c948bb98cb02a70a773f8"
+      "shader_submit_previous": "d3d5ef5028689589a29adcb494c3f789700b00d8944c948bb98cb02a70a773f8",
+      "upload_previous": "d3d5ef5028689589a29adcb494c3f789700b00d8944c948bb98cb02a70a773f8"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.h": {
       "before": "7dc2fdd02815e75b9e3e3aab95721ac34b0e7050b3d379275078685d09fdb39a",
@@ -821,7 +848,8 @@
       "task_guard_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f",
       "producer_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f",
       "compute_packet_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f",
-      "shader_submit_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f"
+      "shader_submit_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f",
+      "upload_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f"
     },
     "gpu/shadps4/shader_recompiler/recompiler.cpp": {
       "before": "b5b89ef2f4e31571fd339e65a238ac6a0a831e593aa6a95d59204d6a2aa4bb52",
@@ -850,7 +878,8 @@
       "task_guard_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0",
       "producer_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0",
       "compute_packet_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0",
-      "shader_submit_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0"
+      "shader_submit_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0",
+      "upload_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0"
     },
     "gpu/shadps4/shader_recompiler/frontend/decode.h": {
       "decode_previous": "175108a9b89b4ddc96dde7578145b1c082e77ffb03f78dd43afca3a472666a3a",
@@ -879,7 +908,8 @@
       "task_guard_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0",
       "producer_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0",
       "compute_packet_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0",
-      "shader_submit_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0"
+      "shader_submit_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0",
+      "upload_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0"
     },
     "gpu/shadps4/shader_recompiler/frontend/decode.cpp": {
       "decode_previous": "2100a0f2211c60cd2c7703ae92455789a85a74bfbb24e42f3acd68ba6fde0e42",
@@ -908,7 +938,8 @@
       "task_guard_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654",
       "producer_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654",
       "compute_packet_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654",
-      "shader_submit_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654"
+      "shader_submit_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654",
+      "upload_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654"
     },
     "gpu/shadps4/shader_recompiler/frontend/fetch_shader.cpp": {
       "decode_previous": "e990e2aae7195008a4a2e26eea95bb13328b29a0d010d2fba05ab4812f14457c",
@@ -937,7 +968,8 @@
       "task_guard_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6",
       "producer_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6",
       "compute_packet_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6",
-      "shader_submit_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6"
+      "shader_submit_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6",
+      "upload_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6"
     },
     "gpu/shadps4/shader_recompiler/frontend/copy_shader.cpp": {
       "decode_previous": "e93ccc3ea86d2d4f4fe60d68ae0e31e761fc0d356fe78ea8e66a057efb1c4b84",
@@ -966,7 +998,8 @@
       "task_guard_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386",
       "producer_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386",
       "compute_packet_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386",
-      "shader_submit_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386"
+      "shader_submit_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386",
+      "upload_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386"
     },
     "gpu/shadps4/shader_recompiler/frontend/control_flow_graph.cpp": {
       "inflight_previous": "88d7f695ad533f6ba53c3749b95c18c9688537099454439c9a56858dd7ff55ac",
@@ -995,7 +1028,8 @@
       "task_guard_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104",
       "producer_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104",
       "compute_packet_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104",
-      "shader_submit_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104"
+      "shader_submit_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104",
+      "upload_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/constant_propagation_pass.cpp": {
       "cfg_previous": "042d734edf6f9b9d4b91b872fb62b3ab8d11234afdd2c2cd669314488eca34fc",
@@ -1024,7 +1058,8 @@
       "task_guard_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b",
       "producer_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b",
       "compute_packet_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b",
-      "shader_submit_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b"
+      "shader_submit_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b",
+      "upload_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b"
     },
     "gpu/shadps4/video_core/renderer_vulkan/liverpool_to_vk.h": {
       "before": "4ce0b116baf0d1785243d1966d6099ecc1a9b29bc2d36135f9db20876814432c",
@@ -1053,7 +1088,8 @@
       "task_guard_previous": "990505600c8e570d21d8523dc0bfecd6cebdc3b893606b26936321469354aa3d",
       "producer_previous": "990505600c8e570d21d8523dc0bfecd6cebdc3b893606b26936321469354aa3d",
       "compute_packet_previous": "990505600c8e570d21d8523dc0bfecd6cebdc3b893606b26936321469354aa3d",
-      "shader_submit_previous": "990505600c8e570d21d8523dc0bfecd6cebdc3b893606b26936321469354aa3d"
+      "shader_submit_previous": "990505600c8e570d21d8523dc0bfecd6cebdc3b893606b26936321469354aa3d",
+      "upload_previous": "990505600c8e570d21d8523dc0bfecd6cebdc3b893606b26936321469354aa3d"
     },
     "gpu/shadps4/video_core/renderer_vulkan/liverpool_to_vk.cpp": {
       "before": "2f692bb7f2695329c7076f685638dc01cb9a09c3e0425ddb4ea517be554b6103",
@@ -1082,7 +1118,8 @@
       "task_guard_previous": "c8b9e958164a04b927171b229fe9a4a75c31069b5f9fb2f04d9d727e80607911",
       "producer_previous": "c8b9e958164a04b927171b229fe9a4a75c31069b5f9fb2f04d9d727e80607911",
       "compute_packet_previous": "c8b9e958164a04b927171b229fe9a4a75c31069b5f9fb2f04d9d727e80607911",
-      "shader_submit_previous": "c8b9e958164a04b927171b229fe9a4a75c31069b5f9fb2f04d9d727e80607911"
+      "shader_submit_previous": "c8b9e958164a04b927171b229fe9a4a75c31069b5f9fb2f04d9d727e80607911",
+      "upload_previous": "c8b9e958164a04b927171b229fe9a4a75c31069b5f9fb2f04d9d727e80607911"
     },
     "gpu/shim/common/assert.cpp": {
       "before": "41e438bb962eff926c07e59596a70b0956b52e60dc0631d5757f6a36cdf9b3a6",
@@ -1111,7 +1148,8 @@
       "task_guard_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031",
       "producer_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031",
       "compute_packet_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031",
-      "shader_submit_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031"
+      "shader_submit_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031",
+      "upload_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031"
     },
     "gpu/shadps4/shader_recompiler/frontend/format.cpp": {
       "tess_previous": "6643fec4a63da01e37ad08f9df1816b4646e99409ada05875b2316c5c7371613",
@@ -1140,7 +1178,8 @@
       "task_guard_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898",
       "producer_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898",
       "compute_packet_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898",
-      "shader_submit_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898"
+      "shader_submit_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898",
+      "upload_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898"
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.h": {
       "tess_previous": "8b75644f3c7d868376ae76c656eb18b462dfb0305d6d65081cfeec1cf2437c8e",
@@ -1169,7 +1208,38 @@
       "finite_previous": "8b75644f3c7d868376ae76c656eb18b462dfb0305d6d65081cfeec1cf2437c8e",
       "producer_previous": "199d9c02decb92c70beb87a73118b949a5a849c6f7e177c47f8e4cf25cc5106c",
       "compute_packet_previous": "199d9c02decb92c70beb87a73118b949a5a849c6f7e177c47f8e4cf25cc5106c",
-      "shader_submit_previous": "199d9c02decb92c70beb87a73118b949a5a849c6f7e177c47f8e4cf25cc5106c"
+      "shader_submit_previous": "199d9c02decb92c70beb87a73118b949a5a849c6f7e177c47f8e4cf25cc5106c",
+      "upload_previous": "92955814f3f582ca9a7c4cb772c3165c54b6e2660af70a89d14f0eeea2aecb23"
+    },
+    "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.h": {
+      "maintenance_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "after": "6ae052074abfd66d015737f1108186da15cefb5b39fef51594ac5b4eab526cc2",
+      "pool_v2_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "producer_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "tess_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "provenance_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "inflight_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "finite_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "compute_packet_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "snapshot_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "retention_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "decode_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "pool_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "sample_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "before": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "task_guard_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "uniform_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "srt_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "binding_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "tail_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "integer_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "shader_submit_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "task_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "probe_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "format_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "srt_program_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "cfg_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7",
+      "upload_previous": "9f846757436485db83a84f8a2639c3354a7dec4b06080af689531a4ddd7f58c7"
     }
   },
   "patches": {
@@ -1198,7 +1268,8 @@
     "sotc-task-guard.patch.json": "acce66f00a5a6a10a8ce497dc1f13553162c1cfc5cd83cba894dbf021de059b7",
     "sotc-shader-producer-trace.patch.json": "87c9f7364a268c1a329257d361e821181af4ee04cab988ac5ff0685282e8abe7",
     "sotc-compute-packet-framing.patch.json": "685475573930e59cb45436bd61a8dfbc0641f1991888a428124afe4df5dfd9f0",
-    "sotc-shader-submit-trace.patch.json": "620dd6c899fe0f840d31cf586ae4ff5b19b575d489cae88686138172fe469850"
+    "sotc-shader-submit-trace.patch.json": "620dd6c899fe0f840d31cf586ae4ff5b19b575d489cae88686138172fe469850",
+    "sotc-upload-batches.patch.json": "83a6b79cce15c9bb8a0a1d4c4e0ec3a8da598947e5be8354ec71242932e0193b"
   },
   "local_adaptations": [
     "sotc-submission-trace-v1",
@@ -1236,7 +1307,8 @@
     "Complete SH register destination bounds and opt-in bounded program-address write/lookup provenance; metadata failure saves exact scanned bytes without a second backing read.",
     "Pass bounded original PM4 packet spans to shader-address tracing; retain post-copy raw register and original SET_SH_REG address pair without additional guest reads.",
     "Bound compute PM4 framing before copies; preserve multi-part ring packets and isolate complete indirect buffers. CPU controls only; native shader-origin cause remains unresolved.",
-    "Opt-in bounded pre-enqueue shader-head and original address-pair observations, retained per submission through decoding and persisted in independent submission/consumption journal tails. No shader acceptance or guest ownership change."
+    "Opt-in bounded pre-enqueue shader-head and original address-pair observations, retained per submission through decoding and persisted in independent submission/consumption journal tails. No shader acceptance or guest ownership change.",
+    "sotc-upload-batches-v1"
   ],
   "scene_proxy_source_review": {
     "repository": "https://github.com/bmy/bbport-mac",
@@ -1632,5 +1704,33 @@
     "sotc-task-guard.patch.json",
     "sotc-shader-producer-trace.patch.json",
     "sotc-compute-packet-framing.patch.json"
+  ],
+  "upload_previous_patches": [
+    "sotc-current-runtime.patch.json",
+    "sotc-busy-cache-maintenance.patch.json",
+    "sotc-integer-blit.patch.json",
+    "sotc-binding-copy-sharing.patch.json",
+    "sotc-staging-tail.patch.json",
+    "sotc-metal-retention.patch.json",
+    "sotc-metal-probe.patch.json",
+    "sotc-metal-tess-instances.patch.json",
+    "sotc-shader-decode.patch.json",
+    "sotc-metal-inflight.patch.json",
+    "sotc-srt-diagnostic.patch.json",
+    "sotc-srt-uniform.patch.json",
+    "sotc-srt-finite.patch.json",
+    "sotc-task-retirement.patch.json",
+    "sotc-pool-windows.patch.json",
+    "sotc-shader-cfg.patch.json",
+    "sotc-shader-snapshot.patch.json",
+    "sotc-srt-program-safety.patch.json",
+    "sotc-pool-window-placement.patch.json",
+    "sotc-sample-count-validation.patch.json",
+    "sotc-shader-format-bounds.patch.json",
+    "sotc-shader-provenance.patch.json",
+    "sotc-task-guard.patch.json",
+    "sotc-shader-producer-trace.patch.json",
+    "sotc-compute-packet-framing.patch.json",
+    "sotc-shader-submit-trace.patch.json"
   ]
 }
