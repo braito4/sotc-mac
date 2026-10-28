@@ -7,7 +7,8 @@ PINNED_SHA256='53d8005e88a0be91352e150edb8084d0bbf06bfdcb4fa621f06f15822817ca13'
 
 
 def prepare(data):
-    if hashlib.sha256(data).hexdigest()!=PINNED_SHA256:
+    if hashlib.sha256(data).hexdigest() not in (PINNED_SHA256,
+            '32026e0a46a6529fa2ecadf15ad03ee17d3375ca84519874a7363d214fe42d37'):
         raise ValueError('Unexpected pinned scalar interpreter; refusing unchecked adaptation.')
     source=data.decode()
     old='''    uint64_t a = bbcpu_read(cpu, in, dst) & m, r = a;

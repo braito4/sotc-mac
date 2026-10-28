@@ -1,15 +1,15 @@
 {
-  "base_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
-  "previous_base_revision": "84daa9f13e5cf000d5fb59dc65803e28026fa77b",
+  "base_revision": "73672843f513af322990b0138b5d1ddcf086edb0",
+  "previous_base_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
   "upstream_commits": [],
   "files": {
     "gpu/CMakeLists.txt": {
-      "before": "89ec66f76587e4ddbf4c61689f1c470c6a0f917338ad8851dec09cb6887b1314",
-      "after": "cdf4b262529fa687358681d8c7b6d2475b9ca786e60e2e70d779436df90844c4"
+      "before": "bd07707c9802006742ac0cfa38aa590f21be9de7d28b19d19b1c5777d954edc8",
+      "after": "54d510f2fa4a24c6b2de640f39372bbe88e99843db3f5468a3079ef1bab01395"
     },
     "gpu/shadps4/core/libraries/videoout/driver.cpp": {
-      "before": "ee70a2f1a34494e38219755f4dcef2a5f6cc69a5ac8335e1ced0e3511699a4d3",
-      "after": "ee77a5a5bbb3cc970097eb072f2e17ad665c492dd127f27d9614db5e823f55d0"
+      "before": "bf5a2d88e7d5aed047b5e2a2b94364a7f4d2ef90b244a2ab1c71066d95085331",
+      "after": "9854bde6cc5addc355ff2598ad372b422c694eb889474282a595d367d80c413a"
     },
     "gpu/shadps4/shader_recompiler/frontend/control_flow_graph.cpp": {
       "before": "88d7f695ad533f6ba53c3749b95c18c9688537099454439c9a56858dd7ff55ac",
@@ -69,11 +69,11 @@
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
       "before": "664d04a1cde28e54e04ebe92a94fdcdb4c255656574fb411289ef7eea021cc1f",
-      "after": "37e8c65e11a37303fd89d236123e038f6fe833acc3f62807d37e026df829fbae"
+      "after": "dfa38eed767fc2b6e3b73a9a9cb97aa30ae5491a6887bdf1658102ea38b20f3d"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "0bb4c04712dfcde943c8f80d8f9fab1f45276e1cbc8f80d2233b054952378e04",
-      "after": "58210da5017cc2c6812d168b4d737627bb62cd8e6144ad9e81031d33f8e17490"
+      "after": "433aab612f03a9317830ccd060706953d2284efbfe66a2229e913e21e29b3a40"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
       "before": "019a2a95fa17244afbe929df235f1933f49c4eb08e1b1cf54a6b18bf9377aab3",
@@ -88,8 +88,8 @@
       "after": "056b41969c8cc8d4f2224eb049807eb4b9910b35e6ff4fe46394963c923f74e1"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_backend_device.cpp": {
-      "before": "c8bce5b522daa80ee46660ac54b00c4d2959878678f45873e5a31eb155ae3bab",
-      "after": "f0df176cbcf08a01b8155266159fd1a419153b5a18b4263f805d918ffeaa574f"
+      "before": "aa6ccbb76aa67b50660b82b9aa2b48f0d01ed67e88176f0aece7740c24cdf266",
+      "after": "ff99553584b12fa36ed0472410bacf5566e41bd40eb270717451c365a392990a"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_backend_pipeline.cpp": {
       "before": "de67d8b1440c14d63745656b2d8bf3aeea081a13d44dc7cd63d868ad12e21715",
@@ -164,8 +164,8 @@
       "after": "e968aadd519629f3055cc4bbf1e6b4105dd78f7151b1f311b6332b1eff99fc6a"
     },
     "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
-      "before": "91ad7beae62e6bb82a7ec65b5baf8d4dfa6bcd35a5ac2ef73a080b6b71ece714",
-      "after": "fcf598f7b3bf84150c4d4e7b40b420912592fd619638a5fa8c8f76c1825be4a8"
+      "before": "abc4e9ba00d6ac146bdf2bd42b475f07eb5fd7a33f1172e26295f1ecb5804acb",
+      "after": "981b9d84c0a0f6a0ccfa2f1408a8759e1b423e88d207626380c8246382028723"
     },
     "gpu/shim/bbport_free_check.cpp": {
       "before": "5ebe8fc3d1471bc05ca240e4b1cf47ee220389bce9d954d1cedd7c95665f044e",
@@ -194,10 +194,22 @@
     "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.h": {
       "before": "0022f6d86ef06588ebf524fa399d99eb6fe3df3827013e42930f082a1d064a52",
       "after": "321d22bffbfa547969fafb08461f2a47cbbf41c0314a56e5d1144c67f000db21"
+    },
+    "gpu/shadps4/video_core/renderer_backend/resource.h": {
+      "before": "408ffd0721f1b8cebe4a00898fa0b15a8fb25e337c7a4da8a3de449b2222216f",
+      "after": "408ffd0721f1b8cebe4a00898fa0b15a8fb25e337c7a4da8a3de449b2222216f"
+    },
+    "gpu/shadps4/video_core/renderer_metal/mtl_vk_caps.mm": {
+      "before": "dde26d0a28272980bb9e196e14c957880b6c07920fbde81663b3f51c4b76f98b",
+      "after": "dde26d0a28272980bb9e196e14c957880b6c07920fbde81663b3f51c4b76f98b"
+    },
+    "gpu/shadps4/video_core/texture_cache/texture_cache.h": {
+      "before": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830",
+      "after": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830"
     }
   },
   "patches": {
-    "sotc-metal-adapter-20261026.patch.json": "c3367592654571aac633405cb745252175f2296ea1b2055d478ecbf95e235deb"
+    "sotc-metal-adapter-20261028.patch.json": "2c72277a39c50caa573a6270d7a91b2d648d7cc346565b9dca093f46fcc230f6"
   },
   "local_adaptations": [
     "sotc-submission-trace-v1",
@@ -241,7 +253,12 @@
     "Observe a distinct resolved storage-image backing range only when overlap/subresource resolution differs from the requested descriptor; no image, view, barrier or ordering change.",
     "Backport runtime 41f289fe81e0 display-view lifetime: cache presenter views with the display image, keyed by format and alpha mapping; retain local image ownership and synchronization. No backend migration or shader metadata bypass.",
     "Full October 25 runtime/CPU migration; backend device resource ownership, cached shader compatibility, memory events and SotC diagnostics adapted. Cache 29/9 separates previous generated shaders.",
-    "October26 runtime a27f0ca native Metal startup and capability migration. SotC shader/memory/diagnostic patches preserved; CPU translator remains196ed99 via explicit submodule override."
+    "October26 runtime a27f0ca native Metal startup and capability migration. SotC shader/memory/diagnostic patches preserved; CPU translator remains196ed99 via explicit submodule override.",
+    "Opt-in GPU rebasing of direct indexed draws whose index extent exceeds 4 GiB; bounds checked, scratch retained through completion, indirect draws unchanged.",
+    "Opt-in GPU-only indexed indirect normalization, ordered reusable 8 MiB workspace, argument preservation and explicit completion-time invalid/capacity failure; no early submission or CPU argument readback.",
+    "Opt-in selective indirect index copy: GPU-validated low ranges use original indices; mutually exclusive low/copy argument records preserve order; completed-command copy counters.",
+    "Backport runtime 82051e5bc970: reject Metal block-texel views and keep incompatible compressed/uncompressed cache images separate, including overlapping mips and slices. Vulkan capability retained.",
+    "October28 full runtime 73672843f513 and CPU c47af50ed8f8 migration; all prior SotC corrections three-way merged. Block-texel fix now upstream. Locked library recipe retained to avoid downgrading previously updated packages."
   ],
   "submodule_overrides": {
     "gpu/third_party/imgui": {
@@ -251,8 +268,8 @@
       "version": "v1.93.0"
     },
     "recomp": {
-      "base": "da1955ca0bd388237bf03467907c78ccd796a0d3",
-      "after": "196ed99d961f084c772923ce7c62785e271d5f4c"
+      "base": "c47af50ed8f8e9885da01f79f6c545631641839b",
+      "after": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38"
     }
   }
 }

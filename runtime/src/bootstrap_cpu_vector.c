@@ -1,5 +1,5 @@
-/* Interpreter extension for pinned bloodborne-recomp
- * f749c155c2ff3bb932795de85c9c8fe9c4aa59ad (GPL-2.0-or-later).
+/* Interpreter extension for the selected bloodborne-recomp (GPL-2.0-or-later).
+ * The build's include path selects the same version as its archive.
  * The original vector interpreter is included unchanged and handles every
  * other mnemonic. JIT execution reaches this extension through its existing
  * instruction fallback, including register/flag synchronization.
@@ -9,7 +9,7 @@
  */
 #include "cpu_internal.h"
 #define bbcpu_exec_vec sotc_pinned_exec_vec
-#include "../upstream/recomp/src/cpu/interp_vec.c"
+#include "interp_vec.c"
 #undef bbcpu_exec_vec
 
 /* Complete the byte/word -> qword signed/unsigned widening pairs missing in

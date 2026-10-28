@@ -7,7 +7,7 @@
 #include "bootstrap_contracts.h"
 #include "bootstrap_pad.h"
 #include "bootstrap_audio.h"
-#include "../upstream/gpu/bbgpu.h"
+#include "bbgpu.h"
 #include <dlfcn.h>
 #include <stdio.h>
 #include <pthread.h>

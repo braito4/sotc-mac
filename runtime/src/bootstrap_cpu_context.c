@@ -1,5 +1,5 @@
-/* Context bridge for bloodborne-native/bloodborne-recomp
- * f749c155c2ff3bb932795de85c9c8fe9c4aa59ad. The original cpu.c is included
+/* Context bridge for the selected bloodborne-native/bloodborne-recomp.
+ * The build's include path selects the same version as its archive. Original cpu.c is included
  * unchanged; its object is omitted from the diagnostic's private archive.
  * The decoder remains pinned. A checked private JIT companion supplies probe
  * boundaries, zero-count shift correction and optional interpreter comparison
@@ -8,7 +8,7 @@
  * Foundations: deadinside28/bbport and shadPS4.
  */
 #define bbcpu_fatal sotc_upstream_cpu_fatal
-#include "../upstream/recomp/src/cpu/cpu.c"
+#include "cpu.c"
 #undef bbcpu_fatal
 #include "bootstrap_cpu_context.h"
 #include "guest_failure_state.h"
@@ -51,6 +51,9 @@ void bootstrap_cpu_restore(const BbCpu *saved) {
     BbWatch *watch = cpu->watch;
     const uint64_t instructions = cpu->instructions;
     *cpu = *saved;
+#ifdef SOTC_CPU_HAS_FP_CONTROL
+    bbcpu_apply_host_fp(cpu->mxcsr);
+#endif
     cpu->jit_cache = cache; cpu->watch = watch; cpu->instructions = instructions;
     cpu->jit_link = 0;
     apply_thread_pointer(cpu);
@@ -90,6 +93,9 @@ uint64_t bootstrap_cpu_start(uintptr_t entry, uint64_t first, uint64_t second,
     cpu->flags = 2;
     cpu->depth = depth;
     if (reset_fpu) { cpu->fcw = 0x037f; cpu->mxcsr = 0x9fc0; }
+#ifdef SOTC_CPU_HAS_FP_CONTROL
+    bbcpu_apply_host_fp(cpu->mxcsr);
+#endif
     const uint64_t args[2] = {first, second};
     *stop = SENTINEL(cpu->depth + 1);
     return bbcpu_call_on_stack(entry, 2, args, stack, size);
@@ -101,6 +107,9 @@ void bootstrap_cpu_resume(const BbCpu *saved, uint64_t stop) {
 void bootstrap_cpu_set_fpu(uint32_t mxcsr, uint16_t control, uint16_t status) {
     BbCpu *cpu = current_cpu();
     cpu->mxcsr = mxcsr; cpu->fcw = control; cpu->fsw = status;
+#ifdef SOTC_CPU_HAS_FP_CONTROL
+    bbcpu_apply_host_fp(cpu->mxcsr);
+#endif
 }
 void bootstrap_cpu_thread_finished(void) {
     BbCpu *cpu = current_cpu();

@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+# macOS ships bash 3.2; this script needs 4.4 or newer (brew install bash).
+if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4) )); then
+    for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+        if [[ -x $candidate ]]; then exec "$candidate" "$0" "$@"; fi
+    done
+    echo 'bash 4.4 or newer is needed (macOS: brew install bash).' >&2; exit 1
+fi
+# macOS: builds the libraries bbport links against into deps/macos-<arch>. BB_ARCH=x86_64 (default):
+# the Rosetta 2 build, where the whole process is x86-64 and runs the game's code natively.
+# BB_ARCH=arm64: the native Apple Silicon build, where bbcpu translates the game's code
+# (docs/ARM64_NATIVE.md).
+# Build tools that only run on the host (pkg-config, glslang, nasm) come from Homebrew.
+#   bash scripts/macos/build-deps.sh          # everything not built yet
+#   BB_DEPS_REBUILD=sdl3 bash scripts/...     # rebuild one package
+set -euo pipefail
+cd -- "$(dirname -- "$0")/../.."
+root=$PWD
+arch=${BB_ARCH:-x86_64}
+case $arch in x86_64|arm64) ;; *) echo "BB_ARCH: x86_64 or arm64" >&2; exit 1 ;; esac
+prefix=$root/deps/macos-$arch
+work=$root/deps/build$([[ $arch == arm64 ]] && echo -arm64 || true)
+mkdir -p "$prefix" "$work/src"
+
+for tool in pkg-config glslangValidator nasm cmake ninja; do
+    if ! command -v $tool >/dev/null; then
+        echo "Missing $tool: brew install pkgconf glslang nasm cmake ninja bash" >&2; exit 1
+    fi
+done
+
+VULKAN_VERSION=v1.4.365
+MOLTENVK_VERSION=v1.4.2
+# SPIR-V to Metal shading language for the Metal backend (R5); the tag Wooloomooloo2/bloodborne_mac_port
+# builds its Metal renderer with.
+SPIRV_CROSS_VERSION=vulkan-sdk-1.4.363.0
+SDL_VERSION=release-3.4.18
+FMT_VERSION=12.0.0
+MAGIC_ENUM_VERSION=v0.9.7
+ROBIN_MAP_VERSION=v1.4.0
+VMA_VERSION=v3.3.0
+MINIZ_VERSION=3.1.2
+XBYAK_VERSION=v7.43
+ZYDIS_VERSION=v4.1.1
+XXHASH_VERSION=v0.8.3
+BOOST_VERSION=1.89.0
+FFMPEG_VERSION=n7.1.2
+# The app bundle's own runtime (packaging/macos.sh): run.sh needs bash 4.4+, the start-up
+# scripts Python 3; neither is left to the user's system.
+BASH_VERSION_APP=5.3
+PYTHON_STANDALONE=20261003/cpython-3.13.16+20261003
+PYTHON_SHA256_ARM64=9e01f63bbb08576cd9c8bc2d0564d098cb30c8453a0cd4bcf6aef458f6d2a147
+# FSR 4.1.1 on Metal (gpu/fsr4_metal/build_assets.py, run by the GPU library's build): the
+# fsr4-native-macos commit gpu/fsr4_metal/VENDOR.txt names (its HLSL import and generators), and
+# the DXC release its shaders were built with (the closest tag to its dxc 1.9.0.5399).
+FSR4_NATIVE_COMMIT=329d1d7367b6b948a53486505198a5d254f02809
+DXC_VERSION=v1.9.2607
+
+jobs=$(sysctl -n hw.ncpu)
+export MACOSX_DEPLOYMENT_TARGET=13.0
+cmake_x86=(-G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=$arch
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET -DCMAKE_INSTALL_PREFIX="$prefix"
+    -DCMAKE_PREFIX_PATH="$prefix" -DCMAKE_INSTALL_NAME_DIR="$prefix/lib" -DBUILD_TESTING=OFF
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+
+done_mark() { echo "$prefix/.built-$1"; }
+needed() {
+    [[ ${BB_DEPS_REBUILD:-} == "$1" || ${BB_DEPS_REBUILD:-} == all ]] && return 0
+    [[ ! -f $(done_mark "$1") ]]
+}
+mark() { touch "$(done_mark "$1")"; echo "== $1 installed"; }
+# fetch <name> <url>: downloads and unpacks a source archive into $work/src/<name>;
+# <repository>.git#<tag> clones the tag with its submodules.
+fetch() {
+    local name=$1 url=$2 archive=$work/$1.archive
+    rm -rf "${work:?}/src/$name"; mkdir -p "$work/src/$name"
+    if [[ $url == *.git#* ]]; then
+        git clone -q --depth 1 --recurse-submodules --shallow-submodules -b "${url#*#}" "${url%#*}" "$work/src/$name"
+        return
+    fi
+    [[ -f $archive ]] || curl -fsSL --retry 3 -o "$archive" "$url"
+    tar -xf "$archive" -C "$work/src/$name" --strip-components 1
+}
+# cmake_package <name> <url> [cmake options...]
+cmake_package() {
+    local name=$1 url=$2; shift 2
+    needed "$name" || return 0
+    echo "== $name"
+    fetch "$name" "$url"
+    cmake -S "$work/src/$name" -B "$work/$name" "${cmake_x86[@]}" "$@" >/dev/null
+    cmake --build "$work/$name" -j "$jobs" >/dev/null
+    cmake --install "$work/$name" >/dev/null
+    mark "$name"
+}
+gh() { echo "https://github.com/$1/archive/refs/tags/$2.tar.gz"; }
+
+cmake_package vulkan-headers "$(gh KhronosGroup/Vulkan-Headers $VULKAN_VERSION)"
+cmake_package vulkan-loader "$(gh KhronosGroup/Vulkan-Loader $VULKAN_VERSION)" \
+    -DUPDATE_DEPS=OFF -DBUILD_WSI_XCB_SUPPORT=OFF -DBUILD_WSI_XLIB_SUPPORT=OFF -DBUILD_WSI_WAYLAND_SUPPORT=OFF
+
+# MoltenVK: the Khronos release is a universal dylib (building it needs Xcode). The ICD manifest
+# points the loader at it; run.sh sets VK_DRIVER_FILES to it.
+if needed moltenvk; then
+    echo "== moltenvk"
+    archive=$work/moltenvk.tar
+    [[ -f $archive ]] || curl -fsSL --retry 3 -o "$archive" \
+        "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-macos.tar"
+    rm -rf "$work/src/moltenvk"; mkdir -p "$work/src/moltenvk"
+    tar -xf "$archive" -C "$work/src/moltenvk"
+    dylib=$(find "$work/src/moltenvk" -path '*dynamic*' -name libMoltenVK.dylib | head -1)
+    [[ -n $dylib ]] || { echo 'libMoltenVK.dylib not found in the MoltenVK release' >&2; exit 1; }
+    lipo -info "$dylib" | grep -q "$arch" || { echo "MoltenVK release has no $arch slice" >&2; exit 1; }
+    mkdir -p "$prefix/lib" "$prefix/share/vulkan/icd.d"
+    cp "$dylib" "$prefix/lib/libMoltenVK.dylib"
+    cat > "$prefix/share/vulkan/icd.d/MoltenVK_icd.json" <<'EOF'
+{
+    "file_format_version": "1.0.0",
+    "ICD": {
+        "library_path": "../../../lib/libMoltenVK.dylib",
+        "api_version": "1.4.0",
+        "is_portability_driver": true
+    }
+}
+EOF
+    mark moltenvk
+fi
+
+cmake_package spirv-cross "$(gh KhronosGroup/SPIRV-Cross $SPIRV_CROSS_VERSION)" \
+    -DSPIRV_CROSS_SHARED=OFF -DSPIRV_CROSS_STATIC=ON -DSPIRV_CROSS_CLI=OFF -DSPIRV_CROSS_ENABLE_TESTS=OFF \
+    -DSPIRV_CROSS_ENABLE_HLSL=OFF -DSPIRV_CROSS_ENABLE_CPP=OFF -DSPIRV_CROSS_ENABLE_REFLECT=OFF \
+    -DSPIRV_CROSS_ENABLE_C_API=OFF -DSPIRV_CROSS_ENABLE_UTIL=OFF
+
+# FSR 4.1.1 on Metal: the spirv-cross command, DXC and the fsr4-native-macos tree in share/, with
+# tools/bin pointing at these commands (not its prebuilt binaries) and without AMD's
+# initializers, which stay with the player: the build never reads them.
+if needed spirv-cross-cli; then
+    echo "== spirv-cross-cli"
+    fetch spirv-cross-cli "$(gh KhronosGroup/SPIRV-Cross $SPIRV_CROSS_VERSION)"
+    cmake -S "$work/src/spirv-cross-cli" -B "$work/spirv-cross-cli" "${cmake_x86[@]}" -DSPIRV_CROSS_SHARED=OFF \
+        -DSPIRV_CROSS_STATIC=ON -DSPIRV_CROSS_CLI=ON -DSPIRV_CROSS_ENABLE_TESTS=OFF >/dev/null
+    cmake --build "$work/spirv-cross-cli" -j "$jobs" --target spirv-cross >/dev/null
+    mkdir -p "$prefix/bin"
+    cp "$work/spirv-cross-cli/spirv-cross" "$prefix/bin/spirv-cross"
+    mark spirv-cross-cli
+fi
+# DXC generates some of its sources with clang-format at configure time.
+if needed dxc && ! command -v clang-format >/dev/null; then
+    echo '== dxc skipped: no clang-format (brew install clang-format); FSR 4.1.1 on Metal is not built'
+elif needed dxc; then
+    echo "== dxc"
+    fetch dxc "https://github.com/microsoft/DirectXShaderCompiler.git#$DXC_VERSION"
+    # Generated sources are copied, not compared: the comparison fails with newer Pythons.
+    cmake -S "$work/src/dxc" -B "$work/dxc" -C "$work/src/dxc/cmake/caches/PredefinedParams.cmake" \
+        "${cmake_x86[@]}" -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_TESTS=OFF -DHLSL_INCLUDE_TESTS=OFF \
+        -DSPIRV_BUILD_TESTS=OFF -DLLVM_TARGETS_TO_BUILD=None -DHLSL_COPY_GENERATED_SOURCES=ON >/dev/null
+    cmake --build "$work/dxc" -j "$jobs" --target dxc >/dev/null
+    mkdir -p "$prefix/bin" "$prefix/lib"
+    cp "$work/dxc/bin/dxc-3.7" "$prefix/bin/dxc"
+    cp "$work/dxc/lib/libdxcompiler.dylib" "$prefix/lib/"
+    mark dxc
+fi
+if needed fsr4-native-macos && ! command -v spirv-val >/dev/null; then
+    echo '== fsr4-native-macos skipped: no spirv-val (brew install spirv-tools); FSR 4.1.1 on Metal is not built'
+elif needed fsr4-native-macos && [[ ! -x $prefix/bin/dxc ]]; then
+    echo '== fsr4-native-macos skipped: no DXC; FSR 4.1.1 on Metal is not built'
+elif needed fsr4-native-macos; then
+    echo "== fsr4-native-macos"
+    fetch fsr4-native-macos "https://github.com/UzenUPoZiTiV4ik/fsr4-native-macos/archive/$FSR4_NATIVE_COMMIT.tar.gz"
+    tree=$prefix/share/fsr4-native-macos
+    rm -rf "${prefix:?}/share/fsr4-native-macos"; mkdir -p "$tree/tools/bin"
+    cp -R "$work/src/fsr4-native-macos/third_party" "$tree/"
+    (cd "$work/src/fsr4-native-macos/tools" && cp -R ./*.py fsr411 "$tree/tools/")
+    find "$tree/third_party" -name 'initializers*.bin' -delete
+    ln -s "$prefix/bin/dxc" "$tree/tools/bin/dxc"
+    ln -s "$prefix/bin/spirv-cross" "$tree/tools/bin/spirv-cross"
+    ln -s "$(command -v spirv-val)" "$tree/tools/bin/spirv-val"
+    mark fsr4-native-macos
+fi
+cmake_package sdl3 "$(gh libsdl-org/SDL $SDL_VERSION)" -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF
+cmake_package fmt "$(gh fmtlib/fmt $FMT_VERSION)" -DFMT_TEST=OFF -DFMT_DOC=OFF
+cmake_package magic-enum "$(gh Neargye/magic_enum $MAGIC_ENUM_VERSION)" \
+    -DMAGIC_ENUM_OPT_BUILD_EXAMPLES=OFF -DMAGIC_ENUM_OPT_BUILD_TESTS=OFF
+cmake_package xbyak "$(gh herumi/xbyak $XBYAK_VERSION)"
+cmake_package robin-map "$(gh Tessil/robin-map $ROBIN_MAP_VERSION)"
+cmake_package vma "$(gh GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator $VMA_VERSION)"
+cmake_package miniz "$(gh richgel999/miniz $MINIZ_VERSION)" -DBUILD_EXAMPLES=OFF -DBUILD_FUZZERS=OFF -DBUILD_TESTS=OFF
+# Zydis builds its bundled Zycore without install rules; Zycore is installed first and used from
+# there, so Zydis's package files find it.
+if needed zydis; then
+    echo "== zydis"
+    fetch zydis "https://github.com/zyantific/zydis.git#$ZYDIS_VERSION"
+    cmake -S "$work/src/zydis/dependencies/zycore" -B "$work/zycore" "${cmake_x86[@]}" >/dev/null
+    cmake --build "$work/zycore" -j "$jobs" >/dev/null
+    cmake --install "$work/zycore" >/dev/null
+    # The installed Zycore target may lack its include directory: pass it explicitly.
+    cmake -S "$work/src/zydis" -B "$work/zydis" "${cmake_x86[@]}" -DZYAN_SYSTEM_ZYCORE=ON \
+        -DCMAKE_C_FLAGS="-I$prefix/include" \
+        -DZYDIS_BUILD_TOOLS=OFF -DZYDIS_BUILD_EXAMPLES=OFF -DZYDIS_BUILD_DOXYGEN=OFF >/dev/null
+    cmake --build "$work/zydis" -j "$jobs" >/dev/null
+    cmake --install "$work/zydis" >/dev/null
+    mark zydis
+fi
+# xxHash's CMake project lives in cmake_unofficial.
+if needed xxhash; then
+    echo "== xxhash"
+    fetch xxhash "$(gh Cyan4973/xxHash $XXHASH_VERSION)"
+    cmake -S "$work/src/xxhash/cmake_unofficial" -B "$work/xxhash" "${cmake_x86[@]}" -DXXHASH_BUILD_XXHSUM=OFF -DBUILD_SHARED_LIBS=OFF >/dev/null
+    cmake --build "$work/xxhash" -j "$jobs" >/dev/null
+    cmake --install "$work/xxhash" >/dev/null
+    mark xxhash
+fi
+# Boost: header-only libraries (CMake package files included).
+if needed boost; then
+    echo "== boost"
+    fetch boost "https://github.com/boostorg/boost/releases/download/boost-$BOOST_VERSION/boost-$BOOST_VERSION-cmake.tar.xz"
+    cmake -S "$work/src/boost" -B "$work/boost" "${cmake_x86[@]}" \
+        -DBOOST_INCLUDE_LIBRARIES='asio;container;container_hash;icl;intrusive;pool;preprocessor' \
+        -DBOOST_SKIP_INSTALL_RULES=OFF -DBOOST_CONTEXT_ARCHITECTURE=$([[ $arch == arm64 ]] && echo arm64 || echo x86_64) -DBOOST_CONTEXT_ABI=$([[ $arch == arm64 ]] && echo aapcs || echo sysv) >/dev/null
+    cmake --build "$work/boost" -j "$jobs" >/dev/null
+    cmake --install "$work/boost" >/dev/null
+    mark boost
+fi
+# FFmpeg: the decoders the game's movies need (AvPlayer), built as shared libraries.
+if needed ffmpeg; then
+    echo "== ffmpeg"
+    fetch ffmpeg "$(gh FFmpeg/FFmpeg $FFMPEG_VERSION)"
+    ffarch=$([[ $arch == arm64 ]] && echo aarch64 || echo x86_64)
+    (cd "$work/src/ffmpeg" && ./configure --prefix="$prefix" --enable-cross-compile --arch=$ffarch --target-os=darwin \
+        --cc="clang -arch $arch" --cxx="clang++ -arch $arch" --x86asmexe=nasm \
+        --extra-cflags="-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET" \
+        --extra-ldflags="-arch $arch -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET" \
+        --enable-shared --disable-static --disable-programs --disable-doc --disable-avdevice \
+        --disable-avfilter --disable-network --disable-autodetect --enable-videotoolbox \
+        --install-name-dir="$prefix/lib" >/dev/null &&
+        make -j "$jobs" >/dev/null && make install >/dev/null)
+    mark ffmpeg
+fi
+# bash for the app bundle: only system libraries (no readline or gettext from Homebrew).
+if needed app-bash; then
+    echo "== app-bash"
+    fetch app-bash "https://ftp.gnu.org/gnu/bash/bash-$BASH_VERSION_APP.tar.gz"
+    (cd "$work/src/app-bash" && CFLAGS="-arch $arch -O2 -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET" \
+        ./configure --prefix="$prefix/app-runtime" --host=$([[ $arch == arm64 ]] && echo aarch64 || echo x86_64)-apple-darwin \
+        --disable-nls --without-bash-malloc --disable-readline --enable-static-link=no >/dev/null &&
+        make -j "$jobs" >/dev/null)
+    mkdir -p "$prefix/app-runtime/bin"
+    install -m755 "$work/src/app-bash/bash" "$prefix/app-runtime/bin/bash"
+    mark app-bash
+fi
+# Python for the app bundle: python-build-standalone (relocatable, stripped), checksummed. The
+# app is packaged for arm64 only; an x86-64 (Rosetta 2) development build does without it.
+if [[ $arch == arm64 ]] && needed app-python; then
+    echo "== app-python"
+    archive=$work/app-python.tar.gz
+    [[ -f $archive ]] || curl -fsSL --retry 3 -o "$archive" \
+        "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_STANDALONE/+/%2B}-aarch64-apple-darwin-install_only_stripped.tar.gz"
+    echo "$PYTHON_SHA256_ARM64  $archive" | shasum -a 256 -c - >/dev/null
+    rm -rf "$prefix/app-runtime/python"; mkdir -p "$prefix/app-runtime"
+    tar -xf "$archive" -C "$prefix/app-runtime" # python/
+    # What the start-up scripts never use.
+    (cd "$prefix/app-runtime/python/lib/python3."* && rm -rf test idlelib tkinter turtledemo ensurepip \
+        lib2to3 pydoc_data unittest/test sqlite3/test ctypes/test lib-dynload/_tkinter*)
+    rm -rf "$prefix/app-runtime/python/include" "$prefix/app-runtime/python/share"
+    mark app-python
+fi
+echo "Dependencies are in $prefix"

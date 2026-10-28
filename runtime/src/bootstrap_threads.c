@@ -1,5 +1,5 @@
 /* Checked lifecycle adapter around unchanged bloodborne-native runtime_thread.c
- * 3170535f59cadbe5ce9c38e6bb961ed5fd215194 (GPL-2.0-or-later).
+ * selected by the build's runtime include path (GPL-2.0-or-later).
  * Uses its native pthreads, low guest stacks, TCBs, attributes and counters.
  * Foundations: deadinside28/bbport, bloodborne-native and shadPS4.
  */
@@ -17,7 +17,7 @@ static void attach_module_tls(void *);
 #define pthread_create spawn_with_context
 #define bb_guest_tls_set attach_module_tls
 #define runtime_thread_resolve sotc_upstream_thread_resolve
-#include "../upstream/src/runtime_thread.c"
+#include "runtime_thread.c"
 #undef runtime_thread_resolve
 #undef bb_guest_tls_set
 #undef pthread_create

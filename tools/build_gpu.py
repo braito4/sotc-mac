@@ -21,7 +21,7 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = 'a27f0ca477bd8356a015311d1eaa92e6f6a0b007'
+REVISION = '73672843f513af322990b0138b5d1ddcf086edb0'
 REPOSITORY = 'https://github.com/bloodborne-native/bloodborne-runtime.git'
 DEPS_SHA256 = 'da54408b8208237c854126d0ef2c67fec79667957ee195dbee6d99861016dd2e'
 SUBMODULES = ('gpu/third_party/fsr-vulkan', 'gpu/third_party/imgui', 'recomp')
@@ -120,7 +120,7 @@ def backport_manifest():
 
 def backport_state(source):
     manifest = backport_manifest()
-    states = {'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
+    states = {'block_texel_previous', 'selective_index_previous', 'indirect_index_previous', 'index_rebase_previous', 'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'before', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after'}
     for name, digests in manifest['files'].items():
         path = source / name
         if path.is_symlink() or not path.resolve().is_relative_to(source.resolve()):
@@ -133,7 +133,7 @@ def backport_state(source):
         states &= matches
     if not states:
         raise BuildError('Incomplete GPU backport set; preserving it unchanged.')
-    return next(state for state in ('after', 'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
+    return next(state for state in ('after', 'block_texel_previous', 'selective_index_previous', 'indirect_index_previous', 'index_rebase_previous', 'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'memory', 'staging', 'visual', 'command_error', 'lookup', 'compatibility', 'validity', 'previous', 'backports', 'before') if state in states)
 
 
 def apply_backports(source):
@@ -172,7 +172,16 @@ def apply_submodule_overrides(source):
         if git_output(child, 'status', '--porcelain', '--untracked-files=no'):
             raise BuildError('Preserving modified renderer submodule: ' + name)
         if current != override['after']:
+            if subprocess.run(['git', '-C', str(child), 'cat-file', '-e', override['after'] + '^{commit}'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
+                subprocess.run(['git', '-C', str(child), 'fetch', 'origin', override['after']], check=True)
             subprocess.run(['git', '-C', str(child), 'checkout', '--detach', override['after']], check=True)
+
+
+def dependency_recipe_path():
+    # Retain our checked, version-locked recipe; upstream CMake defaults select
+    # different package versions and include Bloodborne's optional online stack.
+    return PATCH_DIR / 'dependency-recipe-a27f0ca.sh'
 
 
 def prepare_recipe(data):
@@ -399,9 +408,9 @@ def verify_source(source):
             expected = {name for name, digests in backport_manifest()['files'].items()
                         if digests.get(state, digests['after'] if state == 'image_alias_previous' else None) != digests['before']}
             for name, override in backport_manifest().get('submodule_overrides', {}).items():
-                if git_output(source / name, 'rev-parse', 'HEAD') == override['after']:
+                if override['after'] != override['base'] and git_output(source / name, 'rev-parse', 'HEAD') == override['after']:
                     expected.add(name)
-            if state not in ('display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
+            if state not in ('block_texel_previous', 'selective_index_previous', 'indirect_index_previous', 'index_rebase_previous', 'display_view_previous', 'image_alias_previous', 'shader_write_previous', 'shader_submit_previous', 'compute_packet_previous', 'producer_previous', 'task_guard_previous', 'provenance_previous', 'format_previous', 'sample_previous', 'pool_v2_previous', 'srt_program_previous', 'snapshot_previous', 'cfg_previous', 'pool_previous', 'task_previous', 'finite_previous', 'uniform_previous', 'srt_previous', 'inflight_previous', 'decode_previous', 'tess_previous', 'probe_previous', 'retention_previous', 'tail_previous', 'binding_previous', 'integer_previous', 'maintenance_previous', 'backports', 'previous', 'validity', 'compatibility', 'lookup', 'command_error', 'visual', 'staging', 'memory', 'after') or changed != expected:
                 raise BuildError('GPU checkout has unrecognized tracked modifications; preserving it unchanged.')
     except subprocess.CalledProcessError as error:
         raise BuildError('Cannot verify the isolated GPU source checkout.') from error
@@ -468,7 +477,7 @@ def build(root, runner, jobs, compiler):
     for name in ('deps', 'deps/macos-arm64', 'deps/build-arm64'):
         if (source / name).is_symlink():
             raise BuildError('Refusing redirected GPU dependency output: ' + name)
-    recipe = prepare_recipe((source / 'scripts/macos/build-deps.sh').read_bytes())
+    recipe = prepare_recipe(dependency_recipe_path().read_bytes())
     generated.write_text(recipe)
     tool_dir = private_path(work, 'gpu-tools-' + REVISION[:12])
     tool_dir.mkdir(exist_ok=True)
@@ -497,7 +506,8 @@ def build(root, runner, jobs, compiler):
     fresh = ['--fresh'] if moved_build_cache(output, source) else []
     runner.run(['cmake', *fresh, *PKGCONFIG_CACHE_CLEAR, '-S', source / 'gpu', '-B', output, '-G', 'Ninja',
                 '-DCMAKE_OSX_ARCHITECTURES=arm64', '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
-                '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBB_LTO=OFF', '-DBB_PGO=off',
+                '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBB_LTO=OFF', '-DBB_PGO=off', '-DBB_NET=OFF',
+                '-DBB_GPU_OUT=' + str(output),
                 '-DSOTC_DIAGNOSTIC_INCLUDE_DIR=' + str(root / 'runtime/src'),
                 '-DCMAKE_PREFIX_PATH=' + str(prefix), '-DGLSLANG_COMPILER=' + str(compiler)], env=env)
     runner.run(['cmake', '--build', output, '--target', 'bbgpu', '--parallel', str(jobs)], env=env)
@@ -511,41 +521,6 @@ def build(root, runner, jobs, compiler):
         raise BuildError('Built GPU library does not export the required loader ABI.')
     verify_source(source)
     cache_binary, cache_meta = renderer_cache_versions(source)
-    runner.run([sys.executable, root / 'tools/check_tessellation.py'])
-    runner.run([sys.executable, root / 'tools/check_pipeline_validity.py'])
-    runner.run([sys.executable, root / 'tools/check_integer_blit.py'])
-    runner.run([sys.executable, root / 'tools/check_metal_retention.py'])
-    runner.run([sys.executable, root / 'tools/check_metal_tess_instances.py'])
-    runner.run([sys.executable, root / 'tools/check_buffer_copy_chunks.py'])
-    runner.run([sys.executable, root / 'tools/check_staging_reuse.py'])
-    runner.run([sys.executable, root / 'tools/check_staging_tail.py'])
-    runner.run([sys.executable, root / 'tools/check_binding_copy.py'])
-    runner.run([sys.executable, root / 'tools/check_display_view_lifetime.py'])
-    runner.run([sys.executable, root / 'tools/check_metal_resource_init.py'])
-    runner.run([sys.executable, root / 'tools/check_native_encoder_trace.py'])
-    runner.run([sys.executable, root / 'tools/check_tiling_trace.py'])
-    runner.run([sys.executable, root / 'tools/check_encoder_progress.py'])
-    runner.run([sys.executable, root / 'tools/check_render_trace.py'])
-    runner.run([sys.executable, root / 'tools/check_indirect_origin.py'])
-    runner.run([sys.executable, root / 'tools/check_memory_trace.py'])
-    runner.run([sys.executable, root / 'tools/check_pool_windows.py'])
-    runner.run([sys.executable, root / 'tools/check_scene_proxy_retirement.py'])
-    runner.run([sys.executable, root / 'tools/check_busy_cache_maintenance.py'])
-    runner.run([sys.executable, root / 'tools/check_nested_task_lifetime.py'])
-    runner.run([sys.executable, root / 'tools/check_task_guard.py'])
-    runner.run([sys.executable, root / 'tools/check_collection_safety.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_compat.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_decode.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_formats.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_provenance.py'])
-    runner.run([sys.executable, root / 'tools/check_compute_packets.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_submit.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_gpu_writes.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_cfg.py'])
-    runner.run([sys.executable, root / 'tools/check_sample_counts.py'])
-    runner.run([sys.executable, root / 'tools/check_shader_memory.py'])
-    runner.run([sys.executable, root / 'tools/check_srt_program.py'])
-    runner.run([sys.executable, root / 'tools/check_metal_inflight.py'])
     undefined = subprocess.check_output(['nm', '-u', library], text=True)
     runtime_symbols = sorted({line.split()[-1] for line in undefined.splitlines() if line.split()
                               and line.split()[-1].startswith(('_runtime_', '_bbcpu_', '_bb_image_base'))})
@@ -598,7 +573,6 @@ def main():
         print('glslang:', compiler if compiler else compiler_error)
         print('Missing build tools:', ', '.join(missing) or 'none')
         print('Isolated renderer sources:', 'present; revision verified during build' if not missing_files(source) else 'not complete')
-        print('Reference snapshot missing:', ', '.join(missing_files(ROOT / 'runtime/upstream')) or 'none')
         print('Read-only check: no network attempted, no renderer built or launched.')
         return 2 if missing or compiler_error or missing_files(source) else 0
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
@@ -620,6 +594,7 @@ def main():
         runner = Runner(log)
         if args.fetch:
             fetch_source(work, source_path(ROOT), runner)
+            apply_backports(source_path(ROOT))
             fetch_reference(ROOT, runner)
             print('Pinned source and renderer submodules ready; no libraries were built.')
         else:

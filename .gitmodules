@@ -1,6 +1,0 @@
-[submodule "runtime/upstream"]
-	path = runtime/upstream
-	url = https://github.com/bloodborne-native/bloodborne-runtime.git
-[submodule "reference"]
-	path = reference
-	url = https://github.com/AjncSystem/ShadowOfTheColossus-PC.git

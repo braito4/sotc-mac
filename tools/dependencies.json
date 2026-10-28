@@ -1,26 +1,27 @@
 {
   "schema": 1,
-  "checked_at": "2026-10-27T13:07:46.280620+00:00",
+  "sources_checked_at": "2026-10-28T17:01:31.775962+00:00",
   "runtime": {
     "repository": "https://github.com/bloodborne-native/bloodborne-runtime",
-    "previous_revision": "84daa9f13e5cf000d5fb59dc65803e28026fa77b",
-    "revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
+    "previous_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
+    "revision": "73672843f513af322990b0138b5d1ddcf086edb0",
     "branch": "main",
-    "latest_reviewed_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
-    "latest_reviewed_commit_date": "2026-10-26T19:30:48Z",
-    "review_scope": "October26 RC native Metal migration adapted to SotC and CPU-tested; CPU translator retained at196ed99. Native game validation pending.",
-    "latest_reviewed_at": "2026-10-26T20:48:46.876305+00:00"
+    "latest_reviewed_revision": "a4a82dc4d011d00ead5c874ba28475758a82509f",
+    "latest_reviewed_commit_date": "2026-10-28T16:28:45Z",
+    "review_scope": "Keep gameplay-tested renderer73672843. New head largely adds Bloodborne-specific draw census, input menu handling, libc and thread QoS; CPU update selected independently.",
+    "latest_reviewed_at": "2026-10-28T17:14:11.254581+00:00",
+    "reviewed_commits_ahead": 38
   },
   "cpu": {
     "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
-    "previous_revision": "b9652d75edc0a281f06cec0da6ff72e9f5150a70",
-    "revision": "196ed99d961f084c772923ce7c62785e271d5f4c",
+    "previous_revision": "c47af50ed8f8e9885da01f79f6c545631641839b",
+    "revision": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38",
     "branch": "main",
-    "latest_reviewed_revision": "196ed99d961f084c772923ce7c62785e271d5f4c",
-    "latest_reviewed_commit_date": "2026-10-25T03:06:58Z",
-    "reviewed_commits_ahead": 3,
-    "review_scope": "Full owner-requested update October 25; adapted SotC integration and diagnostics. Native validation pending.",
-    "latest_reviewed_at": "2026-10-25T17:39:06.501411+00:00"
+    "latest_reviewed_revision": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38",
+    "latest_reviewed_commit_date": "2026-10-28T15:24:31Z",
+    "reviewed_commits_ahead": 34,
+    "review_scope": "Reviewed JIT host-call dispatch, larger hashed branch cache and CVTT range correction. Preserve SotC scalar/vector/probe corrections.",
+    "latest_reviewed_at": "2026-10-28T17:14:11.252669+00:00"
   },
   "reference": {
     "repository": "https://github.com/AjncSystem/ShadowOfTheColossus-PC",
@@ -257,161 +258,10 @@
       "built_locally": "arm64"
     }
   ],
+  "workspace_key": "73672843f513",
   "validation": {
-    "integration": "October26 renderer a27f0ca native Metal adaptation complete; CPU196ed99 retained. Full ARM64 library build,35renderer checks,26builder tests,22supervisor tests,native startup and input tests pass.50/50 host imports and final load/unload pass. Direct Vulkan/MoltenVK linkage absent; native gameplay and OOM improvement unverified.",
-    "native_game": "Owner 2026-10-23 13:57:38 UTC: linked-source SIGSEGV after 116.513 s, 139/139. Readable node stores invalid pointer; next access is pointer+8. Complete report reconstruction and 16 registers match. Earlier source/writer not retained. Previous shared watch table again full: 8192 admissions, 278933 refusals. 1079 API presentations, 330 pipeline/271 SRT failures; no audio queue failures. Last/peak native samples 8.940/8.982 GiB do not establish savings or cause. Native corruption unresolved. No game launched for follow-up.",
     "renderer_cache": "29/9",
-    "symbol_coverage": "50/50 host imports; final library load/unload passes. GPU execution pending.",
-    "latest_runtime_guard": "selected b2ff9cd protects unresolved GPU image contents; reviewed ab31a4c critical-pressure content discard is not integrated",
-    "hosted_ci": "not yet observed for this commit",
-    "combined_failure_capture": "Prepared allocator-search follow-up and corrected terminating-context loss. Six new private observations cover the actual search root, next-node header/ children and left/right-load sources, at current linked branch entries. The joint profile now uses 24 observations; earlier insertion/comparator/source coverage and 13 fatal fields remain. CPU channels retain 128 records each, shader channels 512 writes/512 changed lookups; combined fixed files are 520 KiB. No invalid pointer, opcode or failure is skipped; the native writer/cause remains unknown, so this is not a demonstrated correction of allocator corruption. A concrete diagnostic defect is corrected: the guest stack-protector handler previously printed one line then exited 22 without caller/register evidence. It now snapshots only an existing active TLS CPU, publishes bounded raw import registers to reserved CPU-journal header space before stderr, and invokes an optional host context/history reporter. Standalone binaries retain a weak fallback and exit 22. No CPU creation, decoder access, return-slot edit or assumed canary layout is used. Translated fatal faults also publish their available registers before rich mapping/provider diagnostics. The first committed terminal snapshot is retained; interrupted publication is rejected. Interpreter faults outside translated code are not promoted to exact fault-register snapshots. Actual synthetic guest import controls preserve exit 22 and raw context in JIT/ interpreter with drained, discarded, full and closed stderr. Actual translated fault controls preserve exit 139 and terminal registers with discarded stderr; CPU per-site evidence remains available in both modes. Full ARM64 CPU contracts, renderer CPU regressions and symbol checks validate diagnostics, not native corruption, memory savings or tracing overhead. Public default heads checked October 23 10:59:12 UTC unchanged; earlier PR/release limits retained. Pins/cache 28/9 and render settings unchanged; no game launched. Same combined owner command next, with private selections unset in the inherited environment so the updated profile loads. Read first handoff checkpoint.",
-    "pointer_watch_capture": "Four independent persistent banks of 2048 slots (total 8192), explicit optional @bank suffix and per-bank/per-probe admission counters. Header, selected allocator, following allocator and new linked-source investigations cannot consume another bank. Each bank may still refuse for capacity/hash/contention; no eviction or ownership inference. Fourteen reviewed probes/nine scenarios, sixteen pointer channels, all files 912 KiB. Small/partial/large copy observations preserve bank; exact-address and separate terminal-register displacement candidates. Thirteen pointer controls and sixteen report tests pass in CPU-only validation; native fix unestablished."
-  },
-  "transitive": [
-    {
-      "id": "zycore",
-      "repository": "https://github.com/zyantific/zycore-c",
-      "version": "v1.5.2",
-      "latest_available": "v1.5.2",
-      "latest_url": "https://github.com/zyantific/zycore-c/tree/v1.5.2",
-      "revision": "0b2432ced0884fd152b471d97ecf0258ff4d859f",
-      "scope": "Zydis bundled dependency, installed for CPU and GPU; replaces the older CPU prefix metadata 1.5.0.0."
-    }
-  ],
-  "vendored": [
-    {
-      "id": "sirit",
-      "version": "runtime-vendored",
-      "revision": "22923f08022909b7e22f7ae8c02ad4c3f6554bfd",
-      "scope": "Sirit emitter source follows the current runtime commit; headers now come from the separately updated SPIRV-Headers package."
-    },
-    {
-      "id": "half",
-      "version": "1.12.0",
-      "latest_available": "1.12.0",
-      "latest_url": "https://github.com/ROCm/half/blob/rocm-7.2.4/include/half.hpp",
-      "scope": "Vendored header verified byte-identical to current ROCm 7.2.4; no source replacement needed."
-    },
-    {
-      "id": "gcn-and-fonts",
-      "version": "runtime-vendored",
-      "revision": "22923f08022909b7e22f7ae8c02ad4c3f6554bfd",
-      "scope": "Embedded GCN headers and menu fonts follow the selected runtime snapshot; not independently downloaded packages."
-    }
-  ],
-  "excluded": [
-    {
-      "id": "app-bash-python",
-      "scope": "App-bundle runtimes are deliberately excluded from the ARM64 diagnostic recipe. System host tools are prerequisites, not vendored dependencies."
-    },
-    {
-      "id": "LibAtrac9",
-      "scope": "Uninitialized upstream submodule, not built/linked by this diagnostic; not an active dependency."
-    },
-    {
-      "id": "kosmickrisp",
-      "scope": "Tracked alternative driver; not installed. The active driver is MoltenVK."
-    }
-  ],
-  "references": [
-    {
-      "id": "bloodborne-mac",
-      "repository": "https://github.com/bloodborne-native/bloodborne-mac",
-      "branch": "main",
-      "revision": "9c8ac5c93bbf62be7a096134f363f014c42c044d",
-      "scope": "October26 RC0.9.0; runtime pinned a27f0ca. Packaging remains SotC-specific; native Metal boot adapted.",
-      "previous_reviewed_revision": "f761502eb4d34e92a5446751f3d8f1d2140339ad",
-      "commit_date": "2026-10-24T01:13:52Z",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00",
-      "latest_reviewed_at": "2026-10-26T20:48:46.876305+00:00"
-    },
-    {
-      "id": "bbport-mac",
-      "repository": "https://github.com/bmy/bbport-mac",
-      "branch": "macos-native-0.6",
-      "revision": "a69f56af2069df45357e86c27396baa945b53231",
-      "scope": "Selected copy batching and stale-proxy detection adapted; its Rosetta/KosmicKrisp architecture is not substituted.",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00"
-    },
-    {
-      "id": "MoltenVK development",
-      "repository": "https://github.com/KhronosGroup/MoltenVK",
-      "branch": "main",
-      "revision": "5189f8de86ec365860f63bf1da736815cfaea5cd",
-      "scope": "Development head tracked; selected installed release is v1.4.2.",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00"
-    },
-    {
-      "id": "SPIRV-Cross development",
-      "repository": "https://github.com/KhronosGroup/SPIRV-Cross",
-      "branch": "main",
-      "revision": "300681bbcb8365a8d1eacdacdbdd0249bbf1d6b1",
-      "scope": "Development head tracked; selected compiler uses the latest SDK tag.",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00"
-    },
-    {
-      "id": "mesa-kosmickrisp",
-      "repository": "https://github.com/shadexternals/mesa-kosmickrisp",
-      "branch": "main",
-      "revision": "52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1",
-      "scope": "Alternative driver reference; not installed in the active renderer.",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00"
-    },
-    {
-      "id": "Pink-shadPS4",
-      "repository": "https://github.com/luizgustavs/Pink-shadPS4",
-      "branch": "main",
-      "revision": "4a3511ba9aa33b59ab0e57048013b0b85d29402a",
-      "commit_date": "2026-10-15T19:45:05-03:00",
-      "scope": "Permanent SotC/shadPS4 reference requested by the owner. Reviewed readback lifetime, pending label writes, optional GCN NaN/MAD and heap/stack workarounds; no Windows/NVIDIA-specific settings or code imported.",
-      "checked_at": "2026-10-24T06:44:58.828166+00:00"
-    },
-    {
-      "id": "Box64 JIT comparison",
-      "repository": "https://github.com/ptitSeb/box64",
-      "branch": "main",
-      "revision": "420eda69ff51ab5d5a7cbc3dee2e70433be3411d",
-      "checked_at": "2026-10-24T06:57:38.369818+00:00",
-      "scope": "Permanent owner-requested independent semantic/testing reference for CPU/JIT investigations. Compare minimized original inputs under local interpreter/JIT and Box64 where executable; resolve disputed results with native x86 or ISA semantics. Range-limited COSIM and no-dynarec diagnostics reviewed. Not installed, executed, linked or substituted as a CPU backend."
-    }
-  ],
-  "proposals": [
-    {
-      "name": "MoltenVK #2858",
-      "url": "https://github.com/KhronosGroup/MoltenVK/pull/2858",
-      "state": "open / draft / unmerged",
-      "head": "6ed66f1b5d3575eed04b04e6332b389f398f9533"
-    },
-    {
-      "name": "SPIRV-Cross #2699",
-      "url": "https://github.com/KhronosGroup/SPIRV-Cross/pull/2699",
-      "state": "open / draft / unmerged",
-      "head": "81739edf516c2bef043ac61f510b4bd78e126a22"
-    },
-    {
-      "name": "SPIRV-Cross #2697",
-      "url": "https://github.com/KhronosGroup/SPIRV-Cross/pull/2697",
-      "state": "open / non-draft / unmerged",
-      "head": "aa7879476d018098bd2c1279893409ba61cf3f03"
-    },
-    {
-      "name": "SotC reference #219",
-      "url": "https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/219",
-      "state": "open / non-draft / unmerged; incorporated commit adapted separately",
-      "head": "e391e03e956808abcb178a9e714df06ad871be78"
-    }
-  ],
-  "development_tools": [
-    {
-      "id": "actions/checkout",
-      "repository": "https://github.com/actions/checkout",
-      "version": "v7.0.1",
-      "latest_available": "v7.0.1",
-      "revision": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-      "scope": "Source-check CI action, pinned by commit; hosted runner execution is separate from local validation.",
-      "checked_at": "2026-10-23T06:44:45Z"
-    }
-  ],
-  "workspace_key": "a27f0ca477bd",
-  "sources_checked_at": "2026-10-25T17:39:06.501411+00:00"
+    "native_game": "Owner reports complete update much improved. 2026-10-28 12:10 UTC: 180.193 s planned timeout, final FPS samples0.9\u20132.0; artifacts and low FPS remain. New CPU update requires gameplay validation.",
+    "cpu": "Updated CPU passes native emitter/fault/hooks, local CPU regressions and full synthetic JIT/interpreter contracts, plus2400 CVTT edge cases per mode. M5 gameplay not yet tested."
+  }
 }

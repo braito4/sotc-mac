@@ -4,7 +4,7 @@
  * substitution is made. Foundations: bloodborne-native, bbport and shadPS4.
  */
 #define bb_shared_memory sotc_upstream_shared_memory
-#include "../upstream/src/platform.c"
+#include "platform.c"
 #undef bb_shared_memory
 #include <limits.h>
 

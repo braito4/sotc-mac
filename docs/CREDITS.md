@@ -19,13 +19,13 @@ This project is built on the work of:
   [bloodborne-mac](https://github.com/bloodborne-native/bloodborne-mac) also provides the README
   presentation used as this repository's reference.
   The pinned runtime's protected fault-field/stack diagnostics inform the local
-  bounded [CPU fault context](CPU_DIAGNOSTICS.md); no game-specific layout is imported.
+  bounded CPU fault context; no game-specific layout is imported.
 - [bbport / bloodborne_pc](https://github.com/deadinside28/bloodborne_pc) by **deadinside28**:
   foundational native PS4 game runtime and porting work.
 - [bmy/bbport-mac](https://github.com/bmy/bbport-mac): reviewed buffer-copy batching
   and stale reduced-scene proxy detection, adapted through checked local overlays.
   The proxy correction adds deferred ownership and cache invalidation specific to
-  this integration; see the [source review](UPSTREAM_REVIEW.md#reduced-scene-proxy-retirement).
+  this integration; see the source review.
 - [shadPS4](https://github.com/shadps4-emu/shadPS4): PS4 runtime foundations and API reference,
   including the fiber HLE on which the SotC reference is based, the internal module-loader
   ABI, DiscMap query/error definitions, event-flag contracts, and dialog and network ABI/error
@@ -64,13 +64,13 @@ doubles; no game code or data is included.
 
 | Project | Revision |
 |---|---|
-| bloodborne-runtime | `b2ff9cd0b982aa481fc48d4ce51b3cc7b4cd2548` |
-| bloodborne-recomp | `b9652d75edc0a281f06cec0da6ff72e9f5150a70` |
-| ShadowOfTheColossus-PC | `411fdd86dadce347dcc4443228b009ae9265a548` |
+| bloodborne-runtime | `73672843f513af322990b0138b5d1ddcf086edb0` |
+| bloodborne-recomp | `6a86fec4c3de62e96fc99f87d97200a1f8f1cb38` |
+| ShadowOfTheColossus-PC | `75b48137bc33c3f26242ed064a53cff28916c88f` |
 | README layout reference: bloodborne-mac | `134780d9544dc726061a21993011434c9d746406` |
 | Zydis | `v4.1.1` |
 
-The [current dependency inventory](DEPENDENCIES.md) lists all selected library,
+The version lock in `tools/dependencies.json` lists selected library,
 submodule and host-tool versions. The nested-command coroutine correction is
 adapted from AjncSystem's `c9be8142ac76`, extending completed-frame cleanup to our
 two analogous self-test scopes. bmy's proxy detection and our local deferred
@@ -85,7 +85,7 @@ competing runtime. The memory adapter now includes a digest-checked private copy
 GPU notification storage; its allocator and hook dispatch stay upstream. The source checkout
 remains unchanged. Fiber adapter comments identify its upstream reference.
 
-No game code, assets, generated game functions, saves or executable images are distributed.
+No game code, assets, generated game functions, saves or executable images are distributed in the source repository. Private portable packages created by the owner contain their supplied game files.
 
 The isolated GPU builder uses bloodborne-runtime's pinned renderer and macOS dependency
 recipes (including the bbport and shadPS4 foundations), with a checked build-only subset for
@@ -95,7 +95,7 @@ authoring of the upstream renderer, shader recompiler, FSR-Vulkan or Dear ImGui 
 The isolated renderer now includes three reviewed upstream backports for auxiliary
 tessellation locations, cache invalidation and Metal resource lifetime. Their exact
 commits, adaptations and regression evidence are recorded in the
-[upstream review](UPSTREAM_REVIEW.md); patch files preserve upstream license notices.
+upstream review; patch files preserve upstream license notices.
 
 The shader-slice bounds and private failure-provenance overlay is original local
 work on the selected shadPS4 decoder (GPL-2.0-or-later). Its synthetic instructions
