@@ -297,6 +297,7 @@ typedef struct {
 } GuestRun;
 static void *run_guest(void *opaque) {
     const GuestRun *run = opaque;
+    bb_game_thread_priority(); /* Same QoS as the upstream guest-created threads. */
     alarm(run->budget); /* Zero cancels the duration alarm; parent cancellation remains independent. */
     if (run->linked && bootstrap) {
         runtime_thread_attach_main();

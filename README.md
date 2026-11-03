@@ -9,7 +9,8 @@ Vegetation, colored texture speckles and occasional planes across the horizon
 still need work. The earlier spikes extending from the character are no longer
 reported. Short gameplay runs work; long-session stability is not established.
 Save persistence is **not implemented**. A DualSense has connected successfully.
-M5 gameplay has not yet been validated.
+The owner has also run the private build on an M5 with 32 GB: late samples were
+roughly 2.4–5.6 FPS. This confirms execution, not correct rendering or smooth play.
 
 ## Build and run
 
@@ -38,9 +39,13 @@ be uploaded to this repository.
 ## Dependencies and credits
 
 The checked source versions are recorded in [tools/dependencies.json](tools/dependencies.json).
-The latest CPU integration adds cached native calls, a larger indirect-branch cache
-and a floating-point conversion fix. It passes synthetic CPU checks; its gameplay
-performance remains to be compared against the previous build.
+The October 29 update preserves those CPU fixes and refreshes the runtime and
+translator. It adds unique persisted shader-permutation IDs, avoids a repeated
+environment-lock lookup in draw workers, and assigns guest threads upstream
+macOS QoS. The shader cache is version 30/9. Subsequent M1 runs reached gameplay; the owner
+reported no visible artifacts in one tested route, while broader visual correctness
+and long-session stability remain unverified. An opt-in standalone bbcpu build and
+isolated output directories are documented in [BUILD.md](docs/BUILD.md).
 
 Built on [bloodborne-native](https://github.com/bloodborne-native/bloodborne-mac),
 [bbport](https://github.com/deadinside28/bloodborne_pc),
@@ -49,3 +54,5 @@ Built on [bloodborne-native](https://github.com/bloodborne-native/bloodborne-mac
 See [credits and licenses](docs/CREDITS.md). Licensed under [GPL v2 or later](LICENSE).
 
 Independent project; not affiliated with Sony, Bluepoint Games or Team Ico.
+
+Porting approaches and review priorities: [Mac port strategies](docs/MAC_PORT_STRATEGIES.md).

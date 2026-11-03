@@ -1,27 +1,27 @@
 {
   "schema": 1,
-  "sources_checked_at": "2026-10-28T17:01:31.775962+00:00",
+  "sources_checked_at": "2026-10-29T07:49:06.084380+00:00",
   "runtime": {
     "repository": "https://github.com/bloodborne-native/bloodborne-runtime",
-    "previous_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
-    "revision": "73672843f513af322990b0138b5d1ddcf086edb0",
+    "previous_revision": "73672843f513af322990b0138b5d1ddcf086edb0",
+    "revision": "994846bb7bb5c017761df407973f53ff8db726d5",
     "branch": "main",
-    "latest_reviewed_revision": "a4a82dc4d011d00ead5c874ba28475758a82509f",
-    "latest_reviewed_commit_date": "2026-10-28T16:28:45Z",
-    "review_scope": "Keep gameplay-tested renderer73672843. New head largely adds Bloodborne-specific draw census, input menu handling, libc and thread QoS; CPU update selected independently.",
-    "latest_reviewed_at": "2026-10-28T17:14:11.254581+00:00",
-    "reviewed_commits_ahead": 38
+    "latest_reviewed_revision": "994846bb7bb5c017761df407973f53ff8db726d5",
+    "latest_reviewed_commit_date": "2026-10-29T01:26:34Z",
+    "review_scope": "Full source update with SotC corrections retained; native host and renderer compiled, synthetic regressions passed. M1 gameplay comparison pending.",
+    "latest_reviewed_at": "2026-10-29T07:49:06.083777+00:00",
+    "reviewed_commits_ahead": 46
   },
   "cpu": {
     "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
-    "previous_revision": "c47af50ed8f8e9885da01f79f6c545631641839b",
-    "revision": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38",
+    "previous_revision": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38",
+    "revision": "4d9c38444cac9b58c088685042665b8dd5314b54",
     "branch": "main",
-    "latest_reviewed_revision": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38",
-    "latest_reviewed_commit_date": "2026-10-28T15:24:31Z",
-    "reviewed_commits_ahead": 34,
-    "review_scope": "Reviewed JIT host-call dispatch, larger hashed branch cache and CVTT range correction. Preserve SotC scalar/vector/probe corrections.",
-    "latest_reviewed_at": "2026-10-28T17:14:11.252669+00:00"
+    "latest_reviewed_revision": "4d9c38444cac9b58c088685042665b8dd5314b54",
+    "latest_reviewed_commit_date": "2026-10-29T00:38:54Z",
+    "reviewed_commits_ahead": 3,
+    "review_scope": "Full source update with SotC corrections retained; native host and renderer compiled, synthetic regressions passed. M1 gameplay comparison pending.",
+    "latest_reviewed_at": "2026-10-29T07:49:06.084375+00:00"
   },
   "reference": {
     "repository": "https://github.com/AjncSystem/ShadowOfTheColossus-PC",
@@ -258,10 +258,72 @@
       "built_locally": "arm64"
     }
   ],
-  "workspace_key": "73672843f513",
+  "workspace_key": "994846bb7bb5",
   "validation": {
-    "renderer_cache": "29/9",
-    "native_game": "Owner reports complete update much improved. 2026-10-28 12:10 UTC: 180.193 s planned timeout, final FPS samples0.9\u20132.0; artifacts and low FPS remain. New CPU update requires gameplay validation.",
-    "cpu": "Updated CPU passes native emitter/fault/hooks, local CPU regressions and full synthetic JIT/interpreter contracts, plus2400 CVTT edge cases per mode. M5 gameplay not yet tested."
+    "renderer_cache": "30/9",
+    "renderer": "Native ARM64 build passed; 38/38 CPU-side renderer regressions, persisted permutation allocation regression and fresh overlay reproduction passed. Native load check passed; no GPU gameplay validation of this update yet.",
+    "native_game": "Previous builds are playable with artifacts on M1. October 29 runtime/CPU update and optional texture helper await local M1 gameplay comparison. M5 log game-20261028T190946Z used the previous build; no further M5 testing planned.",
+    "cpu": "Native host build, emitter/fault/hooks, local CPU regressions and full synthetic JIT/interpreter contracts passed.",
+    "builder": "26 builder tests passed."
+  },
+  "shadps4_backports": {
+    "repository": "https://github.com/shadps4-emu/shadPS4",
+    "reviewed_revision": "db79f9d24348884250540bdd055fe0823b97a7b6",
+    "selected_commits": [
+      "ca36c7e31e9edb958db8d2b94a0721e58eca9daf"
+    ],
+    "scope": "Texture subresource containment: compare mip levels and array layers independently. Other recent PM4 and render-area changes remain under review.",
+    "validation": "262144 extent pairs checked against enumeration; texture-view and display-lifetime regressions passed; complete overlay reproduced from pinned base; native renderer build and library load passed. Gameplay pending."
+  },
+  "attachmentless_experiment": {
+    "reference": "shadPS4 0cd6e4f2cb6617af12eb8267cca848cc41ad20d7",
+    "enabled_by": "SOTC_ATTACHMENTLESS_SCISSOR=1",
+    "default": 0,
+    "scope": "Combined screen/window/generic bounds for attachmentless maximum-sized passes, with window offsets and render-state memo invalidation. Existing screen-only bound retained by default.",
+    "validation": "Production extent helper checked against enumerated bounds; native renderer build and library load passed. Gameplay and performance pending."
+  },
+  "review_20261102": {
+    "runtime_head": "54f37fb4312fc1785a6388cde3b3c61546d4e2b9",
+    "shadps4_head": "2183807e592b36d4440384878165b43d930c1dee",
+    "selected_backports": [
+      "3b53747f5b0bb7124f7aa2c80a848684c0b56c92",
+      "44de77d05834ec3f7ce8cb334a8d633d8a563bb6 (renderer QoS subset)",
+      "1117ddaa286636a8807920c05bc67ff12a4bd1b5 (final retention predicate)"
+    ],
+    "not_updated": "Full runtime and CPU pins retained; shader architecture and bbcpu extraction require staged validation. No claim of refreshed third-party library versions.",
+    "bbcpu_candidate": "3f9b6c1a11d5a443ee2e556a0d1f3aec4a73f0ca",
+    "recomp_candidate": "bc2b17231420353f8727bf94353ec3b0e62dd5cf",
+    "gameplay": "M1 second run 20261102T165305Z: user reports improved behavior and no visible artifacts in this scene; final six FPS median 2.1, warm archive. Short run, not comprehensive validation."
+  },
+  "review_20261103": {
+    "runtime_head": "749daa2501a5cb27bc833824188cc98dfcfbe1c8",
+    "bbcpu_head": "3f9b6c1a11d5a443ee2e556a0d1f3aec4a73f0ca",
+    "shadps4_head": "97b8ee470750913771412bb797e66602af3a464d",
+    "scope": "Reviewed new commit summaries and runtime shader/input changes. No new behavior backported. CPU-only build and isolated host output implemented using unchanged pinned CPU. Renderer retains legacy header path until standalone CPU ABI validation.",
+    "layout_cpu_revision": "4d9c38444cac9b58c088685042665b8dd5314b54",
+    "layout_cpu_directory": "cpu-layout-4d9c38444cac",
+    "recompiler_source": "legacy runtime/recomp; not needed to build the host",
+    "standalone_cpu_candidate": "3f9b6c1a11d5a443ee2e556a0d1f3aec4a73f0ca",
+    "gameplay": "Two corrected isolated-host runs closed normally. Repeat 20261103T125958Z: 171.748s, latest 1550 pipelines successful/0 failed; last-six median 1.75 FPS; frame-report compilation 128/6324.6ms versus previous 544/19589.4ms; Metal peak 11377 MiB, final 10413 MiB. Layout basic gameplay compatibility supported, visual correctness and matched-scene speedup not established."
+  },
+  "standalone_cpu": {
+    "repository": "https://github.com/bloodborne-native/bbcpu",
+    "revision": "3f9b6c1a11d5a443ee2e556a0d1f3aec4a73f0ca",
+    "status": "opt-in candidate; default CPU and renderer unchanged",
+    "host_directory": "host-bbcpu-3f9b6c1a11d5",
+    "recompiler": "not loaded; JIT/interpreter only",
+    "validation": "Native ARM64 host built; 18 SotC instruction/fiber/thread/TLS executions plus 4 upstream emitter/hooks/fault executions passed. Existing renderer load passed; no previous host exports removed (three CPU symbols added). Modified adapter inputs rejected. Gameplay pending.",
+    "adapters": {
+      "interp.c": {
+        "before": "3baa61441cb06cdeda4483ff847ecc95d9d6c30eaad6ffab72b0a91f52de9d03",
+        "after": "99c636591b6bf84a669a23d80de11ff110e72740519371664e4333207fe89033"
+      },
+      "jit_arm64.c": {
+        "before": "796ddc6b506cc9283d477a974f1e383ab7181087f51a3b9406d58f72db764261",
+        "after": "954c0e3e1b79d0d4f0b045535f388a0b8c24ce24f15300edc21fd5c556e3fc97"
+      }
+    },
+    "gameplay": "User confirms manual closure of both 20261103T131015Z and 20261103T181953Z. First log reports Metal OOM/exit23; second records normal window closure/exit0. Ordering of the first error relative to manual close is unknown; no spontaneous crash or reproducible 203s failure established.",
+    "memory_trial": "Earlier GC profile: user manually closed at198.664s; peak11531/final9952 MiB, latest1550 successful pipelines/0 failures, last-six FPS median1.5. Cold archive (0hits/1527compiled latest report); completed cache available. Lower memory observed; no claim of preventing a crash."
   }
 }

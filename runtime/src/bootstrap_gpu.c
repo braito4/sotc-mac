@@ -93,15 +93,20 @@ static int gpu_check(const char *path, int initialize, uint32_t sdk) {
             .serial = "CUSA08809", .user_dir = user_dir,
             .sdk_version = sdk, .psf_attributes = 0, .width = 1280, .height = 720,
         };
-        struct sigaction action = {0};
-        action.sa_handler = renderer_timeout;
-        sigemptyset(&action.sa_mask);
-        if (sigaction(SIGALRM, &action, NULL)) {
-            perror("STOP_GPU_TIMER");
-            dlclose(library);
-            return 28;
+        /* Only the isolated renderer check owns this fixed alarm. Game startup
+         * can rebuild a large pipeline cache before the guest thread starts;
+         * the supervising launcher already bounds that entire operation. */
+        if (initialize == 1) {
+            struct sigaction action = {0};
+            action.sa_handler = renderer_timeout;
+            sigemptyset(&action.sa_mask);
+            if (sigaction(SIGALRM, &action, NULL)) {
+                perror("STOP_GPU_TIMER");
+                dlclose(library);
+                return 28;
+            }
+            alarm(60);
         }
-        alarm(60);
         if (initialize == 2) {
             /* SDL subsystem initialization stays on the window's main thread.
              * A missing audio backend is an AudioOut error, not a fake port. */

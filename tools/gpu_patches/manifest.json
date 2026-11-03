@@ -1,6 +1,6 @@
 {
-  "base_revision": "73672843f513af322990b0138b5d1ddcf086edb0",
-  "previous_base_revision": "a27f0ca477bd8356a015311d1eaa92e6f6a0b007",
+  "base_revision": "994846bb7bb5c017761df407973f53ff8db726d5",
+  "previous_base_revision": "73672843f513af322990b0138b5d1ddcf086edb0",
   "upstream_commits": [],
   "files": {
     "gpu/CMakeLists.txt": {
@@ -53,7 +53,7 @@
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.cpp": {
       "before": "d2e1a4b0b0eb6c64c99d319fa4bdfd9c2a99e54c89cd1811bfcc44e8abc84798",
-      "after": "b018e0cea0b47b4553180bc122e951dda54e2570f6f1d7320c114b7f67bd3078"
+      "after": "8c7f709bfc93a314c7e33ab59c22a254cd6a5489c4c9b976a51b5be72bb77858"
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.h": {
       "before": "8b75644f3c7d868376ae76c656eb18b462dfb0305d6d65081cfeec1cf2437c8e",
@@ -73,7 +73,7 @@
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "0bb4c04712dfcde943c8f80d8f9fab1f45276e1cbc8f80d2233b054952378e04",
-      "after": "433aab612f03a9317830ccd060706953d2284efbfe66a2229e913e21e29b3a40"
+      "after": "2eef1cb48d6c5f07d75cf4a88ac01fa911bd94f2052b4089806c4cdc88928ef0"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
       "before": "019a2a95fa17244afbe929df235f1933f49c4eb08e1b1cf54a6b18bf9377aab3",
@@ -100,12 +100,12 @@
       "after": "6fcdd324bfef57325dc57af6bcb58bb06fe07d3175896609f137d62ed631e1e6"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
-      "before": "c30c91cc0145b62c0f139bde443a31da921cd7abad5146051afeac4e39495ec1",
-      "after": "ea65e76469c1f00d1a713e08eb587f71ded62c2f20b3dbbd4acf9de78bb03276"
+      "before": "7e0dd3159b914869e237d0a3630f706fec526bbf6f76a7412ad98fba238ca0ea",
+      "after": "7e23dfbfdc751024912d5afb6f4cea5cdb67e3dbbb160041751f797f7d96cfb3"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
-      "before": "6939a728395afbe16a9ce83bd3db43b52b1a8a45de0e01904df124554e95fad5",
-      "after": "449f7263f8d82b4c8afb1f588cc1bd3e0eb565883bec6638b3f04550d6dbf1bc"
+      "before": "a803d75365eea02730bf9105e73b1b6f9ca723e4306d668b9d50f557fec5db9b",
+      "after": "fa4355c56e2a2e769ca53168a2da07e41743b8dcadb8dc21c1858ec505b27845"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
       "before": "190a55a6b24dee45dc51bbf71a3701a518241bee43d3bc8bfcb909aee2512637",
@@ -113,11 +113,11 @@
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
       "before": "e498b9afb0f46c295610268e1bb900684f1b9faf63c43e3d91b1fe2a59db7bc4",
-      "after": "2bc2e524c788cbf0ea052a49e59cbb74b0ab3a8bf4a79a158d489481ac642360"
+      "after": "68c1e215d3d31e2deece5e31c3a6618be45c818ab57c51612fd4aff7b14e8406"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h": {
       "before": "92386fb6734b01e379265274184284bea066aceaa9adb86b99abe5773e230346",
-      "after": "f53bb1c4b84c4f4ba401ede7a32fe18067fe43ecc0f447c449e504ce837d697f"
+      "after": "7954ce3dc3ea3c26b6e04085ee0a4518306f9e648e8d3dd8e05926410d3e02a1"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_resource_backend.cpp": {
       "before": "0df8473b41fd7b4e8f9080e4230ef6d884dc9ef1e62896d54b52c5ca4cd4c477",
@@ -137,7 +137,7 @@
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
       "before": "711d2666bc5b87c5f51c4b0b4996ca5c695025aae2c34107352708cee52a9dd7",
-      "after": "8264fb1c8c53f7448816fba39d13f40a5136d10d79c011d293dfe8b2ea883d35"
+      "after": "c45f637526fdc14996a62c06f3a1cd70365bebb6e572722c383290aed8023a17"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
       "before": "65b2f9c763fc35745813bc2b5a006e74fc174c7d71bf0c2c163a28d28b3f2498",
@@ -165,7 +165,7 @@
     },
     "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
       "before": "abc4e9ba00d6ac146bdf2bd42b475f07eb5fd7a33f1172e26295f1ecb5804acb",
-      "after": "981b9d84c0a0f6a0ccfa2f1408a8759e1b423e88d207626380c8246382028723"
+      "after": "fa0b3fb3aa216cc2c9aa8c8e9f9542e3f8b8de040357f8153e9d3f9b7781bb7c"
     },
     "gpu/shim/bbport_free_check.cpp": {
       "before": "5ebe8fc3d1471bc05ca240e4b1cf47ee220389bce9d954d1cedd7c95665f044e",
@@ -206,10 +206,22 @@
     "gpu/shadps4/video_core/texture_cache/texture_cache.h": {
       "before": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830",
       "after": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830"
+    },
+    "gpu/shadps4/video_core/texture_cache/types.h": {
+      "before": "34fcf9fa1811e552e9154366483eed0ebcf7b748865f87652449eea98bc7f113",
+      "after": "e87d574392ac1e8ee6db2e13e7dca04cac25f8686e74d6f10f8fad09927d23b3"
+    },
+    "gpu/shadps4/common/lru_cache.h": {
+      "before": "487e9f8f4c6708e346f2393023382ddb19d75219b87fdd56c9c9170b33e19a57",
+      "after": "67c6689c7c096bc7d208229ced24414e113d3cc46362169abd0d63caed32b2cb"
+    },
+    "gpu/shim/bbport_threads.h": {
+      "before": "14ac023150f805322206a8f96c4deff0e5cbe7d2d41e9b9cb167e57458f96b89",
+      "after": "5145b5dee6a87a2f0c0047dedc8b719c77f3815213bb7e0cdd3008f1348fab48"
     }
   },
   "patches": {
-    "sotc-metal-adapter-20261028.patch.json": "2c72277a39c50caa573a6270d7a91b2d648d7cc346565b9dca093f46fcc230f6"
+    "sotc-metal-adapter-20261029.patch.json": "0bbd6bb2205cb88a783ebf7a86ca3694a32e70f81f9fb488aa5ab8a8ff5d6915"
   },
   "local_adaptations": [
     "sotc-submission-trace-v1",
@@ -258,7 +270,14 @@
     "Opt-in GPU-only indexed indirect normalization, ordered reusable 8 MiB workspace, argument preservation and explicit completion-time invalid/capacity failure; no early submission or CPU argument readback.",
     "Opt-in selective indirect index copy: GPU-validated low ranges use original indices; mutually exclusive low/copy argument records preserve order; completed-command copy counters.",
     "Backport runtime 82051e5bc970: reject Metal block-texel views and keep incompatible compressed/uncompressed cache images separate, including overlapping mips and slices. Vulkan capability retained.",
-    "October28 full runtime 73672843f513 and CPU c47af50ed8f8 migration; all prior SotC corrections three-way merged. Block-texel fix now upstream. Locked library recipe retained to avoid downgrading previously updated packages."
+    "October28 full runtime 73672843f513 and CPU c47af50ed8f8 migration; all prior SotC corrections three-way merged. Block-texel fix now upstream. Locked library recipe retained to avoid downgrading previously updated packages.",
+    "October29 runtime994846bb/CPU4d9c384 migration; preserve SotC overlays, unique shader permutation indices, cached environment lookup, game-thread QoS. Cache30/9 rejects previous shader identities.",
+    "Backport shadPS4 ca36c7e31e9edb958db8d2b94a0721e58eca9daf (#5524): require mip-level and array-layer containment independently at all three texture overlap/reuse decisions.",
+    "Opt-in SOTC_ATTACHMENTLESS_SCISSOR: adapt shadPS4 0cd6e4f combined scissor bound to existing Apple attachmentless clamp; include extent in render-state memo key; preserve empty-scissor fallback and attachment/motion passes.",
+    "Opt-in owned Metal command-buffer timing using completion GPU timestamps and Mach absolute host time. Separate admission and precommit delay; no extra GPU waits; aggregate every five seconds, not frame time/utilization.",
+    "2026-11-02: shadPS4 3b53747f5b0bb7124f7aa2c80a848684c0b56c92: honor boolean early-stop callbacks in LRU traversal.",
+    "2026-11-02: runtime 44de77d05834ec3f7ce8cb334a8d633d8a563bb6 renderer QoS subset: user-interactive GPU processor and recording threads; BB_THREAD_QOS=0 restores previous scheduling.",
+    "2026-11-02: runtime 1117ddaa286636a8807920c05bc67ff12a4bd1b5 final GPU-only image retention predicate, including GpuDirty exclusion; never discard sole valid GPU contents under critical pressure."
   ],
   "submodule_overrides": {
     "gpu/third_party/imgui": {
@@ -268,8 +287,8 @@
       "version": "v1.93.0"
     },
     "recomp": {
-      "base": "c47af50ed8f8e9885da01f79f6c545631641839b",
-      "after": "6a86fec4c3de62e96fc99f87d97200a1f8f1cb38"
+      "base": "d1330049e97684610d9fb19020b2b3fcbd25ba9e",
+      "after": "4d9c38444cac9b58c088685042665b8dd5314b54"
     }
   }
 }

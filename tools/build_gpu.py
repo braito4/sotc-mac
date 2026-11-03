@@ -21,7 +21,7 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = '73672843f513af322990b0138b5d1ddcf086edb0'
+REVISION = '994846bb7bb5c017761df407973f53ff8db726d5'
 REPOSITORY = 'https://github.com/bloodborne-native/bloodborne-runtime.git'
 DEPS_SHA256 = 'da54408b8208237c854126d0ef2c67fec79667957ee195dbee6d99861016dd2e'
 SUBMODULES = ('gpu/third_party/fsr-vulkan', 'gpu/third_party/imgui', 'recomp')

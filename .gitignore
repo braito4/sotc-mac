@@ -113,7 +113,6 @@
 !/tools/dependencies.json
 !/tools/gpu_patches/dependency-recipe-a27f0ca.sh
 !/tools/gpu_patches/manifest.json
-!/tools/gpu_patches/sotc-metal-adapter-20261028.patch.json
 !/tools/gpu_utilization.py
 !/tools/package_portable.py
 !/tools/prepare_cpu_probe_support.py
@@ -124,3 +123,12 @@
 !/tools/prepare_runtime_support.py
 !/tools/run_gpu_diagnostic.py
 !/tools/runtime-settings.sh
+!/tools/gpu_patches/sotc-metal-adapter-20261029.patch.json
+
+!/docs/MAC_PORT_STRATEGIES.md
+
+!/runtime/src/gpu_metal_timing.h
+
+!/tools/build_cpu.sh
+!/tools/prepare_cpu_layout.py
+!/tools/prepare_standalone_cpu.py

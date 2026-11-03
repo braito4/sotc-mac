@@ -76,3 +76,66 @@ SOTC_RUN_SECONDS=0 bash /path/to/SotC-Mac.command
 
 The package is not notarized. If macOS blocks it after transfer, use the specific
 file's Open Anyway option in System Settings; do not disable Gatekeeper globally.
+
+## Optional CPU texture helper
+
+`SOTC_TEXTURE_HELPER=1 bash run.sh /absolute/path/to/CUSA08809` enables upstream's
+extra texture-binding worker. The portable launcher accepts the same environment
+variable. Default is 0. The October 29 M1 trial regressed to about 0.3 FPS from roughly
+1–1.7 FPS with serial texture binding, with higher CPU use and helper waits.
+Keep it disabled on M1; enabling more workers does not imply useful parallelism.
+
+The portable packager also accepts `--compression none` to pack already-compressed
+game assets faster, with a larger output file. Both formats remain self-extracting.
+
+## Optional Metal timing
+
+`SOTC_METAL_TIMING=1` enables five-second summaries from the existing owned-command
+completion callback. It records GPU execution duration, precommit-to-GPU-start
+delay (including driver/queue time), admission wait, callback lag, and commands
+per completed buffer. It adds no GPU wait. Zero or inconsistent timestamps count
+as invalid samples. The default is off.
+
+Scope is owned command buffers passing through `MetalFrame::CommitCommandBuffer`,
+not every Metal submission in the process. Averages are per valid completed buffer;
+windows are grouped by callback arrival. They are not frame timings or GPU utilization.
+The instrumentation itself may affect CPU scheduling. Apple timestamp reference:
+https://developer.apple.com/documentation/metal/mtlcommandbuffer/gpustarttime
+
+## Isolated CPU layout experiment
+
+The host now builds only the CPU archive; it does not build the recompiler tools.
+The default source and output remain unchanged. To extract byte-identical pinned
+CPU sources and ABI headers and build a separate host:
+
+```sh
+python3 tools/prepare_cpu_layout.py
+SOTC_CPU_SOURCE="$PWD/work/cpu-layout-4d9c38444cac" \
+SOTC_HOST_BUILD_DIR="$PWD/work/host-layout-20261103" bash tools/build_host.sh
+```
+
+The extraction verifies every copied source against the pinned Git commit and
+writes a private hash manifest. Existing modified copies are rejected.
+`SOTC_HOST_BUILD_DIR` isolates generated adapters, objects, archive and executable.
+Keep the existing renderer for this comparison: it still includes the same CPU
+ABI from the legacy source path. This does not yet enable the newer standalone
+CPU or its AOT tools, and does not imply a performance gain.
+
+## Standalone CPU candidate (opt-in)
+
+The tested default remains unchanged. The standalone CPU candidate is pinned in
+`tools/dependencies.json` independently of the runtime and recompiler. Prepare
+the exact commit and compile to a separate directory:
+
+```sh
+python3 tools/prepare_standalone_cpu.py
+SOTC_CPU_SOURCE="$PWD/work/bbcpu-source-3f9b6c1a11d5" \
+SOTC_HOST_BUILD_DIR="$PWD/work/host-bbcpu-3f9b6c1a11d5" bash tools/build_host.sh
+```
+
+An existing local Git clone can be supplied with `--repository PATH`. Sources
+are verified against the selected Git objects; modified copies are rejected.
+The generated source manifest records each file's SHA-256. Scalar and JIT
+adapters accept only reviewed hashes and still verify every replacement site.
+No AOT library is generated or required. The existing renderer ABI is retained;
+keep the control executable available until gameplay validation completes.

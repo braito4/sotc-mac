@@ -105,8 +105,10 @@ def supervise(command, seconds, log_path, cooperative=False):
 
         settings = {key: os.getenv(key) for key in ('BB_DIRECT_MEMORY_ACCESS',
                     'BB_ASYNC_SUBMIT', 'BB_JIT', 'BB_UPSCALER', 'BB_FRAME_STATS',
-                    'BB_MSL_SAFE_MATH', 'SOTC_UPLOAD_BATCH', 'SOTC_GPU_UTILIZATION',
-                    'SOTC_REUSE_SHADER_CACHE',
+                    'BB_MSL_SAFE_MATH', 'BB_TEXTURE_HELPER',
+                    'BB_VK_RECORD_THREAD', 'BB_VK_RECORD_THREADS', 'BB_VK_SEGMENT_KB',
+                    'BB_PREP_WORKERS', 'SOTC_RECORDING_TRIAL', 'SOTC_UPLOAD_BATCH', 'SOTC_GPU_UTILIZATION',
+                    'SOTC_REUSE_SHADER_CACHE', 'SOTC_METAL_TIMING', 'BB_THREAD_QOS', 'SOTC_ATTACHMENTLESS_SCISSOR',
                     'SOTC_RENDER_VARIANT', 'SOTC_INDEX_REBASE', 'SOTC_INDIRECT_INDEX_REBASE', 'SOTC_INDIRECT_INDEX_SELECTIVE',
                     'SOTC_DEPENDENCY_TRIAL', 'SOTC_DEPENDENCY_CPU', 'SOTC_DEPENDENCY_RUNTIME',
                     'SOTC_DIAGNOSTIC_BINARY', 'SOTC_GPU_LIBRARY',

@@ -64,8 +64,8 @@ doubles; no game code or data is included.
 
 | Project | Revision |
 |---|---|
-| bloodborne-runtime | `73672843f513af322990b0138b5d1ddcf086edb0` |
-| bloodborne-recomp | `6a86fec4c3de62e96fc99f87d97200a1f8f1cb38` |
+| bloodborne-runtime | `994846bb7bb5c017761df407973f53ff8db726d5` |
+| bloodborne-recomp | `4d9c38444cac9b58c088685042665b8dd5314b54` |
 | ShadowOfTheColossus-PC | `75b48137bc33c3f26242ed064a53cff28916c88f` |
 | README layout reference: bloodborne-mac | `134780d9544dc726061a21993011434c9d746406` |
 | Zydis | `v4.1.1` |
@@ -105,3 +105,15 @@ source retains its original copyright and license notices.
 The native Metal command-admission gate is original local code. Its CPU/Fundation
 fixtures exercise the selected runtime commit wrapper without a Metal device or
 game content; they do not establish native memory savings or title compatibility.
+
+The SotC overlay also includes shadPS4 commit `ca36c7e31e9edb958db8d2b94a0721e58eca9daf`
+(PR #5524, DanielSvoboda): independent mip-level and array-layer containment checks
+in texture-cache overlap and reuse decisions.
+
+November 2 selective backports: shadPS4 `3b53747` (LRU early termination);
+bloodborne-runtime `44de77d` (renderer QoS subset) and `1117dda` (GPU-only texture retention).
+
+- Standalone CPU candidate: [bloodborne-native/bbcpu](https://github.com/bloodborne-native/bbcpu),
+  commit `3f9b6c1a11d5a443ee2e556a0d1f3aec4a73f0ca`. Extracted CPU project,
+  uncached recompilation hashing, guest return recovery and shared trap handling;
+  native ARM64 JIT and interpreter retained with checked SotC adapters.

@@ -14,7 +14,9 @@ PINNED_SHA256='6088b98b870f59beba0779c227af18c7a32016786624a037ded28cc01c142818'
 def prepare(data):
     if hashlib.sha256(data).hexdigest() not in (PINNED_SHA256,
             '4cb1c681f98f0f2ec602883bf0e42381fa4f5f1de304d881f5bbeb4bf79510e3',
-            '5eaf90b5d8ee20561b1f12decf8b37c52e945b6a8b944e5ce10a60d87b86af28'):
+            '5eaf90b5d8ee20561b1f12decf8b37c52e945b6a8b944e5ce10a60d87b86af28',
+            '796ddc6b506cc9283d477a974f1e383ab7181087f51a3b9406d58f72db764261'  # standalone bbcpu 3f9b6c1; reviewed unchanged patch sites
+            ):
         raise ValueError('Unexpected pinned CPU JIT; refusing unchecked probe adaptation.')
     source=data.decode()
     # A 32-bit register destination clears its upper half even when the

@@ -106,7 +106,7 @@ if [[ ! -f "$destination/.complete" ]]; then
     stage=$(mktemp -d "$base/.extract-XXXXXX")
     trap 'rm -rf -- "$stage"' EXIT
     echo 'Extracting game and native runtime to the internal disk...'
-    payload | /usr/bin/tar -xzf - -C "$stage"
+    payload | /usr/bin/tar -xf - -C "$stage"
     [[ ! -e "$destination" ]] || {{ echo 'An incomplete or concurrent installation exists.' >&2; exit 1; }}
     printf '%s\\n' "$package" > "$stage/.complete"
     mv -- "$stage" "$destination"
@@ -125,9 +125,11 @@ exit 0
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--game', type=Path, required=True)
+    p.add_argument('--compression', choices=('gzip', 'none'), default='gzip',
+                   help='none packs already-compressed game assets much faster, with a larger output')
     p.add_argument('--image', type=Path, default=ROOT / 'work/sotc-graphics-arm64/boot-linked.bin')
     p.add_argument('--host', type=Path, default=ROOT / 'work/sotc-arm64')
-    p.add_argument('--library', type=Path, default=ROOT / 'work/gpu-build-73672843f513/libbbgpu.dylib')
+    p.add_argument('--library', type=Path, default=ROOT / 'work/gpu-build-994846bb7bb5/libbbgpu.dylib')
     p.add_argument('--startup-profile', type=Path)
     p.add_argument('--output', type=Path, default=ROOT / 'work/portable/SotC-Mac.command')
     a = p.parse_args()
@@ -166,7 +168,8 @@ source ./settings.sh
 log="$HOME/Library/Logs/SotC Native/game-$(date -u +%Y%m%dT%H%M%SZ).log"
 echo "Log: $log"
 echo "Run budget: $SOTC_DIAGNOSTIC_SECONDS seconds (0 = unlimited). Saves are not supported."
-{ sw_vers; sysctl -n machdep.cpu.brand_string hw.memsize; cat package.json; } > "$log"
+echo "Texture helper: $BB_TEXTURE_HELPER; Metal admission: $SOTC_METAL_INFLIGHT"
+{ sw_vers; sysctl -n machdep.cpu.brand_string hw.memsize; cat package.json; echo "Texture helper: $BB_TEXTURE_HELPER; Metal admission: $SOTC_METAL_INFLIGHT"; } > "$log"
 set +e
 ./bin/sotc-arm64 ./boot-linked.bin --bootstrap --game-root "$package_root/Game" --graphics-library "$package_root/bin/libbbgpu.dylib" 2>&1 | tee -a "$log"
 status=${PIPESTATUS[0]}
@@ -206,7 +209,8 @@ exit "$status"
         try:
             with temporary.open('xb') as stream:
                 stream.write(b'#' * HEADER_SIZE)
-                with tarfile.open(fileobj=Sink(stream), mode='w|gz', compresslevel=1) as archive:
+                archive_options = {'mode': 'w|gz', 'compresslevel': 1} if a.compression == 'gzip' else {'mode': 'w|'}
+                with tarfile.open(fileobj=Sink(stream), **archive_options) as archive:
                     for f, name in files:
                         if f.stat().st_size > 100 * 1024**2:
                             print(f'Packing {name}: {f.stat().st_size / 1024**3:.2f} GiB', flush=True)
