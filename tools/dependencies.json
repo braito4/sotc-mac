@@ -325,5 +325,19 @@
     },
     "gameplay": "User confirms manual closure of both 20261103T131015Z and 20261103T181953Z. First log reports Metal OOM/exit23; second records normal window closure/exit0. Ordering of the first error relative to manual close is unknown; no spontaneous crash or reproducible 203s failure established.",
     "memory_trial": "Earlier GC profile: user manually closed at198.664s; peak11531/final9952 MiB, latest1550 successful pipelines/0 failures, last-six FPS median1.5. Cold archive (0hits/1527compiled latest report); completed cache available. Lower memory observed; no claim of preventing a crash."
+  },
+  "exact_read_tracking_trial": {
+    "reviewed_at": "2026-11-04",
+    "upstream_pr": "https://github.com/bloodborne-native/bloodborne-runtime/pull/11",
+    "reviewed_pr_head": "683602c64c3a54ebd8a364ca1aac7a88284ae368",
+    "upstream_status": "open, not merged when reviewed",
+    "scope": "First PR change only: select existing exact read tracking via CoarseReadTracking disable bit2048 on pinned994846bb7bb5. No interval-set or barrier-ordering backport.",
+    "enabled_by": "SOTC_EXACT_READS=1",
+    "default": 0,
+    "control_mask": 70437463670784,
+    "trial_mask": 70437463672832,
+    "qualified_renderer_sha256": "49a92f56b86451b5a516290d5169cec52f98da60c58abf616721b4046ee99501",
+    "validation": "Reviewed actual AccessBuffer condition and source digest; dry-run full private launch chain and portable shell profiles passed for control/exact; invalid mode rejected. Same control host/renderer, save service disabled. M1 gameplay pending.",
+    "gameplay": "20261104T151912Z: selected mask verified; SIGSEGV/exit139 at277.696s preceded by invalid PM4 packet. Last-six FPS median2.2, Metal peak11341/final9926MiB. Cold cache: latest0reused/1652compiled, because identity includes toggle-file hash. No performance gain or causal regression attribution established; not promoted."
   }
 }

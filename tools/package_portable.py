@@ -149,6 +149,7 @@ def main():
         libraries = relocate(a.host, a.library, stage / 'bin')
         shutil.copy2(a.image, stage / 'boot-linked.bin')
         shutil.copy2(ROOT / 'tools/runtime-settings.sh', stage / 'settings.sh')
+        shutil.copy2(ROOT / 'tools/hardware-memory.sh', stage / 'hardware-memory.sh')
         shutil.copy2(ROOT / 'LICENSE', stage / 'LICENSE')
         shutil.copy2(ROOT / 'docs/CREDITS.md', stage / 'CREDITS.md')
         intro = ''

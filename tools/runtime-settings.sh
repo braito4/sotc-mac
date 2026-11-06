@@ -24,4 +24,13 @@ export SOTC_SKIP_INTRO=0 BB_FRAME_STATS=1 BB_WRITE_LOG=0 BB_GPU_LOG=critical
 export BB_VK_VALIDATION=0 BB_VK_VALIDATION_SYNC=0
 export BB_GPU_USER_DIR="$sotc_state" BB_CONFIG="$sotc_state/bbport.ini"
 export BB_TOGGLE_FILE="$sotc_state/toggles.txt" BB_FRAME_LOG="$sotc_state/frames.csv"
-printf '70437463670784 0\n' > "$BB_TOGGLE_FILE"
+# Keep this profile shell-only: portable bundles do not require Python.
+case "${SOTC_EXACT_READS:-0}" in
+    0) sotc_toggle_mask=70437463670784 ;;
+    1) sotc_toggle_mask=$((70437463670784 | 2048)) ;;
+    *) echo 'SOTC_EXACT_READS must be 0 or 1' >&2; exit 24 ;;
+esac
+printf '%s 0\n' "$sotc_toggle_mask" > "$BB_TOGGLE_FILE"
+
+source "$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/hardware-memory.sh"
+sotc_apply_staging_memory || return $?

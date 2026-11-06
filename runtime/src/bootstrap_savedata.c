@@ -5,6 +5,9 @@
  * No save paths, accounts, mounts, files or persistent state are accessed.
  */
 #include "bootstrap_contracts.h"
+#ifdef SOTC_SAVE_TRIAL
+#include "bootstrap_savedata_trial.h"
+#endif
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
@@ -73,6 +76,10 @@ static int32_t save_initialize3(const void *param) {
     return (int32_t)UINT32_C(0x809f000b); /* SaveData INTERNAL. */
 }
 uintptr_t bootstrap_savedata_resolve(const char *name) {
+#ifdef SOTC_SAVE_TRIAL
+    uintptr_t trial=sotc_savedata_trial_resolve(name);
+    if (trial) return trial;
+#endif
     if (!strcmp(name,"TywrFKCoLGY#u#d")) return (uintptr_t)save_initialize3;
     if (!strcmp(name,"dyIhnXq-0SM#u#d")) return (uintptr_t)save_dir_search;
     static const struct { const char *name; void *fn; } exports[]={
@@ -86,6 +93,9 @@ uintptr_t bootstrap_savedata_resolve(const char *name) {
     return 0;
 }
 void bootstrap_savedata_report(void) {
+#ifdef SOTC_SAVE_TRIAL
+    if (sotc_savedata_trial_enabled()) { printf("Bootstrap: optional persistent savedata trial enabled; see Save trial events\n"); return; }
+#endif
     printf("Bootstrap: unavailable SaveData mount requests: mount=%zu, mount2=%zu, unmount=%zu, backup unmount=%zu, info=%zu, parameter=%zu, icon=%zu, delete=%zu (not initialized; outputs untouched; no save access)\n",
         atomic_load_explicit(&mount_requests,memory_order_relaxed),
         atomic_load_explicit(&mount2_requests,memory_order_relaxed),

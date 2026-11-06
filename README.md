@@ -4,11 +4,12 @@ Experimental **Shadow of the Colossus for Apple Silicon**, using native ARM64 CP
 translation and Metal rendering. No Rosetta 2.
 
 **Playable on Apple M1 with 16 GB, with graphical artifacts and low frame rates.**
-The owner reports a noticeable improvement after the October 28 runtime update.
 Vegetation, colored texture speckles and occasional planes across the horizon
-still need work. The earlier spikes extending from the character are no longer
-reported. Short gameplay runs work; long-session stability is not established.
-Save persistence is **not implemented**. A DualSense has connected successfully.
+have been reported; some tested routes now render without visible artifacts.
+Intermittent failures remain under investigation. The latest instrumented M1
+session ended normally after about 7 minutes, with a median of 2.1 FPS across
+reported windows. This is neither a controlled benchmark nor a confirmed crash fix.
+Save persistence is **disabled by default**. An [opt-in save backend](docs/BUILD.md#optional-persistent-savedata-trial-m1) has passed synthetic tests; in-game save/load remains unvalidated. A DualSense has connected successfully.
 The owner has also run the private build on an M5 with 32 GB: late samples were
 roughly 2.4–5.6 FPS. This confirms execution, not correct rendering or smooth play.
 
@@ -56,3 +57,16 @@ See [credits and licenses](docs/CREDITS.md). Licensed under [GPL v2 or later](LI
 Independent project; not affiliated with Sony, Bluepoint Games or Team Ico.
 
 Porting approaches and review priorities: [Mac port strategies](docs/MAC_PORT_STRATEGIES.md).
+
+Component ownership, upstream integration and the planned repository split:
+[repository workflow](docs/REPOSITORY_WORKFLOW.md). Public CI runs without game data;
+new host builds include source fingerprints in `host-build.json`.
+
+## Continuing development
+
+Start with the [contributor handoff](docs/DEBUGGING.md): current buffer-coherence
+findings, known diagnostic gaps, source locations, validation commands and next
+steps. Optional renderer trials remain separate from the default build. Their
+incremental builders require an existing verified native build; some intentionally
+require the original local control binary and private shader selections. They are
+research sources, not ready-to-run releases for every checkout.

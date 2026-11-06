@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "components": {
+    "cpu": {
+      "revision": "4d9c38444cac9b58c088685042665b8dd5314b54",
+      "repository": "https://github.com/bloodborne-native/bloodborne-recomp",
+      "files": {
+        "src/cpu/a64.h": "0009339909bd2b65cfb094f406da6abb6c0284016b8cce02c7e6a5eefc4992bc",
+        "src/cpu/bbcpu.h": "2aac22ea7d0463cd4cd1e7d82a9b4a2c04a21eca5b2dd20bac9d237fae05b707",
+        "src/cpu/cpu.c": "6e7922c3669c6f32fda2403de129b6d559ac2f7aaad16fcb6a6175b873eef4fe",
+        "src/cpu/cpu_internal.h": "e9fca252eed092a6f82e2e26e12ad6cc2393b226673fa1cd3449deaf770a326d",
+        "src/cpu/decode.c": "d32376b008ddfa7d60f51fd5a850082ba62ae37e6d73cdac25012b5caec3ae25",
+        "src/cpu/hostcall.S": "7ebaa2d4e83d648dc41476fe3c0877ddef7087c24a0fd4fa889347d52042871e",
+        "src/cpu/interp.c": "32026e0a46a6529fa2ecadf15ad03ee17d3375ca84519874a7363d214fe42d37",
+        "src/cpu/interp_vec.c": "306ccf19dcbbc9bbe5c0b9ef23e45cfebde1fd12336d75e0190cbc1ff7606d7e",
+        "src/cpu/interp_x87.c": "9fd8195b70265469289539b3a7fc7e71939d2132113d590059b281d4e9ad52d0",
+        "src/cpu/jit_arm64.c": "5eaf90b5d8ee20561b1f12decf8b37c52e945b6a8b944e5ce10a60d87b86af28",
+        "src/cpu/native.c": "a4b226882ac25cd33498fb9900b009f8c9ef3b4c61b59b0da6c04210713a3e90",
+        "src/cpu/recomp.c": "15596541523e5c1a7e33ac249683995674cf34d47112d2e897942e16a2415e95",
+        "src/cpu/record.c": "090c9422c8590564324887aa562966c9ee2724a6392c1043daa063746cf5a4cb",
+        "src/cpu/record.h": "356984f10f72688e7f4399219633ee2666fd697430cb85f57c2019245e3347e7",
+        "src/cpu/trace.h": "6c79f2b37c60199312581442ecc218d7900ca005788c864fe318bc34f0063b4f",
+        "src/recomp/rc.h": "091a181ad23134839526a9ce182245ac4e36d41e011f510ddbab76829aa9c142"
+      }
+    },
+    "standalone_cpu": {
+      "revision": "3f9b6c1a11d5a443ee2e556a0d1f3aec4a73f0ca",
+      "repository": "https://github.com/bloodborne-native/bbcpu",
+      "files": {
+        "src/cpu/a64.h": "0009339909bd2b65cfb094f406da6abb6c0284016b8cce02c7e6a5eefc4992bc",
+        "src/cpu/bbcpu.h": "485a24ce363b5f03056c9b63e8030e08fedfead27ac3f25048508cba7591c3f0",
+        "src/cpu/cpu.c": "1453a0c466b7c707766fb5db6c2afc979c99c4e31d2ca6a632e8d283ff9ebc58",
+        "src/cpu/cpu_internal.h": "994b58c11590c9c433110d2eb0a4b6a26e390c6e9cb55812f06e926cd7fd3d52",
+        "src/cpu/decode.c": "da9047f7b3f5979824bc63053ddcb72d3db69960b9cc688ff777d3c6f92d4498",
+        "src/cpu/hostcall.S": "7ebaa2d4e83d648dc41476fe3c0877ddef7087c24a0fd4fa889347d52042871e",
+        "src/cpu/interp.c": "3baa61441cb06cdeda4483ff847ecc95d9d6c30eaad6ffab72b0a91f52de9d03",
+        "src/cpu/interp_vec.c": "306ccf19dcbbc9bbe5c0b9ef23e45cfebde1fd12336d75e0190cbc1ff7606d7e",
+        "src/cpu/interp_x87.c": "9fd8195b70265469289539b3a7fc7e71939d2132113d590059b281d4e9ad52d0",
+        "src/cpu/jit_arm64.c": "796ddc6b506cc9283d477a974f1e383ab7181087f51a3b9406d58f72db764261",
+        "src/cpu/native.c": "8e5d050000683008b5ed968cba86cb6cce9ee43f4515697a1a41e9bf50cefd19",
+        "src/cpu/recomp.c": "e0b8e25b97ee68206ba965be86ef66be7b940f1cd6d3982fbc0e2da313d5e5f3",
+        "src/cpu/record.c": "fc2f6b9e78cd9a1dfa4dab2096c418949661ec55d2232a2d2d22b9189a2274f8",
+        "src/cpu/record.h": "356984f10f72688e7f4399219633ee2666fd697430cb85f57c2019245e3347e7",
+        "src/cpu/trace.h": "6c79f2b37c60199312581442ecc218d7900ca005788c864fe318bc34f0063b4f",
+        "src/recomp/rc.h": "5ca09c1766bf1e890a3b590e407e196ff5f133743d07922bc09fb487a2bafaad"
+      }
+    },
+    "runtime": {
+      "revision": "994846bb7bb5c017761df407973f53ff8db726d5",
+      "repository": "https://github.com/bloodborne-native/bloodborne-runtime",
+      "files": {
+        "gpu/bbgpu.h": "528ad8ed65ad298b79698d25612d2a40fae5606d700680e6fdd52853aed25314",
+        "src/import_names.inc": "46fed8987aa85efb3a853a45755be955474feb99d812a0994bdecc38109775f9",
+        "src/platform.h": "58a703bf82f2f7a87b4debc5bc50ace7be444ae0ea36d8f66b7155333edf404c",
+        "src/runtime.h": "f602da11b26a2c59d9d49c5865bdb8205d2d345c16cd4c82181aceea88fdd0e1",
+        "src/runtime_file.c": "3040deed8bd709f45c15c0601992a393bf2fc1ba0bbaf0fb05c36a933d425efd",
+        "src/runtime_heap.h": "e96701ccf6b75b70920676d19c6b7d60830bef3f3cdac16c4c6a2a97ab8bf2d7",
+        "src/runtime_memory.c": "9f9d825488473dd3d46b6d8c05e4525959ad4b859dfcfea3f06a98ee143cfff7",
+        "src/runtime_mutex.c": "8d959d15dddb3052095c2235ef80f601569aa3c2ddebc7817feddf93edd5bd70",
+        "src/runtime_rwlock.c": "8e957d28275812cc31bcdd334aadf0fa3846b1becf1fd8e8900c897672faebea"
+      }
+    }
+  }
+}

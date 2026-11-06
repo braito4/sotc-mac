@@ -6,9 +6,23 @@
  * 2250f328feafab953aac85e758e7bddb2e80e891/src/runtime_memory.c.
  * Foundations: deadinside28/bbport and shadPS4.
  */
+#define runtime_memory_pool_phys sotc_single_pool_phys
 #define runtime_memory_resolve sotc_upstream_memory_resolve
 #include "runtime_memory_diagnostic.c"
 #undef runtime_memory_resolve
+#undef runtime_memory_pool_phys
+#include "pool_contiguous_span.h"
+#include "buffer_page_history_runtime.h"
+#include "buffer_binding_audit_runtime.h"
+#ifdef SOTC_POOL_PROBE
+#define sotc_unobserved_pool_phys sotc_contiguous_pool_phys
+#include "pool_mapping_diagnostic.h"
+#undef sotc_unobserved_pool_phys
+#else
+int runtime_memory_pool_phys(uintptr_t address,uint64_t *phys,uintptr_t *end) {
+    return sotc_contiguous_pool_phys(address,phys,end);
+}
+#endif
 
 /* The PS4 ABI returns the largest aligned contiguous gap in [low, high),
  * not the sum of free bytes. The port's private extra pool is not visible.

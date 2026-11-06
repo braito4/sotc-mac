@@ -108,9 +108,9 @@ def supervise(command, seconds, log_path, cooperative=False):
                     'BB_MSL_SAFE_MATH', 'BB_TEXTURE_HELPER',
                     'BB_VK_RECORD_THREAD', 'BB_VK_RECORD_THREADS', 'BB_VK_SEGMENT_KB',
                     'BB_PREP_WORKERS', 'SOTC_RECORDING_TRIAL', 'SOTC_UPLOAD_BATCH', 'SOTC_GPU_UTILIZATION',
-                    'SOTC_REUSE_SHADER_CACHE', 'SOTC_METAL_TIMING', 'BB_THREAD_QOS', 'SOTC_ATTACHMENTLESS_SCISSOR',
+                    'SOTC_SHARED_MEMORY_PROBE', 'SOTC_SHADER_ORIGIN_PROBE', 'SOTC_GPU_PROGRESS_PROBE', 'SOTC_SUPERVISOR_HEARTBEAT', 'SOTC_LONG_CONTROL', 'BB_HOIST_INTERVAL_SETS', 'SOTC_ARCHIVE_WRITE_SECONDS', 'SOTC_ENGINE_OPTIONS', 'SOTC_FLAT_SCALES', 'SOTC_VEGETATION_PRESET', 'SOTC_STAGING_SIZE_CLASSES', 'SOTC_STRATEGY', 'SOTC_FALLBACK_MAPPING', 'SOTC_RAM_PROFILE', 'SOTC_RAM_DETECTED_GIB', 'BB_STAGING_KEEP_MB', 'SOTC_SCATTER_PROBE', 'SOTC_SCATTER_GUARD', 'SOTC_SCATTER_GUARD_DIR', 'SOTC_SCATTER_CACHE_MB', 'SOTC_FRAGMENT_PROVENANCE', 'SOTC_FRAGMENT_PRODUCER', 'SOTC_PRODUCER_BUNDLE', 'SOTC_PRODUCER_DIRECT', 'SOTC_FRAGMENT_GATHER', 'SOTC_BUFFER_HISTORY', 'SOTC_PAGE_HISTORY', 'SOTC_PAGE_CONTENT', 'SOTC_BINDING_AUDIT', 'SOTC_BINDING_AUDIT_SHADER', 'SOTC_GPU_PAGE_HISTORY', 'SOTC_POOL_CONTIGUOUS', 'SOTC_POOL_MAPPING_TRACE', 'SOTC_EXACT_READS', 'BB_HOIST_COPIES', 'SOTC_REUSE_SHADER_CACHE', 'SOTC_METAL_TIMING', 'BB_THREAD_QOS', 'SOTC_ATTACHMENTLESS_SCISSOR',
                     'SOTC_RENDER_VARIANT', 'SOTC_INDEX_REBASE', 'SOTC_INDIRECT_INDEX_REBASE', 'SOTC_INDIRECT_INDEX_SELECTIVE',
-                    'SOTC_DEPENDENCY_TRIAL', 'SOTC_DEPENDENCY_CPU', 'SOTC_DEPENDENCY_RUNTIME',
+                    'SOTC_SAVE_ROOT', 'SOTC_SAVE_TRACE', 'SOTC_DEPENDENCY_TRIAL', 'SOTC_DEPENDENCY_CPU', 'SOTC_DEPENDENCY_RUNTIME',
                     'SOTC_DIAGNOSTIC_BINARY', 'SOTC_GPU_LIBRARY',
                     'SDL_JOYSTICK_HIDAPI', 'SDL_JOYSTICK_HIDAPI_PS4', 'SDL_JOYSTICK_HIDAPI_PS5',
                     'SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS',
@@ -142,6 +142,9 @@ def supervise(command, seconds, log_path, cooperative=False):
         cleanup_error = None
         stop_requested_at = None
         started = time.monotonic()
+        last_child_output = started
+        next_heartbeat = started + 15
+        heartbeat = os.getenv('SOTC_SUPERVISOR_HEARTBEAT') == '1'
         monitor = None
         try:
             deadline = started + seconds if seconds else None
@@ -169,7 +172,13 @@ def supervise(command, seconds, log_path, cooperative=False):
                     if interrupted:
                         reason = (128 + interrupted, b'STOP_GPU_CANCELLED: termination requested after interruption\n')
                         break
-                    remaining = deadline - time.monotonic() if deadline is not None else None
+                    now = time.monotonic()
+                    if heartbeat and now >= next_heartbeat and child.poll() is None:
+                        emit((f'GPU supervisor status: elapsed={now-started:.0f}s '
+                              f'child_output_silent={now-last_child_output:.0f}s; '
+                              'supervisor active, GPU progress unknown\n').encode())
+                        next_heartbeat = now + 15
+                    remaining = deadline - now if deadline is not None else None
                     if remaining is not None and remaining <= 0:
                         reason = (21, b'STOP_GPU_WALL_TIMEOUT: total budget exhausted; termination requested\n')
                         break
@@ -181,6 +190,7 @@ def supervise(command, seconds, log_path, cooperative=False):
                             selector.unregister(key.fileobj)
                             eof = True
                             continue
+                        last_child_output = time.monotonic()
                         emit(data)
                         combined = tail + data
                         if b'GPU watchdog:' in combined:

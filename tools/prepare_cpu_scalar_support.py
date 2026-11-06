@@ -81,6 +81,18 @@ uint64_t bbcpu_step_insn(BbCpu *cpu, const BbInsn *in) {
     return next;
 }'''
     if source.count(old)!=1:raise ValueError('Unexpected interpreter step wrapper.')
+    source=source.replace(old,new)
+    old='static void call_host(BbCpu *cpu, uint64_t target, uint64_t stack_args) {'
+    new='#include "cpu_import_origin.h"\n\n'+old
+    if source.count(old)!=1:raise ValueError('Unexpected host-call entry for origin tracing.')
+    source=source.replace(old,new)
+    old='    bbcpu_hostcall((const void *)target, &a);'
+    new='''    const int trace_origin=sotc_import_trace_enabled();
+    SotcImportOrigin previous_origin={0};
+    if(trace_origin)previous_origin=sotc_import_enter(cpu->rip,cpu->r[RSP],stack_args,target);
+    bbcpu_hostcall((const void *)target, &a);
+    if(trace_origin)sotc_import_leave(previous_origin);'''
+    if source.count(old)!=1:raise ValueError('Unexpected host-call boundary for origin tracing.')
     return source.replace(old,new)
 
 

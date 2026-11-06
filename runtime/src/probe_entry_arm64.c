@@ -475,9 +475,10 @@ int main(int argc, char **argv) {
         if(!end||end==startup_site||*end||startup_site[0]=='-'||site>=size)
             fail("invalid no-intro command-line site");
         unsigned char *startup_text=runtime_low_map(16384,PROT_READ|PROT_WRITE);
-        if(!startup_text||sotc_startup_no_intro(image,(size_t)size,(size_t)site,startup_text,16384)||
+        if(!startup_text||sotc_startup_options(image,(size_t)size,(size_t)site,startup_text,16384,getenv("SOTC_ENGINE_OPTIONS"))||
            mprotect(startup_text,16384,PROT_READ))fail("no-intro command-line validation failed");
         puts("Engine startup option: +nointro (original initialization retained)");
+        if(getenv("SOTC_ENGINE_OPTIONS"))printf("Engine startup requested options: %s\n",getenv("SOTC_ENGINE_OPTIONS"));
     }
     if (bootstrap) {
         if (!(capabilities & 1)) fail("bootstrap requires verified libc capability");
@@ -607,7 +608,10 @@ int main(int argc, char **argv) {
     if (!stack) fail("stack mapping failed");
     struct { uint64_t count; const char *args[2]; } params = {1, {"/app0/eboot.bin", NULL}};
     const uint64_t args[] = {(uintptr_t)&params, (uintptr_t)guest_exit};
-    printf("Diagnostic only: %s; %s; %s; no save access.\n",
+    #ifdef SOTC_SAVE_TRIAL
+    printf("Save trial build: SOTC_SAVE_ROOT=%s; dialogs remain unavailable.\n",getenv("SOTC_SAVE_ROOT") ? getenv("SOTC_SAVE_ROOT") : "disabled");
+#endif
+    printf("Diagnostic only: %s; %s; %s; savedata policy reported separately.\n",
            bootstrap ? "narrow bootstrap contracts" : "all imports stop",
            game_root ? "read-only game-content mounts" : "no game-file API access",
            gpu_library ? "experimental graphics provider" : "no renderer");

@@ -5,6 +5,7 @@
  * not a complete libc or PS4 runtime. No game code is embedded.
  */
 #include "bootstrap_contracts.h"
+#include "buffer_page_history_api.h"
 #include "bootstrap_pad.h"
 #include "bootstrap_audio.h"
 #include "bbcpu.h"
@@ -231,6 +232,7 @@ static void *guest_memcpy(void *dst, const void *src, size_t size) {
     runtime_memory_prepare_cpu_write((uintptr_t)dst, size);
     if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,2,(uintptr_t)src);
     void *result = memcpy(dst, src, size);
+    if(sotc_buffer_page_cpu_v1)sotc_buffer_page_cpu_v1(SOTC_PAGE_MEMCPY,(uintptr_t)dst,size,(uintptr_t)src,0);
     if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,3,(uintptr_t)src);
     if (memory_watch) bbcpu_watch_write((uintptr_t)dst, size);
     runtime_memory_note_cpu_write((uintptr_t)dst, size);
@@ -240,6 +242,7 @@ static void *guest_memset(void *dst, int value, size_t size) {
     runtime_memory_prepare_cpu_write((uintptr_t)dst, size);
     if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,4,(unsigned char)value);
     void *result = memset(dst, value, size);
+    if(sotc_buffer_page_cpu_v1)sotc_buffer_page_cpu_v1(SOTC_PAGE_MEMSET,(uintptr_t)dst,size,0,(unsigned char)value);
     if(pointer_copy_trace)sotc_cpu_pointer_copy_write((uintptr_t)dst,size,5,(unsigned char)value);
     if (memory_watch) bbcpu_watch_write((uintptr_t)dst, size);
     runtime_memory_note_cpu_write((uintptr_t)dst, size);
