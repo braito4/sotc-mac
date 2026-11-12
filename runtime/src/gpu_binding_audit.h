@@ -11,7 +11,11 @@ inline U64 Selected(){static const U64 value=[] {
 struct Record {
     U64 sequence{},ns{},thread{},shader{},unified{},logical_slot{},guest{},requested{},bytes{},adjust{};
     bool written{};std::array<unsigned char,16> sharp{};SotcBufferHistory::Span native;
+    const char* route_reason{};
+    U64 route_sequence{},encoder_thread{};
 };
+using RoutedFind=Record(*)(U64,U64,U64,U64);
+inline thread_local RoutedFind routed_find{};
 class Registry {
     std::mutex gate;std::array<Record,64> records{};U64 serial{};
 public:
@@ -37,6 +41,7 @@ inline void Bound(U64 shader,U64 unified,U64 logical_slot,U64 guest,U64 requeste
     std::memcpy(r.sharp.data(),sharp,r.sharp.size());r.native=SotcBufferHistory::Get().Describe(backend,aligned,bound_bytes);Get().Add(r);
 }
 inline Record Find(U64 unified,U64 metal,U64 offset,U64 bytes){
+    if(routed_find)return routed_find(unified,metal,offset,bytes);
     if(!Selected())return {};
     // Resolve the current native epoch through the existing history registry.
     const auto span=SotcBufferHistory::Get().NativeSpan(metal,offset,bytes);
@@ -44,6 +49,7 @@ inline Record Find(U64 unified,U64 metal,U64 offset,U64 bytes){
 }
 inline void Json(std::ostream& out,const Record& r){
     out<<"{\"matched\":"<<(r.sequence?"true":"false");
+    if(r.route_reason)out<<",\"reason\":\""<<r.route_reason<<"\",\"route_sequence\":"<<r.route_sequence<<",\"encoder_thread\":"<<r.encoder_thread;
     if(r.sequence){out<<",\"sequence\":"<<r.sequence<<",\"ns\":"<<r.ns<<",\"shader\":"<<r.shader<<",\"unified\":"<<r.unified<<",\"logical_slot\":"<<r.logical_slot<<",\"guest\":"<<r.guest<<",\"requested_bytes\":"<<r.requested<<",\"bytes\":"<<r.bytes<<",\"adjust\":"<<r.adjust<<",\"written\":"<<(r.written?"true":"false")<<",\"sharp_hex\":\"";
         const char* hex="0123456789abcdef";for(auto b:r.sharp)out<<hex[b>>4]<<hex[b&15];out<<'"';}
     out<<'}';

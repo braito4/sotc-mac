@@ -14,6 +14,7 @@
 #include "pool_contiguous_span.h"
 #include "buffer_page_history_runtime.h"
 #include "buffer_binding_audit_runtime.h"
+#include "fragment_writeback_runtime.h"
 #ifdef SOTC_POOL_PROBE
 #define sotc_unobserved_pool_phys sotc_contiguous_pool_phys
 #include "pool_mapping_diagnostic.h"

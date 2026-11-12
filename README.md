@@ -4,11 +4,12 @@ Experimental **Shadow of the Colossus for Apple Silicon**, using native ARM64 CP
 translation and Metal rendering. No Rosetta 2.
 
 **Playable on Apple M1 with 16 GB, with graphical artifacts and low frame rates.**
-Vegetation, colored texture speckles and occasional planes across the horizon
-have been reported; some tested routes now render without visible artifacts.
-Intermittent failures remain under investigation. The latest instrumented M1
-session ended normally after about 7 minutes, with a median of 2.1 FPS across
-reported windows. This is neither a controlled benchmark nor a confirmed crash fix.
+Colored texture speckles and other route-dependent artifacts remain. The latest
+instrumented propagation trials passed the previously recurring failure point and
+ended with manual window closes; the latest run reported a median of 5.3 FPS.
+This is a targeted validation, not a general crash fix or controlled benchmark.
+The paired-output extension is tested synthetically and still awaits gameplay
+validation. These optional trials are documented in the [contributor handoff](docs/DEBUGGING.md).
 Save persistence is **disabled by default**. An [opt-in save backend](docs/BUILD.md#optional-persistent-savedata-trial-m1) has passed synthetic tests; in-game save/load remains unvalidated. A DualSense has connected successfully.
 The owner has also run the private build on an M5 with 32 GB: late samples were
 roughly 2.4–5.6 FPS. This confirms execution, not correct rendering or smooth play.

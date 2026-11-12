@@ -1,6 +1,6 @@
 # Contributor handoff
 
-Checkpoint: 2026-11-06. Native ARM64 and Metal reach gameplay on an Apple M1 with
+Checkpoint: 2026-11-12. Native ARM64 and Metal reach gameplay on an Apple M1 with
 16 GB. Low frame rates, intermittent failures and route-dependent visual artifacts
 remain. There is no confirmed general crash fix. No game files, generated game
 code, shader dumps, private profiles, raw captures or saves are distributed here.
@@ -16,7 +16,118 @@ code, shader dumps, private profiles, raw captures or saves are distributed here
    upstream review and the staged CPU/recompiler separation. Trial patches are
    optional; their presence in Git does not enable them in the default build.
 
-## What the latest comparison establishes
+## Fragmented-output propagation: current checkpoint
+
+The initializer and both append-producer variants now have native validation on the
+owner's M1. In two consecutive sessions the owner passed the recurring failure point
+and closed the window normally. Eighteen captured producer dispatches preserve the
+whole output between successive appends, retain counter continuity and yield valid
+active indices. This does not prove all routes, textures or crashes are fixed.
+Colored pixel noise remains visible on some surfaces. A screenshot distinguishes
+that symptom from completely absent textures but cannot establish its cause.
+
+`gpu_fragment_writeback_metal.h` is an opt-in ordered propagation scope. Each exact
+private selection refreshes a fragmented output after earlier GPU work completes,
+executes with a fresh temporary, copies completed data to the original staging
+range and publishes it to physical backing. This retains previous append results
+even when following destinations were prepared with stale data. The original atomic
+counter binding is preserved; an observed fallback counter is rejected rather than
+silently replaced. Producer-input and downstream-consumer guards remain enabled.
+
+The latest paired-output trial supports two output slots per entry, for the next
+attribute-update stage. It plans both before rebinding, and the host batch-v2 API
+validates the entire group before any copy under the actual memory-table read lock.
+The original even generation must match every output. Missing fragments, physical
+bounds, overlapping physical aliases, ambiguous native bindings or mapping changes
+reject the group. There is no interval where an allocator can remap one destination
+between validation and publication. This is atomic against mapping changes, not
+against unsynchronized guest CPU stores. GPU commands are complete before host
+publication; the next queued dispatch is encoded afterwards. Additional synchronous
+waits make this a correctness trial, not a performance optimization.
+
+The shared ABI is in `fragment_writeback_api.h`; the host implementation lives in
+`fragment_writeback_runtime.h`, included by the real memory backend. The single-output
+v1 export remains for older renderer controls. The new renderer requires batch v2.
+Each output is capped at 8 MiB, each group at two outputs, and mapping plans at
+256 physical segments. Selection allows up to five distinct entries. A synthetic
+example is `fixture_init,3,64;fixture_append,5,64,4;fixture_pair,10+13,64` through
+`SOTC_FRAGMENT_WRITEBACK`; real entries/layouts must be reviewed privately.
+
+Validation: sanitized CPU protocol tests exercise nine appends into preprepared
+stale buffers, live counters, paired and mixed direct/fragmented outputs, restoration,
+preserved tails, second-output failure, mapping ABA and physical-alias rejection.
+Both outputs remain unpublished when the second fails validation. Full host contracts
+run in JIT and interpreter modes; native library compilation/load are separate
+checks. Paired-output gameplay and any effect on the colored noise remain pending.
+
+Local incremental builders: `build_fragment_writeback_trial.py`,
+`build_producer_writeback_trial.py` and `build_group_writeback_trial.py`. They depend
+on verified predecessor manifests and control objects in the ignored work directory;
+they are not standalone release builders. The cumulative overlays are public research
+sources. Neither the default renderer manifest nor dependency pins are promoted by
+these experiments. Preserve the known working producer trial for rollback.
+
+To validate the original synthetic propagation fixtures on an ARM64 Mac:
+
+```sh
+mkdir -p work
+python3 tools/check_fragment_writeback_trial.py
+bash packaging/test-arm64.sh --contracts-test
+```
+
+The optional `--native` fixture attempts real Metal work and reports unavailability
+when no device is exposed. CPU protocol success alone is not native GPU validation.
+
+## Comparing two producer variants
+
+The optional producer observer accepts one exact entry or two entries separated
+by `|` in the first field of `SOTC_PRODUCER_BUNDLE`. The remaining fields are the
+shared output slot, counter slot and minimum output byte size. Supply reviewed
+private profiles; entry names and game layouts are not provided by this repository.
+For example, the synthetic form is `fixture_a|fixture_b,5,4,64`.
+
+One entry retains the 32-capture budget. Two entries reserve 16 captures each;
+arming is independent, and an early entry cannot consume the other's allowance.
+The saved metadata identifies the actual selected entry and retains the observed
+binding descriptor association for every capture. Each variant still requires its
+own verified offline interpretation, particularly for element stride and push data.
+Unselected entries, duplicate entries, empty entries and more than two selections
+are covered by the observer regression (`tools/check_producer_bundle_trial.py`).
+
+`tools/build_dual_producer_trial.py` builds an isolated diagnostic library from
+the verified region trial. This does not enable writeback, expand capture memory
+limits, relax index validation or change the default renderer. The checks use
+ordered CPU protocol doubles with sanitizers; a native game comparison is separate.
+Equality of producer/consumer bytes does not establish allocation identity, while
+a difference does not by itself identify the writer or the intervening copy.
+
+## Protecting producer input reads
+
+The optional `SOTC_PRODUCER_INPUT_GUARD` selects up to two exact reviewed entries.
+Each semicolon-separated record contains the entry, parameter slot, parameter push
+adjustment byte, first-index field, triangle-count field, index slot and adjustment
+byte, normal slot and adjustment byte, normal stride and X threads per group.
+Layouts must come from the owner's verified shader sources. Supported strides are
+four and eight bytes; unsupported or ambiguous layouts fail explicitly.
+
+The guard snapshots parameters, indices and indirect dimensions in GPU order before
+the producer dispatch. It validates the active triangle range, complete normal
+elements and 32-bit shader address arithmetic. On success, it binds the immutable
+validated input and retains it through the command; original bindings are restored
+after encoding. Snapshot truncation or invalid indices stop before the producer
+with status23 and private `producer-input` evidence, binding associations and buffer
+history. The guard has no capture-count cutoff, so exhaustion of the separate
+producer observer budget does not disable containment.
+
+This can stop earlier than the consumer guard. It does not repair bad source data,
+pin guest allocation lifetimes or propagate fragmented writable output. Adding
+writeback requires destination lifetime and ordering guarantees beyond a sampled
+mapping generation. Both strict guards remain active in the private comparison.
+`tools/check_producer_input_trial.py` checks the actual guard with sanitized ordered
+CPU protocol doubles; `tools/build_producer_input_trial.py` builds its isolated
+region renderer. Native gameplay and performance validation remain separate.
+
+## Earlier comparison: direct-output control
 
 Two distinct problems appeared in earlier failing captures: producer input already
 contained indices outside its normal-buffer extent, and a fragmented writable
@@ -24,7 +135,7 @@ fallback's new output did not reach the later consumer snapshot. The observed
 consumer retained the producer's pre-dispatch contents. Fixing output propagation
 alone cannot repair the already-invalid input.
 
-The latest instrumented run closed normally after about 446 seconds. Nine complete
+A November 6 instrumented run closed normally after about 446 seconds. Nine complete
 producer captures used direct imported pool bindings. Every captured input index
 was within the bound normal-buffer extent; inputs contained varied data. Each
 complete output-after matched the next output-before, and all appended indices
@@ -41,6 +152,64 @@ bindings** in actual gameplay. Its synthetic fixtures pass, but gameplay coverag
 does not. No CPU alias/backing equivalence can be inferred from missing reports.
 Sparse page-content samples have their own retention and sampling budgets; absence
 of an event or sample does not prove that no write occurred.
+
+A subsequent repeat stopped on the strict guard after about 292 seconds, with
+6,540 invalid active indices. Its selected producer captures belong to a different
+output/counter range from the failing consumer, so the earlier stale-output
+conclusion cannot be applied to this run. The consumer's first 64 sampled bytes
+were zero at the mapping observation and invalid at consumption. This narrows the
+observation interval but does not identify a writer or establish alias ownership.
+
+## Optional small compute transfers
+
+The separate `tools/build_small_copy_trial.py` renderer includes the queued
+association trial below and an adaptation of bloodborne-runtime `a03929b5`.
+`SOTC_SMALL_COPIES=1` allows bounded small copies, fills and updates inside an
+already open serial compute encoder. Default is off. The original queued trial
+and standard build remain available as controls.
+
+Read [the adaptation and its limits](REFERENCE_REVIEW_20261109.md#optional-small-transfer-adaptation-prepared).
+Cross-object copies with unknown backing retain blits. No buffer history or strict
+guard is removed. `SOTC_SMALL_COPIES` log lines count encoded operations and
+fallbacks; `compute_copy_buffer`, `compute_fill_buffer`, `compute_update_buffer`
+trace events identify the actual compute encoder. These are encoding observations,
+not completion or FPS evidence. Full diagnostic runs can change timing.
+
+CPU-only validation: `python3 tools/check_small_copy_trial.py` after preparing the
+isolated trial sources. Portable planner tests also run in the public tools suite.
+The protocol doubles and translated kernel model do not establish native Metal
+shader compilation, synchronization or gameplay correctness.
+
+## Queued association trial prepared
+
+`tools/build_binding_route_trial.py` builds an isolated renderer with an opt-in
+`SOTC_BINDING_ROUTE` path. The private launcher supplies up to eight reviewed shader
+request identifiers through `SOTC_BINDING_ROUTE_SHADERS`; none are hardcoded in
+the public adapter. At most 128 selected large-binding dispatch packets are retained,
+with up to 32 binding records each. Budget exhaustion is reported.
+
+The preparation thread copies raw descriptor observations, validates the descriptor
+write submitted for recording, and carries an immutable packet in the queued dispatch.
+The encoder compares native object, epoch and extent before allowing CPU/backing
+sampling. Unobserved special paths, changed descriptors, unavailable identities and
+reuse are explicit rejections; there is no newest-record fallback across threads.
+
+`route-*-before.json` records pre-guard bindings. `route-*-encoded.json` records the
+dispatch bindings, including any immutable input substitutions made by the guard.
+`route-*-completed.json` records completion of that actual Metal command buffer.
+The existing guard can commit a chunk between the first two phases, so their
+command-buffer pointers may differ legitimately. Completion must match the encoded
+phase. No new GPU waits, guest writes or permissions changes are added by this route
+observer; metadata and callback/file overhead can still change timing.
+
+`tools/analyze_binding_route.py` reports association reasons and prior overlapping
+writable bindings as **candidates**, not proven byte writers. Native epochs do not
+identify guest allocation lifetimes. Missing completion files remain unknown.
+The native build, cross-thread/identity sanitizer fixtures, protocol-double callback
+tests and 50 tooling tests pass. Owner gameplay coverage is still pending.
+
+Reviewed performance backports remain separate in the
+[November 9 reference review](REFERENCE_REVIEW_20261109.md).
 
 ## Next investigation
 

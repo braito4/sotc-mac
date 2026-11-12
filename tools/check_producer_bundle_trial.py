@@ -41,9 +41,17 @@ int main(int argc,char** argv) {@autoreleasepool {
     }
     auto args=[device newBufferWithLength:32 options:MTLResourceStorageModeShared];
     const std::uint32_t dims[3]={3,2,1};std::memcpy((char*)args.contents+4,dims,12);
-    bool active=mode!="disabled"&&mode!="unselected"&&mode!="notarmed"&&mode!="readonly"&&mode!="reused";
-    const unsigned loops=mode=="budget"?33:mode=="direct_after_fragment"?2:1;
+    bool active=mode!="disabled"&&mode!="unselected"&&mode!="notarmed"&&mode!="readonly"&&mode!="reused"&&mode!="prefix";
+    const bool dual=mode=="dual_budget"||mode=="dual_arming";
+    const unsigned loops=dual?40:mode=="budget"?33:mode=="direct_after_fragment"?2:1;
     for(unsigned i=0;i<loops;++i){
+        if(dual){
+            shader.entry=i<20?"fixture":"alternate";
+            if(mode=="dual_arming"&&i==20){
+                auto direct=[device newBufferWithLength:144 options:MTLResourceStorageModeShared];
+                std::memset(direct.contents,0x71,144);output.buffer=direct;
+            }
+        }
         if(i==1&&mode=="direct_after_fragment"){
             auto direct=[device newBufferWithLength:144 options:MTLResourceStorageModeShared];
             std::memset(direct.contents,0x71,144);output.buffer=direct;
@@ -64,7 +72,8 @@ int main(int argc,char** argv) {@autoreleasepool {
             words[20]=0xffffffff;counter_words[2]=0xffffffff;
             o.cmd=(id<MTLCommandBuffer>)[TestCommand new];
         });
-        assert(committed==(active&&i<32));
+        const bool expected_capture=dual?(i%20<16&&(mode!="dual_arming"||i<20)):(active&&i<32);
+        assert(committed==expected_capture);
         if(committed)assert(words[20]==0xffffffff&&counter_words[2]==0xffffffff);
         assert(output.offset==16&&output.size==128); // No rebind or writeback.
     }
@@ -77,18 +86,24 @@ with tempfile.TemporaryDirectory(dir=ROOT/'work') as tmp:
                     '-fsanitize=address,undefined','-framework','Foundation','-framework','Metal',
                     '-I'+str(ROOT/'runtime/src'),str(p/'test.mm'),'-o',str(p/'test')],check=True)
     modes=('direct','indirect','direct_after_fragment','notarmed','readonly','reused','disabled',
-           'unselected','extent','missingcounter','failed','truncated','budget','selection','collision')
+           'unselected','extent','missingcounter','failed','truncated','budget','selection','collision',
+           'dual_budget','dual_arming','duplicate','trailing','three_entries','prefix')
     for mode in modes:
         out=p/mode;out.mkdir()
         env=dict(os.environ,SOTC_FRAGMENT_PROVENANCE='1',SOTC_PRODUCER_BUNDLE='fixture,5,4,64',SOTC_SCATTER_GUARD_DIR=str(out))
         if mode=='disabled':env.pop('SOTC_PRODUCER_BUNDLE')
         if mode=='selection':env['SOTC_PRODUCER_BUNDLE']='fixture,5,5,64'
+        if mode in ('dual_budget','dual_arming'):env['SOTC_PRODUCER_BUNDLE']='fixture|alternate,5,4,64'
+        if mode=='duplicate':env['SOTC_PRODUCER_BUNDLE']='fixture|fixture,5,4,64'
+        if mode=='trailing':env['SOTC_PRODUCER_BUNDLE']='fixture|,5,4,64'
+        if mode=='three_entries':env['SOTC_PRODUCER_BUNDLE']='fixture|alternate|third,5,4,64'
+        if mode=='prefix':env['SOTC_PRODUCER_BUNDLE']='fixture_long|other,5,4,64'
         if mode=='collision':(out/'bundle-1.bin').write_bytes(b'preserved')
         result=subprocess.run([str(p/'test'),mode],env=env,capture_output=True,text=True)
-        expected=23 if mode in ('extent','missingcounter','failed','selection','collision') else 0
+        expected=23 if mode in ('extent','missingcounter','failed','selection','collision','duplicate','trailing','three_entries') else 0
         assert result.returncode==expected,(mode,result.stderr)
-        if mode in ('direct','indirect','direct_after_fragment','truncated','budget'):
-            count=32 if mode=='budget' else 2 if mode=='direct_after_fragment' else 1
+        if mode in ('direct','indirect','direct_after_fragment','truncated','budget','dual_budget','dual_arming'):
+            count=32 if mode in ('budget','dual_budget') else 16 if mode=='dual_arming' else 2 if mode=='direct_after_fragment' else 1
             assert len(list(out.glob('*.json')))==count
             m=json.loads((out/'bundle-1.json').read_text());raw=(out/'bundle-1.bin').read_bytes()
             assert m['completed'] and m['output_fallback_observed'] and len(m['bindings'])==5
@@ -104,6 +119,12 @@ with tempfile.TemporaryDirectory(dir=ROOT/'work') as tmp:
             if mode=='direct_after_fragment':
                 m2=json.loads((out/'bundle-2.json').read_text());assert not m2['output_fallback_observed']
             if mode=='budget':assert 'budget exhausted omitted=1' in result.stderr
+            if mode in ('dual_budget','dual_arming'):
+                assert m['entry']=='fixture' and m['selection_budget']==16
+                assert 'budget exhausted omitted=1' in result.stderr
+                if mode=='dual_budget':
+                    second=json.loads((out/'bundle-17.json').read_text())
+                    assert second['entry']=='alternate' and second['selection_index']==1
         elif mode=='collision':assert (out/'bundle-1.bin').read_bytes()==b'preserved'
         else:assert not list(out.glob('bundle-*'))
         print('PASS:',mode)

@@ -4,6 +4,7 @@
 #include "gpu_fragment_provenance.h"
 #include <atomic>
 #include <optional>
+#include <type_traits>
 
 namespace SotcFragmentGather {
 using U64=std::uint64_t;
@@ -26,7 +27,13 @@ Plan<Buffer> Prepare(bool enabled,bool written,U64 address,U64 size,U64 destinat
         if(result.parts.size()==256)return result;
         U64 physical=0;uintptr_t end=0;const U64 at=address+done;
         if(!mapping(at,&physical,&end)||end<=at)return result;
-        const auto view=window(physical);result.reason="pool_window";
+        // Demand imports need the full currently mapped part, not just its first
+        // byte. Fixed-window resolvers retain their original one-argument API.
+        const U64 requested=std::min<U64>(size-done,end-at);
+        const auto view=[&] {
+            if constexpr(std::is_invocable_v<Window,U64,U64>) return window(physical,requested);
+            else return window(physical);
+        }();result.reason="pool_window";
         if(!view||!view->buffer||view->offset>=view->bytes||physical%4||view->offset%4)return result;
         const U64 n=std::min<U64>({size-done,end-at,view->bytes-view->offset});
         if(!n||n%4||physical>UINT64_MAX-n)return result;

@@ -1,7 +1,18 @@
 #!/bin/bash
 # Shared, gameplay-tested Metal settings. Source after assigning sotc_state.
+# Select before changing other settings; the single-pool gameplay control remains the default.
+# 'split' matches upstream's original windows; 'balanced' retains our alternative geometry.
+export SOTC_POOL_MODE="${SOTC_POOL_MODE:-single}"
+case "$SOTC_POOL_MODE" in
+    single) export BB_POOL_SPLIT=0; unset BB_POOL_LAYOUT ;;
+    split) export BB_POOL_SPLIT=1 BB_POOL_LAYOUT=legacy ;;
+    balanced) export BB_POOL_SPLIT=1; unset BB_POOL_LAYOUT ;;
+    *) echo 'SOTC_POOL_MODE must be single, split or balanced' >&2; return 24 ;;
+esac
+printf 'SotC pool policy: %s (BB_POOL_SPLIT=%s, layout=%s)\n' \
+    "$SOTC_POOL_MODE" "$BB_POOL_SPLIT" "${BB_POOL_LAYOUT:-default}"
 export BB_METAL_NATIVE_BOOT=1 BB_METAL_FRAME=1 BB_GFX_BACKEND=metal
-export BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_POOL_SPLIT=0 BB_RESIDENCY_SET=1
+export BB_GAME_PROFILE=none BB_SETTINGS_CHANNEL=0 BB_RESIDENCY_SET=1
 export BB_TEXTURE_HELPER="${SOTC_TEXTURE_HELPER:-0}"
 case "$BB_TEXTURE_HELPER" in 0|1) ;; *) echo 'SOTC_TEXTURE_HELPER must be 0 or 1' >&2; exit 24;; esac
 export BB_MSL_SAFE_MATH=1 BB_JIT=1 BB_DMEM_MB=5056 BB_DMEM_EXTRA_MB=512
@@ -18,7 +29,7 @@ export SOTC_SHADER_PROVENANCE=0 SOTC_SHADER_SUBMIT_TRACE=0 SOTC_SHADER_BIND_TRAC
 export SOTC_SHADER_COPY_TRACE=0 SOTC_DIAGNOSTIC_JOURNAL=0 SOTC_TASK_GUARD=0
 export SOTC_CPU_POINTER_TRACE='' SOTC_CPU_FIELD_TRACE='' SOTC_CPU_FAULT_FIELDS=''
 unset SOTC_CPU_POINTER_PROFILE SOTC_CPU_EXPERIMENT_PROFILE SOTC_CPU_INTERPRET_RANGE
-unset SOTC_SKIP_INTRO_SITE BB_JIT_DENY BB_RENDER_RES BB_OUTPUT_RES BB_POOL_LAYOUT BB_GC_BUDGET_MB
+unset SOTC_SKIP_INTRO_SITE BB_JIT_DENY BB_RENDER_RES BB_OUTPUT_RES BB_GC_BUDGET_MB
 unset VK_DRIVER_FILES VK_ICD_FILENAMES SDL_VULKAN_LIBRARY BB_DRAW_CENSUS
 export SOTC_SKIP_INTRO=0 BB_FRAME_STATS=1 BB_WRITE_LOG=0 BB_GPU_LOG=critical
 export BB_VK_VALIDATION=0 BB_VK_VALIDATION_SYNC=0

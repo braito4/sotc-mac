@@ -12,7 +12,7 @@ def review(folder):
     for b in meta['bindings']:
         d=b.get('binding_audit',{})
         if not d.get('matched'):
-            missing.append({'slot':b['slot'],'reason':'no exact selected descriptor/native association'});continue
+            missing.append({'slot':b['slot'],'reason':d.get('reason','no exact selected descriptor/native association')});continue
         sharp=bytes.fromhex(d['sharp_hex'])
         if len(sharp)!=16:raise ValueError('Descriptor extent')
         address=int.from_bytes(sharp[:8],'little')&((1<<40)-1)

@@ -339,5 +339,72 @@
     "qualified_renderer_sha256": "49a92f56b86451b5a516290d5169cec52f98da60c58abf616721b4046ee99501",
     "validation": "Reviewed actual AccessBuffer condition and source digest; dry-run full private launch chain and portable shell profiles passed for control/exact; invalid mode rejected. Same control host/renderer, save service disabled. M1 gameplay pending.",
     "gameplay": "20261104T151912Z: selected mask verified; SIGSEGV/exit139 at277.696s preceded by invalid PM4 packet. Last-six FPS median2.2, Metal peak11341/final9926MiB. Cold cache: latest0reused/1652compiled, because identity includes toggle-file hash. No performance gain or causal regression attribution established; not promoted."
+  },
+  "review_20261109": {
+    "checked_at": "2026-11-09T20:53:05.067926+00:00",
+    "heads": {
+      "shadps4-emu/shadPS4": "f46a693c802f2d60573e07927b5fdaa753136567",
+      "AjncSystem/ShadowOfTheColossus-PC": "1fe46aa3ff6aea23d8d5b3cd1b1477c394259481",
+      "bloodborne-native/bloodborne-mac": "fb7f5bb05e8bb7c2f50b58a78c3b369d371f1e50",
+      "bloodborne-native/bloodborne-recomp": "c60ccf8be752b8690f2813505c4daf9eafdb136b",
+      "bloodborne-native/bloodborne-runtime": "5e9327fc39bc7648db7a21f767d3ce4c6c5822bf",
+      "wie-project/PS4Recomp": "1b77072bee8bdf190450fbd44dc765c37657f2ed"
+    },
+    "source_review": "docs/REFERENCE_REVIEW_20261109.md",
+    "selected_optional_backport": "a03929b5d0d09c070dea48e37c600e6cbf46ae5a",
+    "scope": "Small copies, fills and updates in an existing serial compute encoder. Conservative unknown-alias fallback; 64KiB/1024-region bounds; transfer history preserved. SOTC_SMALL_COPIES=1; default off. Runtime/CPU pins unchanged.",
+    "patch": "tools/gpu_patches/sotc-small-copy-trial.patch.json",
+    "deferred": "Pass retention, fence lifecycle and shader changes require separate adaptation. Exact-read toggle predicate differs from this pin.",
+    "validation": "Isolated ARM64 renderer build/load, 51 tools tests, full JIT/interpreter contracts, planner/production-transfer sanitizer fixtures and opt-in/control launcher stubs pass. Native MSL/GPU/gameplay and FPS pending.",
+    "single_pool_followup": "Runtime 5e9327fc39bc now defaults native Metal to one import. Already explicitly selected here with BB_POOL_SPLIT=0; no additional memory saving claimed. Retain local M1 direct/indirect >4GiB index rebasing."
+  },
+  "review_20261112_pool_regions": {
+    "checked_at": "2026-11-12T15:19:32.080733+00:00",
+    "heads": {
+      "runtime": "234006761712f8621966c1a5e9f97b3b789a3d09",
+      "sotc": "ec7c7220dc223e1d3a5e37d78be5ce9d2505ffda",
+      "mac": "fa99ba4728f40edf1a396d58381866fb626561e8",
+      "recomp": "c60ccf8be752b8690f2813505c4daf9eafdb136b"
+    },
+    "adapted_runtime_commits": [
+      "1050d343",
+      "b093fad8",
+      "a9967caf"
+    ],
+    "deferred_runtime_commit": "ff6c2f07",
+    "patch": "tools/gpu_patches/sotc-pool-regions-trial.patch.json",
+    "scope": "Optional merged pool regions, full physical ranges and past-next-submission retirement; address registry/residency removal preserves local history hooks. No idle budget eviction; no default/pin update. Native game validation pending."
+  },
+  "review_20261112_fragment_regions": {
+    "checked_at": "2026-11-12T15:41:50.489429+00:00",
+    "heads": [
+      {
+        "repo": "AjncSystem/ShadowOfTheColossus-PC",
+        "sha": "ec7c7220dc223e1d3a5e37d78be5ce9d2505ffda",
+        "subject": "Release 0.74.1: the launcher updates from this repository again"
+      },
+      {
+        "repo": "bloodborne-native/bloodborne-runtime",
+        "sha": "234006761712f8621966c1a5e9f97b3b789a3d09",
+        "subject": "Metal: the pool imported in windows again; the low memory mode keeps regions"
+      },
+      {
+        "repo": "bloodborne-native/bloodborne-recomp",
+        "sha": "c60ccf8be752b8690f2813505c4daf9eafdb136b",
+        "subject": "Name the scene pass draw-item setup"
+      },
+      {
+        "repo": "bloodborne-native/bloodborne-mac",
+        "sha": "fa99ba4728f40edf1a396d58381866fb626561e8",
+        "subject": "0.10.1: release notes; launcher 0.10.1"
+      },
+      {
+        "repo": "shadps4-emu/shadPS4",
+        "sha": "09f84a0e753d04db6581ccd79c680c6431f73389",
+        "subject": "np_entitlement: Implement libSceNpEntitlementAccess (#5671)"
+      }
+    ],
+    "patch": "tools/gpu_patches/sotc-fragment-regions-trial.patch.json",
+    "scope": "Local compatibility correction: ordered read-only fragmented gathers resolve on-demand pool regions; producer-triggered bounded route evidence. No upstream pin updates, writable copyback or native game validation."
   }
 }

@@ -12,7 +12,7 @@ using SotcFragmentProducer::Hex;
     std::fprintf(stderr,"STOP_GPU_PRODUCER_BUNDLE: reason=%s; exit=23\n",reason);
     std::fflush(stderr);std::_Exit(23);
 }
-struct Config {std::string entry;unsigned output{},counter{};U64 minimum{};bool any_large_output{};};
+struct Config {std::vector<std::string> entries;unsigned output{},counter{};U64 minimum{};bool any_large_output{};};
 inline const Config& Settings() {
     static const Config c=[] {
         Config c;const char* env=std::getenv("SOTC_PRODUCER_BUNDLE");if(!env||!*env)return c;
@@ -22,8 +22,19 @@ inline const Config& Settings() {
             if((i<3&&end==std::string::npos)||(i==3&&end!=std::string::npos))Stop("layout");
             fields[i]=s.substr(begin,end==std::string::npos?end:end-begin);begin=end+1;
         }
-        c.entry=fields[0];if(c.entry.empty()||c.entry.size()>200)Stop("entry");
-        for(char x:c.entry)if(!((x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'))Stop("entry");
+        // At most two exact variants sharing the reviewed output/counter layout.
+        // Each gets half the existing budget so an early variant cannot starve the other.
+        size_t at=0;
+        do {
+            const auto end=fields[0].find('|',at);
+            const auto entry=fields[0].substr(at,end==std::string::npos?end:end-at);
+            if(entry.empty()||entry.size()>200||c.entries.size()==2)Stop("entry");
+            for(char x:entry)if(!((x>='a'&&x<='z')||(x>='A'&&x<='Z')||(x>='0'&&x<='9')||x=='_'))Stop("entry");
+            for(const auto& prior:c.entries)if(prior==entry)Stop("duplicate_entry");
+            c.entries.push_back(entry);
+            if(end==std::string::npos)break;
+            at=end+1;
+        } while(true);
         std::array<U64,3> values{};
         for(unsigned i=0;i<3;++i){if(fields[i+1].empty())Stop("layout");
             for(char x:fields[i+1]){if(x<'0'||x>'9'||values[i]>(8ull<<20))Stop("layout");values[i]=values[i]*10+unsigned(x-'0');}}
@@ -37,7 +48,8 @@ inline const Config& Settings() {
         return c;
     }();return c;
 }
-inline std::atomic<bool> armed{};
+inline std::array<std::atomic<bool>,2> armed{};
+inline std::array<std::atomic<U64>,2> entry_count{};
 inline std::atomic<U64> selected_count{},budget_omitted{};
 struct Slice {
     id<MTLBuffer> buffer=nil;
@@ -56,8 +68,11 @@ public:
     Capture(Owned& o,id<MTLDevice> device,BeginBlit begin_blit,unsigned x,unsigned y,unsigned z,
             id<MTLBuffer> indirect=nil,U64 indirect_offset=0) {
         const auto& c=Settings();
-        if(c.entry.empty()||!o.compute_pipeline||!o.compute_pipeline->shader||o.compute_pipeline->shader->entry!=c.entry)return;
+        if(c.entries.empty()||!o.compute_pipeline||!o.compute_pipeline->shader)return;
         const auto* shader=o.compute_pipeline->shader;
+        size_t selection=0;
+        while(selection<c.entries.size()&&shader->entry!=c.entries[selection])++selection;
+        if(selection==c.entries.size())return;
         const auto find=[&](unsigned slot)->const MetalFrame::Bound* {
             const MetalFrame::Bound* result=nullptr;
             for(const auto& b:shader->bindings) {
@@ -73,14 +88,19 @@ public:
         // Find is a bounded copy observation, not a completed producer or page lifetime claim.
         const auto origin=SotcFragment::Get().Find(identity,output->offset,output->size);
         const bool fragment=origin.found&&origin.copy.written;
-        if(fragment||c.any_large_output)armed.store(true);
-        if(!armed.load())return;
+        if(fragment||c.any_large_output)armed[selection].store(true);
+        if(!armed[selection].load())return;
+        if(++entry_count[selection]>32/c.entries.size()){
+            const auto n=++budget_omitted;
+            if(n==1||n%256==0)std::fprintf(stderr,"Producer bundle: budget exhausted omitted=%llu entry=%s\n",(unsigned long long)n,c.entries[selection].c_str());
+            return;
+        }
         seq=++selected_count;
-        if(seq>32){const auto n=++budget_omitted;if(n==1||n%256==0)std::fprintf(stderr,"Producer bundle: budget exhausted omitted=%llu\n",(unsigned long long)n);return;}
         if(!find(c.counter))Stop("missing_counter");
         if(indirect&&(indirect_offset%4||!SotcScatterProbe::ValidSpan(indirect_offset,12,indirect.length)))Stop("indirect_extent");
         std::ostringstream m;
-        m<<"{\"schema\":1,\"sequence\":"<<seq<<",\"entry\":"<<Quote(c.entry)
+        m<<"{\"schema\":1,\"sequence\":"<<seq<<",\"entry\":"<<Quote(c.entries[selection])
+         <<",\"selection_index\":"<<selection<<",\"selection_budget\":"<<32/c.entries.size()
          <<",\"output_slot\":"<<c.output<<",\"counter_slot\":"<<c.counter
          <<",\"output_fallback_observed\":"<<(fragment?"true":"false")
          <<",\"fragment_prerequisite_disabled\":"<<(c.any_large_output?"true":"false")
@@ -99,9 +119,9 @@ public:
             if(total>(32ull<<20))Stop("snapshot_budget");
             const U64 metal=reinterpret_cast<std::uintptr_t>((__bridge void*)bound->buffer);
             const auto match=SotcFragment::Get().Find(metal,v.offset,v.bytes);
-            if(seq==1&&b.set==0){
+            if(b.set==0){
                 v.audit=SotcBindingAudit::Find(b.binding,metal,v.offset,v.bytes);
-                SotcBindingAudit::Sample(unsigned(seq),v.slot,0,v.audit);
+                if(seq==1)SotcBindingAudit::Sample(unsigned(seq),v.slot,0,v.audit);
             }
             if(seq==1)SotcFragment::DumpHistory(v.slot,metal,v.offset,v.bytes);
             if(!slices.empty())m<<',';
