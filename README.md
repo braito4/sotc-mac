@@ -2,6 +2,10 @@
 
 Native ARM64 / Metal port based on bloodborne-native and shadPS4.
 
+This is an independent, unofficial project. It is not affiliated with, sponsored
+by, endorsed by, or otherwise associated with Sony or Sony Interactive
+Entertainment. All trademarks belong to their respective owners.
+
 **Playable on Apple M1 with 16 GB RAM, with visual artifacts and low frame rates.**
 Colored noise on textures remains; stray geometry can still occur. Recent private
 comparison runs completed without crashing, but stability is not guaranteed.
