@@ -5,223 +5,293 @@
   "files": {
     "gpu/CMakeLists.txt": {
       "before": "bd07707c9802006742ac0cfa38aa590f21be9de7d28b19d19b1c5777d954edc8",
-      "after": "54d510f2fa4a24c6b2de640f39372bbe88e99843db3f5468a3079ef1bab01395"
+      "after": "54d510f2fa4a24c6b2de640f39372bbe88e99843db3f5468a3079ef1bab01395",
+      "buffer_previous": "54d510f2fa4a24c6b2de640f39372bbe88e99843db3f5468a3079ef1bab01395"
     },
     "gpu/shadps4/core/libraries/videoout/driver.cpp": {
       "before": "bf5a2d88e7d5aed047b5e2a2b94364a7f4d2ef90b244a2ab1c71066d95085331",
-      "after": "9854bde6cc5addc355ff2598ad372b422c694eb889474282a595d367d80c413a"
+      "after": "9854bde6cc5addc355ff2598ad372b422c694eb889474282a595d367d80c413a",
+      "buffer_previous": "9854bde6cc5addc355ff2598ad372b422c694eb889474282a595d367d80c413a"
     },
     "gpu/shadps4/shader_recompiler/frontend/control_flow_graph.cpp": {
       "before": "88d7f695ad533f6ba53c3749b95c18c9688537099454439c9a56858dd7ff55ac",
-      "after": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104"
+      "after": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104",
+      "buffer_previous": "84db672b67f8f598888df14149654c10d89412fed6eaea78410d0ba7e0717104"
     },
     "gpu/shadps4/shader_recompiler/frontend/copy_shader.cpp": {
       "before": "e93ccc3ea86d2d4f4fe60d68ae0e31e761fc0d356fe78ea8e66a057efb1c4b84",
-      "after": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386"
+      "after": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386",
+      "buffer_previous": "2e678d73100dd6d2b3ce177fb8a71502a3a920509490f4fba9e9b24c22b2c386"
     },
     "gpu/shadps4/shader_recompiler/frontend/decode.cpp": {
       "before": "2100a0f2211c60cd2c7703ae92455789a85a74bfbb24e42f3acd68ba6fde0e42",
-      "after": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654"
+      "after": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654",
+      "buffer_previous": "5e54f62db5ce8120ec8838a16aecbae2be20a831b54781cb5e972d94a9bea654"
     },
     "gpu/shadps4/shader_recompiler/frontend/decode.h": {
       "before": "175108a9b89b4ddc96dde7578145b1c082e77ffb03f78dd43afca3a472666a3a",
-      "after": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0"
+      "after": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0",
+      "buffer_previous": "f0ac01df31bbeed41effeed3021476d133bff8d19d12f1b6db0fd059af15c0e0"
     },
     "gpu/shadps4/shader_recompiler/frontend/fetch_shader.cpp": {
       "before": "e990e2aae7195008a4a2e26eea95bb13328b29a0d010d2fba05ab4812f14457c",
-      "after": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6"
+      "after": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6",
+      "buffer_previous": "4b10c885d45d2b4c08fa707df78796d6c2b900e132e1ad867d755afbef3036f6"
     },
     "gpu/shadps4/shader_recompiler/frontend/format.cpp": {
       "before": "6643fec4a63da01e37ad08f9df1816b4646e99409ada05875b2316c5c7371613",
-      "after": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898"
+      "after": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898",
+      "buffer_previous": "8674d3b6805882c9d9a4919daa5df48727ee4e7ccce46ca3a2ff640ffb7e1898"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/constant_propagation_pass.cpp": {
       "before": "042d734edf6f9b9d4b91b872fb62b3ab8d11234afdd2c2cd669314488eca34fc",
-      "after": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b"
+      "after": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b",
+      "buffer_previous": "842b38e584dedb256214fdb1774465a2e3d2316429d3d5368df3e370f813070b"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/flatten_extended_userdata_pass.cpp": {
       "before": "b8f16675db0811fbaf1cf26ca7e13750d06c4320bc0483f6b91f7c7b461a2f5b",
-      "after": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8"
+      "after": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8",
+      "buffer_previous": "5fbee78ac4b8c13b830dd32fe98ef72f5c5e92449d8f2e5d2126eca3b6e889e8"
     },
     "gpu/shadps4/shader_recompiler/ir/passes/lower_wave64_pass.cpp": {
       "before": "4e3c5bba7bb33be7af40dde9be84321354c909354accbf6c66ee2acd1dccf9cb",
-      "after": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
+      "after": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a",
+      "buffer_previous": "822969e4d4986ed04e4a86b5d85870a40433503e48f6388f4283a88142fbfc9a"
     },
     "gpu/shadps4/shader_recompiler/recompiler.cpp": {
       "before": "b5b89ef2f4e31571fd339e65a238ac6a0a831e593aa6a95d59204d6a2aa4bb52",
-      "after": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0"
+      "after": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0",
+      "buffer_previous": "3783002086e2dd9d24592e82ca75022ccf1ee80cb26722c707ec7bdb247c0ef0"
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.cpp": {
       "before": "d2e1a4b0b0eb6c64c99d319fa4bdfd9c2a99e54c89cd1811bfcc44e8abc84798",
-      "after": "8c7f709bfc93a314c7e33ab59c22a254cd6a5489c4c9b976a51b5be72bb77858"
+      "after": "8c7f709bfc93a314c7e33ab59c22a254cd6a5489c4c9b976a51b5be72bb77858",
+      "buffer_previous": "8c7f709bfc93a314c7e33ab59c22a254cd6a5489c4c9b976a51b5be72bb77858"
     },
     "gpu/shadps4/video_core/amdgpu/liverpool.h": {
       "before": "8b75644f3c7d868376ae76c656eb18b462dfb0305d6d65081cfeec1cf2437c8e",
-      "after": "92955814f3f582ca9a7c4cb772c3165c54b6e2660af70a89d14f0eeea2aecb23"
+      "after": "92955814f3f582ca9a7c4cb772c3165c54b6e2660af70a89d14f0eeea2aecb23",
+      "buffer_previous": "92955814f3f582ca9a7c4cb772c3165c54b6e2660af70a89d14f0eeea2aecb23"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp": {
       "before": "afc4b8bdf03cc68f1c4eea30bd8bd718dbefbe9a71bd7535180f16536eef5149",
-      "after": "c6ea582ccda47cfa4af8673c3f74a0e81fcfbd9ad400289bd7c08f36839610ed"
+      "after": "baaec4347622eb7f9fbbe7fa2c6ffe1884ffdd5f60014c8ad381b42df6815213",
+      "buffer_previous": "c6ea582ccda47cfa4af8673c3f74a0e81fcfbd9ad400289bd7c08f36839610ed"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer_cache.h": {
       "before": "c05c6e5523de477042a5bf1e99f564fae9be642194b671c154e76e0db6d27979",
-      "after": "a2705a5e9b94f022bda58e05ffc301862e2e75d49da8c4439bc7858427aec6fc"
+      "after": "e79d353cea169a0e2b2c124602960d985764ba11ca28c1b59f7f7ebfffefd8e2",
+      "buffer_previous": "a2705a5e9b94f022bda58e05ffc301862e2e75d49da8c4439bc7858427aec6fc"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.h": {
       "before": "664d04a1cde28e54e04ebe92a94fdcdb4c255656574fb411289ef7eea021cc1f",
-      "after": "dfa38eed767fc2b6e3b73a9a9cb97aa30ae5491a6887bdf1658102ea38b20f3d"
+      "after": "dfa38eed767fc2b6e3b73a9a9cb97aa30ae5491a6887bdf1658102ea38b20f3d",
+      "buffer_previous": "dfa38eed767fc2b6e3b73a9a9cb97aa30ae5491a6887bdf1658102ea38b20f3d"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_frame.mm": {
       "before": "0bb4c04712dfcde943c8f80d8f9fab1f45276e1cbc8f80d2233b054952378e04",
-      "after": "2eef1cb48d6c5f07d75cf4a88ac01fa911bd94f2052b4089806c4cdc88928ef0"
+      "after": "fae8a96744b73c170c2c59d9780c8ea575d84041f6db285c558152d763d774c0",
+      "buffer_previous": "2eef1cb48d6c5f07d75cf4a88ac01fa911bd94f2052b4089806c4cdc88928ef0"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_layer.mm": {
       "before": "019a2a95fa17244afbe929df235f1933f49c4eb08e1b1cf54a6b18bf9377aab3",
-      "after": "041164fa11ad5775291bc2603fa256d7469e0f4c17213fc23f54daea947cb6ca"
+      "after": "041164fa11ad5775291bc2603fa256d7469e0f4c17213fc23f54daea947cb6ca",
+      "buffer_previous": "041164fa11ad5775291bc2603fa256d7469e0f4c17213fc23f54daea947cb6ca"
     },
     "gpu/shadps4/video_core/renderer_vulkan/liverpool_to_vk.cpp": {
       "before": "eae3bbe9854c376ecf15e1ca0136fd8f4956d8f9b94f9bba1086bbe757c79b3a",
-      "after": "e12c9c5309855f1b7e7e79add072539b738a295fd6b33428011ed99a8ff4abb4"
+      "after": "e12c9c5309855f1b7e7e79add072539b738a295fd6b33428011ed99a8ff4abb4",
+      "buffer_previous": "e12c9c5309855f1b7e7e79add072539b738a295fd6b33428011ed99a8ff4abb4"
     },
     "gpu/shadps4/video_core/renderer_vulkan/liverpool_to_vk.h": {
       "before": "d952ec78ba388db97bed2b94c52a2d8bc4062c0e44a116da42aa404dc012082a",
-      "after": "056b41969c8cc8d4f2224eb049807eb4b9910b35e6ff4fe46394963c923f74e1"
+      "after": "056b41969c8cc8d4f2224eb049807eb4b9910b35e6ff4fe46394963c923f74e1",
+      "buffer_previous": "056b41969c8cc8d4f2224eb049807eb4b9910b35e6ff4fe46394963c923f74e1"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_backend_device.cpp": {
       "before": "aa6ccbb76aa67b50660b82b9aa2b48f0d01ed67e88176f0aece7740c24cdf266",
-      "after": "ff99553584b12fa36ed0472410bacf5566e41bd40eb270717451c365a392990a"
+      "after": "ff99553584b12fa36ed0472410bacf5566e41bd40eb270717451c365a392990a",
+      "buffer_previous": "ff99553584b12fa36ed0472410bacf5566e41bd40eb270717451c365a392990a"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_backend_pipeline.cpp": {
       "before": "de67d8b1440c14d63745656b2d8bf3aeea081a13d44dc7cd63d868ad12e21715",
-      "after": "f57c96e582bbe67eb894770eb36eeffb893c671a01df1a1555d7e020bf0c98a3"
+      "after": "f57c96e582bbe67eb894770eb36eeffb893c671a01df1a1555d7e020bf0c98a3",
+      "buffer_previous": "f57c96e582bbe67eb894770eb36eeffb893c671a01df1a1555d7e020bf0c98a3"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_graphics_pipeline.cpp": {
       "before": "377f831af68c876636df81e7917709ae33ef89e9425d9a59ca33dada9a26fe0e",
-      "after": "6fcdd324bfef57325dc57af6bcb58bb06fe07d3175896609f137d62ed631e1e6"
+      "after": "6fcdd324bfef57325dc57af6bcb58bb06fe07d3175896609f137d62ed631e1e6",
+      "buffer_previous": "6fcdd324bfef57325dc57af6bcb58bb06fe07d3175896609f137d62ed631e1e6"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_cache.cpp": {
       "before": "7e0dd3159b914869e237d0a3630f706fec526bbf6f76a7412ad98fba238ca0ea",
-      "after": "7e23dfbfdc751024912d5afb6f4cea5cdb67e3dbbb160041751f797f7d96cfb3"
+      "after": "7e23dfbfdc751024912d5afb6f4cea5cdb67e3dbbb160041751f797f7d96cfb3",
+      "buffer_previous": "7e23dfbfdc751024912d5afb6f4cea5cdb67e3dbbb160041751f797f7d96cfb3"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_pipeline_serialization.cpp": {
       "before": "a803d75365eea02730bf9105e73b1b6f9ca723e4306d668b9d50f557fec5db9b",
-      "after": "fa4355c56e2a2e769ca53168a2da07e41743b8dcadb8dc21c1858ec505b27845"
+      "after": "fa4355c56e2a2e769ca53168a2da07e41743b8dcadb8dc21c1858ec505b27845",
+      "buffer_previous": "fa4355c56e2a2e769ca53168a2da07e41743b8dcadb8dc21c1858ec505b27845"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp": {
       "before": "190a55a6b24dee45dc51bbf71a3701a518241bee43d3bc8bfcb909aee2512637",
-      "after": "c424262ef7bd3a3fdf6acb655cab784de1ca6ece0c9d05a5839a3ba6b6a83d56"
+      "after": "c424262ef7bd3a3fdf6acb655cab784de1ca6ece0c9d05a5839a3ba6b6a83d56",
+      "buffer_previous": "c424262ef7bd3a3fdf6acb655cab784de1ca6ece0c9d05a5839a3ba6b6a83d56"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp": {
       "before": "e498b9afb0f46c295610268e1bb900684f1b9faf63c43e3d91b1fe2a59db7bc4",
-      "after": "68c1e215d3d31e2deece5e31c3a6618be45c818ab57c51612fd4aff7b14e8406"
+      "after": "aa374fb5b9da1138269390832383964b9d18b43e72a5dce92fe31a0fc6c372a1",
+      "buffer_previous": "68c1e215d3d31e2deece5e31c3a6618be45c818ab57c51612fd4aff7b14e8406"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.h": {
       "before": "92386fb6734b01e379265274184284bea066aceaa9adb86b99abe5773e230346",
-      "after": "7954ce3dc3ea3c26b6e04085ee0a4518306f9e648e8d3dd8e05926410d3e02a1"
+      "after": "7954ce3dc3ea3c26b6e04085ee0a4518306f9e648e8d3dd8e05926410d3e02a1",
+      "buffer_previous": "7954ce3dc3ea3c26b6e04085ee0a4518306f9e648e8d3dd8e05926410d3e02a1"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_resource_backend.cpp": {
       "before": "0df8473b41fd7b4e8f9080e4230ef6d884dc9ef1e62896d54b52c5ca4cd4c477",
-      "after": "de82e944c726a16779a3a7e331056108634aef0a532e372eb8faaef1c982ecef"
+      "after": "de82e944c726a16779a3a7e331056108634aef0a532e372eb8faaef1c982ecef",
+      "buffer_previous": "de82e944c726a16779a3a7e331056108634aef0a532e372eb8faaef1c982ecef"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.cpp": {
       "before": "ccc3b2c7db302b8174c36f1a9d25c4daec5163e9a87d1ed507f0e457092c2406",
-      "after": "5e5fba25ead312dddf8d8c83d139ad7ba34a4a71f55c9f142faf3d4e66e328c7"
+      "after": "5e5fba25ead312dddf8d8c83d139ad7ba34a4a71f55c9f142faf3d4e66e328c7",
+      "buffer_previous": "5e5fba25ead312dddf8d8c83d139ad7ba34a4a71f55c9f142faf3d4e66e328c7"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.cpp": {
       "before": "e14f850ae4c07c0278d14bd4c8cb7e5a32e5d36b8fec506a74f3e5b9e19fc293",
-      "after": "e8880b2c72556a4d272240dfc4d8a3e1782ff1bb4172a205c4697260471b7543"
+      "after": "e8880b2c72556a4d272240dfc4d8a3e1782ff1bb4172a205c4697260471b7543",
+      "buffer_previous": "e8880b2c72556a4d272240dfc4d8a3e1782ff1bb4172a205c4697260471b7543"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scene_resolution.h": {
       "before": "d3d3319c30e2a3afe1137295a16be45a2a4f62e34143795206b4eb6b6a187861",
-      "after": "217521e02dd9808529deea422a5f4de507e049e939f4914ac5da901b286448ae"
+      "after": "217521e02dd9808529deea422a5f4de507e049e939f4914ac5da901b286448ae",
+      "buffer_previous": "217521e02dd9808529deea422a5f4de507e049e939f4914ac5da901b286448ae"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.cpp": {
       "before": "711d2666bc5b87c5f51c4b0b4996ca5c695025aae2c34107352708cee52a9dd7",
-      "after": "c45f637526fdc14996a62c06f3a1cd70365bebb6e572722c383290aed8023a17"
+      "after": "c45f637526fdc14996a62c06f3a1cd70365bebb6e572722c383290aed8023a17",
+      "buffer_previous": "c45f637526fdc14996a62c06f3a1cd70365bebb6e572722c383290aed8023a17"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_scheduler.h": {
       "before": "65b2f9c763fc35745813bc2b5a006e74fc174c7d71bf0c2c163a28d28b3f2498",
-      "after": "a20f7acc2a3e006cbb4b42eb35d7b2e491d51a97a970f5da3bf683a824265608"
+      "after": "a20f7acc2a3e006cbb4b42eb35d7b2e491d51a97a970f5da3bf683a824265608",
+      "buffer_previous": "a20f7acc2a3e006cbb4b42eb35d7b2e491d51a97a970f5da3bf683a824265608"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.cpp": {
       "before": "bed50c41abd778bd3f18de9dc1293e63cc15f39879a7d391bd43017ed27279d7",
-      "after": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
+      "after": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff",
+      "buffer_previous": "ceac73560c18ccdd5d058c836186b730ba119acdc67720a0124b94bb458478ff"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_shader_util.h": {
       "before": "cdefa2b9907a8581a1c29c1314a075a44d5924c37d1a2e94ea32cc94bfabfc0f",
-      "after": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
+      "after": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58",
+      "buffer_previous": "998a6b48f0f4cb51e95b19e82b7f40c9390ed10437f9f2b0fb0030f7f9564e58"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.cpp": {
       "before": "60f0befa035c1d432ae29bff7b9aa7a6760f3b614ec557942ae4590e11fed63b",
-      "after": "b71a38c5d477de5eb7d0e013fa80f002117e04481d4299e58aaf584fb35d39d0"
+      "after": "45bef1aefd3789b11498fc00708177c268718dc5a8e6860085ff06dfe18fc164",
+      "buffer_previous": "b71a38c5d477de5eb7d0e013fa80f002117e04481d4299e58aaf584fb35d39d0"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_staging_buffer_pool.h": {
       "before": "7dc2fdd02815e75b9e3e3aab95721ac34b0e7050b3d379275078685d09fdb39a",
-      "after": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f"
+      "after": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f",
+      "buffer_previous": "e180f78a4f38af2b773bcd536189cd4066c5654aeff4c5ca8b337634fb1d254f"
     },
     "gpu/shadps4/video_core/texture_cache/image.cpp": {
       "before": "d240cff1a81f2de094b905e27de845054b7ec6252059909fd66674d5de7879b2",
-      "after": "e968aadd519629f3055cc4bbf1e6b4105dd78f7151b1f311b6332b1eff99fc6a"
+      "after": "e797d602a8a976407a4522fba16ac50b75d59a10c10c4c200853c6af8024ad76",
+      "buffer_previous": "e968aadd519629f3055cc4bbf1e6b4105dd78f7151b1f311b6332b1eff99fc6a"
     },
     "gpu/shadps4/video_core/texture_cache/texture_cache.cpp": {
       "before": "abc4e9ba00d6ac146bdf2bd42b475f07eb5fd7a33f1172e26295f1ecb5804acb",
-      "after": "fa0b3fb3aa216cc2c9aa8c8e9f9542e3f8b8de040357f8153e9d3f9b7781bb7c"
+      "after": "fa0b3fb3aa216cc2c9aa8c8e9f9542e3f8b8de040357f8153e9d3f9b7781bb7c",
+      "buffer_previous": "fa0b3fb3aa216cc2c9aa8c8e9f9542e3f8b8de040357f8153e9d3f9b7781bb7c"
     },
     "gpu/shim/bbport_free_check.cpp": {
       "before": "5ebe8fc3d1471bc05ca240e4b1cf47ee220389bce9d954d1cedd7c95665f044e",
-      "after": "6127d893e105825c699776cc1b839f6a647e7e30e9f4ff9a3e2046b74a1b3755"
+      "after": "6127d893e105825c699776cc1b839f6a647e7e30e9f4ff9a3e2046b74a1b3755",
+      "buffer_previous": "6127d893e105825c699776cc1b839f6a647e7e30e9f4ff9a3e2046b74a1b3755"
     },
     "gpu/shim/common/assert.cpp": {
       "before": "41e438bb962eff926c07e59596a70b0956b52e60dc0631d5757f6a36cdf9b3a6",
-      "after": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031"
+      "after": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031",
+      "buffer_previous": "2c2089cbdab883a56235d0b9b9cfcff2ab9c7c27c82d6a831b679f3863aac031"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_resources.mm": {
       "before": "6748ccddb71f79e718d3a0a0ac8f9db8383293f1c1bc78e241eee7eeb0f46766",
-      "after": "af85ab42bef063dd33c48e3fbe5d12a4da79eb4257c623217fd55ff62ff08910"
+      "after": "b61c77b73d980353f0474986b7f1e0b8152a4d53ee7325a3c7b380818dc82776",
+      "buffer_previous": "af85ab42bef063dd33c48e3fbe5d12a4da79eb4257c623217fd55ff62ff08910"
     },
     "gpu/shadps4/video_core/texture_cache/tile_manager.cpp": {
       "before": "f780aa1c4a48f417f7d3ca3e026fcfdb4fa044fd80249fba2f40736ff9c9ba69",
-      "after": "d4f56dbd9d47fc2ccb227362c5e4595572aa3cd71ed762ce00a1e41ad103aea4"
+      "after": "d4f56dbd9d47fc2ccb227362c5e4595572aa3cd71ed762ce00a1e41ad103aea4",
+      "buffer_previous": "d4f56dbd9d47fc2ccb227362c5e4595572aa3cd71ed762ce00a1e41ad103aea4"
     },
     "gpu/shadps4/video_core/buffer_cache/buffer.cpp": {
       "before": "c1325fbf676b4299601ad80d78cda38c0ccaf8f0513d3c8cdd5f1ec1579a56c0",
-      "after": "8e03d3dedbd70e2a17e567997baf76f3395cd87fdf9e6b19c14d85330c83bc1e"
+      "after": "8e03d3dedbd70e2a17e567997baf76f3395cd87fdf9e6b19c14d85330c83bc1e",
+      "buffer_previous": "8e03d3dedbd70e2a17e567997baf76f3395cd87fdf9e6b19c14d85330c83bc1e"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_shader.mm": {
       "before": "2c7ce9ca13b2f191a8f0eaf2f05c71fcbaf8c90ea01480625e336dbdaf6da656",
-      "after": "2eab80b461f1bd9e66808b7a5083776e7f1d692cdbd5ee9b90458993e6d27c8f"
+      "after": "2eab80b461f1bd9e66808b7a5083776e7f1d692cdbd5ee9b90458993e6d27c8f",
+      "buffer_previous": "2eab80b461f1bd9e66808b7a5083776e7f1d692cdbd5ee9b90458993e6d27c8f"
     },
     "gpu/shadps4/video_core/renderer_vulkan/vk_runtime.h": {
       "before": "0022f6d86ef06588ebf524fa399d99eb6fe3df3827013e42930f082a1d064a52",
-      "after": "321d22bffbfa547969fafb08461f2a47cbbf41c0314a56e5d1144c67f000db21"
+      "after": "321d22bffbfa547969fafb08461f2a47cbbf41c0314a56e5d1144c67f000db21",
+      "buffer_previous": "321d22bffbfa547969fafb08461f2a47cbbf41c0314a56e5d1144c67f000db21"
     },
     "gpu/shadps4/video_core/renderer_backend/resource.h": {
       "before": "408ffd0721f1b8cebe4a00898fa0b15a8fb25e337c7a4da8a3de449b2222216f",
-      "after": "408ffd0721f1b8cebe4a00898fa0b15a8fb25e337c7a4da8a3de449b2222216f"
+      "after": "408ffd0721f1b8cebe4a00898fa0b15a8fb25e337c7a4da8a3de449b2222216f",
+      "buffer_previous": "408ffd0721f1b8cebe4a00898fa0b15a8fb25e337c7a4da8a3de449b2222216f"
     },
     "gpu/shadps4/video_core/renderer_metal/mtl_vk_caps.mm": {
       "before": "dde26d0a28272980bb9e196e14c957880b6c07920fbde81663b3f51c4b76f98b",
-      "after": "dde26d0a28272980bb9e196e14c957880b6c07920fbde81663b3f51c4b76f98b"
+      "after": "dde26d0a28272980bb9e196e14c957880b6c07920fbde81663b3f51c4b76f98b",
+      "buffer_previous": "dde26d0a28272980bb9e196e14c957880b6c07920fbde81663b3f51c4b76f98b"
     },
     "gpu/shadps4/video_core/texture_cache/texture_cache.h": {
       "before": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830",
-      "after": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830"
+      "after": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830",
+      "buffer_previous": "6cac66fc5041debbd84465b7149af85b01f85ae98249296cf890ae44d1294830"
     },
     "gpu/shadps4/video_core/texture_cache/types.h": {
       "before": "34fcf9fa1811e552e9154366483eed0ebcf7b748865f87652449eea98bc7f113",
-      "after": "e87d574392ac1e8ee6db2e13e7dca04cac25f8686e74d6f10f8fad09927d23b3"
+      "after": "e87d574392ac1e8ee6db2e13e7dca04cac25f8686e74d6f10f8fad09927d23b3",
+      "buffer_previous": "e87d574392ac1e8ee6db2e13e7dca04cac25f8686e74d6f10f8fad09927d23b3"
     },
     "gpu/shadps4/common/lru_cache.h": {
       "before": "487e9f8f4c6708e346f2393023382ddb19d75219b87fdd56c9c9170b33e19a57",
-      "after": "67c6689c7c096bc7d208229ced24414e113d3cc46362169abd0d63caed32b2cb"
+      "after": "67c6689c7c096bc7d208229ced24414e113d3cc46362169abd0d63caed32b2cb",
+      "buffer_previous": "67c6689c7c096bc7d208229ced24414e113d3cc46362169abd0d63caed32b2cb"
     },
     "gpu/shim/bbport_threads.h": {
       "before": "14ac023150f805322206a8f96c4deff0e5cbe7d2d41e9b9cb167e57458f96b89",
-      "after": "5145b5dee6a87a2f0c0047dedc8b719c77f3815213bb7e0cdd3008f1348fab48"
+      "after": "5145b5dee6a87a2f0c0047dedc8b719c77f3815213bb7e0cdd3008f1348fab48",
+      "buffer_previous": "5145b5dee6a87a2f0c0047dedc8b719c77f3815213bb7e0cdd3008f1348fab48"
+    },
+    "gpu/shadps4/video_core/renderer_metal/mtl_pso_cache.mm": {
+      "before": "02e78440402ccc76b706678cd6d779094f926f7d04fbc3f572746a13548d63de",
+      "buffer_previous": "02e78440402ccc76b706678cd6d779094f926f7d04fbc3f572746a13548d63de",
+      "after": "39e6360d06c01aad262b71a309357bbffa2fb5efe8ce6c9a906ec29c93ae06d5"
+    },
+    "gpu/shadps4/video_core/texture_cache/image_info.cpp": {
+      "before": "e04b8cacf580f0994349abfce8863969baf4f3836bf6bb9b093fac9f6f604636",
+      "buffer_previous": "e04b8cacf580f0994349abfce8863969baf4f3836bf6bb9b093fac9f6f604636",
+      "after": "ac8e0d8917cf87009d38155c39f58b3b632abe4d263c48579e7a3ce9f7583772"
+    },
+    "gpu/shadps4/video_core/renderer_metal/mtl_recorder.mm": {
+      "before": "6c92803d80ab067fb0a90ad53cd91ef2abb9b2a5f4652734826a4548aaabb74d",
+      "buffer_previous": "6c92803d80ab067fb0a90ad53cd91ef2abb9b2a5f4652734826a4548aaabb74d",
+      "after": "b53c9f7ba5b06ba3943c6f77c725c927a96c8f5ce781f2f697e4c000fc9a26a6"
     }
   },
   "patches": {
-    "sotc-metal-adapter-20261029.patch.json": "0bbd6bb2205cb88a783ebf7a86ca3694a32e70f81f9fb488aa5ab8a8ff5d6915"
+    "sotc-metal-adapter-20261029.patch.json": "0bbd6bb2205cb88a783ebf7a86ca3694a32e70f81f9fb488aa5ab8a8ff5d6915",
+    "sotc-buffer-corrections.patch.json": "b23a06a4d213cb6197aae2cd633b6286e784450a214bb6aa01169311b85968ab"
   },
   "local_adaptations": [
     "sotc-submission-trace-v1",
@@ -277,7 +347,8 @@
     "Opt-in owned Metal command-buffer timing using completion GPU timestamps and Mach absolute host time. Separate admission and precommit delay; no extra GPU waits; aggregate every five seconds, not frame time/utilization.",
     "2026-11-02: shadPS4 3b53747f5b0bb7124f7aa2c80a848684c0b56c92: honor boolean early-stop callbacks in LRU traversal.",
     "2026-11-02: runtime 44de77d05834ec3f7ce8cb334a8d633d8a563bb6 renderer QoS subset: user-interactive GPU processor and recording threads; BB_THREAD_QOS=0 restores previous scheduling.",
-    "2026-11-02: runtime 1117ddaa286636a8807920c05bc67ff12a4bd1b5 final GPU-only image retention predicate, including GpuDirty exclusion; never discard sole valid GPU contents under critical pressure."
+    "2026-11-02: runtime 1117ddaa286636a8807920c05bc67ff12a4bd1b5 final GPU-only image retention predicate, including GpuDirty exclusion; never discard sole valid GPU contents under critical pressure.",
+    "Consolidated previously compiled buffer/region integration: optional fragment gather and guarded producer writeback, bound to explicitly supplied private selectors. Defaults do not enable experimental shader selection or input freezing."
   ],
   "submodule_overrides": {
     "gpu/third_party/imgui": {
@@ -290,5 +361,8 @@
       "base": "d1330049e97684610d9fb19020b2b3fcbd25ba9e",
       "after": "4d9c38444cac9b58c088685042665b8dd5314b54"
     }
-  }
+  },
+  "buffer_previous_patches": [
+    "sotc-metal-adapter-20261029.patch.json"
+  ]
 }

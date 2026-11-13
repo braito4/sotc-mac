@@ -6,7 +6,7 @@ trial_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)"
 runtime_key="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["workspace_key"])' "$trial_root/tools/dependencies.json")"
 runtime_repo="${SOTC_RUNTIME_SOURCE:-$trial_root/work/gpu-source-$runtime_key}"
 cpu_repo="${SOTC_CPU_SOURCE:-$runtime_repo/recomp}"
-trial_deps="${BB_DEPS:-$trial_root/work/deps-arm64}"
+trial_deps="${BB_DEPS:-$runtime_repo/deps/macos-arm64}"
 trial_work="${SOTC_HOST_BUILD_DIR:-$trial_root/work}"
 mkdir -p "$trial_work"
 trial_work="$(cd -- "$trial_work" && pwd -P)"
@@ -17,7 +17,7 @@ python3 "$trial_root/tools/host_build_manifest.py" --runtime "$runtime_repo" --c
     --output "$trial_work/host-inputs.json"
 BB_DEPS="$trial_deps" bash "$trial_root/tools/build_cpu.sh" "$cpu_repo"
     [[ -f "$cpu_repo/out/libbbcpu.a" ]] || fail 'Build bbcpu first with --test.'
-    [[ -f "$trial_deps/lib/libZydis.a" && -f "$trial_deps/lib/libZycore.a" ]] || fail "Build Zydis 4.1.1 and Zycore in $trial_deps or set BB_DEPS. See docs/guide/building.md."
+    [[ -f "$trial_deps/lib/libZydis.a" && -f "$trial_deps/lib/libZycore.a" ]] || fail "Build Zydis 4.1.1 and Zycore in $trial_deps or set BB_DEPS. See docs/BUILD.md."
     mkdir -p "$trial_root/work" "$trial_root/logs"
     trial_flags=(-arch arm64 -O2 -std=gnu11 -Wall -Wextra -Werror -pthread
         -I"$trial_deps/include" -I"$cpu_repo/src" -I"$cpu_repo/src/cpu" -I"$runtime_repo/src" -I"$runtime_repo/gpu"
