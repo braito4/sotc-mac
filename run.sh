@@ -11,5 +11,14 @@ python3 tools/prepare_linked_arm64.py --system-gesture-module "$sotc_modules/lib
 mkdir -p work logs
 sotc_state=$(mktemp -d "$sotc_root/work/game-state-XXXXXX")
 source tools/runtime-settings.sh
+source tools/reference-render-settings.sh
+sotc_renderer="$sotc_root/work/gpu-build-994846bb7bb5/libbbgpu.dylib"
+sotc_image="$sotc_root/work/sotc-graphics-arm64/boot-linked.bin"
+if [[ "${SOTC_REUSE_SHADER_CACHE:-1}" == 1 ]]; then
+    python3 tools/reuse_shader_cache.py --state "$sotc_state" --library "$sotc_renderer" --image "$sotc_image"
+fi
 export SOTC_DIAGNOSTIC_SECONDS="${SOTC_RUN_SECONDS:-180}" SOTC_GPU_UTILIZATION=1
-exec python3 tools/run_gpu_diagnostic.py --seconds "$SOTC_DIAGNOSTIC_SECONDS" --log "$sotc_root/logs/game-$(date -u +%Y%m%dT%H%M%SZ).log" --cooperative-stop -- "$sotc_root/work/sotc-arm64" "$sotc_root/work/sotc-graphics-arm64/boot-linked.bin" --bootstrap --game-root "$SOTC_GAME_ROOT" --graphics-library "$sotc_root/work/gpu-build-994846bb7bb5/libbbgpu.dylib"
+python3 tools/run_gpu_diagnostic.py --seconds "$SOTC_DIAGNOSTIC_SECONDS" --log "$sotc_root/logs/game-$(date -u +%Y%m%dT%H%M%SZ).log" --cooperative-stop -- "$sotc_root/work/sotc-arm64" "$sotc_image" --bootstrap --game-root "$SOTC_GAME_ROOT" --graphics-library "$sotc_renderer"
+if [[ "${SOTC_REUSE_SHADER_CACHE:-1}" == 1 ]]; then
+    python3 tools/reuse_shader_cache.py --state "$sotc_state" --complete
+fi

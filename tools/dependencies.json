@@ -260,8 +260,8 @@
   ],
   "workspace_key": "994846bb7bb5",
   "validation": {
-    "renderer_cache": "30/9",
-    "renderer": "Native ARM64 build passed; 38/38 CPU-side renderer regressions, persisted permutation allocation regression and fresh overlay reproduction passed. Native load check passed; no GPU gameplay validation of this update yet.",
+    "renderer_cache": "46/9",
+    "renderer": "Native Metal reference backports. Game stability and geometry require a new gameplay comparison.",
     "native_game": "Previous builds are playable with artifacts on M1. October 29 runtime/CPU update and optional texture helper await local M1 gameplay comparison. M5 log game-20261028T190946Z used the previous build; no further M5 testing planned.",
     "cpu": "Native host build, emitter/fault/hooks, local CPU regressions and full synthetic JIT/interpreter contracts passed.",
     "builder": "26 builder tests passed."

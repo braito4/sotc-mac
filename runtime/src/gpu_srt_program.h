@@ -5,16 +5,24 @@
 #include <cstdint>
 #include <span>
 #include "gpu_shader_decode.h"
+#include "gpu_srt_window.h"
 
 namespace SotcSrtProgram {
 struct Error { const char* reason{}; std::size_t word{}; };
 // Opcodes are the persisted SRTB format, checked against the producer enum.
-inline Error Validate(std::span<const std::uint32_t> code) {
+inline Error Validate(std::span<const std::uint32_t> code, std::uint32_t flat_words = 0) {
     if (code.empty() || code[0] != 0x42545253u) return {"srt_bad_magic", 0};
     unsigned depth = 0, values = 0;
     for (std::size_t pc = 1; pc < code.size();) {
         const auto at = pc;
         const auto word = code[pc++], op = word & 0x7fffffffu;
+        if (word == SotcSrtWindow::CopyOp && flat_words) {
+            if (!depth || pc >= code.size() || code[pc] < 16 || code[pc] > flat_words ||
+                flat_words - code[pc] < SotcSrtWindow::Dwords)
+                return {"srt_window_bounds", at};
+            ++pc;
+            continue;
+        }
         if (op > 20 || ((word & 0x80000000u) && op != 1 && op != 2 && op != 4 && op != 5))
             return {"srt_bad_opcode", at};
         const unsigned immediates = op == 4 ? 2 :

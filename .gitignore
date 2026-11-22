@@ -178,3 +178,13 @@
 !/runtime/src/cpu_import_origin.h
 !/runtime/src/memory_hook_queue.h
 !/runtime/src/memory_write_observer.h
+!/runtime/src/gpu_srt_window.h
+!/runtime/src/gpu_texture_gather.h
+!/tools/check_reference_renderer.py
+!/tools/reference-render-settings.sh
+!/tools/reuse_shader_cache.py
+!/tools/tests/reference_renderer.cpp
+!/tools/gpu_patches/sotc-reference-renderer.patch.json
+!/tools/package_runtime.py
+!/tools/launch_runtime.sh
+!/docs/BINARY.md

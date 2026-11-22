@@ -67,3 +67,8 @@ python3 -m unittest discover -s tools/tests
 Generated libraries, prepared game images, local logs and shader caches stay
 outside Git. The public tree does not need prior trial builds or private capture
 files to compile. Do not commit any game input or extracted/generated game code.
+
+
+## Package the ARM64 runtime
+
+After `bash build.sh`, create a runtime-only ZIP with `python3 tools/package_runtime.py work/SotC-Mac-arm64.zip`. The packager verifies the ARM64 executables, relocates their library dependencies, signs them ad hoc and checks the six renderer exports with the native host. Third-party notices can be supplied in an additional directory with `--notices`. Use `--library-dir` for dependencies built with neutral install paths when a dependency reports the builder's home directory in its configuration string. The ZIP is assembled from explicitly selected executables, libraries, scripts, licenses and instructions. See [binary launch instructions](BINARY.md).

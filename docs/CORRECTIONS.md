@@ -47,3 +47,12 @@ Both pristine-source and prior-overlay patch paths passed digest validation and
 idempotence checks. The existing full native CPU contract suite also passed in
 JIT and interpreter modes using the same dependency prefix. This was not a fresh download/rebuild of every dependency or
 a new gameplay run.
+
+## Metal reference update, 22 November 2026
+
+* Fragmented texture uploads can gather several mapped ranges in GPU command order. The complete upload must be covered by existing imports. The launcher enables this from 24 GiB of RAM. Set `SOTC_TEX_GATHER=1` to test it on a smaller Mac. [SotC-PC changeset](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/fc20cf117794b5e988aaf78ccbf33bb16ada918b)
+* The portable ARM64 shader interpreter and SPIR-V emitter support bounded 8 KiB reads for variable occluder indices. GPU-written lighting textures also survive overlaps confined to smaller mip levels. Both adaptations come from an open pull request. [SotC-PC #461](https://github.com/AjncSystem/ShadowOfTheColossus-PC/pull/461)
+* The low-memory profile caps the integrated GPU texture collector budget at 5120 MiB, respecting a smaller driver budget. Select it with `BB_LOW_MEMORY=1`. [Bloodborne runtime changeset](https://github.com/bloodborne-native/bloodborne-runtime/commit/d97fc678a912b2b6c23715f24ab0f197f646d55b)
+* `SOTC_SYNC_COMPILE_LOG=1` logs the first 200 shader translations. The source launcher can reuse completed compatible caches between runs. Set `SOTC_REUSE_SHADER_CACHE=0` for a cold comparison. The compute prefetch and Vulkan culling queue remain specific to the upstream implementation. [SotC-PC changeset](https://github.com/AjncSystem/ShadowOfTheColossus-PC/commit/53fd02920061cb41453b2f10802fe532d9510daa)
+
+After a native build, `python3 tools/check_reference_renderer.py` exercises a synthetic shader through the ARM64 table reader, SPIR-V validation and Metal shader translation. It also tests fragmented texture planning. Install SPIRV-Tools to run this check.

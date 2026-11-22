@@ -35,15 +35,16 @@ def main(argv=None):
     args = parser.parse_args(argv)
     out = args.out.expanduser().resolve()
     modules = list(MODULES)
-    if not ORIGINAL.is_file():
+    original = Path(os.environ.get('SOTC_ORIGINAL_IMAGE', ORIGINAL))
+    if not original.is_file():
         raise SystemExit('Prepare the original eboot as BBPROBE2 first.')
-    with ORIGINAL.open('rb') as source:
+    with original.open('rb') as source:
         if source.read(8) != b'BBPROBE2':
             raise SystemExit('Prepare the original eboot as BBPROBE2 first.')
     for name in MODULES:
         if not (GAME / 'sce_module' / name).is_file():
             raise SystemExit(f'Missing supplied game module: {name}')
-    sys.path.insert(0, str(SCRIPTS))
+    sys.path.insert(0, os.environ.get('SOTC_LINK_SCRIPTS', str(SCRIPTS)))
     import link_modules
     if args.system_gesture_module:
         gesture = args.system_gesture_module.expanduser().resolve()
@@ -71,10 +72,10 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=True)
     link = out / 'boot.bin'
     if link.exists() or link.is_symlink():
-        if not link.is_symlink() or link.resolve() != ORIGINAL.resolve():
+        if not link.is_symlink() or link.resolve() != original.resolve():
             raise SystemExit('Preserving an unexpected existing boot.bin in the linked output directory.')
     else:
-        link.symlink_to(ORIGINAL)
+        link.symlink_to(original)
     # Host-language metadata adapters only: no executable byte or input file is
     # patched. The pinned linker otherwise allocates TLS IDs for empty PT_TLS.
     read_module, patch_fs = link_modules.module, link_modules.patch_fs_loads

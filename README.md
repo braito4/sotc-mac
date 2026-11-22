@@ -11,6 +11,10 @@ Colored noise on textures remains; stray geometry can still occur. Recent privat
 comparison runs completed without crashing, but stability is not guaranteed.
 This is a development build, not a finished port. Saves are not yet validated.
 
+## Apple Silicon executable
+
+Download the runtime ZIP, extract it, then open **Jugar.command**. It uses your own decrypted game and original system modules. [ARM64 download](https://github.com/braito4/sotc-mac/releases/download/metal-arm64-2026-11-22/SotC-Mac-arm64.zip) · [Launch instructions](docs/BINARY.md)
+
 ## Build and run
 
 Requires Apple Silicon, macOS 15 or newer, Xcode Command Line Tools, Python 3,
